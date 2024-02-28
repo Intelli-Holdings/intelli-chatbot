@@ -6,7 +6,7 @@ import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-export function chat-window() {
+export function ChatWindow() {
   return (
     <div key="1" className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-md">
       <div className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-md">
@@ -44,7 +44,7 @@ export function chat-window() {
               I have some inquiries
             </Button>
             <Button className="w-full" variant="outline">
-              I'm here to make a reservation
+              I am here to make a reservation
             </Button>
           </div>
         </div>
@@ -59,7 +59,7 @@ export function chat-window() {
 }
 
 
-function ArrowLeftIcon(props) {
+function ArrowLeftIcon(props: any) {
   return (
     <svg
       {...props}
@@ -80,7 +80,7 @@ function ArrowLeftIcon(props) {
 }
 
 
-function VolumeIcon(props) {
+function VolumeIcon(props: any) {
   return (
     <svg
       {...props}
@@ -100,7 +100,7 @@ function VolumeIcon(props) {
 }
 
 
-function MicIcon(props) {
+function MicIcon(props: any) {
   return (
     <svg
       {...props}
@@ -122,7 +122,7 @@ function MicIcon(props) {
 }
 
 
-function SendIcon(props) {
+function SendIcon(props: any) {
   return (
     <svg
       {...props}
