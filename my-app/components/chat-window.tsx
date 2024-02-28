@@ -10,7 +10,7 @@ export function ChatWindow() {
   return (
     <div key="1" className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-md">
       <div className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-md">
-        <div className="flex items-center justify-between p-4 bg-[#00BFFF] text-white rounded-t-lg">
+        <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
           <ArrowLeftIcon className="text-white" />
           <div className="flex items-center space-x-2">
             <Avatar>
@@ -26,11 +26,11 @@ export function ChatWindow() {
         <div className="flex flex-col items-start justify-between flex-1 p-4">
           <div className="w-full">
             <div className="mb-4 text-sm">
-              <p className="font-bold">Intelli typically reply in under 5 minutes</p>
-              <p>Ask anything, I am here to help!</p>
+              <p className="font-bold text-gray-600 ">Intelli typically reply in under 5 minutes</p>
+              <p className="font-bold text-gray-700 ">Ask anything, I am here to help!</p>
             </div>
             <div className="flex flex-col space-y-2">
-              <div className="self-start rounded-lg bg-gray-100 p-3">
+              <div className="self-start rounded-lg border-gray-300 bg-gradient-to-b from-zinc-500 p-3 ">
                 <p>
                   Welcome! wonderful traveller, please select any of the options below to continue with our
                   conversation.
@@ -39,8 +39,8 @@ export function ChatWindow() {
               </div>
             </div>
           </div>
-          <div className="w-full mt-4">
-            <Button className="w-full mb-2" variant="default">
+          <div className="w-full mt-4 text-gray-500">
+            <Button className="w-full" variant="default">
               I have some inquiries
             </Button>
             <Button className="w-full" variant="outline">
@@ -50,7 +50,7 @@ export function ChatWindow() {
         </div>
         <div className="flex items-center justify-between p-4 border-t">
           <MicIcon className="text-gray-600" />
-          <Input className="flex-1 mx-4" placeholder="Type your message here" />
+          <Input className="flex-1 mx-4 bg-gray-100" placeholder="Type your message here" />
           <SendIcon className="text-gray-600" />
         </div>
       </div>
