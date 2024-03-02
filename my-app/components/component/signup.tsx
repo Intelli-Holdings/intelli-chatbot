@@ -57,7 +57,7 @@ export function Signup() {
         <div className="mt-4 text-center">
           <p className="text-sm">
             Already have an account?
-            <Link className="text-blue-600" href="#">
+            <Link className="text-blue-600" href="/auth/login">
               Log In
             </Link>
           </p>
