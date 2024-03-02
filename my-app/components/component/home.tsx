@@ -69,7 +69,7 @@ export function Home() {
               alt="Dashboard preview"
               className="mx-auto"
               height="400"
-              src="/placeholder.svg"
+              src="/Demo.svg"
               style={{
                 aspectRatio: "800/400",
                 objectFit: "cover",
@@ -87,7 +87,7 @@ export function Home() {
                   alt="Brand logo"
                   className="h-12"
                   height="50"
-                  src="/placeholder.svg"
+                  src="/Logo.svg"
                   style={{
                     aspectRatio: "150/50",
                     objectFit: "cover",
@@ -104,7 +104,7 @@ export function Home() {
             <div>
               <h3 className="text-xl font-semibold text-blue-600">Feature Title</h3>
               <p className="mt-2 text-gray-500">
-                Feature description goes here. It's a brief explanation of the benefit or feature.
+                Feature description goes here. It is a brief explanation of the benefit or feature.
               </p>
             </div>
           </div>
