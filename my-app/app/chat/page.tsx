@@ -35,7 +35,11 @@ export default function ChatWidget() {
   };
 
   return (
-    <div className="relative bg-white max-w-[400px]">
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">      
+      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
+             
+        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
+        <div className="relative bg-white max-w-[400px]">
       <p className="p-4 font-medium">Chat with me!</p>
       <div className="divide-y divide-gray-300/50 border-t border-gray-300/50">
         <div className="space-y-6 py-8 text-base leading-7 text-gray-600 h-[400px] overflow-y-auto">
@@ -72,5 +76,10 @@ export default function ChatWidget() {
         </form>
       </div>
     </div>
+          
+        </div>
+      </div>     
+    </main>
+    
   );
 }
