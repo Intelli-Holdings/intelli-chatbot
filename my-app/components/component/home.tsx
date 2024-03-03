@@ -7,13 +7,13 @@
 export function Home() {
   return (
     <div className="relative">
-      <div className="fixed top-0 left-0 right-0 z-10 bg-white/70 backdrop-blur-md">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-white/50 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-2">
           <div>
-            <img alt="Intelli Concierge" className="h-8" src="/Logo.svg" />
+            <img alt="Intelli Concierge" className="h-16" src="/Logo.svg" />
           </div>
           <nav className="flex space-x-4">
-            <a className="text-gray-600 hover:text-gray-900" href="#">
+            <a className="bold text-gray-600 hover:text-gray-900" href="#">
               Products
             </a>
             <a className="text-gray-600 hover:text-gray-900" href="#">
@@ -29,13 +29,13 @@ export function Home() {
           <div className="flex space-x-2">
             <a
               className="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-md shadow-sm hover:bg-gray-100"
-              href="#"
+              href="/auth/login"
             >
               Log In
             </a>
             <a
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700"
-              href="#"
+              href="/auth/register"
             >
               Get Started
             </a>
@@ -78,40 +78,111 @@ export function Home() {
             />
           </div>
         </section>
-        <section className="bg-gray-100 py-12">
+        <section className="bg-gray-100 py-12 text-center">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center text-blue-600">Brands that Love Us</h2>
-            <div className="mt-8 grid grid-cols-2 gap-8 md:grid-cols-4">
-              <div className="flex justify-center">
-                <img
-                  alt="Brand logo"
-                  className="h-12"
-                  height="50"
-                  src="/Logo.svg"
-                  style={{
-                    aspectRatio: "150/50",
-                    objectFit: "cover",
-                  }}
-                  width="150"
-                />
+            
+            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            <img
+              alt="Safari"
+              className="h-12 w-auto object-contain"
+              height="50"
+              src="/placeholder.svg"
+              style={{
+                aspectRatio: "150/50",
+                objectFit: "cover",
+              }}
+              width="150"
+            />
+            <img
+              alt="Marriott Accra"
+              className="h-12 w-auto object-contain"
+              height="50"
+              src="/placeholder.svg"
+              style={{
+                aspectRatio: "150/50",
+                objectFit: "cover",
+              }}
+              width="150"
+            />
+            <img
+              alt="Mövenpick"
+              className="h-12 w-auto object-contain"
+              height="50"
+              src="/placeholder.svg"
+              style={{
+                aspectRatio: "150/50",
+                objectFit: "cover",
+              }}
+              width="150"
+            />
+            <img
+              alt="Kempinski"
+              className="h-12 w-auto object-contain"
+              height="50"
+              src="/placeholder.svg"
+              style={{
+                aspectRatio: "150/50",
+                objectFit: "cover",
+              }}
+              width="150"
+            />
+            <img
+              alt="Holiday Inn"
+              className="h-12 w-auto object-contain"
+              height="50"
+              src="/placeholder.svg"
+              style={{
+                aspectRatio: "150/50",
+                objectFit: "cover",
+              }}
+              width="150"
+            />
+            <img
+              alt="Ibis"
+              className="h-12 w-auto object-contain"
+              height="50"
+              src="/placeholder.svg"
+              style={{
+                aspectRatio: "150/50",
+                objectFit: "cover",
+              }}
+              width="150"
+            />
+          </div>
+            </div>
+        </section>
+        <section className="py-12 text-center">
+     
+          
+        </section>
+        <section className="bg-gray-100 py-12">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center">How Hotels use Intelli</h2>
+            <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-3">
+              <div>
+                <div className="mx-auto h-12 w-12" />
+                <h3 className="mt-4 text-xl font-semibold">Weekly & Monthly Insights:</h3>
+                <p className="mt-2 text-sm">Elevate Report Quality, Minimize Time Investment</p>
+              </div>
+              <div>
+                <div className="mx-auto h-12 w-12" />
+                <h3 className="mt-4 text-xl font-semibold">Swift Responses to Inquiries:</h3>
+                <p className="mt-2 text-sm">Instantly Address Questions with your company Data</p>
+              </div>
+              <div>
+                <div className="mx-auto h-12 w-12" />
+                <h3 className="mt-4 text-xl font-semibold">Effective Escalation Management:</h3>
+                <p className="mt-2 text-sm">
+                  Empower Teams, Managers, and hotel departments with access to issues escalated beyond the assistant.
+                </p>
               </div>
             </div>
           </div>
         </section>
-        <section className="container mx-auto my-12 px-4">
-          <h2 className="text-3xl font-bold text-center text-blue-600">How Hotels use Intelli</h2>
-          <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-3">
-            <div>
-              <h3 className="text-xl font-semibold text-blue-600">Feature Title</h3>
-              <p className="mt-2 text-gray-500">
-                Feature description goes here. It is a brief explanation of the benefit or feature.
-              </p>
-            </div>
-          </div>
-        </section>
       </main>
-      <footer className="bg-gray-800 py-4">
-        <div className="container mx-auto px-4">
+      <footer className="w-full left-0 right-0 bg-gray-800 py-4 ">
+        <div className="container ">
           <p className="text-sm text-center text-gray-400">Need help? Get in touch with us.</p>
           <p className="mt-2 text-xs text-center text-gray-500">
             Terms of Use | Privacy Notice | Data Policy | Socials | © IntelliConcierge 2024
