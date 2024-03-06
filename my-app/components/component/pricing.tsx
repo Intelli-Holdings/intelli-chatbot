@@ -4,11 +4,47 @@
  */
 import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { JSX, SVGProps } from "react"
 
-export function pricing() {
+export function Pricing() {
   return (
     <div key="1" className="bg-gray-100 py-10">
       <div className="container mx-auto px-4">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-white/50 backdrop-blur-md">
+        <div className="container mx-auto flex items-center justify-between px-4 py-2">
+          <div>
+            <img alt="Intelli Concierge" className="h-16" src="/Logo.svg" />
+          </div>
+          <nav className="flex space-x-4">
+            <a className="bold text-gray-600 hover:text-gray-900" href="#">
+              Products
+            </a>
+            <a className="text-gray-600 hover:text-gray-900" href="/pricingPage">
+              Pricing
+            </a>
+            <a className="text-gray-600 hover:text-gray-900" href="#">
+              Resources
+            </a>
+            <a className="text-gray-600 hover:text-gray-900" href="#">
+              Company
+            </a>
+          </nav>
+          <div className="flex space-x-2">
+            <a
+              className="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-md shadow-sm hover:bg-gray-100"
+              href="/auth/login"
+            >
+              Log In
+            </a>
+            <a
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700"
+              href="/auth/register"
+            >
+              Get Started
+            </a>
+          </div>
+        </div>
+      </div>
         <nav className="flex justify-center items-center py-4">
           <div className="flex items-center space-x-6">
             <button className="text-gray-600 hover:text-gray-900" onClick={undefined}>
@@ -29,14 +65,14 @@ export function pricing() {
             <CardHeader>
               <CardTitle>Basic Plan</CardTitle>
               <p className="text-3xl font-semibold text-gray-800">
-                20€
+                $50
                 <span className="text-lg">Per Month{"\n"}</span>
               </p>
               <p className="text-sm text-gray-500">10% off for yearly subscription</p>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-6">Intelli helps you see how many more days you need...</p>
-              <Button className="w-full mb-2">Choose Plan</Button>
+              <Button className="w-full mb-2 bg-black text-white">Choose Plan</Button>
               <Button className="w-full" variant="ghost">
                 Learn More
               </Button>
@@ -68,14 +104,14 @@ export function pricing() {
             <CardHeader>
               <CardTitle>Premium Plan</CardTitle>
               <p className="text-3xl font-semibold text-gray-800">
-                50€
+                $100
                 <span className="text-lg">Per Month{"\n"}</span>
               </p>
               <p className="text-sm text-gray-500">10% off for yearly subscription</p>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-6">Intelli helps you see how many more days you need...</p>
-              <Button className="w-full mb-2">Choose Plan</Button>
+              <Button className="w-full mb-2 bg-black text-white">Choose Plan</Button>
               <Button className="w-full" variant="ghost">
                 Learn More
               </Button>
@@ -107,14 +143,14 @@ export function pricing() {
             <CardHeader>
               <CardTitle>Enterprise Plan</CardTitle>
               <p className="text-3xl font-semibold text-gray-800">
-                400€
+                $400
                 <span className="text-lg">Per Annum{"\n"}</span>
               </p>
               <p className="text-sm text-gray-500">Plan start from 12 months</p>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-6">Intelli helps you see how many more days you need...</p>
-              <Button className="w-full mb-2">Choose Plan</Button>
+              <Button className="w-full mb-2 bg-black text-white">Choose Plan</Button>
               <Button className="w-full" variant="ghost">
                 Learn More
               </Button>
@@ -149,7 +185,7 @@ export function pricing() {
 }
 
 
-function CheckIcon(props) {
+function CheckIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
