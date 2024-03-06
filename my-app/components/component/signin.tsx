@@ -23,7 +23,7 @@ export function Signin() {
             </label>
             <Input id="password" placeholder="**********" type="password" />
           </div>
-          <Button className="w-full" variant="default">
+          <Button className="w-full  bg-blue-600 text-white" variant="default">
             Login
           </Button>
         </form>

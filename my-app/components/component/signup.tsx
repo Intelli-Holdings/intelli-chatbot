@@ -51,7 +51,7 @@ export function Signup() {
             <Input id="password" placeholder="************" type="password" />
           </div>
           <div className="mt-6">
-            <Button className="w-full">Signup</Button>
+            <Button className="w-full  bg-blue-600 text-white">Signup</Button>
           </div>
         </form>
         <div className="mt-4 text-center">

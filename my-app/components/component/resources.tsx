@@ -6,8 +6,9 @@ import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CardContent, Card } from "@/components/ui/card"
+import { JSX, SVGProps } from "react"
 
-export function resources() {
+export function Resources() {
   return (
     <div key="1" className="bg-white">
       <nav className="border-b" />
@@ -103,7 +104,7 @@ export function resources() {
 }
 
 
-function SearchIcon(props) {
+function SearchIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
