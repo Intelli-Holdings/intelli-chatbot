@@ -12,16 +12,16 @@ export function Navbar() {
             <img alt="Intelli Concierge" className="h-16" src="/Logo.svg" />
           </div>
           <nav className="flex space-x-4">
-            <a className="bold text-gray-600 hover:text-gray-900" href="#">
+            <a className="bold text-gray-600 hover:text-gray-900" href="/products">
               Products
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="#">
+            <a className="text-gray-600 hover:text-gray-900" href="/pricing">
               Pricing
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="#">
+            <a className="text-gray-600 hover:text-gray-900" href="/resources">
               Resources
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="#">
+            <a className="text-gray-600 hover:text-gray-900" href="/company">
               Company
             </a>
           </nav>
