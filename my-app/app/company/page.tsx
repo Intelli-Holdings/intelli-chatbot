@@ -1,4 +1,6 @@
 import React from "react";
+// import { Separator } from "@/components/ui/separator";
+
 
 
 export default function Company() {
@@ -40,13 +42,21 @@ export default function Company() {
         </div>
       </div>
 
-    <main>
-        {/* <section
-        className="container mx-auto mt-8 px-4">
-          <h1 className="text-5xl font-bold text-center text-blue-600">Building AI products
-for efficient businesses</h1>
+    <main className="pt-16">
+        <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
+          <h1 className="text-5xl font-bold text-left text-blue-600 mb-20">Building AI products for efficient businesses</h1>
+          <p className="mt-4 text-2xl text-left text-gray-600">SQWEYA is an AI studio and research company. We build light, efficient, and malleable AI-powered products for traditional industries.</p>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded mt-10">Learn More</button>
+    
             
-        </section> */}
+        </section>
+
+      <hr className="my-4 mx-auto border-t-1 border-gray-300 w-4/6"  />
+      <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
+         <p className="mt-4 text-xl text-left text-gray-600">Our Purpose</p>
+      </section>
+    
+
     </main>
 
 
