@@ -4,18 +4,22 @@
  */
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
+import Image from "next/image"
+import backgroundImage from "@/public/loop.png";
 
 export function Home() {
   return (
     <div className="relative">
       <Navbar />
-      <main className="pt-16">
-        <section className="container mx-auto mt-8 px-4">
+      <main className="pt-16" 
+      >
+      
+        <section className="container mx-auto mt-8 px-4">        
           <h1 className="text-3xl font-thin text-center text-grey-400">Intelli Concierge</h1>
-          <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">Speed up customer inquiry responses by 83%.</p>
+          <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">Automate customer support responses.</p>
           <p className="text-center text-lg font-bold font-medium text-gray-800">
-            Enhance your customer support effortlessly and affordably. Manage and respond to over 150 queries with
-            finesse.
+            Enhance your customer support by automating responses to frequently asked questions. Handle responses across 3 different channels seamlessly with
+            one platform. All this power is available at an affordable price.
           </p>
           <div className="mt-6 flex justify-center space-x-4">
           <Button
@@ -50,7 +54,6 @@ export function Home() {
           }}
           width="800"
         />
-
           </div>
         </section>
         <section className="bg-gray-100 py-12 text-center">
@@ -59,10 +62,10 @@ export function Home() {
             
             <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             <img
-              alt="Safari"
-              className="h-12 w-auto object-contain"
+              alt="Mendiata Hotel"
+              className="h-auto w-auto object-contain"
               height="50"
-              src="/placeholder.svg"
+              src="/mendiata.png"
               style={{
                 aspectRatio: "150/50",
                 objectFit: "cover",
@@ -70,10 +73,10 @@ export function Home() {
               width="150"
             />
             <img
-              alt="Marriott Accra"
-              className="h-12 w-auto object-contain"
+              alt="La Palm Royal Beach Hotel"
+              className="h-auto w-auto object-contain"
               height="50"
-              src="/placeholder.svg"
+              src="/logo-head.png"
               style={{
                 aspectRatio: "150/50",
                 objectFit: "cover",
@@ -81,10 +84,10 @@ export function Home() {
               width="150"
             />
             <img
-              alt="Mövenpick"
-              className="h-12 w-auto object-contain"
-              height="50"
-              src="/placeholder.svg"
+              alt="Labadi Beach Hotel"
+              className="h-auto w-auto object-contain"
+              height="100"
+              src="/Labadi-logo.png"
               style={{
                 aspectRatio: "150/50",
                 objectFit: "cover",
@@ -93,9 +96,9 @@ export function Home() {
             />
             <img
               alt="Kempinski"
-              className="h-12 w-auto object-contain"
+              className="h-auto w-auto object-contain"
               height="50"
-              src="/placeholder.svg"
+              src="/Kempiski.png"
               style={{
                 aspectRatio: "150/50",
                 objectFit: "cover",
@@ -103,10 +106,10 @@ export function Home() {
               width="150"
             />
             <img
-              alt="Holiday Inn"
-              className="h-12 w-auto object-contain"
+              alt="Accra City Hotel"
+              className="h-auto w-auto object-contain"
               height="50"
-              src="/placeholder.svg"
+              src="/accracity-logo.png"
               style={{
                 aspectRatio: "150/50",
                 objectFit: "cover",
@@ -114,16 +117,17 @@ export function Home() {
               width="150"
             />
             <img
-              alt="Ibis"
-              className="h-12 w-auto object-contain"
+              alt="Movenpick Hotel" 
+              className="h-auto w-auto object-contain"
               height="50"
-              src="/placeholder.svg"
+              src="/movenpick.png"
               style={{
                 aspectRatio: "150/50",
                 objectFit: "cover",
               }}
               width="150"
             />
+            
           </div>
             </div>
         </section>
@@ -155,9 +159,41 @@ export function Home() {
             </div>
           </div>
         </section>
+        <section className="py-12">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center">Frequently Asked Questions</h2>
+            <div className="mt-8 max-w-2xl mx-auto">
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold">Can I have multiple employees on the same plan?</h3>
+                <p className="mt-2 text-sm">
+                  These are the questions that are commonly asked by our users, so we compiled them for you to find
+                  answers easily.
+                </p>
+              </div>
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold">How is my usage calculated?</h3>
+                <p className="mt-2 text-sm">
+                  These are the questions that are commonly asked by our users, so we compiled them for you to find
+                  answers easily.
+                </p>
+              </div>
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold">What payment methods are allowed?</h3>
+                <p className="mt-2 text-sm">
+                  We embrace the global nature of business and hence use Credit cards. If in the near future more
+                  payment methods are added, we shall issue a statement informing you of the change.
+                </p>
+              </div>
+            </div>
+            <div className="mt-8 text-center">
+              <Button variant="outline">View more</Button>
+            </div>
+          </div>
+        </section>
       </main>
-      <footer className="w-full left-0 right-0 bg-gray-800 py-4 ">
-        <div className="container ">
+
+      <footer className="w-full bg-gray-800 py-4 ">
+        <div className="container-fluid ">
           <p className="text-sm text-center text-gray-400">Need help? Get in touch with us.</p>
           <p className="mt-2 text-xs text-center text-gray-500">
             Terms of Use | Privacy Notice | Data Policy | Socials | © IntelliConcierge 2024
