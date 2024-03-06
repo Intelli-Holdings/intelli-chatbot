@@ -22,7 +22,7 @@ export function Home() {
             <a className="text-gray-600 hover:text-gray-900" href="#">
               Resources
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="#">
+            <a className="text-gray-600 hover:text-gray-900" href="/company">
               Company
             </a>
           </nav>
