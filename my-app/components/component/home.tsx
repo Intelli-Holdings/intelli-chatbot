@@ -16,10 +16,10 @@ export function Home() {
             <a className="bold text-gray-600 hover:text-gray-900" href="#">
               Products
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="#">
+            <a className="text-gray-600 hover:text-gray-900" href="/pricingPage">
               Pricing
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="#">
+            <a className="text-gray-600 hover:text-gray-900" href="resourcesPage">
               Resources
             </a>
             <a className="text-gray-600 hover:text-gray-900" href="/company">
