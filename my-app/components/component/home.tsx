@@ -44,9 +44,9 @@ export function Home() {
       </div>
       <main className="pt-16">
         <section className="container mx-auto mt-8 px-4">
-          <h1 className="text-5xl font-bold text-center text-blue-600">Intelli Concierge</h1>
-          <p className="mt-4 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">Speed up customer inquiry responses by 83%.</p>
-          <p className="mt-2 text-center text-md font-medium text-gray-800">
+          <h1 className="text-3xl font-thin text-center text-grey-400">Intelli Concierge</h1>
+          <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">Speed up customer inquiry responses by 83%.</p>
+          <p className="text-center text-lg font-bold font-medium text-gray-800">
             Enhance your customer support effortlessly and affordably. Manage and respond to over 150 queries with
             finesse.
           </p>
@@ -71,14 +71,14 @@ export function Home() {
             </a>
             </Button>
           </div>
-          <div className="mt-12">
+          <div className="mx-auto">
           <img
           alt="Dashboard preview"
           className="mx-auto"
           height="400"
           src="/Demo.svg"
           style={{
-            aspectRatio: "600/400",
+            aspectRatio: "400/400",
             objectFit: "cover",
           }}
           width="800"
