@@ -10,8 +10,40 @@ import { JSX, SVGProps } from "react"
 
 export function Resources() {
   return (
-    <div key="1" className="bg-white">
-      <nav className="border-b" />
+    <div key="1" className="bg-gray-100 py-10 ">
+      <div className="  fixed top-0 left-0 right-0 z-10  container mx-auto flex items-center justify-between px-4 py-2 ">
+        <div>
+          <img alt="Intelli Concierge" className="h-16" src="/Logo.svg" />
+        </div>
+        <nav className="flex space-x-4">
+          <a className="bold text-gray-600 hover:text-gray-900" href="#">
+            Products
+          </a>
+          <a className="text-gray-600 hover:text-gray-900" href="/pricingPage">
+            Pricing
+          </a>
+          <a className="text-gray-600 hover:text-gray-900" href="resourcesPage">
+            Resources
+          </a>
+          <a className="text-gray-600 hover:text-gray-900" href="#">
+            Company
+          </a>
+        </nav>
+        <div className="flex space-x-2">
+          <a
+            className="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-md shadow-sm hover:bg-gray-100"
+            href="/auth/login"
+          >
+            Log In
+          </a>
+          <a
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700"
+            href="/auth/register"
+          >
+            Get Started
+          </a>
+        </div>
+      </div>
       <header className="container mx-auto my-12 text-center">
         <h1 className="text-5xl font-bold leading-tight mb-6">
           Access all the resources to enhance the growth of your business
