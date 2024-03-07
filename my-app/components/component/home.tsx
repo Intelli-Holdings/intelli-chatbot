@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
 import Image from "next/image"
 import backgroundImage from "@/public/loop.png";
+import Reviews from "@/components/component/reviews";
 
 export function Home() {
   return (
@@ -131,9 +132,7 @@ export function Home() {
           </div>
             </div>
         </section>
-        <section className="py-12 text-center">
-     
-          
+        <section className="py-12 text-center">         
         </section>
         <section className="bg-gray-100 py-12">
           <div className="container mx-auto px-4">
@@ -157,6 +156,37 @@ export function Home() {
                 </p>
               </div>
             </div>
+          </div>
+        </section>
+        <section className="py-12">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center">What advantages does our software offer?</h2>
+            <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
+              <div>
+                <h3 className="text-xl font-semibold">Manage your customer service efficiently, save time</h3>
+                <ul className="mt-2 list-disc pl-5 text-sm">
+                  <li>Streamline Support Processes for Swift Resolution</li>
+                  <li>Optimize Resources</li>
+                  <li>Utilize Advanced Algorithms</li>
+                  <li>Integrate with existing tools and platforms</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold">Optimize your operations by reducing expenses</h3>
+                <ul className="mt-2 list-disc pl-5 text-sm">
+                  <li>Cut down on manpower</li>
+                  <li>Reduce overhead costs</li>
+                  <li>Minimize training expenses</li>
+                  <li>Maintain high-quality service and reduce delays</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="bg-gray-100 py-12">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center">What Our Customers Say</h2>
+            <Reviews/>
           </div>
         </section>
         <section className="py-12">
