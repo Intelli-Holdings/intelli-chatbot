@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/avatar"
 import { CardTitle, CardDescription, CardContent, Card } from "@/components/ui/card"
 import { CarouselItem, CarouselContent, CarouselPrevious, CarouselNext, Carousel } from "@/components/ui/carousel"
 
-export function reviews() {
+export default function Reviews() {
   return (
     <Carousel className="w-full max-w-lg">
       <CarouselContent className="h-48">
