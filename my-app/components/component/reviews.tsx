@@ -6,17 +6,17 @@ import { Avatar } from "@/components/ui/avatar"
 import { CardTitle, CardDescription, CardContent, Card } from "@/components/ui/card"
 import { CarouselItem, CarouselContent, CarouselPrevious, CarouselNext, Carousel } from "@/components/ui/carousel"
 
-export function reviews() {
+export default function Reviews() {
   return (
     <Carousel className="w-full max-w-lg">
       <CarouselContent className="h-48">
         <CarouselItem>
-          <div className="p-2">
+          <div className="py-2">
             <Card>
-              <CardContent className="space-y-2">
+              <CardContent className="p-6 pt-6 space-y-2">
                 <div>
                   <p className="text-sm font-medium">
-                    Intelli is Mind-blowing! Our establishment has soared to new heights since we switched to them.
+                    Intelli is Mind-blowing! Our Hotel Revenue has increased by a margin of 20% since we switched to using them.
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
