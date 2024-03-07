@@ -17,7 +17,7 @@ export function Home() {
       
         <section className="container mx-auto mt-8 px-4">        
           <h1 className="text-3xl font-thin text-center text-grey-400">Intelli Concierge</h1>
-          <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">Automate customer support responses.</p>
+          <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">Automate customer support responses with an assistant.</p>
           <p className="text-center text-lg font-bold font-medium text-gray-800">
             Enhance your customer support by automating responses to frequently asked questions. Handle responses across 3 different channels seamlessly with
             one platform. All this power is available at an affordable price.
@@ -27,9 +27,9 @@ export function Home() {
           className="px-6 py-3 text-md font-medium text-white bg-gray-800 rounded-md shadow-sm hover:bg-gray-900"
           >
             <a
-              href="#"
+              href="/chat"
             >
-              Test a voice assistant
+             Chat with our assistant
             </a>
             
             </Button>
@@ -37,9 +37,9 @@ export function Home() {
           className="px-6 py-3 text-md font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700"
           >
           <a
-              href="#"
+              href="/dashboard"
             >
-              Create a Voice Assistant
+              Create an Assistant
             </a>
             </Button>
           </div>
