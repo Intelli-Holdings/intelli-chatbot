@@ -186,7 +186,9 @@ export function Home() {
         <section className="bg-gray-100 py-12">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center">What Our Customers Say</h2>
+            <div className="mt-6 flex justify-center space-x-4">
             <Reviews/>
+              </div>
           </div>
         </section>
         <section className="py-12">
