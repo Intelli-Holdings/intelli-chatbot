@@ -1,4 +1,4 @@
-import { CalendarDateRangePicker } from "@/components/date-range-picker";
+import { DatePickerWithRange } from "@/components/date-range-picker";
 import { Overview } from "@/components/overview";
 import { RecentSales } from "@/components/recent-sales";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ export default function page() {
             Hi, Welcome back 👋
           </h2>
           <div className="hidden md:flex items-center space-x-2">
-            <CalendarDateRangePicker />
+            <DatePickerWithRange />
             <Button>Download</Button>
           </div>
         </div>
