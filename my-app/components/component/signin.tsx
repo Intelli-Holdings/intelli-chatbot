@@ -46,7 +46,7 @@ export default function Signin() {
           </Button>
         </form>
         <div className="mt-4 text-center">
-          <span className="text-sm text-gray-500">Don't have an account? </span>
+          <span className="text-sm text-gray-500">Don&apos;t have an account? </span>
           <a className="text-sm font-medium text-blue-600" href="/auth/register">
             Create One
           </a>
