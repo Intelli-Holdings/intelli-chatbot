@@ -4,33 +4,12 @@
  */
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Navbar } from "@/components/navbar"
 
 export function Products() {
   return (
     <div className="bg-[#f8f9fa] min-h-screen">
-      <nav className="bg-white px-6 py-4 shadow">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <img alt="Intelli Concierge Logo" className="h-8" src="/placeholder.svg" />
-            <a className="text-sm font-medium text-gray-700 hover:text-gray-900" href="#">
-              Products
-            </a>
-            <a className="text-sm font-medium text-gray-700 hover:text-gray-900" href="#">
-              Pricing
-            </a>
-            <a className="text-sm font-medium text-gray-700 hover:text-gray-900" href="#">
-              Resources
-            </a>
-            <a className="text-sm font-medium text-gray-700 hover:text-gray-900" href="#">
-              Company
-            </a>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button className="bg-transparent text-blue-600 hover:bg-blue-50">Book A Demo</Button>
-            <Button className="bg-blue-600 text-white hover:bg-blue-700">Get Started</Button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
       <header className="text-center py-20">
         <h1 className="text-4xl font-bold text-gray-900 leading-snug">
           We are building Africa’s most robust suite

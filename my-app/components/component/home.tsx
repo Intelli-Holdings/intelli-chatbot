@@ -17,9 +17,9 @@ export function Home() {
       
         <section className="container mx-auto mt-8 px-4">        
           <h1 className="text-3xl font-thin text-center text-grey-400">Intelli Concierge</h1>
-          <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">Automate customer support responses with an assistant.</p>
+          <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">Automate customer support responses.</p>
           <p className="text-center text-lg font-bold font-medium text-gray-800">
-            Enhance your customer support by automating responses to frequently asked questions. Handle responses across 3 different channels seamlessly with
+            Improve customer experience by automating responses to frequently asked questions. Handle responses across 3 different channels seamlessly with
             one platform. All this power is available at an affordable price.
           </p>
           <div className="mt-6 flex justify-center space-x-4">

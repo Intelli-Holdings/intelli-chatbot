@@ -3,8 +3,8 @@ import Sidebar from "@/components/layout/sidebar";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Qatalyst Data",
-  description: "The most comprehensive data silo on investors and startups.",
+  title: "Intelli Dashboard",
+  description: "This is your home for customer support.",
 };
 
 export default function DashboardLayout({
