@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { useEffect, useState } from 'react';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, UserCredential } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, UserCredential, User } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -20,7 +20,7 @@ export { auth };
 
 
 export function useAuth() {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState<User | null>(null);
   
     useEffect(() => {
       const unsubscribe = auth.onAuthStateChanged((user) => {
