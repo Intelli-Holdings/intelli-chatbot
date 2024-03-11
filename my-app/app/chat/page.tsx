@@ -3,21 +3,15 @@
 import { useRef, useState } from "react";
 import { ChatWindow } from "@/components/chat-window";
 import { Navbar } from "@/components/navbar";
-//import { useNavigation } from "next-navigation"; // Correct import statement
+
+
+
 
 export default function ChatWidget() {
-  //const navigation = useNavigation(); // Correct usage of useNavigation
+  
   const scrollTargetRef = useRef<HTMLDivElement>(null);
   const initialMessages = [
-    {
-      role: "user",
-      content: "Hi, what is websitebot?",
-    },
-    {
-      role: "bot",
-      content:
-        "WebsiteBot is a software application designed to perform automated tasks on websites.",
-    },
+    { role: "ai", content: "Hello, how can I help you today?" },
   ];
   const [messages, setMessages] = useState(initialMessages);
 
@@ -39,7 +33,7 @@ export default function ChatWidget() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24"> 
     <Navbar />    
-    <ChatWindow />    
+    <ChatWindow/>   
     </main>
     
   );
