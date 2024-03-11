@@ -16,6 +16,9 @@ export function Navbar() {
             <a className="bold text-gray-600 hover:text-gray-900" href="/products">
               Products
             </a>
+            <a className="bold text-gray-600 hover:text-gray-900" href="/chat">
+              Chat with Elli
+            </a>
             <a className="text-gray-600 hover:text-gray-900" href="/pricing">
               Pricing
             </a>
