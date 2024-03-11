@@ -19,7 +19,7 @@ export function ChatWindow() {
           <div className="flex items-center space-x-2">
             <Avatar>
               <AvatarImage
-                alt="Support Agent 1"
+                alt="Ellie's avatar"
                 src="/placeholder.svg?height=40&width=40"
               />
               <AvatarFallback></AvatarFallback>
@@ -41,11 +41,38 @@ export function ChatWindow() {
             <div className="flex flex-col space-y-2"></div>
           </div>
           {messages.map((m) => (
-            <div key={m.id} className="whitespace-pre-wrap">
-              {m.role === "user" ? "You: " : "Elli: "}
+          <div
+            key={m.id}
+            className={`${
+              m.role === 'user' ? 'flex items-end space-x-2' : 'flex items-start justify-end space-x-2'
+            } px-4 py-2 space-y-2`}
+          >
+            {m.role === 'user' ? (
+              <Avatar>
+                <AvatarImage
+                  alt="User"
+                  src="/placeholder.svg?height=30&width=30"
+                />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+            ) : (
+              <Avatar>
+                <AvatarImage
+                  alt="Elli"
+                  src="/placeholder.svg?height=30&width=30"
+                />
+                <AvatarFallback>E</AvatarFallback>
+              </Avatar>
+            )}
+            <div
+              className={`max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-blue-600 text-white p-3 rounded-lg ${
+                m.role === 'user' ? 'bg-blue-100' : 'bg-gray-600'
+              }`}
+            >
               {m.content}
             </div>
-          ))}
+          </div>
+        ))}
           <div className="w-full mt-4 ">
             <Button
               className="w-full text-white mb-2 bg-emerald-600 border border-gray-900"
@@ -72,7 +99,7 @@ export function ChatWindow() {
               <Input
                 className="flex-grow w-full p-2 border border-gray-300 rounded shadow-xl"
                 value={input}
-                placeholder="How may I asssist you today?..."
+                placeholder="How may I help you today?..."
                 onChange={handleInputChange}
               />              
             </div>
