@@ -13,32 +13,32 @@ export function DashComponent() {
       <div className="flex-1">
         
         <main className="p-5">
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card className="col-span-1 bg-red-100">
+          <div className="grid grid-cols-4 gap-4 mb-6 ">
+            <Card className="col-span-1 bg-red-100 pt-6">
               <CardContent>
                 <AlertCircleIcon className="text-red-500" />
-                <span className="text-xl font-semibold">5</span>
+                <span className="text-xl font-semibold">15</span>
                 <CardDescription>Escalated Calls</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1 bg-green-100">
+            <Card className="col-span-1 bg-green-100 pt-6">
               <CardContent>
                 <PhoneIcon className="text-green-500" />
                 <span className="text-xl font-semibold">120</span>
                 <CardDescription>Calls Handled</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1 bg-blue-100">
+            <Card className="col-span-1 bg-blue-100 pt-6">
               <CardContent>
                 <MailboxIcon className="text-blue-500" />
                 <span className="text-xl font-semibold">200</span>
                 <CardDescription>Emails answered</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1 bg-red-100">
+            <Card className="col-span-1 bg-blue-100 pt-6">
               <CardContent>
                 <AlertCircleIcon className="text-red-500" />
-                <span className="text-xl font-semibold">15</span>
+                <span className="text-xl font-semibold">65</span>
                 <CardDescription>Booking Reservations</CardDescription>
               </CardContent>
             </Card>
