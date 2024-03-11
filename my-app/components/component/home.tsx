@@ -5,7 +5,6 @@
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
 import Image from "next/image"
-import backgroundImage from "@/public/loop.png";
 import Reviews from "@/components/component/reviews";
 
 export function Home() {
@@ -44,7 +43,7 @@ export function Home() {
             </Button>
           </div>
           <div className="mx-auto">
-          <img
+          <Image
           alt="Dashboard preview"
           className="mx-auto"
           height="400"
@@ -62,7 +61,7 @@ export function Home() {
             <h2 className="text-3xl font-bold text-center text-blue-600">Brands that Love Us</h2>
             
             <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <img
+            <Image
               alt="Mendiata Hotel"
               className="h-auto w-auto object-contain"
               height="50"
@@ -73,7 +72,7 @@ export function Home() {
               }}
               width="150"
             />
-            <img
+            <Image
               alt="La Palm Royal Beach Hotel"
               className="h-auto w-auto object-contain"
               height="50"
@@ -84,7 +83,7 @@ export function Home() {
               }}
               width="150"
             />
-            <img
+            <Image
               alt="Labadi Beach Hotel"
               className="h-auto w-auto object-contain"
               height="100"
@@ -95,7 +94,7 @@ export function Home() {
               }}
               width="150"
             />
-            <img
+            <Image
               alt="Kempinski"
               className="h-auto w-auto object-contain"
               height="50"
@@ -106,7 +105,7 @@ export function Home() {
               }}
               width="150"
             />
-            <img
+            <Image
               alt="Accra City Hotel"
               className="h-auto w-auto object-contain"
               height="50"
@@ -117,7 +116,7 @@ export function Home() {
               }}
               width="150"
             />
-            <img
+            <Image
               alt="Movenpick Hotel" 
               className="h-auto w-auto object-contain"
               height="50"

@@ -5,6 +5,7 @@
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar"
 import { CardDescription, CardContent, Card } from "@/components/ui/card"
 import { JSX, SVGProps } from "react"
+import Image from "next/image"
 
 
 export function DashComponent() {
@@ -49,7 +50,7 @@ export function DashComponent() {
               <p className="text-xl">– A comprehensive guide.</p>
             </div>
             <div className="relative">
-              <img
+              <Image
                 alt="Customer support representative"
                 className="rounded-lg"
                 height="300"

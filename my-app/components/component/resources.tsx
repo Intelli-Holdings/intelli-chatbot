@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { CardContent, Card } from "@/components/ui/card"
 import { JSX, SVGProps } from "react"
 import { Navbar } from "@/components/navbar"
+import Image from "next/image"
 
 export function Resources() {
   return (
@@ -46,7 +47,7 @@ export function Resources() {
       <section className="container mx-auto grid grid-cols-3 gap-8 pb-12">
         <Card>
           <CardContent className="p-4">
-            <img
+            <Image
               alt="Article Image"
               className="object-cover rounded-lg w-full h-full"
               height={200}
@@ -65,7 +66,7 @@ export function Resources() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <img
+            <Image
               alt="Article Image"
               className="object-cover rounded-lg w-full h-full"
               height={200}
@@ -84,7 +85,7 @@ export function Resources() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <img
+            <Image
               alt="Article Image"
               className="object-cover rounded-lg w-full h-full"
               height={200}
