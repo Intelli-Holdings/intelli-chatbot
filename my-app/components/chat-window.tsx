@@ -65,8 +65,8 @@ export function ChatWindow() {
               </Avatar>
             )}
             <div
-              className={`max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-blue-600 text-white p-3 rounded-lg ${
-                m.role === 'user' ? 'bg-blue-100' : 'bg-gray-600'
+              className={`max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-blue-600 text-gray p-3 rounded-lg ${
+                m.role === 'user' ? 'bg-gray-100' : 'bg-[#E5EEFF]'
               }`}
             >
               {m.content}
@@ -75,12 +75,12 @@ export function ChatWindow() {
         ))}
           <div className="w-full mt-4 ">
             <Button
-              className="w-full text-white mb-2 bg-emerald-600 border border-gray-900"
+              className="w-full text-white mb-2 bg-emerald-500 border border-gray-900 shadow-sm"
               variant="default"
             >
               General Inquiries
             </Button>
-            <Button className="w-full" variant="outline">
+            <Button className="w-full shadow-sm" variant="outline">
               Make a Reservation
             </Button>
           </div>
