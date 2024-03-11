@@ -4,9 +4,6 @@ import { useRef, useState } from "react";
 import { ChatWindow } from "@/components/chat-window";
 import { Navbar } from "@/components/navbar";
 
-
-
-
 export default function ChatWidget() {
   
   const scrollTargetRef = useRef<HTMLDivElement>(null);

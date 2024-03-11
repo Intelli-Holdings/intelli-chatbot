@@ -1,6 +1,7 @@
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import Image from "next/image"
 
 export function Navbar() {
     return (
@@ -9,7 +10,7 @@ export function Navbar() {
         <div className="container mx-auto flex items-center justify-between px-4 py-2">
           <div className="flex items-center" style={{ width: "200px" }} >
             <a className="" href="/">
-            <img alt="Intelli Concierge" className="h-16" src="/Logo.svg"  />
+            <Image alt="Intelli Concierge" className="h-16" src="/Logo.svg"  />
             </a>
           </div>
           <nav className="flex space-x-4">

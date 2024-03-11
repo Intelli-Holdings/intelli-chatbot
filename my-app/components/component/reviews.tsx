@@ -5,6 +5,7 @@
 import { Avatar } from "@/components/ui/avatar"
 import { CardTitle, CardDescription, CardContent, Card } from "@/components/ui/card"
 import { CarouselItem, CarouselContent, CarouselPrevious, CarouselNext, Carousel } from "@/components/ui/carousel"
+import Image from "next/image"
 
 export default function Reviews() {
   return (
@@ -22,7 +23,7 @@ export default function Reviews() {
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2">
                     <Avatar className="w-8 h-8">
-                      <img
+                      <Image
                         alt="Hanno Barkhoff"
                         className="rounded-full"
                         height="32"
@@ -57,7 +58,7 @@ export default function Reviews() {
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2">
                     <Avatar className="w-8 h-8">
-                      <img
+                      <Image
                         alt="Alice Chen"
                         className="rounded-full"
                         height="32"
@@ -92,7 +93,7 @@ export default function Reviews() {
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2">
                     <Avatar className="w-8 h-8">
-                      <img
+                      <Image
                         alt="David Johnson"
                         className="rounded-full"
                         height="32"

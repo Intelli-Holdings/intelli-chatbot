@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
+import Image from "next/image"
 
 export function Loader() {
   const [progress, setProgress] = useState(0);
@@ -15,7 +16,7 @@ export function Loader() {
       {progress < 100 ? (
         <>
           <div className="mb-4">
-            <img
+            <Image
               alt="Intelli logo"
               className="h-24 w-24"
               height="100"

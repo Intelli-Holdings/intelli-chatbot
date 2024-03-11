@@ -20,7 +20,7 @@ export function ChatWindow() {
             <Avatar>
               <AvatarImage
                 alt="Ellie's avatar"
-                src="/placeholder.svg?height=40&width=40"
+                src="/Avatar.svg?height=80&width=80"
               />
               <AvatarFallback></AvatarFallback>
             </Avatar>
@@ -51,7 +51,7 @@ export function ChatWindow() {
               <Avatar>
                 <AvatarImage
                   alt="User"
-                  src="/placeholder.svg?height=30&width=30"
+                  src="/user.jpg?height=30&width=30"
                 />
                 <AvatarFallback>U</AvatarFallback>
               </Avatar>
@@ -59,7 +59,7 @@ export function ChatWindow() {
               <Avatar>
                 <AvatarImage
                   alt="Elli"
-                  src="/placeholder.svg?height=30&width=30"
+                  src="/Avatar.svg?height=50&width=50"
                 />
                 <AvatarFallback>E</AvatarFallback>
               </Avatar>
