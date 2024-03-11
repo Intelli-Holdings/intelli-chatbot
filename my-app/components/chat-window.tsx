@@ -65,7 +65,7 @@ export function ChatWindow() {
               </Avatar>
             )}
             <div
-              className={`max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-blue-600 text-gray p-3 rounded-lg ${
+              className={`max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg ${
                 m.role === 'user' ? 'bg-gray-100' : 'bg-[#E5EEFF]'
               }`}
             >
