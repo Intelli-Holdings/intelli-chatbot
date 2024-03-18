@@ -5,6 +5,14 @@
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
 import Image from "next/image"
+import demoImage from "@/public/Demo.svg"
+import mendiata from "@/public/mendiata.png"
+import labadi from "@/public/Labadi-logo.png"
+import aquasafari from "@/public/Aqua-Safari-Logo.png"
+import kempinski from "@/public/Kempiski.png"
+import accraCity from "@/public/accracity-logo.png"
+import movenpick from "@/public/movenpick.png"
+
 import Reviews from "@/components/component/reviews";
 
 export function Home() {
@@ -28,7 +36,7 @@ export function Home() {
             <a
               href="/chat"
             >
-             Chat with our assistant
+             Preview it on your website
             </a>
             
             </Button>
@@ -44,93 +52,26 @@ export function Home() {
           </div>
           <div className="mx-auto">
           <Image
-          alt="Dashboard preview"
+          alt="Preview Demo"
           className="mx-auto"
-          height="400"
-          src="/Demo.svg"
-          style={{
-            aspectRatio: "400/400",
-            objectFit: "cover",
-          }}
-          width="800"
+          src={demoImage}
         />
           </div>
         </section>
-        <section className="bg-gray-100 py-12 text-center">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-blue-600">Brands that Love Us</h2>
-            
-            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <Image
-              alt="Mendiata Hotel"
-              className="h-auto w-auto object-contain"
-              height="50"
-              src="/mendiata.png"
-              style={{
-                aspectRatio: "150/50",
-                objectFit: "cover",
-              }}
-              width="60"
-            />
-            <Image
-              alt="La Palm Royal Beach Hotel"
-              className="h-auto w-auto object-contain"
-              height="50"
-              src="/logo-head.png"
-              style={{
-                aspectRatio: "100/100",
-                objectFit: "cover",
-              }}
-              width="60"
-            />
-            <Image
-              alt="Labadi Beach Hotel"
-              className="h-auto w-auto object-contain"
-              height="100"
-              src="/Labadi-logo.png"
-              style={{
-                aspectRatio: "150/50",
-                objectFit: "cover",
-              }}
-              width="150"
-            />
-            <Image
-              alt="Kempinski"
-              className="h-auto w-auto object-contain"
-              height="50"
-              src="/Kempiski.png"
-              style={{
-                aspectRatio: "150/50",
-                objectFit: "cover",
-              }}
-              width="150"
-            />
-            <Image
-              alt="Accra City Hotel"
-              className="h-auto w-auto object-contain"
-              height="50"
-              src="/accracity-logo.png"
-              style={{
-                aspectRatio: "150/50",
-                objectFit: "cover",
-              }}
-              width="150"
-            />
-            <Image
-              alt="Movenpick Hotel" 
-              className="h-auto w-auto object-contain"
-              height="50"
-              src="/movenpick.png"
-              style={{
-                aspectRatio: "150/50",
-                objectFit: "cover",
-              }}
-              width="150"
-            />
-            
-          </div>
-            </div>
-        </section>
+        <section className="bg-gray-100 py-12 text-center  shadow-lg rounded-xl">
+  <div className="container mx-auto px-4 border">
+    <h2 className="text-3xl font-bold text-center text-blue-600">Brands that Love Us</h2>
+    
+    <div className="py-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-4">      
+      <Image alt="La Palm Royal Beach Hotel"className="rounded-lg" src={aquasafari} />
+      <Image alt="Mendiata Hotel" className="rounded-lg" src={mendiata} height={120} />
+      <Image alt="Labadi Beach Hotel" className="rounded-lg" src={labadi} />
+      <Image alt="Kempinski" className="rounded-lg" src={kempinski} />
+      <Image alt="Accra City Hotel" className="rounded-lg" src={accraCity} />
+      <Image alt="Movenpick Hotel" className="rounded-lg" src={movenpick} />
+    </div>
+  </div>
+</section>
         <section className="py-12 text-center">         
         </section>
         <section className="bg-gray-100 py-12">
