@@ -6,7 +6,7 @@ import Image from "next/image"
 export function Navbar() {
     return (
 
-<div className="fixed top-0 left-0 right-0 z-10 bg-white/50 backdrop-blur-md shadow-md">
+<div className="fixed top-0 left-0 right-0 z-10 bg-white/50 backdrop-blur-md shadow-sm">
         <div className="container mx-auto flex items-center justify-between px-4 py-2">
           <div className="flex items-center" >
             <a className="" href="/">
@@ -14,21 +14,16 @@ export function Navbar() {
             </a>
           </div>
           <nav className="flex space-x-4">
-            <a className="bold text-gray-600 hover:text-gray-900" href="/products">
-              Products
-            </a>
-            <a className="bold text-gray-600 hover:text-gray-900" href="/chat">
-              Chat
-            </a>
+            
+            
             <a className="text-gray-600 hover:text-gray-900" href="/pricing">
               Pricing
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="/resources">
-              Resources
+            <a className="text-gray-600 hover:text-gray-900" href="/chat">
+              Demo
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="/company">
-              Company
-            </a>
+           
+           
           </nav>
           <div className="flex space-x-2">
             <a
