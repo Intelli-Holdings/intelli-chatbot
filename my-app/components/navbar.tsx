@@ -19,7 +19,7 @@ export function Navbar() {
             <a className="text-gray-600 hover:text-gray-900" href="/pricing">
               Pricing
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="/chat">
+            <a className="text-gray-600 hover:text-gray-900" href="/demo">
               Demo
             </a>
            
