@@ -46,7 +46,7 @@ export function Home() {
           </p>
           <div className="mt-6 flex justify-center space-x-4">
             <Button className="px-6 py-3 text-md font-medium text-white bg-gray-800 rounded-md shadow-sm hover:bg-gray-900">
-              <a href="/chat">See it on your website</a>
+              <a href="/demo">See it on your website</a>
             </Button>
             <Button className="px-6 py-3 text-md font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700">
               <a href="/dashboard">Create an Assistant</a>
