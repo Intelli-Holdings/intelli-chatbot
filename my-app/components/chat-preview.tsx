@@ -5,6 +5,7 @@ import { useChat } from "ai/react";
 import { Input } from "@/components/ui/input";
 import { ChatWindow } from "@/components/chat-window";
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
+import { Navbar } from "@/components/navbar";
 
 interface Props {}
 
@@ -57,13 +58,16 @@ export function ChatPreview() {
           </div>
         </div>
       )}
-      <div className="fixed top-0 left-0 right-0 z-20 bg-white/50 backdrop-blur-md shadow-sm p-4 md:p-8 lg:p-12">
-        <Input type="text" id="url" placeholder="Enter your website URL" />
-        <div className="mt-6">
-          <Button onClick={renderWebsite} className="w-full bg-blue-600 text-white">
-            Search
-          </Button>
-        </div>
+      <div className="pt-10 bg-white/50 backdrop-blur-md shadow-sm p-4 md:p-8 lg:p-12">
+     
+      <div className="pt-1 md:flex items-center space-x-2">    
+      <Input type="text" id="url" placeholder="Enter your website URL starting with https://" />        
+      <Button onClick={renderWebsite} className="pt-2 bg-blue-600 text-white"> Preview Website </Button>
+      <Button className="pt-2 bg-gray-400 text-white" >
+        <a href="/">
+        Back to Home
+          </a>  </Button>
+      </div>
       </div>
       {!chatbotVisible && (
         <div className="fixed bottom-0 right-0 z-20 p-4">
