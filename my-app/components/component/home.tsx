@@ -3,6 +3,12 @@
  * @see https://v0.dev/t/3Ou93NEzRjT
  */
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Navbar } from "@/components/navbar";
 import {
   CardTitle,
@@ -203,35 +209,31 @@ export function Home() {
             <h2 className="text-3xl font-bold text-center">
               Frequently Asked Questions
             </h2>
+            
             <div className="mt-8 max-w-2xl mx-auto">
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold">
-                  Can I have multiple employees on the same plan?
-                </h3>
-                <p className="mt-2 text-sm">
-                  These are the questions that are commonly asked by our users,
-                  so we compiled them for you to find answers easily.
-                </p>
-              </div>
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold">
-                  How is my usage calculated?
-                </h3>
-                <p className="mt-2 text-sm">
-                  These are the questions that are commonly asked by our users,
-                  so we compiled them for you to find answers easily.
-                </p>
-              </div>
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold">
-                  What payment methods are allowed?
-                </h3>
-                <p className="mt-2 text-sm">
-                  We embrace the global nature of business and hence use Credit
+            <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="item-1">
+        <AccordionTrigger>Can I have multiple employees on the same plan?</AccordionTrigger>
+        <AccordionContent>
+        Ofcourse, you can have multiple departments from front office to marketing and sales to social media even reservations join your team/organisation
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="item-2">
+        <AccordionTrigger>How is my usage calculated?</AccordionTrigger>
+        <AccordionContent>
+          Your usage is calculated based on the number of interactions of your customers with the assistant. This includes the number of messages sent and received.
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="item-3">
+        <AccordionTrigger>What payment methods are allowed?</AccordionTrigger>
+        <AccordionContent>
+        We embrace the global nature of business and hence use Credit
                   cards. If in the near future more payment methods are added,
                   we shall issue a statement informing you of the change.
-                </p>
-              </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+              
             </div>
             <div className="mt-8 text-center">
               <Button variant="outline">View more</Button>
