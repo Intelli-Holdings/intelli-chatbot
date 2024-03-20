@@ -44,7 +44,7 @@ export function Home() {
             seamlessly with one platform. All this power is available at an
             affordable price.
           </p>
-          <div className="mt-6 flex justify-center space-x-4">
+          <div className="mt-6 flex flex-col items-center space-y-2 sm:flex-row sm:justify-center sm:space-x-4">
             <Button className="px-6 py-3 text-md font-medium text-white bg-gray-800 rounded-md shadow-sm hover:bg-gray-900">
               <a href="/demo">See it on your website</a>
             </Button>
@@ -52,6 +52,7 @@ export function Home() {
               <a href="/dashboard">Create an Assistant</a>
             </Button>
           </div>
+
           <div className="mx-auto">
             <Image alt="Preview Demo" className="mx-auto" src={demoImage} />
           </div>
@@ -109,12 +110,6 @@ export function Home() {
               How Hotels use Intelli
             </h2>
             <div className="mt-20 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-8">
-              <Image
-                alt="Weekly & Monthly Insights"
-                className="absolute top-20 left-0 w-48 h-48 bg-cover bg-center filter  z-0"
-                style={{ backgroundImage: `url(${Pie})` }}
-                src={Pie}
-              />
               <Card className="bg-[#007fff] bg-opacity-35">
                 <CardContent className="p-6 space-y-2 backdrop-blur-lg rounded-lg">
                   <div className="text-sm">
