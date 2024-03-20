@@ -86,21 +86,18 @@ export function ChatWindow() {
         <Button className="text-xs text-blue-600 bg-transparent hover:bg-gray-100">Amenities</Button>
       </div>
         <form onSubmit={handleSubmit}>
-          <div className="flex items-center justify-between p-2 border-t">
-          <Button className="bg-[#E0E7FF] rounded-full p-2">
-          <MicIcon className="text-[#3730A3]" />
-        </Button>
+          <div className="flex flex-col justify-between p-1">          
             <div className="flex items-center px-4 py-2 bg-white">
               <Input
-                className="flex-grow w-full p-2 border border-gray-300 rounded shadow-xl"
+                className="flex-grow w-full p-2 rounded shadow-sm"
                 value={input}
                 placeholder="How may I help you today?..."
                 onChange={handleInputChange}
               />              
             </div>
-            <Button className="bg-[#E0E7FF] rounded-full p-2" variant="secondary">
+            <Button className=" rounded shadow-md p-2 px-2" >
                 <SendIcon type="submit" className="text-blue-600" />
-              </Button>
+            </Button>
           </div>
         </form>
       </div>
