@@ -3,7 +3,7 @@ import { Home } from "@/components/component/home";
 
 export default function Homepage() {
   return (
-    <main className="min-h-screen p-4">     
+    <main className="min-h-screen p-4 bg-white">     
           <Home/>
     </main>
   );
