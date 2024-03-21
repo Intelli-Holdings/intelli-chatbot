@@ -5,25 +5,21 @@ import Image from "next/image"
 
 export function Navbar() {
     return (
-
-<div className="fixed top-0 left-0 right-0 z-10 bg-white/50 backdrop-blur-md shadow-sm">
+      
+      <div className="fixed top-0 left-0 right-0 z-10 bg-white/50 backdrop-blur-md shadow-sm">
         <div className="container mx-auto flex items-center justify-between px-4 py-2">
-          <div className="flex items-center" >
+          <div className="flex items-center">
             <a className="" href="/">
-            <Image alt="Intelli Concierge" className="h-16" src="/Logo.svg"  height={80} width={80} />
+              <Image alt="Intelli Concierge" className="h-16" src="/Logo.svg"  height={80} width={80} />
             </a>
           </div>
-          <nav className="flex space-x-4">
-            
-            
+          <nav className="hidden md:flex space-x-4"> {/* Hide on mobile screens */}
             <a className="text-gray-600 hover:text-gray-900" href="/pricing">
               Pricing
             </a>
             <a className="text-gray-600 hover:text-gray-900" href="/demo">
               Demo
             </a>
-           
-           
           </nav>
           <div className="flex space-x-2">
             <a
