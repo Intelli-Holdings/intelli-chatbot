@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import Image from "next/image";
-import { Mail } from "@/app/(dashboard)/dashboard/elli/components/mail";
-import { accounts, mails } from "@/app/(dashboard)/dashboard/elli/data";
+import { Mail } from "./components/mail";
+import { accounts, mails } from "./data";
 import BreadCrumb from "@/components/breadcrumb";
 
 
-const breadcrumbItems = [{ title: "Elli Conversations", link: "/dashboard/elli" }];
+const breadcrumbItems = [{ title: "Email Conversations", link: "/dashboard/conversations/elli" }];
 
-export default function MailPage() {
+export default function ElliPage() {
   const layoutCookie = cookies()?.get("react-resizable-panels:layout");
   const collapsedCookie = cookies()?.get("react-resizable-panels:collapsed");
 
