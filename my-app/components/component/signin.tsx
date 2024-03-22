@@ -29,7 +29,7 @@ export default function Signin() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#E6F4FF]">
-      <div className="mx-auto my-auto w-full max-w-md rounded-lg bg-white p-8">
+      <div className="mx-auto my-auto w-full max-w-md rounded-lg shadow-md bg-white p-8">
       <CardTitle className="flex items-center justify-center">
   <Image alt="Intelli Logo" src={logo} />
 </CardTitle>
