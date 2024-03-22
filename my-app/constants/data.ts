@@ -132,15 +132,15 @@ export const navItems: NavItem[] = [
   },
   {
     title: "Employees",
-    href: "/dashboard/employees",
+    href: "/dashboard/departments/employees",
     icon: "user",
     label: "employees",
   },
   {
-    title: "Elli",
-    href: "/dashboard/elli",
+    title: "Conversations",
+    href: "/dashboard/conversations",
     icon: "settings",
-    label: "Elli",
+    label: "Conversations",
   },
   
 ];
