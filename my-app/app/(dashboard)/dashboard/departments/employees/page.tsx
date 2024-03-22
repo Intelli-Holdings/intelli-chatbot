@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-const breadcrumbItems = [{ title: "Employees", link: "/dashboard/employees" }];
+const breadcrumbItems = [{ title: "Employees", link: "/dashboard/departments/employees" }];
 
 type paramsProps = {
   searchParams: {
