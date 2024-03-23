@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { createUser } from "@/lib/firebase/auth"
 import { toast } from 'sonner';
-
+import Image from "next/image"
+import { CardTitle } from "@/components/ui/card"
+import logo from "@/public/Logo.svg"
 
 export default function Signup() {
 
@@ -43,6 +45,9 @@ export default function Signup() {
   return (
     <div key="1" className="flex min-h-screen bg-[#E5F4FF]">
       <div className="m-auto w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+      <CardTitle className="flex items-center justify-center">
+  <Image alt="Intelli Logo" src={logo} />
+</CardTitle>
         <h1 className="text-black text-xl font-semibold text-gray-700 text-center">Create a free account</h1>
         <form className="mt-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-4">

@@ -31,7 +31,7 @@ export function Pricing() {
                 $50
                 <span className="text-lg">Per Month{"\n"}</span>
               </p>
-              <p className="text-sm text-gray-500">10% off for yearly subscription</p>
+              <p className="text-sm text-gray-500">10% off for annual subscription</p>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-6">Intelli helps you see how many more days you need...</p>
@@ -70,7 +70,7 @@ export function Pricing() {
                 $100
                 <span className="text-lg">Per Month{"\n"}</span>
               </p>
-              <p className="text-sm text-gray-500">10% off for yearly subscription</p>
+              <p className="text-sm text-gray-500">12% off for yearly subscription</p>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-6">Intelli helps you see how many more days you need...</p>
@@ -106,8 +106,8 @@ export function Pricing() {
             <CardHeader>
               <CardTitle>Enterprise Plan</CardTitle>
               <p className="text-3xl font-semibold text-gray-800">
-                $400
-                <span className="text-lg">Per Annum{"\n"}</span>
+                Pay as you go
+                <span className="text-lg">{"\n"}</span>
               </p>
               <p className="text-sm text-gray-500">Plan start from 12 months</p>
             </CardHeader>
@@ -141,8 +141,8 @@ export function Pricing() {
               </ul>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </div>      
+      </div>      
     </div>
   )
 }

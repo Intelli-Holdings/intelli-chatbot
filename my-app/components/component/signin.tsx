@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { signInWithEmail } from "@/lib/firebase/auth";
 import { toast } from 'sonner';
+import Image from "next/image"
+import { CardTitle } from "@/components/ui/card"
+import logo from "@/public/Logo.svg"
 
 export default function Signin() {
   const [email, setEmail] = useState("");
@@ -26,7 +29,10 @@ export default function Signin() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#E6F4FF]">
-      <div className="mx-auto my-auto w-full max-w-md rounded-lg bg-white p-8">
+      <div className="mx-auto my-auto w-full max-w-md rounded-lg shadow-md bg-white p-8">
+      <CardTitle className="flex items-center justify-center">
+  <Image alt="Intelli Logo" src={logo} />
+</CardTitle>
         <h1 className="text-center text-2xl font-semibold">Welcome back to Intelli</h1>
         <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
           <div>

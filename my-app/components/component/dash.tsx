@@ -6,37 +6,86 @@ import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar"
 import { CardDescription, CardContent, Card } from "@/components/ui/card"
 import { JSX, SVGProps } from "react"
 import Image from "next/image"
+import { Metadata } from "next"
+import { Button } from "@/components/ui/button"
+
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
+import { DatePickerWithRange } from "@/components/date-range-picker"
+import { MainNav } from "@/components/layout/main-nav"
+import { Overview } from "@/components/overview"
+import { RecentSales } from "@/components/recent-sales"
+import { Search } from "@/components/search"
+import TeamSwitcher from "@/components/team-switcher"
+import { UserNav } from "@/components/layout/user-nav"
+
 
 
 export function DashComponent() {
   return (
-    <div key="1" className="flex h-screen">      
+    <div className="flex h-screen">      
       <div className="flex-1">
-        
         <main className="p-5">
+        <div className="hidden flex-col md:flex">
+        <div className="border-b">
+          <div className="flex h-16 items-center px-4">
+            <TeamSwitcher />
+            <MainNav className="mx-6" />
+            <div className="ml-auto flex items-center space-x-4">
+              <Search />
+              <UserNav />
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <div className="flex items-center justify-between space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+            <div className="flex items-center space-x-2">
+              <DatePickerWithRange />
+              <Button>Download</Button>
+            </div>
+          </div>
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="analytics" >
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="reports" >
+                Reports
+              </TabsTrigger>
+              <TabsTrigger value="notifications" >
+                Notifications
+              </TabsTrigger>
+            </TabsList>
+            </Tabs>
           <div className="grid grid-cols-4 gap-4 mb-6 ">
-            <Card className="col-span-1 bg-red-100 pt-6">
+            <Card className="col-span-1  pt-6">
               <CardContent>
                 <AlertCircleIcon className="text-red-500" />
                 <span className="text-xl font-semibold">15</span>
                 <CardDescription>Escalated Calls</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1 bg-green-100 pt-6">
+            <Card className="col-span-1  pt-6">
               <CardContent>
                 <PhoneIcon className="text-green-500" />
                 <span className="text-xl font-semibold">120</span>
                 <CardDescription>Calls Handled</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1 bg-blue-100 pt-6">
+            <Card className="col-span-1  pt-6">
               <CardContent>
                 <MailboxIcon className="text-blue-500" />
                 <span className="text-xl font-semibold">200</span>
                 <CardDescription>Emails answered</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1 bg-blue-100 pt-6">
+            <Card className="col-span-1  pt-6">
               <CardContent>
                 <AlertCircleIcon className="text-red-500" />
                 <span className="text-xl font-semibold">65</span>
@@ -73,8 +122,10 @@ export function DashComponent() {
               </div>
             </div>
           </div>
-        </main>
+        </div>
       </div>
+      </main>
+    </div>
     </div>
   )
 }
