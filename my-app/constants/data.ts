@@ -125,22 +125,28 @@ export const navItems: NavItem[] = [
     label: "reservations",
   },
   {
-    title: "Departments",
-    href: "/dashboard/departments",
-    icon: "profile",
-    label: "departments",
-  },
-  {
     title: "Employees",
     href: "/dashboard/departments/employees",
-    icon: "user",
+    icon: "profile",
     label: "employees",
   },
   {
     title: "Conversations",
     href: "/dashboard/conversations",
-    icon: "settings",
+    icon: "chevronRight",
     label: "Conversations",
+  },
+  {
+    title: "Billing",
+    href: "/dashboard/billing",
+    icon: "kanban",
+    label: "Billing",
+  },
+  {
+    title: "Settings",
+    href: "/dashboard/settings",
+    icon: "settings",
+    label: "Settings",
   },
   
 ];
