@@ -2,6 +2,7 @@ import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useChat } from "ai/react";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ChatWindow() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -11,6 +12,7 @@ export function ChatWindow() {
       className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-md"
     >
       <div className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-md">
+       
         <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
           <div className="flex items-center space-x-2">
             <Avatar>
@@ -24,12 +26,14 @@ export function ChatWindow() {
               <p className="text-xs font-semibold">Elli</p>
             </div>
           </div>
-          
-        </div>
+        </div>       
+        
+        
         <div className="flex flex-col items-start justify-between flex-1 p-4">
         <p className="font-sm text-gray-600 ">
                 Elli is an AI assistant that can help with general inquiries. Contact front desk if you need to make a reservation.
         </p>
+        <ScrollArea className="h-[calc(40vh-100px)]">       
           <div className="w-full">
             <div className="mb-4 text-sm">
               
@@ -69,8 +73,9 @@ export function ChatWindow() {
             </div>
           </div>
         ))}
+ </ScrollArea>
           <div className="w-full mt-4 ">
-            
+  
             <Button className="w-full shadow-sm" variant="outline">
               Make a Reservation
             </Button>
@@ -96,7 +101,7 @@ export function ChatWindow() {
             </div>
             
           </div>
-        </form>
+        </form>        
       </div>
     </div>
   );
