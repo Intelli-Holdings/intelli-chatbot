@@ -27,7 +27,7 @@ import { UserNav } from "@/components/layout/user-nav"
 
 export function DashComponent() {
   return (
-    <div className="flex h-screen">      
+    <div className="flex">      
       <div className="flex-1">
         <main className="p-5">
         <div className="hidden flex-col md:flex">
@@ -110,15 +110,15 @@ export function DashComponent() {
                 }}
                 width="400"
               />
-              <div className="absolute bottom-0 left-0 bg-white p-4 rounded-lg m-5">
+              <div className="absolute bottom-0 left-0 bg-white p-4 m-2 rounded-lg ">
                 <Avatar>
-                  <AvatarImage alt="Adrian - Voice Agent" src="/placeholder.svg?height=40&width=40" />
+                  <AvatarImage alt="Elli - Email Agent" src="/placeholder.svg?height=40&width=40" />
                   <AvatarFallback>AV</AvatarFallback>
                 </Avatar>
-                <div className="ml-5">
-                  <span className="font-semibold">Adrian - Voice Agent</span>
-                  <p className="text-sm">&quot;Ready to help!&quot;</p>
-                </div>
+                
+                  <span className="font-semibold">Elli - Email Assistant</span>
+                  <p className="text-sm">&quot;I am ready to help!&quot;</p>
+                
               </div>
             </div>
           </div>
