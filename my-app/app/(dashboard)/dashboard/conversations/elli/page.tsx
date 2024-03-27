@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import Image from "next/image";
-import { Mail } from "../components/mail";
+// import { Mail } from "../components/mail";
 import { accounts, mails } from "../data";
 import BreadCrumb from "@/components/breadcrumb";
 
@@ -48,13 +48,13 @@ export default function ElliPage() {
         />
       </div>
       <div className="hidden flex-col md:flex">
-        <Mail
+        {/*<Mail
           accounts={accounts}
           mails={mails}
           defaultLayout={defaultLayout}
           defaultCollapsed={defaultCollapsed}
           navCollapsedSize={4}
-        />
+  />*/}
       </div>
     </>
   );
