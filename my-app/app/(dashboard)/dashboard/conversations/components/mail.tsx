@@ -1,4 +1,5 @@
 "use client"
+
 import * as React from "react"
 import {
   AlertCircle,
@@ -67,19 +68,19 @@ export function Mail({
         className="h-full max-h-[800px] items-stretch"
       >
         <ResizablePanel
-          defaultSize={defaultLayout[0]}
-          collapsedSize={navCollapsedSize}
-          collapsible={true}
-          minSize={15}
-          maxSize={20}
-          onCollapse={(collapsed) => {
-            setIsCollapsed(collapsed)
-            document.cookie = `react-resizable-panels:collapsed=${JSON.stringify(
-              collapsed
-            )}`
-          }}
-          className={cn(isCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out")}
-        >
+  defaultSize={defaultLayout[0]}
+  collapsedSize={navCollapsedSize}
+  collapsible={true}
+  minSize={15}
+  maxSize={20}
+  onCollapse={(collapsed: boolean) => {
+    setIsCollapsed(collapsed)
+    document.cookie = `react-resizable-panels:collapsed=${JSON.stringify(
+      collapsed
+    )}`
+  }}
+  className={cn(isCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out")}
+>
           <div className={cn("flex h-[52px] items-center justify-center", isCollapsed ? 'h-[52px]': 'px-2')}>
             <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
           </div>
