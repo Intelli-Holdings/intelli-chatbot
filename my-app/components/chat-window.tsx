@@ -1,102 +1,217 @@
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useChat } from "ai/react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { DotsHorizontalIcon } from "@radix-ui/react-icons";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export function ChatWindow() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [reservationOpen, setReservationOpen] = useState(false);
+
+  const openReservationModal = () => {
+    setReservationOpen(true);
+  };
+
+  const closeReservationModal = () => {
+    setReservationOpen(false);
+  };
+
+  const handleSubmitReservation = (e: any) => {
+    e.preventDefault();
+    // Handle reservation submission
+    // You can implement your logic to handle the form submission here
+    // Example: validate inputs, send reservation data to server, etc.
+  };
+
   return (
     <div
       key="1"
-      className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-md"
+      className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-lg"
     >
-      <div className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-md">
-        <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
-          <div className="flex items-center space-x-2">
-            <Avatar>
-              <AvatarImage
-                alt="Ellie's avatar"
-                src="/Avatar.svg?height=80&width=80"
-              />
-              <AvatarFallback></AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <p className="text-xs font-semibold">Elli</p>
-            </div>
+      <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
+        <div className="flex items-center space-x-2">
+          <Avatar>
+            <AvatarImage
+              alt="Ellie's avatar"
+              src="/Avatar.svg?height=80&width=80"
+            />
+            <AvatarFallback></AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <p className="text-xs font-semibold">Elli</p>
           </div>
-          
         </div>
-        <div className="flex flex-col items-start justify-between flex-1 p-4">
-        <p className="font-sm text-gray-600 ">
-                Elli is an AI assistant that can help with general inquiries. Contact front desk if you need to make a reservation.
-        </p>
+      </div>
+      <div className="flex flex-col items-start justify-between flex-1 p-4">
+        <ScrollArea className="h-[calc(40vh-100px)]">
           <div className="w-full">
-            <div className="mb-4 text-sm">
-              
-            </div>
+            <div className="mb-4 text-sm"></div>
             <div className="flex flex-col space-y-2"></div>
           </div>
           {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`${
-              m.role === 'user' ? 'flex items-end space-x-2' : 'flex items-start justify-end space-x-2'
-            } px-4 py-2 space-y-2`}
-          >
-            {m.role === 'user' ? (
-              <Avatar>
-                <AvatarImage
-                  alt="User"
-                  src="/user.jpg?height=30&width=30"
-                />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-            ) : (
-              <Avatar>
-                <AvatarImage
-                  alt="Elli"
-                  src="/Avatar.svg?height=50&width=50"
-                />
-                <AvatarFallback>E</AvatarFallback>
-              </Avatar>
-            )}
             <div
-              className={`max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg ${
-                m.role === 'user' ? 'bg-gray-100' : 'bg-[#E5EEFF]'
-              }`}
+              key={m.id}
+              className={`${
+                m.role === "user"
+                  ? "flex items-end space-x-2"
+                  : "flex items-start justify-end space-x-2"
+              } px-4 py-2 space-y-2`}
             >
-              {m.content}
+              {m.role === "user" ? (
+                <Avatar>
+                  <AvatarImage alt="User" src="/user.jpg?height=30&width=30" />
+                  <AvatarFallback>U</AvatarFallback>
+                </Avatar>
+              ) : (
+                <Avatar>
+                  <AvatarImage
+                    alt="Elli"
+                    src="/Avatar.svg?height=50&width=50"
+                  />
+                  <AvatarFallback>E</AvatarFallback>
+                </Avatar>
+              )}
+              <div
+                className={`max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg ${
+                  m.role === "user" ? "bg-gray-100" : "bg-[#E5EEFF]"
+                }`}
+              >
+                {m.content}
+              </div>
             </div>
-          </div>
-        ))}
-          <div className="w-full mt-4 ">
-            
-            <Button className="w-full shadow-sm" variant="outline">
-              Make a Reservation
+          ))}
+        </ScrollArea>
+      </div>
+      <form onSubmit={handleSubmitReservation}>{/* Reservation form */}</form>
+      <form onSubmit={handleSubmit}>
+        <div className="flex flex-col justify-between p-1">
+          <div className="flex items-center px-4 py-2 bg-white">
+            <Input
+              className="flex-grow w-full p-2 rounded shadow-sm"
+              value={input}
+              placeholder="How may I help you today?..."
+              onChange={handleInputChange}
+            />
+            <Button variant="ghost" className="rounded shadow-sm p-2 px-2">
+              <SendIcon type="submit" className="text-blue-600" />
             </Button>
           </div>
         </div>
-        <div className="flex items-center justify-between px-4 py-2 bg-gray-200">
-        <Button className="text-xs text-blue-600 bg-transparent hover:bg-gray-100">Directions</Button>
-        <Button className="text-xs text-blue-600 bg-transparent hover:bg-gray-100">Prices</Button>
-        <Button className="text-xs text-blue-600 bg-transparent hover:bg-gray-100">Amenities</Button>
-      </div>
-        <form onSubmit={handleSubmit}>
-          <div className="flex flex-col justify-between p-1">          
-            <div className="flex items-center px-4 py-2 bg-white">
-              <Input
-                className="flex-grow w-full p-2 rounded shadow-sm"
-                value={input}
-                placeholder="How may I help you today?..."
-                onChange={handleInputChange}
-              />  
-              <Button variant="ghost" className="rounded shadow-sm p-2 px-2" >
-                <SendIcon type="submit" className="text-blue-600" />
-            </Button>            
-            </div>
-            
-          </div>
-        </form>
+      </form>
+
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-b-lg">
+        <Tabs defaultValue="account" className="w-[400px]">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="messages">Chat with Elli</TabsTrigger>
+            <TabsTrigger
+              className="w-full shadow-sm"
+              onClick={openReservationModal}
+              value="reservations"
+            >
+              Make A Reservation
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="messages"></TabsContent>
+          <TabsContent value="reservations">
+            {/* Reservation Modal */}
+            {reservationOpen && (
+              <div className="fixed top-0 left-0 w-full h-full bg-gray-800 bg-opacity-70 flex justify-center items-center">
+                <Card className="w-[414px]">
+                  <CardHeader>
+                    <CardTitle>Make a Reservation</CardTitle>
+                    <CardDescription>
+                      Fill in this form to book our services.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmitReservation}>
+                      <div className="grid w-full items-center gap-4">
+                        <div className="flex flex-col space-y-1.5">
+                          {/* Reservation form fields */}
+                          <Label htmlFor="name">Full Name</Label>
+                          <Input
+                            type="text"
+                            placeholder="Name"
+                            className="mb-2"
+                          />
+                          <Label htmlFor="email">Email Address</Label>
+                          <Input
+                            type="email"
+                            placeholder="Email"
+                            className="mb-2"
+                          />
+                          <Label htmlFor="email">Phone Number</Label>
+                          <Input
+                            type="tel"
+                            placeholder="Phone Number"
+                            className="mb-2"
+                          />
+                          <Label htmlFor="email">Number of People</Label>
+                          <Input
+                            type="number"
+                            placeholder="Adults"
+                            className="mb-2"
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Children"
+                            className="mb-2"
+                          />
+                        </div>
+                        <div className="flex flex-col space-y-1.5">
+                          <Label htmlFor="roomtypes">Type of Room</Label>
+                          <Select>
+                            <SelectTrigger id="roomtypes">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                              <SelectItem value="next">Standard</SelectItem>
+                              <SelectItem value="sveltekit">Deluxe</SelectItem>
+                              <SelectItem value="astro">Executive</SelectItem>
+                              <SelectItem value="nuxt">
+                                Presidential Suite
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Label htmlFor="checkin">Check-in Date</Label>
+                          <Input type="date" id="checkin" />
+                          <Label htmlFor="checkout">Check-out Date</Label>
+                          <Input type="date" id="checkout" />
+                        </div>
+                      </div>
+                    </form>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button variant="outline" onClick={closeReservationModal}>
+                      Close
+                    </Button>
+                    <Button>Proceed</Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
@@ -122,46 +237,6 @@ function ArrowLeftIcon(props: any) {
   );
 }
 
-function VolumeIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-    </svg>
-  );
-}
-
-function MicIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" x2="12" y1="19" y2="22" />
-    </svg>
-  );
-}
-
 function SendIcon(props: any) {
   return (
     <svg
@@ -181,3 +256,4 @@ function SendIcon(props: any) {
     </svg>
   );
 }
+

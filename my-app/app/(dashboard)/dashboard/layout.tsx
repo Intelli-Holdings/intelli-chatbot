@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Intelli Dashboard",
-  description: "This is your home for customer support.",
+  description: "This is your home for intuitive customer support.",
 };
 
 export default function DashboardLayout({
@@ -15,7 +15,7 @@ export default function DashboardLayout({
   return (
     <>
       <Header />
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen">
         <Sidebar />
         <main className="w-full pt-16">{children}</main>
       </div>
