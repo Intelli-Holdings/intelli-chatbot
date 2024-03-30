@@ -5,7 +5,7 @@ export const runtime = 'edge';
 
 // Create an OpenAI API client (that's edge friendly!)
 const client = new OpenAIClient(
-  'https://sqweya-llm.openai.azure.com/',
+  'https://sqweya-subdomain.openai.azure.com/',
   new AzureKeyCredential(process.env.AZURE_OPENAI_API_KEY!),
 );
 
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
   // Ask Azure OpenAI for a streaming chat completion given the prompt
   const response = await client.streamChatCompletions(
-    'gpt-35-turbo-1106',
+    'gpt-35-turbo',
     messagesWithSystemMessage,
   );
  

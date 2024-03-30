@@ -105,16 +105,17 @@ export function ChatWindow() {
       <form onSubmit={handleSubmitReservation}>{/* Reservation form */}</form>
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col justify-between p-1">
-          <div className="flex items-center px-4 py-2 bg-white">
+          <div className="flex items-center px-2 py-2 bg-white">
             <Input
               className="flex-grow w-full p-2 rounded shadow-sm"
               value={input}
               placeholder="How may I help you today?..."
               onChange={handleInputChange}
             />
-            <Button variant="ghost" className="rounded shadow-sm p-2 px-2">
-              <SendIcon type="submit" className="text-blue-600" />
+            <Button type="submit" className="rounded p-2 ml-1">
+              <SendIcon className="w-6 h-6" />
             </Button>
+            
           </div>
         </div>
       </form>
@@ -124,9 +125,10 @@ export function ChatWindow() {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="messages">Chat with Elli</TabsTrigger>
             <TabsTrigger
-              className="w-full shadow-sm"
+              className="w-full bg-gray-900 text-white shadow-sm"
               onClick={openReservationModal}
               value="reservations"
+
             >
               Make A Reservation
             </TabsTrigger>
