@@ -53,7 +53,7 @@ export function ChatWindow() {
           <Avatar>
             <AvatarImage
               alt="Ellie's avatar"
-              src="/Avatar.svg?height=80&width=80"
+              src="/Ellis.png?height=80&width=80"
             />
             <AvatarFallback></AvatarFallback>
           </Avatar>
@@ -62,12 +62,9 @@ export function ChatWindow() {
           </div>
         </div>
       </div>
-      <div className="flex flex-col items-start justify-between flex-1 p-4">
-        <ScrollArea className="h-[calc(40vh-100px)]">
-          <div className="w-full">
-            <div className="mb-4 text-sm"></div>
-            <div className="flex flex-col space-y-2"></div>
-          </div>
+      <div className="flex flex-col items-start justify-between flex-1 p-2">
+        <ScrollArea className="h-[calc(50vh-100px)]">
+         
           {messages.map((m) => (
             <div
               key={m.id}
@@ -86,7 +83,7 @@ export function ChatWindow() {
                 <Avatar>
                   <AvatarImage
                     alt="Elli"
-                    src="/Avatar.svg?height=50&width=50"
+                    src="/Avatar.png?height=50&width=50"
                   />
                   <AvatarFallback>E</AvatarFallback>
                 </Avatar>
@@ -102,10 +99,11 @@ export function ChatWindow() {
           ))}
         </ScrollArea>
       </div>
+
       <form onSubmit={handleSubmitReservation}>{/* Reservation form */}</form>
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col justify-between p-1">
-          <div className="flex items-center px-2 py-2 bg-white">
+          <div className="flex items-center px-1 py-2 bg-white">
             <Input
               className="flex-grow w-full p-2 rounded shadow-sm"
               value={input}
@@ -123,7 +121,7 @@ export function ChatWindow() {
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-b-lg">
         <Tabs defaultValue="account" className="w-[400px]">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="messages">Chat with Elli</TabsTrigger>
+            
             <TabsTrigger
               className="w-full bg-gray-900 text-white shadow-sm"
               onClick={openReservationModal}
