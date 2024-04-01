@@ -144,20 +144,29 @@ export function ChatWindow() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleSubmitReservation}>
+                    <form id="paymentForm" onSubmit={handleSubmitReservation}>
                       <div className="grid w-full items-center gap-4">
                         <div className="flex flex-col space-y-1.5">
                           {/* Reservation form fields */}
-                          <Label htmlFor="name">Full Name</Label>
+                          <Label htmlFor="name">First Name</Label>
                           <Input
                             type="text"
-                            placeholder="Name"
+                            placeholder="First Name"
                             className="mb-2"
+                            id="first-name"
+                          />
+                          <Label htmlFor="name">Last Name</Label>
+                          <Input
+                            type="text"
+                            placeholder="Last Name"
+                            className="mb-2"
+                            id="last-name"
                           />
                           <Label htmlFor="email">Email Address</Label>
                           <Input
                             type="email"
                             placeholder="Email"
+                            id="email-address" required
                             className="mb-2"
                           />
                           <Label htmlFor="email">Phone Number</Label>
@@ -197,6 +206,11 @@ export function ChatWindow() {
                           <Input type="date" id="checkin" />
                           <Label htmlFor="checkout">Check-out Date</Label>
                           <Input type="date" id="checkout" />
+
+                          <div className="form-group">
+                            <label htmlFor="amount">Amount</label>
+                            <Input type="tel" id="amount" required />
+                          </div>
                         </div>
                       </div>
                     </form>
