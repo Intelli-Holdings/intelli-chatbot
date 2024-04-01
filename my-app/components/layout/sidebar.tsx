@@ -1,6 +1,8 @@
 import { DashboardNav } from "@/components/dashboard-nav";
 import { navItems } from "@/constants/data";
 import { cn } from "@/lib/utils";
+import { Card, CardHeader, CardContent, CardFooter, CardDescription, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function Sidebar() {
   return (
@@ -14,6 +16,22 @@ export default function Sidebar() {
               Menu Overview
             </h2>
             <DashboardNav items={navItems} />
+            <div className="pt-20 bottom-10">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Upgrade to Premium</CardTitle>
+                    <CardDescription>
+                      Unlock all our features and get a dedicated account manager plus email
+                      support from our team.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button size="sm" className="w-full" href="/billing">
+                      Upgrade
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
           </div>
         </div>
       </div>

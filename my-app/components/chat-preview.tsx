@@ -75,7 +75,7 @@ export function ChatPreview() {
         style={{ width: "380px", height: "600px" }}
         className="fixed bottom-10 right-0 z-20 p-4">
           <ChatWindow />
-          <button onClick={toggleChatbot}>Close Elli</button>
+          
         </div>
       )}
     </div>
