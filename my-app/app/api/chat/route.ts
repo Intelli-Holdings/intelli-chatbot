@@ -1,10 +1,9 @@
 import { OpenAIClient, AzureKeyCredential } from '@azure/openai';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
-import mongoose, {Model, connect} from 'mongoose';
-import { MessageModel as MessageSchema } from '@/models/message.model';
+// import mongoose, {Model, connect} from 'mongoose';
+// import { MessageModel as MessageSchema } from '@/models/message.model';
 
 export const runtime = 'edge';
-
 
 // Create an OpenAI API client (that's edge friendly!)
 const client = new OpenAIClient(
@@ -12,7 +11,7 @@ const client = new OpenAIClient(
   new AzureKeyCredential(process.env.AZURE_OPENAI_API_KEY!),
 );
 
-
+{/*
 
 const processMessages = async (messages: any[]) => {
 
@@ -51,7 +50,6 @@ const db = mongoose.connection.once('open', async () => {
 });
 };
 
-{/*
   // @ts-ignore
 const MessageModel = mongoose.model('Message', MessageSchema);
 
@@ -81,9 +79,6 @@ const MessageModel = mongoose.model('Message', MessageSchema);
 export async function POST(req: Request) {
   const { messages } = await req.json();
   console.log(messages); 
-
-    // Process messages in the background
-    processMessages(messages);
 
   // Adding system message
   const messagesWithSystemMessage = [
