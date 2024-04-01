@@ -1,6 +1,4 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import {MessageModel} from '@/models/message.model';
-import { Model } from 'mongoose';
 import { addMessage, getMessages } from '@/repositories/messages.repository';
 
 interface MessagePayload {
@@ -14,11 +12,15 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     if (req.method === "POST") {
       const { userId, message, aiResponse } = req.body as MessagePayload;
       const newMessage = await addMessage(userId, message, aiResponse);
-      res.status(201).json({ message: "Message saved", id: newMessage._id });
+      res.status(201).json({ message: "Message saved", data: newMessage });
     } else if (req.method === "GET") {
-      const { userId } = req.query;
-      const messages = await getMessages(userId);
-      res.json(messages);
+      const userId = req.query.userId as string | undefined;
+      if (userId) {
+        const messages = await getMessages(userId);
+        res.json(messages);
+      } else {
+        res.status(400).json({ message: "userId is required" });
+      }
     } else {
       res.setHeader("Allow", ["GET", "POST"]);
       res.status(405).end();
