@@ -3,8 +3,18 @@
  * @see https://v0.dev/t/cvlYWLiAMFA
  */
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar"
-import { CardDescription, CardContent, Card } from "@/components/ui/card"
+import { CardDescription, CardContent, Card, CardHeader, CardFooter, CardTitle } from "@/components/ui/card"
 import { JSX, SVGProps } from "react"
+import {
+  Activity,
+  ArrowUpRight,
+  CircleUser,
+  CreditCard,
+  DollarSign,
+  Menu,
+  Package2,
+  Users,
+} from "lucide-react"
 import Image from "next/image"
 import { Metadata } from "next"
 import { Button } from "@/components/ui/button"
@@ -33,23 +43,14 @@ export function DashComponent() {
         <div className="hidden flex-col md:flex">
         <div className="border-b">
           <div className="flex h-16 items-center px-4">
-            <TeamSwitcher />
-            <MainNav className="mx-6" />
+                       
             <div className="ml-auto flex items-center space-x-4">
-              <Search />
-              <UserNav />
+              
             </div>
           </div>
         </div>
         <div className="flex-1 space-y-4 p-8 pt-6">
-          <div className="flex items-center justify-between space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-            <div className="flex items-center space-x-2">
-              <DatePickerWithRange />
-              <Button>Download</Button>
-            </div>
-          </div>
-          <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="analytics" >
@@ -63,64 +64,450 @@ export function DashComponent() {
               </TabsTrigger>
             </TabsList>
             </Tabs>
-          <div className="grid grid-cols-4 gap-4 mb-6 ">
-            <Card className="col-span-1  pt-6">
+          <div className="flex items-center justify-between space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight">Reservations</h2>
+            <div className="flex items-center space-x-2">
+              <Search />
+              <Button>Search</Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-4 mb-6 pb-5">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Revenue
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">$45,231.89</div>
+              <p className="text-xs text-muted-foreground">
+                +20.1% from last month
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Reservations
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">+2350</div>
+              <p className="text-xs text-muted-foreground">
+                +180.1% from last month
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Canceled Reservations</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">+12,234</div>
+              <p className="text-xs text-muted-foreground">
+                +19% from last month
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Reservations</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">+573</div>
+              <p className="text-xs text-muted-foreground">
+                +201 since last hour
+              </p>
+            </CardContent>
+          </Card>
+          </div>
+          <div className="grid grid-cols-4 gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Response Time</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-8">
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                  <AvatarFallback>OM</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Olivia Martin
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    olivia.martin@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$1,999.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/02.png" alt="Avatar" />
+                  <AvatarFallback>JL</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Jackson Lee
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    jackson.lee@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$39.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/03.png" alt="Avatar" />
+                  <AvatarFallback>IN</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Isabella Nguyen
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    isabella.nguyen@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$299.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/04.png" alt="Avatar" />
+                  <AvatarFallback>WK</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    William Kim
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    will@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$99.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/05.png" alt="Avatar" />
+                  <AvatarFallback>SD</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Sofia Davis
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    sofia.davis@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$39.00</div>
+              </div>
+            </CardContent>
+          </Card><Card>
+            <CardHeader>
+              <CardTitle>Inquiry Escalation</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-8">
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                  <AvatarFallback>OM</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Olivia Martin
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    olivia.martin@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$1,999.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/02.png" alt="Avatar" />
+                  <AvatarFallback>JL</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Jackson Lee
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    jackson.lee@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$39.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/03.png" alt="Avatar" />
+                  <AvatarFallback>IN</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Isabella Nguyen
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    isabella.nguyen@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$299.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/04.png" alt="Avatar" />
+                  <AvatarFallback>WK</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    William Kim
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    will@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$99.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/05.png" alt="Avatar" />
+                  <AvatarFallback>SD</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Sofia Davis
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    sofia.davis@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$39.00</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Unresolved</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-8">
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                  <AvatarFallback>OM</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Olivia Martin
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    olivia.martin@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$1,999.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/02.png" alt="Avatar" />
+                  <AvatarFallback>JL</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Jackson Lee
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    jackson.lee@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$39.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/03.png" alt="Avatar" />
+                  <AvatarFallback>IN</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Isabella Nguyen
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    isabella.nguyen@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$299.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/04.png" alt="Avatar" />
+                  <AvatarFallback>WK</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    William Kim
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    will@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$99.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/05.png" alt="Avatar" />
+                  <AvatarFallback>SD</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Sofia Davis
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    sofia.davis@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$39.00</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Resolution Rate</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-8">
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                  <AvatarFallback>OM</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Olivia Martin
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    olivia.martin@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$1,999.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/02.png" alt="Avatar" />
+                  <AvatarFallback>JL</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Jackson Lee
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    jackson.lee@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$39.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/03.png" alt="Avatar" />
+                  <AvatarFallback>IN</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Isabella Nguyen
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    isabella.nguyen@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$299.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/04.png" alt="Avatar" />
+                  <AvatarFallback>WK</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    William Kim
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    will@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$99.00</div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="hidden h-9 w-9 sm:flex">
+                  <AvatarImage src="/avatars/05.png" alt="Avatar" />
+                  <AvatarFallback>SD</AvatarFallback>
+                </Avatar>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    Sofia Davis
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    sofia.davis@email.com
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">+$39.00</div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          </div>
+          <div className="flex items-center justify-between space-y-2 p-5">
+            <h2 className="text-3xl font-bold tracking-tight">Inquiries</h2>
+          </div>
+          <div className="grid md:grid-cols-2 md:gap-10 lg:grid-cols-4">
+          <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-large">
+                Inquiries: Total
+              </CardTitle>
+              <AlertCircleIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
               <CardContent>
-                <AlertCircleIcon className="text-red-500" />
-                <span className="text-xl font-semibold">15</span>
-                <CardDescription>Escalated Calls</CardDescription>
+                
+                <span className="text-3xl font-bold">15</span>
+                <CardDescription>From all channels</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1  pt-6">
+            <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-large">
+                Inquiries: Calls
+              </CardTitle>
+              <PhoneIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
               <CardContent>
-                <PhoneIcon className="text-green-500" />
-                <span className="text-xl font-semibold">120</span>
+                <span className="text-3xl font-bold">120</span>
                 <CardDescription>Calls Handled</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1  pt-6">
+            <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-large">
+                Inquiries: Email
+              </CardTitle>
+              <MailboxIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
               <CardContent>
-                <MailboxIcon className="text-blue-500" />
-                <span className="text-xl font-semibold">200</span>
+                <span className="text-3xl font-bold">200</span>
                 <CardDescription>Emails answered</CardDescription>
               </CardContent>
             </Card>
-            <Card className="col-span-1  pt-6">
+            <Card >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-large">
+                Inquiries: Website
+              </CardTitle>
+              <GlobeIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
               <CardContent>
-                <AlertCircleIcon className="text-red-500" />
-                <span className="text-xl font-semibold">65</span>
-                <CardDescription>Booking Reservations</CardDescription>
+                <span className="text-3xl font-bold">65</span>
+                <CardDescription>Booking Reservations through Website</CardDescription>
               </CardContent>
             </Card>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 bg-teal-500 p-5 rounded-lg text-white">
-              <h2 className="text-3xl font-bold mb-4">Revolutionize customer support with Intelli Concierge.</h2>
-              <p className="text-xl">– A comprehensive guide.</p>
-            </div>
-            <div className="relative">
-              <Image
-                alt="Customer support representative"
-                className="rounded-lg"
-                height="300"
-                src="/placeholder.svg"
-                style={{
-                  aspectRatio: "400/300",
-                  objectFit: "cover",
-                }}
-                width="400"
-              />
-              <div className="absolute bottom-0 left-0 bg-white p-4 m-2 rounded-lg ">
-                <Avatar>
-                  <AvatarImage alt="Elli - Email Agent" src="/placeholder.svg?height=40&width=40" />
-                  <AvatarFallback>AV</AvatarFallback>
-                </Avatar>
-                
-                  <span className="font-semibold">Elli - Email Assistant</span>
-                  <p className="text-sm">&quot;I am ready to help!&quot;</p>
-                
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -169,6 +556,27 @@ function HomeIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
     >
       <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
       <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  )
+}
+
+function GlobeIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" x2="22" y1="12" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
     </svg>
   )
 }
