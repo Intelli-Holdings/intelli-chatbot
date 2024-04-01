@@ -5,6 +5,7 @@ import { useChat } from "ai/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReservationForm } from "@/components/reservation-form";
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+
 export function ChatWindow() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
   const [reservationOpen, setReservationOpen] = useState(false);
@@ -36,12 +38,6 @@ export function ChatWindow() {
     setReservationOpen(false);
   };
 
-  const handleSubmitReservation = (e: any) => {
-    e.preventDefault();
-    // Handle reservation submission
-    // You can implement your logic to handle the form submission here
-    // Example: validate inputs, send reservation data to server, etc.
-  };
 
   return (
     <div
@@ -100,7 +96,7 @@ export function ChatWindow() {
         </ScrollArea>
       </div>
 
-      <form onSubmit={handleSubmitReservation}>{/* Reservation form */}</form>
+      <form>{/* Reservation form */}</form>
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col justify-between p-1">
           <div className="flex items-center px-1 py-2 bg-white">
@@ -136,92 +132,7 @@ export function ChatWindow() {
             {/* Reservation Modal */}
             {reservationOpen && (
               <div className="fixed top-0 left-0 w-full h-full bg-gray-800 bg-opacity-70 flex justify-center items-center">
-                <Card className="w-[414px]">
-                  <CardHeader>
-                    <CardTitle>Make a Reservation</CardTitle>
-                    <CardDescription>
-                      Fill in this form to book our services.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form id="paymentForm" onSubmit={handleSubmitReservation}>
-                      <div className="grid w-full items-center gap-4">
-                        <div className="flex flex-col space-y-1.5">
-                          {/* Reservation form fields */}
-                          <Label htmlFor="name">First Name</Label>
-                          <Input
-                            type="text"
-                            placeholder="First Name"
-                            className="mb-2"
-                            id="first-name"
-                          />
-                          <Label htmlFor="name">Last Name</Label>
-                          <Input
-                            type="text"
-                            placeholder="Last Name"
-                            className="mb-2"
-                            id="last-name"
-                          />
-                          <Label htmlFor="email">Email Address</Label>
-                          <Input
-                            type="email"
-                            placeholder="Email"
-                            id="email-address" required
-                            className="mb-2"
-                          />
-                          <Label htmlFor="email">Phone Number</Label>
-                          <Input
-                            type="tel"
-                            placeholder="Phone Number"
-                            className="mb-2"
-                          />
-                          <Label htmlFor="email">Number of People</Label>
-                          <Input
-                            type="number"
-                            placeholder="Adults"
-                            className="mb-2"
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Children"
-                            className="mb-2"
-                          />
-                        </div>
-                        <div className="flex flex-col space-y-1.5">
-                          <Label htmlFor="roomtypes">Type of Room</Label>
-                          <Select>
-                            <SelectTrigger id="roomtypes">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent position="popper">
-                              <SelectItem value="next">Standard</SelectItem>
-                              <SelectItem value="sveltekit">Deluxe</SelectItem>
-                              <SelectItem value="astro">Executive</SelectItem>
-                              <SelectItem value="nuxt">
-                                Presidential Suite
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Label htmlFor="checkin">Check-in Date</Label>
-                          <Input type="date" id="checkin" />
-                          <Label htmlFor="checkout">Check-out Date</Label>
-                          <Input type="date" id="checkout" />
-
-                          <div className="form-group">
-                            <label htmlFor="amount">Amount</label>
-                            <Input type="tel" id="amount" required />
-                          </div>
-                        </div>
-                      </div>
-                    </form>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={closeReservationModal}>
-                      Close
-                    </Button>
-                    <Button>Proceed</Button>
-                  </CardFooter>
-                </Card>
+                <ReservationForm />
               </div>
             )}
           </TabsContent>
@@ -230,6 +141,7 @@ export function ChatWindow() {
     </div>
   );
 }
+
 
 function ArrowLeftIcon(props: any) {
   return (
@@ -270,4 +182,3 @@ function SendIcon(props: any) {
     </svg>
   );
 }
-
