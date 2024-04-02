@@ -1,6 +1,10 @@
+"use client";
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
+import { useFormState, useFormStatus } from 'react-dom';
+import { handleCreateReservation } from '@/lib/actions';
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "react-toastify";
 import { useChat } from "ai/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,20 +29,99 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+type RoomType = "standard" | "executive" | "apartment";
+
+interface ReservationFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  adults: number;
+  children: number;
+  roomType: RoomType;
+  checkIn: string;
+  checkOut: string;
+  amount: number; 
+}
+
+const roomRates = {
+  standard: 195,
+  executive: 220,
+  apartment: 350,
+};
+
+const downPaymentPercentage = 0.25; // 25% down payment
+
+const calculateTotalAmount = (roomType: RoomType, days: number) => {
+  const roomRate = roomRates[roomType];
+  const totalRoomCost = roomRate * days;
+  const downPayment = totalRoomCost * downPaymentPercentage;
+  const totalAmount = totalRoomCost + downPayment;
+  return totalAmount;
+};
+
 
 export function ChatWindow() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
   const [reservationOpen, setReservationOpen] = useState(false);
 
-  const openReservationModal = () => {
-    setReservationOpen(true);
+  const [formData, setFormData] = useState<ReservationFormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    adults: 0,
+    children: 0,
+    roomType: "standard",
+    checkIn: "",
+    checkOut: "",
+    amount: 0,
+  });
+
+  const calculateDays = (checkIn: string, checkOut: string): number => {
+    const oneDay = 24 * 60 * 60 * 1000; // Hours * Minutes * Seconds * Milliseconds
+    const firstDate = new Date(checkIn);
+    const secondDate = new Date(checkOut);
+  
+    return Math.round(Math.abs((firstDate.getTime() - secondDate.getTime()) / oneDay));
   };
 
   const closeReservationModal = () => {
     setReservationOpen(false);
   };
+  const openReservationModal = () => {
+    setReservationOpen(true);
+  };
 
+  const handleReservationInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const updatedFormData = {
+      ...formData,
+      [name]: type === "number" ? parseInt(value, 10) || 0 : value,
+    };
+  
+    if (name === "checkIn" || name === "checkOut" || name === "roomType") {
+      const days = calculateDays(updatedFormData.checkIn, updatedFormData.checkOut);
+      const totalAmount = calculateTotalAmount(updatedFormData.roomType, days);
+      updatedFormData.amount = totalAmount;
+    }
+  
+    setFormData(updatedFormData);
+  };
 
+  
+ 
+
+  const [state, formAction] = useFormState(handleCreateReservation, { success: false });
+  const { pending } = useFormStatus();
+
+  const handleSubmitReservation = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    formAction(formData);
+  };
   return (
     <div
       key="1"
@@ -60,7 +143,6 @@ export function ChatWindow() {
       </div>
       <div className="flex flex-col items-start justify-between flex-1 p-2">
         <ScrollArea className="h-[calc(50vh-100px)]">
-         
           {messages.map((m) => (
             <div
               key={m.id}
@@ -96,7 +178,9 @@ export function ChatWindow() {
         </ScrollArea>
       </div>
 
-      <form>{/* Reservation form */}</form>
+      <form onSubmit={handleSubmitReservation} action={formAction}>
+        {/* Reservation form */}
+      </form>
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col justify-between p-1">
           <div className="flex items-center px-1 py-2 bg-white">
@@ -109,7 +193,6 @@ export function ChatWindow() {
             <Button type="submit" className="rounded p-2 ml-1">
               <SendIcon className="w-6 h-6" />
             </Button>
-            
           </div>
         </div>
       </form>
@@ -117,12 +200,10 @@ export function ChatWindow() {
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-b-lg">
         <Tabs defaultValue="account" className="w-[400px]">
           <TabsList className="grid w-full grid-cols-2">
-            
             <TabsTrigger
               className="w-full bg-gray-900 text-white shadow-sm"
               onClick={openReservationModal}
               value="reservations"
-
             >
               Make A Reservation
             </TabsTrigger>
@@ -132,7 +213,160 @@ export function ChatWindow() {
             {/* Reservation Modal */}
             {reservationOpen && (
               <div className="fixed top-0 left-0 w-full h-full bg-gray-800 bg-opacity-70 flex justify-center items-center">
-                <ReservationForm />
+                <Card className="w-[500px] mx-auto shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Make a Reservation</CardTitle>
+                    <CardDescription>
+                      Fill in this form to book our services.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmitReservation} action={formAction}>
+                      <div className="grid grid-cols-2 gap-2 md:grid-cols-2">
+                        <div>
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input
+                            id="firstName"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input
+                            id="lastName"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phoneNumber">Phone Number</Label>
+                          <Input
+                            id="phoneNumber"
+                            name="phoneNumber"
+                            type="tel"
+                            value={formData.phoneNumber}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="adults">Adults</Label>
+                          <Input
+                            id="adults"
+                            name="adults"
+                            type="number"
+                            value={formData.adults}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="children">Children</Label>
+                          <Input
+                            id="children"
+                            name="children"
+                            type="number"
+                            value={formData.children}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="roomType">Room Type</Label>
+                          <Select
+                            value={formData.roomType}
+                            onValueChange={(value) =>
+                              setFormData((prevFormData) => ({
+                                ...prevFormData,
+                                roomType: value as RoomType,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a room type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="executive">
+                                Executive
+                              </SelectItem>
+                              <SelectItem value="apartment">
+                                Apartment
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="checkIn">Check-in Date</Label>
+                          <Input
+                            id="checkIn"
+                            name="checkIn"
+                            type="date"
+                            value={formData.checkIn}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="checkOut">Check-out Date</Label>
+                          <Input
+                            id="checkOut"
+                            name="checkOut"
+                            type="date"
+                            value={formData.checkOut}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            name="amount"
+                            value={formData.amount.toLocaleString("en-GH", {
+                              style: "currency",
+                              currency: "GHS",
+                            })}
+                            readOnly
+                          />
+                        </div>
+                      </div>
+                      <CardFooter className="pt-5 justify-center w-full">
+                        <Button type="submit" disabled={pending}>
+                          {pending ? "Submitting..." : "Submit Reservation"}
+                        </Button>
+                      </CardFooter>
+                    </form>
+                    <p aria-live="polite" className="sr-only">
+                      {state?.success
+                        ? "Reservation submitted successfully!"
+                        : ""}
+                    </p>
+                    <Button
+                      className=""
+                      variant="outline"
+                      onClick={closeReservationModal}
+                    >
+                      Close
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </TabsContent>
