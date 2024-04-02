@@ -1,5 +1,8 @@
-import BillingPage from './BillingPage';
-
-export default function Page() {
-  return <BillingPage />;
+import {BillingPage} from '@/app/(dashboard)/dashboard/billing/BillingPage';
+export default function page() {
+  return(
+    <div>
+      <BillingPage />
+    </div>
+  );
 }

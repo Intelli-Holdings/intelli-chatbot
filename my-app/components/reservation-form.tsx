@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { PaystackButton } from "react-paystack";
 import {
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type RoomType = "standard" | "executive" | "apartment";
+
 interface ReservationFormData {
   firstName: string;
   lastName: string;
@@ -24,13 +28,23 @@ interface ReservationFormData {
   phoneNumber: string;
   adults: number;
   children: number;
-  roomType: string;
+  roomType: RoomType;
   checkIn: string;
   checkOut: string;
 }
 
+const roomRates = {
+  standard: 195,
+  executive: 220,
+  apartment: 350,
+};
+
+const downPaymentPercentage = 0.25; // 25% down payment
+
 export const ReservationForm = () => {
-    const [reservationOpen, setReservationOpen] = useState(false);
+  const [amount, setAmount] = useState(0);
+  const [reservationOpen, setReservationOpen] = useState(false);
+
   const [formData, setFormData] = useState<ReservationFormData>({
     firstName: "",
     lastName: "",
@@ -38,10 +52,30 @@ export const ReservationForm = () => {
     phoneNumber: "",
     adults: 0,
     children: 0,
-    roomType: "",
+    roomType: "standard",
     checkIn: "",
     checkOut: "",
   });
+
+
+  const calculateAmount = () => {
+    const { roomType, checkIn, checkOut } = formData;
+
+    if (!roomType || !checkIn || !checkOut) {
+      return 0;
+    }
+
+    const startDate = new Date(checkIn);
+    const endDate = new Date(checkOut);
+    const nights =
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+
+    const roomPrice = roomRates[roomType];
+    const totalAmount = nights * roomPrice;
+    const downPayment = totalAmount * downPaymentPercentage;
+
+    return downPayment;
+  };
 
   const openReservationModal = () => {
     setReservationOpen(true);
@@ -50,7 +84,6 @@ export const ReservationForm = () => {
   const closeReservationModal = () => {
     setReservationOpen(false);
   };
-
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -71,7 +104,7 @@ export const ReservationForm = () => {
     e.preventDefault();
     try {
       const response = await fetch(
-        "https://intelli-python-backend.onrender.com/dashboard/reservations/",
+        "https://intelli-python-backend.onrender.com/reservations/",
         {
           method: "POST",
           headers: {
@@ -80,9 +113,10 @@ export const ReservationForm = () => {
           body: JSON.stringify(formData),
         }
       );
-
+  
       if (response.ok) {
         console.log("Reservation successfully sent!");
+        // You can add additional logic here, such as navigating to the checkout page
       } else {
         console.error("Failed to send reservation:", response.statusText);
       }
@@ -90,13 +124,27 @@ export const ReservationForm = () => {
       console.error("An error occurred:", error);
     }
   };
+  const publicKey = "PAYSTACK_PUBLIC_KEY"
+
+  const [email, setEmail] = useState("")
+
+  const [name, setName] = useState("")
+
+  const [phone, setPhone] = useState("")
 
   return (
     <Card className="w-[414px] mx-auto shadow-sm">
-      <CardHeader>Reservation Form</CardHeader>
+      <CardHeader>
+      <CardTitle>Make a Reservation</CardTitle>
+                    <CardDescription>
+                      Fill in this form to book our services.
+                    </CardDescription>
+
+
+      </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmitReservation}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-2">
             <div>
               <Label htmlFor="firstName">First Name</Label>
               <Input
@@ -162,35 +210,67 @@ export const ReservationForm = () => {
               />
             </div>
             <div>
-              <Label htmlFor="roomType">Room Type</Label>
-              <Select>
-                <SelectTrigger id="roomtypes">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectItem value="next">Standard</SelectItem>
-                  <SelectItem value="sveltekit">Deluxe</SelectItem>
-                  <SelectItem value="astro">Executive</SelectItem>
-                  <SelectItem value="nuxt">Presidential Suite</SelectItem>
-                </SelectContent>
-              </Select>
-              <Label htmlFor="checkin">Check-in Date</Label>
-              <Input type="date" id="checkin" />
-              <Label htmlFor="checkout">Check-out Date</Label>
-              <Input type="date" id="checkout" />
-
+  <Label htmlFor="roomType">Room Type</Label>
+  <Select
+    value={formData.roomType}
+    onValueChange={(value) =>
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        roomType: value as RoomType,
+      }))
+    }
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Select a room type" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="standard">Standard</SelectItem>
+      <SelectItem value="executive">Executive</SelectItem>
+      <SelectItem value="apartment">Apartment</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+<div>
+  <Label htmlFor="checkIn">Check-in Date</Label>
+  <Input
+    id="checkIn"
+    name="checkIn"
+    type="date"
+    value={formData.checkIn}
+    onChange={handleInputChange}
+    required
+  />
+</div>
+<div>
+  <Label htmlFor="checkOut">Check-out Date</Label>
+  <Input
+    id="checkOut"
+    name="checkOut"
+    type="date"
+    value={formData.checkOut}
+    onChange={handleInputChange}
+    required
+  />
+</div>
               <div className="form-group">
                 <label htmlFor="amount">Amount</label>
-                <Input type="tel" id="amount" required />
+                <Input
+                  id="amount"
+                  name="amount"
+                
+                  
+                />
               </div>
             </div>
-          </div>
+          
+          <CardFooter className="pt-5 justify-between">
+          <Button type="submit">Submit Reservation</Button>
+        <Button className="" variant="outline" onClick={closeReservationModal}>
+          Close
+        </Button>
+      </CardFooter>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={closeReservationModal}>Close</Button>
-        <Button>Proceed</Button>
-      </CardFooter>
     </Card>
   );
 };

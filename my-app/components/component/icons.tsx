@@ -31,9 +31,11 @@ import {
     X,
   } from "lucide-react";
   
-  export type Icon = LucideIcon;
+  export type Icon = LucideIcon | CustomSVGIcon;
   
-  export const Icons = {
+type CustomSVGIcon = (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
+
+  export const Icons: Record<string, Icon> = {
     dashboard: LayoutDashboardIcon,
     logo: Command,
     login: LogIn,
@@ -60,7 +62,7 @@ import {
     sun: SunMedium,
     moon: Moon,
     laptop: Laptop,
-    gitHub: ({ ...props }: LucideProps) => (
+    gitHub: ({ ...props }: React.SVGProps<SVGSVGElement>) => (
       <svg
         aria-hidden="true"
         focusable="false"

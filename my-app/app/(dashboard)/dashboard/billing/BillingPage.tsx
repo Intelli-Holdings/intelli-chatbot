@@ -1,4 +1,3 @@
-"use client"
 import { Button } from "@/components/ui/button";
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -63,7 +62,7 @@ import { Icons } from "@/components/icons";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function BillingPage() {
+export function BillingPage() {
    
   return (
     <div className="grid w-full ">
