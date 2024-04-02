@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function page() {
+export default function Page() {
   return (
     <div className="grid min-h-screen w-full ">
       
