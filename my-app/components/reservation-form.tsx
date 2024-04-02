@@ -1,4 +1,6 @@
+"use client";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import {
   Card,
   CardContent,
@@ -97,29 +99,29 @@ export const ReservationForm = () => {
 
   const handleSubmitReservation = async (e: React.FormEvent) => {
     e.preventDefault();
+  
     try {
       const response = await fetch(
-        "https://intelli-python-backend.onrender.com/reservations/",
+        'https://intelli-python-backend.onrender.com/reservations/',
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify(formData),
         }
       );
-
+  
       if (response.ok) {
-        console.log("Reservation successfully sent!");
+        toast.success('Reservation successfully sent!'); // Show a success toast
         // You can add additional logic here, such as navigating to the checkout page
       } else {
-        console.error("Failed to send reservation:", response.statusText);
+        toast.error('Failed to send reservation'); // Show an error toast
       }
     } catch (error) {
-      console.error("An error occurred:", error);
+      toast.error('An error occurred'); // Show an error toast
+      console.error('An error occurred:', error);
     }
-
-    return { fallback: false };
   };
 
   return (
@@ -250,18 +252,18 @@ export const ReservationForm = () => {
               />
             </div>
           </div>
-
-          <CardFooter className="pt-5 justify-between">
-            <Button type="submit">Submit Reservation</Button>
-            <Button
+          <CardFooter className="pt-5 justify-center w-full">
+            <Button type="submit" onClick={handleSubmitReservation}>Submit Reservation</Button>
+            
+          </CardFooter>
+        </form>
+        <Button
               className=""
               variant="outline"
               onClick={closeReservationModal}
             >
               Close
             </Button>
-          </CardFooter>
-        </form>
       </CardContent>
     </Card>
   );
