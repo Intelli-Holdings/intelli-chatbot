@@ -4,7 +4,9 @@
  */
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar"
 import { CardDescription, CardContent, Card, CardHeader, CardFooter, CardTitle } from "@/components/ui/card"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { JSX, SVGProps } from "react"
+import Link from "next/link"
 import {
   Activity,
   ArrowUpRight,
@@ -25,13 +27,9 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { DatePickerWithRange } from "@/components/date-range-picker"
-import { MainNav } from "@/components/layout/main-nav"
-import { Overview } from "@/components/overview"
-import { RecentSales } from "@/components/recent-sales"
+
 import { Search } from "@/components/search"
-import TeamSwitcher from "@/components/team-switcher"
-import { UserNav } from "@/components/layout/user-nav"
+
 
 
 
@@ -44,11 +42,31 @@ export function DashComponent() {
         <div className="border-b">
           <div className="flex h-16 items-center px-4">
                        
-            <div className="ml-auto flex items-center space-x-4">
+          
+            <Breadcrumb className="hidden md:flex">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="#">Dashboard</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="dashboard/reservations">Reservations</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Recent Orders</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
               
-            </div>
+          
           </div>
         </div>
+        
         <div className="flex-1 space-y-4 p-8 pt-6">
         <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
