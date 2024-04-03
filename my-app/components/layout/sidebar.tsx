@@ -26,7 +26,7 @@ export default function Sidebar() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button size="sm" className="w-full" href="/billing">
+                    <Button size="sm" className="w-full">
                       Upgrade
                     </Button>
                   </CardContent>

@@ -40,7 +40,7 @@ export default function Signup() {
     if (loading) {
       router.push('/loading');
     }
-  }, [loading]);
+  }, [loading, router]);
 
   return (
     <div key="1" className="flex min-h-screen bg-[#E5F4FF]">

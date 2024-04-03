@@ -1,10 +1,15 @@
+"use client";
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
+import { useFormState, useFormStatus } from 'react-dom';
+import { handleCreateReservation } from '@/lib/actions';
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "react-toastify";
 import { useChat } from "ai/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReservationForm } from "@/components/reservation-form";
 import {
   Select,
   SelectContent,
@@ -14,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import { Icons } from "@/components/icons";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import {
   Card,
   CardContent,
@@ -24,25 +28,113 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+type RoomType = "standard" | "executive" | "apartment";
+
+interface ReservationFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  adults: number;
+  children: number;
+  roomType: RoomType;
+  checkIn: string;
+  checkOut: string;
+  amount: number; 
+}
+
+const roomRates = {
+  standard: 195,
+  executive: 220,
+  apartment: 350,
+};
+
+const downPaymentPercentage = 0.25; // 25% down payment
+
+const calculateTotalAmount = (roomType: RoomType, days: number) => {
+  const roomRate = roomRates[roomType];
+  const totalRoomCost = roomRate * days;
+  const downPayment = totalRoomCost * downPaymentPercentage;
+  const totalAmount = totalRoomCost + downPayment;
+  return totalAmount;
+};
+
+
 export function ChatWindow() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
   const [reservationOpen, setReservationOpen] = useState(false);
 
-  const openReservationModal = () => {
-    setReservationOpen(true);
+  const [formData, setFormData] = useState<ReservationFormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    adults: 0,
+    children: 0,
+    roomType: "standard",
+    checkIn: "",
+    checkOut: "",
+    amount: 0,
+  });
+
+  const calculateDays = (checkIn: string, checkOut: string): number => {
+    const oneDay = 24 * 60 * 60 * 1000; // Hours * Minutes * Seconds * Milliseconds
+    const firstDate = new Date(checkIn);
+    const secondDate = new Date(checkOut);
+  
+    return Math.round(Math.abs((firstDate.getTime() - secondDate.getTime()) / oneDay));
   };
 
   const closeReservationModal = () => {
     setReservationOpen(false);
   };
-
-  const handleSubmitReservation = (e: any) => {
-    e.preventDefault();
-    // Handle reservation submission
-    // You can implement your logic to handle the form submission here
-    // Example: validate inputs, send reservation data to server, etc.
+  const openReservationModal = () => {
+    setReservationOpen(true);
   };
 
+
+  const handleReservationInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { type, value, name } = e.target;
+  
+    const updatedFormData = {
+      ...formData,
+      [name]: type === "number" ? parseInt(value, 10) || 0 : value,
+    };
+  
+    if (name === "checkIn" || name === "checkOut") {
+      const days = calculateDays(updatedFormData.checkIn, updatedFormData.checkOut);
+      const totalAmount = calculateTotalAmount(formData.roomType, days);
+      updatedFormData.amount = totalAmount;
+    }
+  
+    setFormData(updatedFormData);
+  };
+  
+  const handleRoomTypeChange = (value: RoomType) => {
+    setFormData((prevFormData) => {
+      const days = calculateDays(prevFormData.checkIn, prevFormData.checkOut);
+      const totalAmount = calculateTotalAmount(value, days);
+      return {
+        ...prevFormData,
+        roomType: value,
+        amount: totalAmount,
+      };
+    });
+  };
+
+  
+ 
+
+  const [state, formAction] = useFormState(handleCreateReservation, { success: false });
+  const { pending } = useFormStatus();
+
+  const handleSubmitReservation = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    formAction(formData);
+  };
   return (
     <div
       key="1"
@@ -64,7 +156,6 @@ export function ChatWindow() {
       </div>
       <div className="flex flex-col items-start justify-between flex-1 p-2">
         <ScrollArea className="h-[calc(50vh-100px)]">
-         
           {messages.map((m) => (
             <div
               key={m.id}
@@ -100,7 +191,9 @@ export function ChatWindow() {
         </ScrollArea>
       </div>
 
-      <form onSubmit={handleSubmitReservation}>{/* Reservation form */}</form>
+      <form onSubmit={handleSubmitReservation} action={formAction}>
+        {/* Reservation form */}
+      </form>
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col justify-between p-1">
           <div className="flex items-center px-1 py-2 bg-white">
@@ -113,7 +206,6 @@ export function ChatWindow() {
             <Button type="submit" className="rounded p-2 ml-1">
               <SendIcon className="w-6 h-6" />
             </Button>
-            
           </div>
         </div>
       </form>
@@ -121,12 +213,10 @@ export function ChatWindow() {
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-b-lg">
         <Tabs defaultValue="account" className="w-[400px]">
           <TabsList className="grid w-full grid-cols-2">
-            
             <TabsTrigger
               className="w-full bg-gray-900 text-white shadow-sm"
               onClick={openReservationModal}
               value="reservations"
-
             >
               Make A Reservation
             </TabsTrigger>
@@ -136,7 +226,7 @@ export function ChatWindow() {
             {/* Reservation Modal */}
             {reservationOpen && (
               <div className="fixed top-0 left-0 w-full h-full bg-gray-800 bg-opacity-70 flex justify-center items-center">
-                <Card className="w-[414px]">
+                <Card className="w-[500px] mx-auto shadow-sm">
                   <CardHeader>
                     <CardTitle>Make a Reservation</CardTitle>
                     <CardDescription>
@@ -144,83 +234,144 @@ export function ChatWindow() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form id="paymentForm" onSubmit={handleSubmitReservation}>
-                      <div className="grid w-full items-center gap-4">
-                        <div className="flex flex-col space-y-1.5">
-                          {/* Reservation form fields */}
-                          <Label htmlFor="name">First Name</Label>
+                    <form onSubmit={handleSubmitReservation} action={formAction}>
+                      <div className="grid grid-cols-2 gap-2 md:grid-cols-2">
+                        <div>
+                          <Label htmlFor="firstName">First Name</Label>
                           <Input
-                            type="text"
-                            placeholder="First Name"
-                            className="mb-2"
-                            id="first-name"
-                          />
-                          <Label htmlFor="name">Last Name</Label>
-                          <Input
-                            type="text"
-                            placeholder="Last Name"
-                            className="mb-2"
-                            id="last-name"
-                          />
-                          <Label htmlFor="email">Email Address</Label>
-                          <Input
-                            type="email"
-                            placeholder="Email"
-                            id="email-address" required
-                            className="mb-2"
-                          />
-                          <Label htmlFor="email">Phone Number</Label>
-                          <Input
-                            type="tel"
-                            placeholder="Phone Number"
-                            className="mb-2"
-                          />
-                          <Label htmlFor="email">Number of People</Label>
-                          <Input
-                            type="number"
-                            placeholder="Adults"
-                            className="mb-2"
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Children"
-                            className="mb-2"
+                            id="firstName"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleReservationInputChange}
+                            required
                           />
                         </div>
-                        <div className="flex flex-col space-y-1.5">
-                          <Label htmlFor="roomtypes">Type of Room</Label>
-                          <Select>
-                            <SelectTrigger id="roomtypes">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent position="popper">
-                              <SelectItem value="next">Standard</SelectItem>
-                              <SelectItem value="sveltekit">Deluxe</SelectItem>
-                              <SelectItem value="astro">Executive</SelectItem>
-                              <SelectItem value="nuxt">
-                                Presidential Suite
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Label htmlFor="checkin">Check-in Date</Label>
-                          <Input type="date" id="checkin" />
-                          <Label htmlFor="checkout">Check-out Date</Label>
-                          <Input type="date" id="checkout" />
-
-                          <div className="form-group">
-                            <label htmlFor="amount">Amount</label>
-                            <Input type="tel" id="amount" required />
-                          </div>
+                        <div>
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input
+                            id="lastName"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phoneNumber">Phone Number</Label>
+                          <Input
+                            id="phoneNumber"
+                            name="phoneNumber"
+                            type="tel"
+                            value={formData.phoneNumber}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="adults">Adults</Label>
+                          <Input
+                            id="adults"
+                            name="adults"
+                            type="number"
+                            value={formData.adults}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="children">Children</Label>
+                          <Input
+                            id="children"
+                            name="children"
+                            type="number"
+                            value={formData.children}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+  <Label htmlFor="roomType">Room Type</Label>
+  <Select
+  name="roomType"
+  // @ts-ignore
+  type="string"
+    value={formData.roomType} onValueChange={handleRoomTypeChange}
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Select a room type" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="standard">Standard</SelectItem>
+      <SelectItem value="executive">Executive</SelectItem>
+      <SelectItem value="apartment">Apartment</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+                        <div>
+                          <Label htmlFor="checkIn">Check-in Date</Label>
+                          <Input
+                            id="checkIn"
+                            name="checkIn"
+                            type="date"
+                            value={formData.checkIn}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="checkOut">Check-out Date</Label>
+                          <Input
+                            id="checkOut"
+                            name="checkOut"
+                            type="date"
+                            value={formData.checkOut}
+                            onChange={handleReservationInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            name="amount"
+                            value={formData.amount.toLocaleString("en-GH", {
+                              style: "currency",
+                              currency: "GHS",
+                            })}
+                            readOnly
+                          />
                         </div>
                       </div>
+                      <CardFooter className="pt-5 justify-center w-full">
+                        <Button type="submit" disabled={pending}>
+                          {pending ? "Submitting..." : "Submit Reservation"}
+                        </Button>
+                      </CardFooter>
                     </form>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={closeReservationModal}>
+                    <p aria-live="polite" className="sr-only">
+                      {state?.success
+                        ? "Reservation submitted successfully!"
+                        : ""}
+                    </p>
+                    <Button
+                      className=""
+                      variant="outline"
+                      onClick={closeReservationModal}
+                    >
                       Close
                     </Button>
-                    <Button>Proceed</Button>
-                  </CardFooter>
+                  </CardContent>
                 </Card>
               </div>
             )}
@@ -230,6 +381,7 @@ export function ChatWindow() {
     </div>
   );
 }
+
 
 function ArrowLeftIcon(props: any) {
   return (
@@ -270,4 +422,3 @@ function SendIcon(props: any) {
     </svg>
   );
 }
-

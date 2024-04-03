@@ -76,6 +76,18 @@ const MessageModel = mongoose.model('Message', MessageSchema);
 }
 */}
 
+// (Optional) Functions to save prompt and completion to database (replace with your implementation)
+async function savePromptToDatabase(prompt: string) {
+  // Implement logic to save the prompt to your database
+  console.log(`Prompt saved to database: ${prompt}`);
+}
+
+async function saveCompletionToDatabase(completion: string) {
+  // Implement logic to save the final completion to your database
+  console.log(`Completion saved to database: ${completion}`);
+}
+
+
 export async function POST(req: Request) {
   const { messages } = await req.json();
   console.log(messages); 
@@ -91,9 +103,26 @@ export async function POST(req: Request) {
     'gpt-35-turbo',
     messagesWithSystemMessage,
   );
- 
+
   // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response, {
+    onStart: async () => {
+      // This callback is called when the stream starts
+      // You can use this to save the prompt to your database (if applicable)
+      await savePromptToDatabase(messagesWithSystemMessage.join(' ')); // Combine messages into prompt
+    },
+    onToken: async (token) => {
+      // This callback is called for each token in the stream
+      // You can use this to debug the stream or save the tokens to your database (if needed)
+      console.log(token);
+    },
+    onCompletion: async (completion) => {
+      // This callback is called when the stream completes
+      // You can use this to save the final completion to your database (if applicable)
+      await saveCompletionToDatabase(completion);
+    },
+  });
+
   // Respond with the stream
   return new StreamingTextResponse(stream);
 }
