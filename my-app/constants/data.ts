@@ -1,4 +1,5 @@
 import { NavItem, SidebarNavItem } from "@/types";
+import { Icon, allIcons } from "@/components/component/icons";
 export type User = {
   id: number;
   name: string;
@@ -113,37 +114,37 @@ export const navItems: NavItem[] = [
   {
     title: "Command Center",
     href: "/dashboard",
-    icon: "logo",
+    icon: "LayoutDashboardIcon",
     label: "Dashboard",
   },
   {
     title: "Reservations",
     href: "/dashboard/reservations",
-    icon: "twitter",
+    icon: "LogIn",
     label: "reservations",
   },
   {
     title: "Employees",
     href: "/dashboard/departments/employees",
-    icon: "gitHub",
+    icon: "User",
     label: "employees",
   },
   {
     title: "Conversations",
     href: "/dashboard/conversations",
-    icon: "radix",
+    icon: "Laptop",
     label: "Conversations",
   },
   {
     title: "Billing",
     href: "/dashboard/billing",
-    icon: "aria",
+    icon: "CreditCard",
     label: "Billing",
   },
   {
     title: "Settings",
     href: "/dashboard/settings",
-    icon: "npm",
+    icon: "Settings",
     label: "Settings",
   },
   
