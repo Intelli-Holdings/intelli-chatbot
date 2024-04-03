@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import { Icons } from "@/components/icons";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import {
   Card,
   CardContent,
@@ -93,22 +92,36 @@ export function ChatWindow() {
     setReservationOpen(true);
   };
 
+
   const handleReservationInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value, type } = e.target;
+    const { type, value, name } = e.target;
+  
     const updatedFormData = {
       ...formData,
       [name]: type === "number" ? parseInt(value, 10) || 0 : value,
     };
   
-    if (name === "checkIn" || name === "checkOut" || name === "roomType") {
+    if (name === "checkIn" || name === "checkOut") {
       const days = calculateDays(updatedFormData.checkIn, updatedFormData.checkOut);
-      const totalAmount = calculateTotalAmount(updatedFormData.roomType, days);
+      const totalAmount = calculateTotalAmount(formData.roomType, days);
       updatedFormData.amount = totalAmount;
     }
   
     setFormData(updatedFormData);
+  };
+  
+  const handleRoomTypeChange = (value: RoomType) => {
+    setFormData((prevFormData) => {
+      const days = calculateDays(prevFormData.checkIn, prevFormData.checkOut);
+      const totalAmount = calculateTotalAmount(value, days);
+      return {
+        ...prevFormData,
+        roomType: value,
+        amount: totalAmount,
+      };
+    });
   };
 
   
@@ -288,30 +301,23 @@ export function ChatWindow() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="roomType">Room Type</Label>
-                          <Select
-                            value={formData.roomType}
-                            onValueChange={(value) =>
-                              setFormData((prevFormData) => ({
-                                ...prevFormData,
-                                roomType: value as RoomType,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a room type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="standard">Standard</SelectItem>
-                              <SelectItem value="executive">
-                                Executive
-                              </SelectItem>
-                              <SelectItem value="apartment">
-                                Apartment
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+  <Label htmlFor="roomType">Room Type</Label>
+  <Select
+  name="roomType"
+  // @ts-ignore
+  type="string"
+    value={formData.roomType} onValueChange={handleRoomTypeChange}
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Select a room type" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="standard">Standard</SelectItem>
+      <SelectItem value="executive">Executive</SelectItem>
+      <SelectItem value="apartment">Apartment</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
                         <div>
                           <Label htmlFor="checkIn">Check-in Date</Label>
                           <Input
