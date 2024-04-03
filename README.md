@@ -2,7 +2,7 @@
 
 This is the main repository of Intelli concierge, the omnichanel for customer support
 
-# Usecases
+# Use Cases
 
 ## Hotel Inquiry and Reservation Automation
 
