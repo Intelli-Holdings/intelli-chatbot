@@ -148,7 +148,7 @@ export function DashComponent() {
             <CardHeader>
               <CardTitle>Response Time</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-8">
+            <CardContent className="grid">
               <div className="flex items-center gap-4">
                 <Avatar className="hidden h-9 w-9 sm:flex">
                   <AvatarImage src="/avatars/01.png" alt="Avatar" />
@@ -225,11 +225,13 @@ export function DashComponent() {
                 <div className="ml-auto font-medium">+$39.00</div>
               </div>
             </CardContent>
-          </Card><Card>
+          </Card>
+          
+          <Card>
             <CardHeader>
               <CardTitle>Inquiry Escalation</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-8">
+            <CardContent className="grid">
               <div className="flex items-center gap-4">
                 <Avatar className="hidden h-9 w-9 sm:flex">
                   <AvatarImage src="/avatars/01.png" alt="Avatar" />
@@ -311,7 +313,7 @@ export function DashComponent() {
             <CardHeader>
               <CardTitle>Unresolved</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-8">
+            <CardContent className="grid">
               <div className="flex items-center gap-4">
                 <Avatar className="hidden h-9 w-9 sm:flex">
                   <AvatarImage src="/avatars/01.png" alt="Avatar" />
@@ -393,12 +395,9 @@ export function DashComponent() {
             <CardHeader>
               <CardTitle>Resolution Rate</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-8">
+            <CardContent className="grid">
               <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="/avatars/01.png" alt="Avatar" />
-                  <AvatarFallback>OM</AvatarFallback>
-                </Avatar>
+                
                 <div className="grid gap-1">
                   <p className="text-sm font-medium leading-none">
                     Olivia Martin
@@ -410,10 +409,7 @@ export function DashComponent() {
                 <div className="ml-auto font-medium">+$1,999.00</div>
               </div>
               <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="/avatars/02.png" alt="Avatar" />
-                  <AvatarFallback>JL</AvatarFallback>
-                </Avatar>
+                
                 <div className="grid gap-1">
                   <p className="text-sm font-medium leading-none">
                     Jackson Lee
@@ -425,10 +421,7 @@ export function DashComponent() {
                 <div className="ml-auto font-medium">+$39.00</div>
               </div>
               <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="/avatars/03.png" alt="Avatar" />
-                  <AvatarFallback>IN</AvatarFallback>
-                </Avatar>
+                
                 <div className="grid gap-1">
                   <p className="text-sm font-medium leading-none">
                     Isabella Nguyen
@@ -440,10 +433,7 @@ export function DashComponent() {
                 <div className="ml-auto font-medium">+$299.00</div>
               </div>
               <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="/avatars/04.png" alt="Avatar" />
-                  <AvatarFallback>WK</AvatarFallback>
-                </Avatar>
+                
                 <div className="grid gap-1">
                   <p className="text-sm font-medium leading-none">
                     William Kim
@@ -455,10 +445,7 @@ export function DashComponent() {
                 <div className="ml-auto font-medium">+$99.00</div>
               </div>
               <div className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="/avatars/05.png" alt="Avatar" />
-                  <AvatarFallback>SD</AvatarFallback>
-                </Avatar>
+                
                 <div className="grid gap-1">
                   <p className="text-sm font-medium leading-none">
                     Sofia Davis
