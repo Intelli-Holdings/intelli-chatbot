@@ -1,4 +1,6 @@
 import Link from "next/link";
+import ReservationsTable from "@/app/dashboard/reservations/ReservationsTable";
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -27,6 +29,8 @@ import {
   MoreVerticalIcon,
   File,
   ListFilter,
+  X,
+  Check,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +52,7 @@ import {
 } from "@/components/ui/table";
 
 export default function Page() {
+
   return (
     <div className="grid min-h-screen w-full ">
       <div className="flex flex-col">
@@ -119,7 +124,9 @@ export default function Page() {
               </div>
             </CardHeader>
             <CardContent className="shadow-sm rounded-border-lg">
-              <Table>
+              
+              {/**
+               * <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="hidden w-[100px] sm:table-cell">
@@ -163,7 +170,49 @@ export default function Page() {
                           <Button
                             aria-haspopup="true"
                             size="icon"
-                            variant="secondary"
+                            variant="default"
+                          >
+                            <MoreVerticalIcon className="h-3.5 w-3.5 " />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>
+                          <Check className="h-5 w-5 p-1" />
+                            Accept</DropdownMenuItem>
+                          <DropdownMenuItem>
+                          <X className="h-5 w-5 p-1" />
+                            Reject</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                  <TableCell className="hidden sm:table-cell"></TableCell>
+                    <TableCell className="font-medium">Were Samson</TableCell>
+                    <TableCell className="font-medium">0752330715</TableCell>
+                    <TableCell className="font-medium">
+                      wereisfine@gmail.com
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">Pending</Badge>
+                    </TableCell>
+                    <TableCell>$499.99</TableCell>
+                    <TableCell className="font-medium">Standard</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="default"
                           >
                             <MoreVerticalIcon className="h-3.5 w-3.5" />
                             <span className="sr-only">Toggle menu</span>
@@ -201,45 +250,7 @@ export default function Page() {
                           <Button
                             aria-haspopup="true"
                             size="icon"
-                            variant="ghost"
-                          >
-                            <MoreVerticalIcon className="h-3.5 w-3.5" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>Accept</DropdownMenuItem>
-                          <DropdownMenuItem>Reject</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                  <TableCell className="hidden sm:table-cell"></TableCell>
-                    <TableCell className="font-medium">Were Samson</TableCell>
-                    <TableCell className="font-medium">0752330715</TableCell>
-                    <TableCell className="font-medium">
-                      wereisfine@gmail.com
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="default">Pending</Badge>
-                    </TableCell>
-                    <TableCell>$499.99</TableCell>
-                    <TableCell className="font-medium">Standard</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      2023-07-12 10:42 AM
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      2023-07-12 10:42 AM
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            aria-haspopup="true"
-                            size="icon"
-                            variant="ghost"
+                            variant="default"
                           >
                             <MoreVerticalIcon className="h-3.5 w-3.5" />
                             <span className="sr-only">Toggle menu</span>
@@ -277,7 +288,7 @@ export default function Page() {
                           <Button
                             aria-haspopup="true"
                             size="icon"
-                            variant="ghost"
+                            variant="default"
                           >
                             <MoreVerticalIcon className="h-3.5 w-3.5" />
                             <span className="sr-only">Toggle menu</span>
@@ -299,7 +310,7 @@ export default function Page() {
                       wereisfine@gmail.com
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">Accepted</Badge>
+                      <Badge variant="default">Accepted</Badge>
                     </TableCell>
                     <TableCell>$499.99</TableCell>
                     <TableCell className="font-medium">Standard</TableCell>
@@ -315,7 +326,7 @@ export default function Page() {
                           <Button
                             aria-haspopup="true"
                             size="icon"
-                            variant="secondary"
+                            variant="default"
                           >
                             <MoreVerticalIcon className="h-3.5 w-3.5" />
                             <span className="sr-only">Toggle menu</span>
@@ -353,7 +364,7 @@ export default function Page() {
                           <Button
                             aria-haspopup="true"
                             size="icon"
-                            variant="secondary"
+                            variant="default"
                           >
                             <MoreVerticalIcon className="h-3.5 w-3.5" />
                             <span className="sr-only">Toggle menu</span>
@@ -369,10 +380,13 @@ export default function Page() {
                   </TableRow>
                 </TableBody>
               </Table>
+               * 
+               */}
+            <ReservationsTable />
             </CardContent>
             <CardFooter>
               <div className="text-xs text-muted-foreground">
-                Showing <strong>1-6</strong> of <strong>50</strong> reservations
+                Showing 1 to 10 of 100 entries
               </div>
             </CardFooter>
           </Card>
