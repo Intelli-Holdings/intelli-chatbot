@@ -253,8 +253,8 @@ export function BillingPage() {
                           Refund
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          <Badge className="text-xs bg-red text-muted" variant="outline">
-                            Declined
+                          <Badge className="text-xs bg-red text-muted" variant="destructive">
+                            Failed
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
@@ -274,7 +274,7 @@ export function BillingPage() {
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge className="text-xs" variant="secondary">
-                            Fulfilled
+                            Successful
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
@@ -294,7 +294,7 @@ export function BillingPage() {
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge className="text-xs" variant="secondary">
-                            Fulfilled
+                            Successful
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
@@ -314,7 +314,7 @@ export function BillingPage() {
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge className="text-xs" variant="secondary">
-                            Fulfilled
+                            Successful
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">

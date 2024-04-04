@@ -1,149 +1,397 @@
-import Link from "next/link"
+import Link from "next/link";
+import ReservationsTable from "@/app/dashboard/reservations/ReservationsTable";
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardFooter,
 } from "@/components/ui/card";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Input } from "@/components/ui/input";
+import { Search } from "@/components/search";
+import Image from "next/image";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  CreditCard,
+  MoreHorizontalIcon,
+  MoreVerticalIcon,
+  File,
+  ListFilter,
+  X,
+  Check,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 
 export default function Page() {
+
   return (
     <div className="grid min-h-screen w-full ">
-      
-      <div className="flex flex-col">       
-        <div className="grid gap-4 p-4 md:gap-8 md:p-6">          
+      <div className="flex flex-col">
+        <div className="border-b">
+          <div className="flex h-16 items-center px-4">
+            <Breadcrumb className="hidden md:flex">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink>
+                    <Link href="/dashboard">Dashboard</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="dashboard/reservations">Reservations</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Recent Orders</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        </div>
+        <div className="grid gap-4 p-4 md:gap-8 md:p-6">
           <Card>
             <CardHeader>
-              <CardTitle>Confirmed Reservations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 text-sm">
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3210
-                    </Link>
-                    <span className="flex-1">Olivia Martin</span>
-                    <span className="hidden md:block">Online Store</span>
-                    <span className="hidden md:block">February 20, 2022</span>
-                    <span className="text-right">$42.25</span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3209
-                    </Link>
-                    <span className="flex-1">Ava Johnson</span>
-                    <span className="hidden md:block">Shop</span>
-                    <span className="hidden md:block">January 5, 2022</span>
-                    <span className="text-right">$74.99</span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3204
-                    </Link>
-                    <span className="flex-1">Michael Johnson</span>
-                    <span className="hidden md:block">Shop</span>
-                    <span className="hidden md:block">August 3, 2021</span>
-                    <span className="text-right">$64.75</span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3203
-                    </Link>
-                    <span className="flex-1">Lisa Anderson</span>
-                    <span className="hidden md:block">Online Store</span>
-                    <span className="hidden md:block">July 15, 2021</span>
-                    <span className="text-right">$34.50</span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3202
-                    </Link>
-                    <span className="flex-1">Samantha Green</span>
-                    <span className="hidden md:block">Shop</span>
-                    <span className="hidden md:block">June 5, 2021</span>
-                    <span className="text-right">$89.99</span>
-                  </CardContent>
-                </Card>
+              <CardTitle>Reservations</CardTitle>
+              <CardDescription>
+                Manage your reservations and sales in one place.
+              </CardDescription>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="relative ml-auto flex-1 md:grow-0">
+                  <Input
+                    type="search"
+                    placeholder="Search..."
+                    className="w-full p-4 rounded-lg pl-8 md:w-[200px] lg:w-[320px] shadow-md"
+                  />
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1 text-sm"
+                    >
+                      <ListFilter className="h-3.5 w-3.5" />
+                      <span className="sr-only sm:not-sr-only">Filter</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>Pending</DropdownMenuItem>
+                    <DropdownMenuItem>Rejected</DropdownMenuItem>
+                    <DropdownMenuItem>Accepted</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-sm"
+                >
+                  <File className="h-3.5 w-3.5" />
+                  <span className="sr-only sm:not-sr-only">Export</span>
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending Reservations</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 text-sm">
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3210
-                    </Link>
-                    <span className="flex-1">Glimmer Lamps</span>
-                    <span className="hidden md:block">In Production</span>
-                    <span className="hidden md:block">500 in stock</span>
-                    <span className="hidden sm:table-cell">Luminance Creations</span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3209
-                    </Link>
-                    <span className="flex-1">Aqua Filters</span>
-                    <span className="hidden md:block">Available for Order</span>
-                    <span className="hidden md:block">750 in stock</span>
-                    <span className="hidden sm:table-cell">HydraClean Solutions</span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3204
-                    </Link>
-                    <span className="flex-1">Eco Planters</span>
-                    <span className="hidden md:block">Backordered</span>
-                    <span className="hidden md:block">300 in stock</span>
-                    <span className="hidden sm:table-cell">GreenGrowth Designers</span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3203
-                    </Link>
-                    <span className="flex-1">Zest Juicers</span>
-                    <span className="hidden md:block">Newly Launched</span>
-                    <span className="hidden md:block">1000 in stock</span>
-                    <span className="hidden sm:table-cell">FreshTech Appliances</span>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="flex items-center gap-4">
-                    <Link className="font-medium underline" href="#">
-                      #3202
-                    </Link>
-                    <span className="flex-1">Flexi Wearables</span>
-                    <span className="hidden md:block">Selling Fast</span>
-                    <span className="hidden md:block">200 in stock</span>
-                    <span className="hidden sm:table-cell">Vitality Gear Co.</span>
-                  </CardContent>
-                </Card>
-              </div>
+            <CardContent className="shadow-sm rounded-border-lg">
+              
+              {/**
+               * <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="hidden w-[100px] sm:table-cell">
+                      <span className="sr-only">Image</span>
+                    </TableHead>
+                    <TableHead>Customer Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Amount Paid</TableHead>
+                    <TableHead>Room Type</TableHead>
+                    <TableHead>Checkin Date</TableHead>
+                    <TableHead>Checkout Date</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="hidden sm:table-cell"></TableCell>
+                    <TableCell className="font-medium">Were Samson</TableCell>
+                    <TableCell className="font-medium">0752330715</TableCell>
+                    <TableCell className="font-medium">
+                      wereisfine@gmail.com
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="destructive">Rejected</Badge>
+                    </TableCell>
+                    <TableCell>$499.99</TableCell>
+                    <TableCell className="font-medium">Standard</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="default"
+                          >
+                            <MoreVerticalIcon className="h-3.5 w-3.5 " />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>
+                          <Check className="h-5 w-5 p-1" />
+                            Accept</DropdownMenuItem>
+                          <DropdownMenuItem>
+                          <X className="h-5 w-5 p-1" />
+                            Reject</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                  <TableCell className="hidden sm:table-cell"></TableCell>
+                    <TableCell className="font-medium">Were Samson</TableCell>
+                    <TableCell className="font-medium">0752330715</TableCell>
+                    <TableCell className="font-medium">
+                      wereisfine@gmail.com
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">Pending</Badge>
+                    </TableCell>
+                    <TableCell>$499.99</TableCell>
+                    <TableCell className="font-medium">Standard</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="default"
+                          >
+                            <MoreVerticalIcon className="h-3.5 w-3.5" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>Accept</DropdownMenuItem>
+                          <DropdownMenuItem>Reject</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                  <TableCell className="hidden sm:table-cell"></TableCell>
+                    <TableCell className="font-medium">Were Samson</TableCell>
+                    <TableCell className="font-medium">0752330715</TableCell>
+                    <TableCell className="font-medium">
+                      wereisfine@gmail.com
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">Pending</Badge>
+                    </TableCell>
+                    <TableCell>$499.99</TableCell>
+                    <TableCell className="font-medium">Standard</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="default"
+                          >
+                            <MoreVerticalIcon className="h-3.5 w-3.5" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>Accept</DropdownMenuItem>
+                          <DropdownMenuItem>Reject</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                  <TableCell className="hidden sm:table-cell"></TableCell>
+                    <TableCell className="font-medium">Were Samson</TableCell>
+                    <TableCell className="font-medium">0752330715</TableCell>
+                    <TableCell className="font-medium">
+                      wereisfine@gmail.com
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">Accepted</Badge>
+                    </TableCell>
+                    <TableCell>$499.99</TableCell>
+                    <TableCell className="font-medium">Standard</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="default"
+                          >
+                            <MoreVerticalIcon className="h-3.5 w-3.5" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>Accept</DropdownMenuItem>
+                          <DropdownMenuItem>Reject</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                  <TableCell className="hidden sm:table-cell"></TableCell>
+                    <TableCell className="font-medium">Were Samson</TableCell>
+                    <TableCell className="font-medium">0752330715</TableCell>
+                    <TableCell className="font-medium">
+                      wereisfine@gmail.com
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">Accepted</Badge>
+                    </TableCell>
+                    <TableCell>$499.99</TableCell>
+                    <TableCell className="font-medium">Standard</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="default"
+                          >
+                            <MoreVerticalIcon className="h-3.5 w-3.5" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>Accept</DropdownMenuItem>
+                          <DropdownMenuItem>Reject</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                  <TableCell className="hidden sm:table-cell"></TableCell>
+                    <TableCell className="font-medium">Were Samson</TableCell>
+                    <TableCell className="font-medium">0752330715</TableCell>
+                    <TableCell className="font-medium">
+                      wereisfine@gmail.com
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">Pending</Badge>
+                    </TableCell>
+                    <TableCell>$499.99</TableCell>
+                    <TableCell className="font-medium">Standard</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      2023-07-12 10:42 AM
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="default"
+                          >
+                            <MoreVerticalIcon className="h-3.5 w-3.5" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>Accept</DropdownMenuItem>
+                          <DropdownMenuItem>Reject</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+               * 
+               */}
+            <ReservationsTable />
             </CardContent>
+            <CardFooter>
+              <div className="text-xs text-muted-foreground">
+                Showing 1 to 10 of 100 entries
+              </div>
+            </CardFooter>
           </Card>
         </div>
       </div>
     </div>
-  )
+  );
 }
-
-
