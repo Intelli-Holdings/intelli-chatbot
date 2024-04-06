@@ -16,6 +16,7 @@ const first_name = formData.get('firstName')?.toString() || '';
     const check_in_date = formData.get('checkIn')?.toString() || '';
     const check_out_date = formData.get('checkOut')?.toString() || '';
     let amount_paid = formData.get('amount')?.toString() || '';
+    const special_requests = formData.get('specialRequests')?.toString() || '';
 
     // Convert dates to the expected format (MM/DD/YYYY)
     const checkInDateFormatted = new Date(check_in_date).toLocaleDateString('en-US');
@@ -23,6 +24,7 @@ const first_name = formData.get('firstName')?.toString() || '';
 
     // Remove any currency symbols from the amount
     amount_paid = amount_paid.replace(/[^0-9.]/g, '');
+
     
     // Construct payload
 const payload = {
@@ -36,6 +38,7 @@ const payload = {
       check_out_date: checkOutDateFormatted,
       room_type,
       amount_paid,
+      special_requests,
     };
 
     // Log payload in console
