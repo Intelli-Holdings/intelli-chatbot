@@ -206,6 +206,21 @@ export function ChatWindow() {
       </div>
       <div className="flex flex-col items-start justify-between flex-1 p-2">
         <ScrollArea className="h-[calc(50vh-100px)]">
+          <div>
+          <Card className="shadow-lg border-none">
+              <CardContent>
+                <CardHeader>
+                  <CardTitle>Welcome to Elli</CardTitle>
+                  <CardDescription>
+                    Elli is an AI-powered assistant that can be trained to answer inquiries about your hotel, make reservations, and provide information about your hotel. Elli is available 24/7.
+                  </CardDescription>
+                </CardHeader>
+                    <div className="max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg">
+                      Hi👋, I'm Elli your front desk assistant.
+                    </div>
+            </CardContent>
+            </Card>
+          </div>
           {messages.map((m) => (
             <div
               key={m.id}
