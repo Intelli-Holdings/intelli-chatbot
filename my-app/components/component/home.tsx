@@ -31,6 +31,7 @@ import yellowImage from "@/public/yello.png";
 import Pie from "@/public/piechart.png";
 
 import Reviews from "@/components/component/reviews";
+import Waitlist from "@/components/component/waitlist";
 
 export function Home() {
   return (
@@ -51,13 +52,10 @@ export function Home() {
             affordable price.
           </p>
           <div className="mt-6 flex flex-col items-center space-y-2 sm:flex-row sm:justify-center sm:space-x-4">
-            <Button className="px-6 py-3 text-md font-medium text-white bg-gray-800 rounded-md shadow-sm hover:bg-gray-900">
-              <a href="/demo">See it on your website</a>
-            </Button>
-            <Button className="px-6 py-3 text-md font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700">
-              <a href="/dashboard">Create an Assistant</a>
-            </Button>
+            
+            <Waitlist />
           </div>
+          
 
           <div className="mx-auto">
             <Image alt="Preview Demo" className="mx-auto" src={demoImage} />
