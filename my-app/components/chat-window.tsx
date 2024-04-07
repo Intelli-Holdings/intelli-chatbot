@@ -216,7 +216,7 @@ export function ChatWindow() {
                   </CardDescription>
                 </CardHeader>
                     <div className="max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg">
-                      Hi👋, I'm Elli your front desk assistant.
+                      Hi👋, I'&aposm Elli your front desk assistant.
                     </div>
             </CardContent>
             </Card>
