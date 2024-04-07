@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google";
 import "@/app/globals.css";
 import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
+import { CSPostHogProvider } from './providers'
 
 const inter = Manrope({ subsets: ["latin"] });
 
@@ -32,12 +33,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <CSPostHogProvider>
       <Analytics />
       <body className={inter.className}>{children}
       <Toaster position="top-center" />
       <Toaster
       toastOptions={{
-        unstyled: true,
         classNames: {
           error: 'bg-red-400',
           success: 'text-green-400',
@@ -50,6 +51,7 @@ export default function RootLayout({
     />
   
       </body>
+       </CSPostHogProvider>
     </html>
   );
 }

@@ -1,45 +1,57 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { useChat } from "ai/react";
-import { Input } from "@/components/ui/input";
-import { ChatWindow } from "@/components/chat-window";
-import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
-import { Navbar } from "@/components/navbar";
 
-interface Props {}
+import React, { useState } from "react";
+import { ChatWindow } from "@/components/chat-window";
+interface ChatIconProps {
+  onClick: () => void;
+  isOpen: boolean;
+}
+
+// Icon component
+const ChatIcon: React.FC<ChatIconProps> = ({ onClick, isOpen }) => (
+  <div
+    className="fixed bottom-20 right-5 z-20 p-4 bg-gray-200 rounded-full cursor-pointer"
+    onClick={onClick}
+  >
+    {isOpen ? (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-6 w-6"
+        fill="#007fff"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    ) : (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-6 w-6"
+        fill="#007fff"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+        />
+      </svg>
+    )}
+  </div>
+);
 
 export function ChatPreview() {
-  const [chatbotVisible, setChatbotVisible] = useState(false);
-  useEffect(() => {
-    const loadScripts = async () => {
-      const reactScript = document.createElement("script");
-      reactScript.src =
-        "https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js";
-      document.body.appendChild(reactScript);
+  const [chatWindowOpen, setChatWindowOpen] = useState(false);
 
-      const reactDOMScript = document.createElement("script");
-      reactDOMScript.src =
-        "https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js";
-      document.body.appendChild(reactDOMScript);
-
-      const chatWindowScript = document.createElement("script");
-      chatWindowScript.src = "@/public/components/chat-window.tsx"; // Replace with the actual path
-      document.body.appendChild(chatWindowScript);
-    };
-
-    loadScripts();
-
-    return () => {};
-  }, []);
-
-  const renderWebsite = () => {
-    const url = (document.getElementById("url") as HTMLInputElement).value;
-    (document.getElementById("websiteFrame") as HTMLIFrameElement).src = url;
-  };
-
-  const toggleChatbot = () => {
-    setChatbotVisible((prevVisible) => !prevVisible);
+  const toggleChatWindow = () => {
+    setChatWindowOpen((prevState) => !prevState);
   };
 
   return (
@@ -49,33 +61,16 @@ export function ChatPreview() {
         className="absolute inset-0 w-full h-full z-0"
         title="Website Preview"
       ></iframe>
-      {chatbotVisible && (
-        <div 
-        className="fixed bottom-10 right-0 z-10 p-4">
-          {/* Your chatbot component */}
-          <div className="bg-white rounded-lg shadow-md p-4" >
-            {/* Content of your chatbot */}
-            <button onClick={toggleChatbot}>Open Elli</button>
-          </div>
-        </div>
-      )}
-      <div className="pt-10 bg-white/50 backdrop-blur-md shadow-sm p-4 md:p-8 lg:p-12">
-     
-      <div className="pt-1 md:flex items-center space-x-2">    
-      <Input type="text" id="url" placeholder="Enter your website URL starting with https://" />        
-      <Button onClick={renderWebsite} className="pt-2 bg-blue-600 text-white"> Preview Website </Button>
-      <Button className="pt-2 bg-gray-400 text-white" >
-        <a href="/">
-        Back to Home
-          </a>  </Button>
-      </div>
-      </div>
-      {!chatbotVisible && (
-        <div 
-        style={{ width: "380px", height: "600px" }}
-        className="fixed bottom-10 right-0 z-20 p-4">
-          <ChatWindow />
-          
+
+      <ChatIcon onClick={toggleChatWindow} isOpen={chatWindowOpen} />
+
+      {chatWindowOpen && (
+        <div
+          style={{ width: "380px", height: "600px" }}
+          className="fixed bottom-40 right-10 p-2 bg-white rounded-lg shadow-lg"
+        >
+          <ChatWindow
+           />
         </div>
       )}
     </div>

@@ -1,12 +1,12 @@
 "use client";
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
 import { useFormState, useFormStatus } from 'react-dom';
-import { handleCreateReservation } from '@/lib/post';
+import { createReservation, handleCreateReservation } from '@/lib/post';
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { toast } from "react-toastify";
 import { useChat } from "ai/react";
 import { Input } from "@/components/ui/input";
+import { toast } from 'sonner';
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -28,6 +28,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type RoomType = "standard" | "executive" | "apartment";
 
@@ -42,6 +43,7 @@ interface ReservationFormData {
   checkIn: string;
   checkOut: string;
   amount: number; 
+  specialRequests: string;
 }
 
 const roomRates = {
@@ -64,6 +66,9 @@ const calculateTotalAmount = (roomType: RoomType, days: number) => {
 export function ChatWindow() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
   const [reservationOpen, setReservationOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // A
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<ReservationFormData>({
     firstName: "",
@@ -76,6 +81,7 @@ export function ChatWindow() {
     checkIn: "",
     checkOut: "",
     amount: 0,
+    specialRequests: "",
   });
 
   const calculateDays = (checkIn: string, checkOut: string): number => {
@@ -125,17 +131,60 @@ export function ChatWindow() {
     });
   };
 
-  
- 
-
   const [state, formAction] = useFormState(handleCreateReservation, { success: false });
   const { pending } = useFormStatus();
 
-  const handleSubmitReservation = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitReservation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    formAction(formData);
+
+    if (formData.firstName && formData.lastName && formData.email && formData.phoneNumber && formData.adults && formData.children && formData.checkIn && formData.checkOut && formData.amount && formData.specialRequests && formData.roomType){
+      const formData = new FormData(e.currentTarget);
+      formAction(formData);
+      try {
+          setIsLoading(true); // Set isLoading to true before submitting the form
+
+          const { success } = await createReservation(formData);
+
+          if (success) {
+              setHasSubmitted(true);
+              toast.success('Success, you have made a reservation');
+          } else {
+              toast.error('Failed to make a reservation');
+          }
+      } catch (error) {
+          console.error('Error making a reservation:', error);
+          setError('An error occurred while making a reservation');
+      } finally {
+          setIsLoading(false); // Set isLoading to false after form submission is complete
+      }
+  } else {
+      setError('Please fill in all required fields');
+      showTooltip();
+  }
   };
+
+  const showTooltip = () => {
+    return (
+        <Tooltip>
+            <span>Please fill in required fields</span>
+        </Tooltip>
+    );
+};
+
+  if (hasSubmitted) {
+    return (
+        <div>
+            <span>Thanks for making a reservation! We will be in touch shortly.</span>
+        </div>
+    );
+} else if (error) {
+    return (
+        <div>
+            <span>{toast.error('Ooops, an error occurred while making your reservation')}</span>
+        </div>
+    );
+}
+
   return (
     <div
       key="1"
@@ -157,6 +206,21 @@ export function ChatWindow() {
       </div>
       <div className="flex flex-col items-start justify-between flex-1 p-2">
         <ScrollArea className="h-[calc(50vh-100px)]">
+          <div>
+          <Card className="shadow-lg border-none">
+              <CardContent>
+                <CardHeader>
+                  <CardTitle>Welcome to Elli</CardTitle>
+                  <CardDescription>
+                    Elli is an AI-powered assistant that can be trained to answer inquiries about your hotel, make reservations, and provide information about your hotel. Elli is available 24/7.
+                  </CardDescription>
+                </CardHeader>
+                    <div className="max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg">
+                      Hi👋, I'm Elli your front desk assistant.
+                    </div>
+            </CardContent>
+            </Card>
+          </div>
           {messages.map((m) => (
             <div
               key={m.id}
@@ -351,6 +415,17 @@ export function ChatWindow() {
                               currency: "GHS",
                             })}
                             readOnly
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="specialRequests">Any Special Requests</Label>
+                          <Input
+                            id="specialRequests"
+                            name="specialRequests"
+                            type="string"
+                            value={formData.specialRequests}
+                            onChange={handleReservationInputChange}
+                            
                           />
                         </div>
                       </div>

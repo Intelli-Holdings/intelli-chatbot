@@ -1,6 +1,7 @@
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Intelli Dashboard",
@@ -14,6 +15,7 @@ export default function DashboardLayout({
 }) {
   return (
     <>
+      <Toaster position="top-right" />
       <Header />
       <div className="flex h-screen">
        <Sidebar />
