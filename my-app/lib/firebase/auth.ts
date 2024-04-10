@@ -1,5 +1,15 @@
+"use client";
 import { initializeApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, UserCredential, onAuthStateChanged as _onAuthStateChanged, Unsubscribe } from "firebase/auth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  UserCredential,
+  onAuthStateChanged as _onAuthStateChanged,
+  Unsubscribe,
+  User,
+} from "firebase/auth";
+import { useState } from "react";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -43,4 +53,14 @@ export async function signOut(): Promise<void> {
   } catch (error) {
     console.error("Error signing out", error);
   }
+}
+
+export function useAuthState(): User | null {
+  const [user, setUser] = useState<User | null>(null);
+
+  onAuthStateChanged((currentUser) => {
+    setUser(currentUser);
+  });
+
+  return user;
 }
