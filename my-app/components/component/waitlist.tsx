@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -71,7 +70,7 @@ const Waitlist: React.FC = () => {
 
     return (
         <>
-            <Card className="shadow-md mt-6 sm:justify-center">
+            <Card className="shadow-lg mt-6 sm:justify-center bg-grey border-none">
                 <CardHeader>
                     <CardTitle className="text-center">Join Our Waitlist.</CardTitle>
                     <CardDescription className="">

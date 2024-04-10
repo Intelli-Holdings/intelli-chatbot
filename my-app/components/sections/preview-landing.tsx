@@ -1,4 +1,5 @@
 import Image from "next/image";
+import demoImage from "@/public/Demo.svg";
 
 export function PreviewLanding() {
   return (
@@ -8,11 +9,12 @@ export function PreviewLanding() {
           <div className="relative aspect-video overflow-hidden rounded-lg border">
             <Image
               className="size-full object-cover object-center"
-              src="/images/blog/blog-post-3.jpg"
-              alt="preview landing"
-              width={2000}
-              height={1000}
+              
+              alt="preview of dashboard"
+              
               priority={true}
+              
+              src={demoImage}
             />
           </div>
         </div>

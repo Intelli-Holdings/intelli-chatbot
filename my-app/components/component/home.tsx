@@ -19,7 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 import Image from "next/image";
-import demoImage from "@/public/Demo.svg";
+
 import mendiata from "@/public/mendiata.png";
 import labadi from "@/public/Labadi-logo.png";
 import aquasafari from "@/public/Aqua-Safari-Logo.png";
@@ -32,6 +32,14 @@ import Pie from "@/public/piechart.png";
 
 import Reviews from "@/components/component/reviews";
 import Waitlist from "@/components/component/waitlist";
+import { BentoGrid } from "@/components/sections/bentogrid";
+import { Features } from "@/components/sections/features";
+import { HeroLanding } from "@/components/sections/hero-landing";
+import { InfoLanding } from "@/components/sections/info-landing";
+import { PreviewLanding } from "@/components/sections/preview-landing";
+import { Testimonials } from "@/components/sections/testimonials";
+import { Powered } from "@/components/sections/powered";
+
 
 export function Home() {
   return (
@@ -51,22 +59,22 @@ export function Home() {
             seamlessly with one platform. All this power is available at an
             affordable price.
           </p>
-          <div className="mt-6 flex flex-col items-center space-y-2 sm:flex-row sm:justify-center sm:space-x-4">
-            
+          <div className="mt-6 flex flex-col items-center space-y-2 sm:flex-row sm:justify-center sm:space-x-4 pb-6">
             <Waitlist />
           </div>
-          
 
           <div className="mx-auto">
-            <Image alt="Preview Demo" className="mx-auto" src={demoImage} />
+          <PreviewLanding />            
           </div>
+          
+          <Powered />
         </section>
-        <section className="bg-gray-100 py-12 text-center  shadow-lg rounded-xl">
-          <div className="container mx-auto px-4 border">
+        <section className="bg-white-100 py-12 text-center  shadow-lg rounded-xl">
+          <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center text-blue-600">
               Brands that Love Us
             </h2>
-
+          
             <div className="py-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <Image
                 alt="La Palm Royal Beach Hotel"
@@ -98,7 +106,9 @@ export function Home() {
             </div>
           </div>
         </section>
-        <section className="py-12 text-center"></section>
+        <section className="py-12 text-center">
+        <Features />
+        </section>
         <section className="py-12 relative">
           <Image
             alt="Bg Pink"
@@ -191,8 +201,9 @@ export function Home() {
               </div>
             </div>
           </div>
+         
         </section>
-        <section className="bg-gray-100 py-12  shadow-lg rounded-xl p-4">
+        <section className="py-12  shadow-lg rounded-xl p-4">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center">
               What Our Customers Say
