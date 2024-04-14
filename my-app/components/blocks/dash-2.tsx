@@ -42,7 +42,8 @@ export function Dashboard() {
               <Package2 className="h-6 w-6" />
               <span className="">Acme Inc</span>
             </Link>
-            <Button variant="outline" size="icon" className="ml-auto h-8 w-8">
+            
+            <Button variant="outline" size="sm" className="ml-auto h-8 w-8">
               <Bell className="h-4 w-4" />
               <span className="sr-only">Toggle notifications</span>
             </Button>
@@ -113,7 +114,7 @@ export function Dashboard() {
             <SheetTrigger asChild>
               <Button
                 variant="outline"
-                size="icon"
+                size="sm"
                 className="shrink-0 md:hidden"
               >
                 <Menu className="h-5 w-5" />
@@ -200,7 +201,7 @@ export function Dashboard() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
+              <Button variant="secondary" size="sm" className="rounded-full">
                 <CircleUser className="h-5 w-5" />
                 <span className="sr-only">Toggle user menu</span>
               </Button>
