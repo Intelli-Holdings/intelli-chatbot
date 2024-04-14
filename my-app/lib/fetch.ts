@@ -1,5 +1,3 @@
-// 'use server'; // Remove this line
-
 import { useEffect, useState } from 'react';
 
 interface Reservation {
