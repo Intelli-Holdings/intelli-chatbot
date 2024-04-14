@@ -1,5 +1,6 @@
 "use client"
- 
+import React, { useState } from 'react';
+import FileUploadPopup from '@/components/fileUpload';
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -93,8 +94,15 @@ const FormSchema = z.object({
 })
  
 
-
 export default function HotelInfo() {
+
+  const [showPopup, setShowPopup] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
+  const handleUpload = (files: File[]) => {
+    setUploadedFiles(files);
+   
+  };
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -104,14 +112,22 @@ export default function HotelInfo() {
   })
  
   function onSubmit(data: z.infer<typeof FormSchema>) {
+    const formData = {
+      ...data,
+      uploadedFiles,
+    };
+  
+    // Here, you can send the formData object to your server or perform any other necessary operations
+    console.log(formData);
+  
     toast({
       title: "You submitted the following values:",
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
+          <code className="text-white">{JSON.stringify(formData, null, 2)}</code>
         </pre>
       ),
-    })
+    });
   }
 
   return (
@@ -274,12 +290,23 @@ export default function HotelInfo() {
       <Label htmlFor="message" className="sr-only">
         Upload Policies
       </Label>
-      <div className="flex items-center p-3 pt-0 border-blue">        
-        <Button type="submit" size="sm" className="ml-auto gap-1.5">
-          Upload Documents
-          <Upload className="size-3.5" />
-        </Button>
-      </div>
+      <div className="flex items-center p-3 pt-0 border-blue">
+      <Button
+        type="button"
+        onClick={() => setShowPopup(true)}
+        className="bg-blue-500 text-white px-4 py-2 rounded flex items-center"
+      >
+        Upload Documents
+        <Upload className="ml-2" size={16} />
+      </Button>
+
+      {showPopup && (
+        <FileUploadPopup
+          onClose={() => setShowPopup(false)}
+          onFilesUploaded={handleUpload}
+        />
+      )}
+    </div>
     </div>
       <Button type="submit">Save Hotel Details</Button>
     </form>
@@ -289,26 +316,3 @@ export default function HotelInfo() {
 
   );
 }
-
-
-
-{/**
-    <Card>
-      <CardHeader>
-        <CardTitle>Hotel Details</CardTitle>
-        <CardDescription>
-          Please fill in this form with your hotel information
-        </CardDescription>
-      </CardHeader>
-      
-        {
-          <CardContent>
-            
-            <CardFooter className="border-t px-6 py-4">
-              <Button>Save Hotel Details</Button>
-            </CardFooter>
-          </CardContent>
-        }
-    </Card>
-
-**/}
