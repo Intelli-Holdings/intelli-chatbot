@@ -67,7 +67,6 @@ export function Home() {
           <PreviewLanding />            
           </div>
           
-          <Powered />
         </section>
         <section className="bg-white-100 py-12 text-center  shadow-lg rounded-xl">
           <div className="container mx-auto px-4">
