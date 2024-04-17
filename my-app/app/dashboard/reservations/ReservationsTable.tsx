@@ -1,11 +1,12 @@
 "use client"
+
 import React from 'react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 import { MoreVerticalIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useFetchReservations } from '@/lib/fetch'; // Import custom hook for fetching reservations
+import { useFetchReservations } from '@/lib/fetch';
 
 interface Reservation {
   id: number;
@@ -23,10 +24,10 @@ interface Reservation {
 }
 
 const ReservationsTable = () => {
-  const { reservations, isLoading, error } = useFetchReservations(); // Fetch reservations using custom hook
+  const { reservations, isLoading, error } = useFetchReservations();
 
-  if (isLoading) return <p>Loading...</p>; // Display loading indicator while fetching data
-  if (error) return <p>Error: {error.message}</p>; // Display error message if fetching fails
+  if (isLoading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
   return (
     <Table>
@@ -45,39 +46,54 @@ const ReservationsTable = () => {
           </TableHead>
         </TableRow>
       </TableHeader>
-
       <TableBody>
-        {reservations && reservations.map((reservation: Reservation) => (
-          <TableRow key={reservation.id}>
-            <TableCell>{`${reservation.first_name} ${reservation.last_name}`}</TableCell>
-            <TableCell>{reservation.customer_phone}</TableCell>
-            <TableCell>{reservation.customer_email}</TableCell>
-            <TableCell>
-              <Badge variant={reservation.status === 'accepted' ? 'secondary' : reservation.status === 'rejected' ? 'destructive' : 'default'}>
-                {reservation.status}
-              </Badge>
-            </TableCell>
-            <TableCell>{reservation.amount_paid}</TableCell>
-            <TableCell>{reservation.room_type}</TableCell>
-            <TableCell>{reservation.check_in_date}</TableCell>
-            <TableCell>{reservation.check_out_date}</TableCell>
-            <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button aria-haspopup="true" size="icon" variant="default">
-                    <MoreVerticalIcon className="h-3.5 w-3.5" />
-                    <span className="sr-only">Toggle menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem>Accept</DropdownMenuItem>
-                  <DropdownMenuItem>Reject</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        {reservations && reservations.length > 0 ? (
+          reservations.map((reservation: Reservation) => (
+            <TableRow key={reservation.id}>
+              <TableCell>{`${reservation.first_name} ${reservation.last_name}`}</TableCell>
+              <TableCell>{reservation.customer_phone}</TableCell>
+              <TableCell>{reservation.customer_email}</TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    reservation.status === 'accepted'
+                      ? 'secondary'
+                      : reservation.status === 'rejected'
+                      ? 'destructive'
+                      : 'default'
+                  }
+                >
+                  {reservation.status}
+                </Badge>
+              </TableCell>
+              <TableCell>{reservation.amount_paid}</TableCell>
+              <TableCell>{reservation.room_type}</TableCell>
+              <TableCell>{reservation.check_in_date}</TableCell>
+              <TableCell>{reservation.check_out_date}</TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button aria-haspopup="true" variant="default">
+                      <MoreVerticalIcon className="h-3.5 w-3.5" />
+                      <span className="sr-only">Toggle menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem>Accept</DropdownMenuItem>
+                    <DropdownMenuItem>Reject</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={9} className="text-center">
+              No reservations found.
             </TableCell>
           </TableRow>
-        ))}
+        )}
       </TableBody>
     </Table>
   );

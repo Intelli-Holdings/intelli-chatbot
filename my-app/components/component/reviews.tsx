@@ -46,13 +46,13 @@ export default function Reviews() {
           </div>
         </CarouselItem>
         <CarouselItem>
-          <div className="p-2">
+          <div className="py-2">
             <Card>
-              <CardContent className="space-y-2">
+              <CardContent className="p-6 pt-6  space-y-2">
                 <div>
                   <p className="text-sm font-medium">
-                    The service was exceptional, and the staff was incredibly helpful. I would definitely recommend this
-                    place to my friends and family.
+                    The service we are delivering to our customers at Mendiata is exceptional, and when we added Intelli Concierge to this; the ratings and reviews we are getting are very heartwarming
+                  
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -71,8 +71,8 @@ export default function Reviews() {
                       />
                     </Avatar>
                     <div className="text-sm">
-                      <CardTitle>Alice Chen</CardTitle>
-                      <CardDescription>Customer</CardDescription>
+                      <CardTitle>Frederick Osei</CardTitle>
+                      <CardDescription>Manager Mendiata Hotel</CardDescription>
                     </div>
                   </div>
                 </div>
@@ -81,20 +81,19 @@ export default function Reviews() {
           </div>
         </CarouselItem>
         <CarouselItem>
-          <div className="p-2">
+          <div className="py-2">
             <Card>
-              <CardContent className="space-y-2">
+              <CardContent className="p-6 pt-6 space-y-2">
                 <div>
                   <p className="text-sm font-medium">
-                    I had a fantastic experience at the spa. The massage was incredibly relaxing, and the ambiance was
-                    perfect.
+                    I believe in the power of automating service delivery with a human touch, Intelli concierge gives us the ability to do just that with their solution 
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2">
                     <Avatar className="w-8 h-8">
                       <Image
-                        alt="David Johnson"
+                        alt="Ofori Johnson Kweku"
                         className="rounded-full"
                         height="32"
                         src="/placeholder.svg"
@@ -106,8 +105,8 @@ export default function Reviews() {
                       />
                     </Avatar>
                     <div className="text-sm">
-                      <CardTitle>David Johnson</CardTitle>
-                      <CardDescription>Spa Enthusiast</CardDescription>
+                      <CardTitle>Mugambe Calvin</CardTitle>
+                      <CardDescription>General Manager Dolphin Suites</CardDescription>
                     </div>
                   </div>
                 </div>

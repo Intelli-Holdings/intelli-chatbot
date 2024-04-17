@@ -4,22 +4,46 @@
  */
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar"
 import { CardDescription, CardContent, Card, CardHeader, CardFooter, CardTitle } from "@/components/ui/card"
+import { Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,} from "@/components/ui/sheet"
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import HotelInfo from "@/components/hotel-info"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { JSX, SVGProps } from "react"
 import Link from "next/link"
 import {
   Activity,
-  ArrowUpRight,
-  CircleUser,
   CreditCard,
   DollarSign,
-  Menu,
-  Package2,
   Users,
 } from "lucide-react"
+import { Heading } from "../ui/heading"
 import Image from "next/image"
 import { Metadata } from "next"
 import { Button } from "@/components/ui/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 import {
   Tabs,
@@ -27,16 +51,18 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-
+import { Input } from "@/components/ui/input"
 import { Search } from "@/components/search"
 
 
 export function DashComponent() {
+
   return (
     <div className="flex">      
       <div className="flex-1">
         <main className="p-5">
-        <div className="hidden flex-col md:flex">
+          {/**
+           *         <div className="hidden flex-col md:flex">
         <div className="border-b">
           <div className="flex h-16 items-center px-4">
                        
@@ -462,6 +488,20 @@ export function DashComponent() {
           </div>
         </div>
       </div>
+           * 
+           * 
+           */}
+
+    <Collapsible>
+  <CollapsibleTrigger>
+  <Button variant="outline">Complete Onboarding Checklist</Button>
+  </CollapsibleTrigger>
+
+  <CollapsibleContent className="pt-2 py-2">  
+  <HotelInfo />
+  </CollapsibleContent>
+</Collapsible>
+
       </main>
     </div>
     </div>

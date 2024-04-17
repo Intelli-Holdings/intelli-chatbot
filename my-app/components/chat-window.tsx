@@ -1,16 +1,16 @@
 "use client";
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
-import { useFormState, useFormStatus } from 'react-dom';
-import { createReservation, handleCreateReservation } from '@/lib/post';
+import { useFormState, useFormStatus } from "react-dom";
+import { createReservation, handleCreateReservation } from "@/lib/post";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useChat } from "ai/react";
 import { Input } from "@/components/ui/input";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -42,7 +42,7 @@ interface ReservationFormData {
   roomType: RoomType;
   checkIn: string;
   checkOut: string;
-  amount: number; 
+  amount: number;
   specialRequests: string;
 }
 
@@ -61,7 +61,6 @@ const calculateTotalAmount = (roomType: RoomType, days: number) => {
   const totalAmount = totalRoomCost + downPayment;
   return totalAmount;
 };
-
 
 export function ChatWindow() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -88,8 +87,10 @@ export function ChatWindow() {
     const oneDay = 24 * 60 * 60 * 1000; // Hours * Minutes * Seconds * Milliseconds
     const firstDate = new Date(checkIn);
     const secondDate = new Date(checkOut);
-  
-    return Math.round(Math.abs((firstDate.getTime() - secondDate.getTime()) / oneDay));
+
+    return Math.round(
+      Math.abs((firstDate.getTime() - secondDate.getTime()) / oneDay)
+    );
   };
 
   const closeReservationModal = () => {
@@ -99,26 +100,28 @@ export function ChatWindow() {
     setReservationOpen(true);
   };
 
-
   const handleReservationInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { type, value, name } = e.target;
-  
+
     const updatedFormData = {
       ...formData,
       [name]: type === "number" ? parseInt(value, 10) || 0 : value,
     };
-  
+
     if (name === "checkIn" || name === "checkOut") {
-      const days = calculateDays(updatedFormData.checkIn, updatedFormData.checkOut);
+      const days = calculateDays(
+        updatedFormData.checkIn,
+        updatedFormData.checkOut
+      );
       const totalAmount = calculateTotalAmount(formData.roomType, days);
       updatedFormData.amount = totalAmount;
     }
-  
+
     setFormData(updatedFormData);
   };
-  
+
   const handleRoomTypeChange = (value: RoomType) => {
     setFormData((prevFormData) => {
       const days = calculateDays(prevFormData.checkIn, prevFormData.checkOut);
@@ -131,59 +134,83 @@ export function ChatWindow() {
     });
   };
 
-  const [state, formAction] = useFormState(handleCreateReservation, { success: false });
+  const [state, formAction] = useFormState(handleCreateReservation, {
+    success: false,
+  });
   const { pending } = useFormStatus();
 
-  const handleSubmitReservation = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitReservation = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    if (formData.firstName && formData.lastName && formData.email && formData.phoneNumber && formData.adults && formData.children && formData.checkIn && formData.checkOut && formData.amount && formData.specialRequests && formData.roomType){
+    if (
+      formData.firstName &&
+      formData.lastName &&
+      formData.email &&
+      formData.phoneNumber &&
+      formData.adults &&
+      formData.children &&
+      formData.roomType &&
+      formData.checkIn &&
+      formData.checkOut &&      
+      formData.amount &&
+      formData.specialRequests
+    ) {
       const formData = new FormData(e.currentTarget);
       formAction(formData);
       try {
-          setIsLoading(true); // Set isLoading to true before submitting the form
+        setIsLoading(true); // Set isLoading to true before submitting the form
 
-          const { success } = await createReservation(formData);
+        const { success } = await createReservation(formData);
 
-          if (success) {
-              setHasSubmitted(true);
-              toast.success('Success, you have made a reservation');
-          } else {
-              toast.error('Failed to make a reservation');
-          }
+        if (success) {
+          setHasSubmitted(true);
+          toast.success("Success, you have made a reservation");
+        } else {
+          toast.error("Failed to make a reservation");
+        }
       } catch (error) {
-          console.error('Error making a reservation:', error);
-          setError('An error occurred while making a reservation');
+        console.error("Error making a reservation:", error);
+        setError("An error occurred while making a reservation");
       } finally {
-          setIsLoading(false); // Set isLoading to false after form submission is complete
+        setIsLoading(false); // Set isLoading to false after form submission is complete
       }
-  } else {
-      setError('Please fill in all required fields');
+    } else {
+      setError("Please fill in all required fields");
       showTooltip();
-  }
+    }
   };
 
   const showTooltip = () => {
     return (
-        <Tooltip>
-            <span>Please fill in required fields</span>
-        </Tooltip>
+      <Tooltip>
+        <span>Please fill in required fields</span>
+      </Tooltip>
     );
-};
+  };
 
   if (hasSubmitted) {
     return (
-        <div>
-            <span>Thanks for making a reservation! We will be in touch shortly.</span>
-        </div>
+      <div>
+        <span>
+          {toast.success(
+            "Thanks for making a reservation! We will be in touch shortly."
+          )}
+        </span>
+      </div>
     );
-} else if (error) {
+  } else if (error) {
     return (
-        <div>
-            <span>{toast.error('Ooops, an error occurred while making your reservation')}</span>
-        </div>
+      <div>
+        <span>
+          {toast.error(
+            "Ooops, an error occurred while making your reservation"
+          )}
+        </span>
+      </div>
     );
-}
+  }
 
   return (
     <div
@@ -207,18 +234,21 @@ export function ChatWindow() {
       <div className="flex flex-col items-start justify-between flex-1 p-2">
         <ScrollArea className="h-[calc(50vh-100px)]">
           <div>
-          <Card className="shadow-lg border-none">
+            <Card className="shadow-lg border-none">
               <CardContent>
                 <CardHeader>
                   <CardTitle>Welcome to Elli</CardTitle>
                   <CardDescription>
-                    Elli is an AI-powered assistant that can be trained to answer inquiries about your hotel, make reservations, and provide information about your hotel. Elli is available 24/7.
+                    Elli is an AI-powered assistant that can be trained to
+                    answer inquiries about your hotel, make reservations, and
+                    provide information about your hotel. Elli is available
+                    24/7.
                   </CardDescription>
                 </CardHeader>
-                    <div className="max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg">
-                      Hi👋, I am Elli your front desk assistant.
-                    </div>
-            </CardContent>
+                <div className="max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg">
+                  Hi👋, I am Elli your front desk assistant.
+                </div>
+              </CardContent>
             </Card>
           </div>
           {messages.map((m) => (
@@ -292,16 +322,33 @@ export function ChatWindow() {
             {reservationOpen && (
               <div className="fixed top-0 left-0 w-full h-full bg-gray-800 bg-opacity-70 flex justify-center items-center">
                 <Card className="w-[500px] mx-auto shadow-sm">
-                  <CardHeader>
-                    <CardTitle>Make a Reservation</CardTitle>
-                    <CardDescription>
-                      Fill in this form to book our services.
-                    </CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between ">
+                    <div className="grid gap-2">
+                      <CardTitle>Make a Reservation</CardTitle>
+                      <CardDescription>
+                        Fill in this form to book our services.
+                      </CardDescription>
+                    </div>
+                    <div>
+                      <Button
+                        className="ml-auto gap-1"
+                        variant="destructive"
+                        onClick={closeReservationModal}
+                      >
+                        <CrossIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleSubmitReservation} action={formAction}>
-                      <div className="grid grid-cols-2 gap-2 md:grid-cols-2">
+                    <form
+                      onSubmit={handleSubmitReservation}
+                      action={formAction}
+                    >
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                       
                         <div>
+                          
                           <Label htmlFor="firstName">First Name</Label>
                           <Input
                             id="firstName"
@@ -312,6 +359,7 @@ export function ChatWindow() {
                           />
                         </div>
                         <div>
+                         
                           <Label htmlFor="lastName">Last Name</Label>
                           <Input
                             id="lastName"
@@ -322,6 +370,7 @@ export function ChatWindow() {
                           />
                         </div>
                         <div>
+                        
                           <Label htmlFor="email">Email</Label>
                           <Input
                             id="email"
@@ -333,6 +382,7 @@ export function ChatWindow() {
                           />
                         </div>
                         <div>
+                         
                           <Label htmlFor="phoneNumber">Phone Number</Label>
                           <Input
                             id="phoneNumber"
@@ -344,6 +394,7 @@ export function ChatWindow() {
                           />
                         </div>
                         <div>
+                          
                           <Label htmlFor="adults">Adults</Label>
                           <Input
                             id="adults"
@@ -355,6 +406,7 @@ export function ChatWindow() {
                           />
                         </div>
                         <div>
+                         
                           <Label htmlFor="children">Children</Label>
                           <Input
                             id="children"
@@ -365,88 +417,108 @@ export function ChatWindow() {
                             required
                           />
                         </div>
-                        <div>
-  <Label htmlFor="roomType">Room Type</Label>
-  <Select
-  name="roomType"
-  // @ts-ignore
-  type="string"
-    value={formData.roomType} onValueChange={handleRoomTypeChange}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder="Select a room type" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="standard">Standard</SelectItem>
-      <SelectItem value="executive">Executive</SelectItem>
-      <SelectItem value="apartment">Apartment</SelectItem>
-    </SelectContent>
-  </Select>
-</div>
-                        <div>
-                          <Label htmlFor="checkIn">Check-in Date</Label>
-                          <Input
-                            id="checkIn"
-                            name="checkIn"
-                            type="date"
-                            value={formData.checkIn}
-                            onChange={handleReservationInputChange}
-                            required
-                          />
+                        <div className="md:col-span-2">
+                          
+                          <Label htmlFor="roomType">Room Type</Label>
+                          <Select
+                            name="roomType"
+                            // @ts-ignore
+                            type="string"
+                            value={formData.roomType}
+                            onValueChange={handleRoomTypeChange}
+                          >
+                          
+                            <SelectTrigger>
+                            
+                              <SelectValue placeholder="Select a room type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                             
+                              <SelectItem value="standard">
+                                Standard
+                              </SelectItem>
+                              <SelectItem value="executive">
+                                Executive
+                              </SelectItem>
+                              <SelectItem value="apartment">
+                                Apartment
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div>
-                          <Label htmlFor="checkOut">Check-out Date</Label>
-                          <Input
-                            id="checkOut"
-                            name="checkOut"
-                            type="date"
-                            value={formData.checkOut}
-                            onChange={handleReservationInputChange}
-                            required
-                          />
+                        <div className="md:col-span-2">
+                        
+                          <div className="grid grid-cols-2 gap-2">
+                         
+                            <div>
+                              
+                              <Label htmlFor="checkIn">
+                                Check-in Date
+                              </Label>
+                              <Input
+                                id="checkIn"
+                                name="checkIn"
+                                type="date"
+                                value={formData.checkIn}
+                                onChange={handleReservationInputChange}
+                                required
+                              />
+                            </div>
+                            <div>
+                           
+                              <Label htmlFor="checkOut">
+                                Check-out Date
+                              </Label>
+                              <Input
+                                id="checkOut"
+                                name="checkOut"
+                                type="date"
+                                value={formData.checkOut}
+                                onChange={handleReservationInputChange}
+                                required
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                           <Label htmlFor="amount">Amount</Label>
+
                           <Input
                             id="amount"
                             name="amount"
                             value={formData.amount.toLocaleString("en-GH", {
                               style: "currency",
+
                               currency: "GHS",
                             })}
                             readOnly
                           />
                         </div>
-                        <div>
-                          <Label htmlFor="specialRequests">Any Special Requests</Label>
-                          <Input
+                        <div className="md:col-span-2">
+                         
+                          <Label htmlFor="specialRequests">
+                            Any Special Requests
+                          </Label>
+                          <Textarea
                             id="specialRequests"
                             name="specialRequests"
-                            type="string"
                             value={formData.specialRequests}
                             onChange={handleReservationInputChange}
-                            
                           />
                         </div>
                       </div>
                       <CardFooter className="pt-5 justify-center w-full">
+                       
                         <Button type="submit" disabled={pending}>
-                          {pending ? "Submitting..." : "Submit Reservation"}
+                        
+                          {pending
+                            ? "Submitting..."
+                            : "Submit Reservation"}
                         </Button>
                       </CardFooter>
                     </form>
-                    <p aria-live="polite" className="sr-only">
-                      {state?.success
-                        ? "Reservation submitted successfully!"
-                        : ""}
-                    </p>
-                    <Button
-                      className=""
-                      variant="outline"
-                      onClick={closeReservationModal}
-                    >
-                      Close
-                    </Button>
+                    {state?.success &&
+                      toast.success("Reservation submitted successfully!")}
                   </CardContent>
                 </Card>
               </div>
@@ -457,7 +529,6 @@ export function ChatWindow() {
     </div>
   );
 }
-
 
 function ArrowLeftIcon(props: any) {
   return (
@@ -487,14 +558,34 @@ function SendIcon(props: any) {
       width="24"
       height="24"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
+      fill="#fff"
+      stroke=""
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
       <path d="m22 2-7 20-4-9-9-4Z" />
       <path d="M22 2 11 13" />
+    </svg>
+  );
+}
+
+function CrossIcon(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill=""
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 6L6 18" />
+      <path d="M6 6l12 12" />
     </svg>
   );
 }
