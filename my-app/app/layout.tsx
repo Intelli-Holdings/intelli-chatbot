@@ -36,7 +36,6 @@ export default function RootLayout({
       <CSPostHogProvider>
       <Analytics />
       <body className={inter.className}>{children}
-      <Toaster position="top-center" />
       <Toaster
       toastOptions={{
         classNames: {

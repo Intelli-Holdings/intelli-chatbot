@@ -11,9 +11,7 @@ export function PreviewLanding() {
               className="size-full object-cover object-center"
               
               alt="preview of dashboard"
-              
               priority={true}
-              
               src={demoImage}
             />
           </div>

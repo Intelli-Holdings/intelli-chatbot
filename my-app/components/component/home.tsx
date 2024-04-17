@@ -32,13 +32,8 @@ import Pie from "@/public/piechart.png";
 
 import Reviews from "@/components/component/reviews";
 import Waitlist from "@/components/component/waitlist";
-import { BentoGrid } from "@/components/sections/bentogrid";
-import { Features } from "@/components/sections/features";
-import { HeroLanding } from "@/components/sections/hero-landing";
-import { InfoLanding } from "@/components/sections/info-landing";
 import { PreviewLanding } from "@/components/sections/preview-landing";
-import { Testimonials } from "@/components/sections/testimonials";
-import { Powered } from "@/components/sections/powered";
+
 
 
 export function Home() {
@@ -106,7 +101,7 @@ export function Home() {
           </div>
         </section>
         <section className="py-12 text-center">
-        <Features />
+        
         </section>
         <section className="py-12 relative">
           <Image
