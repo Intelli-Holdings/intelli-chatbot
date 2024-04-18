@@ -1,19 +1,25 @@
 "use client"
-import {isAuthenticated} from '@/utils/Auth';
-import { redirect } from 'next/navigation';
+
+import { useRouter } from 'next/navigation';
 import { useLayoutEffect } from 'react';
 import { DashComponent } from "@/components/component/dash";
+import { useAuthState } from '@/lib/firebase/auth';
 
 export default function Page() {
+  const router = useRouter();
+  const user = useAuthState();
+
   useLayoutEffect(() => {
-    const isAuth = isAuthenticated;
-    if(!isAuth){
-      redirect("/auth/register")
+    if (user === null) {
+      router.push('/auth/login');
+    } else {
+      router.push('/dashboard');
     }
-  }, [])
+  }, [router, user]);
+
   return (
     <div className="h-full">
       <DashComponent />
-      </div>
+    </div>
   );
 }
