@@ -86,17 +86,7 @@ export function Home() {
                 className="rounded-lg"
                 src={labadi}
               />
-              <Image alt="Kempinski" className="rounded-lg" src={kempinski} />
-              <Image
-                alt="Accra City Hotel"
-                className="rounded-lg"
-                src={accraCity}
-              />
-              <Image
-                alt="Movenpick Hotel"
-                className="rounded-lg"
-                src={movenpick}
-              />
+              
             </div>
           </div>
         </section>
