@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { Textarea } from "@/components/ui/textarea";
+import { createReservation, handleCreateReservation } from "@/lib/post";
 import {
   Card,
   CardContent,
@@ -33,6 +35,7 @@ interface ReservationFormData {
   checkIn: string;
   checkOut: string;
   amount: number; 
+  specialRequests: string;
 }
 
 const roomRates = {
@@ -65,6 +68,7 @@ export const ReservationForm = () => {
     checkIn: "",
     checkOut: "",
     amount: 0,
+    specialRequests: "",
   });
 
   const calculateDays = (checkIn: string, checkOut: string): number => {
@@ -101,8 +105,9 @@ export const ReservationForm = () => {
     e.preventDefault();
   
     try {
+      
       const response = await fetch(
-        'https://intelli-python-backend.onrender.com/reservations/',
+        'https://intelli-python-backend.onrender.com/reservations',
         {
           method: 'POST',
           headers: {
@@ -111,6 +116,8 @@ export const ReservationForm = () => {
           body: JSON.stringify(formData),
         }
       );
+      
+      console.log('Backend response:', response);
   
       if (response.ok) {
         toast.success('Reservation successfully sent!'); // Show a success toast
@@ -119,9 +126,8 @@ export const ReservationForm = () => {
         toast.error('Failed to send reservation'); // Show an error toast
       }
     } catch (error) {
-      toast.error('An error occurred'); // Show an error toast
-      console.error('An error occurred:', error);
-    }
+      console.error('Error sending reservation:', error);}
+      console.log('Sending reservation data:', formData);
   };
 
   return (
@@ -250,6 +256,15 @@ export const ReservationForm = () => {
                 value={formData.amount.toFixed(2)} // Display the amount with two decimal places
                 readOnly // Make the input read-only
               />
+            </div>
+            <div>
+              <Label htmlFor="amount">Any Special Requests</Label>
+              <Textarea
+                            id="specialRequests"
+                            name="specialRequests"
+                            value={formData.specialRequests}
+                            onChange={handleInputChange}
+                          />
             </div>
           </div>
           <CardFooter className="pt-5 justify-center w-full">
