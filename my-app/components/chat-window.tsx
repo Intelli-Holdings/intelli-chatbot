@@ -139,46 +139,38 @@ export function ChatWindow() {
   });
   const { pending } = useFormStatus();
 
-  const handleSubmitReservation = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmitReservation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (
-      formData.firstName &&
-      formData.lastName &&
-      formData.email &&
-      formData.phoneNumber &&
-      formData.adults &&
-      formData.children &&
-      formData.roomType &&
-      formData.checkIn &&
-      formData.checkOut &&      
-      formData.amount &&
-      formData.specialRequests
-    ) {
-      const formData = new FormData(e.currentTarget);
-      formAction(formData);
-      try {
-        setIsLoading(true); // Set isLoading to true before submitting the form
-
-        const { success } = await createReservation(formData);
-
-        if (success) {
-          setHasSubmitted(true);
-          toast.success("Success, you have made a reservation");
-        } else {
-          toast.error("Failed to make a reservation");
-        }
-      } catch (error) {
-        console.error("Error making a reservation:", error);
-        setError("An error occurred while making a reservation");
-      } finally {
-        setIsLoading(false); // Set isLoading to false after form submission is complete
+  
+    setIsLoading(true);
+  
+    try {
+      const reservationData = new FormData();
+      reservationData.append("firstName", formData.firstName);
+      reservationData.append("lastName", formData.lastName);
+      reservationData.append("email", formData.email);
+      reservationData.append("phoneNumber", formData.phoneNumber);
+      reservationData.append("adults", formData.adults.toString());
+      reservationData.append("children", formData.children.toString());
+      reservationData.append("roomType", formData.roomType);
+      reservationData.append("checkIn", formData.checkIn);
+      reservationData.append("checkOut", formData.checkOut);
+      reservationData.append("amount", formData.amount.toString());
+      reservationData.append("specialRequests", formData.specialRequests);
+  
+      const { success, error } = await createReservation(reservationData);
+  
+      if (success) {
+        setHasSubmitted(true);
+        toast.success("Reservation submitted successfully!");
+      } else {
+        toast.error(error || "An error occurred while submitting the reservation.");
       }
-    } else {
-      setError("Please fill in all required fields");
-      showTooltip();
+    } catch (error) {
+      console.error("Error submitting reservation:", error);
+      toast.error("An error occurred while submitting the reservation.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -509,11 +501,9 @@ export function ChatWindow() {
                       </div>
                       <CardFooter className="pt-5 justify-center w-full">
                        
-                        <Button type="submit" disabled={pending}>
+                        <Button type="submit" disabled={isLoading}>
                         
-                          {pending
-                            ? "Submitting..."
-                            : "Submit Reservation"}
+                          {isLoading ? "Submitting..." : "Submit Reservation"}
                         </Button>
                       </CardFooter>
                     </form>
