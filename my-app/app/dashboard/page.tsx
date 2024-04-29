@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useLayoutEffect } from 'react';
 import { DashComponent } from "@/components/component/dash";
-import { useAuthState } from '@/lib/firebase/auth';
+import useAuthState from '@/lib/auth/useAuth';
 
 export default function Page() {
   const router = useRouter();
