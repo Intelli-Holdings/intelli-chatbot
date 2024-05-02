@@ -18,10 +18,10 @@ interface Conversation {
 }
 
 enum Channel {
-  Website = "Website (Elli)",
-  SocialMedia = "Social Media",
-  Calls = "Calls",
-  Email = "Email",
+  Website = "elli",
+  SocialMedia = "social",
+  Calls = "calls",
+  Email = "email",
 }
 
 export default function ConversationsPage() {
@@ -31,18 +31,20 @@ export default function ConversationsPage() {
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const response = await fetch(
-          "https://intelli-python-backend.onrender.com/conversations"
-        );
-        const data = await response.json();
-        setConversations(data);
+        if (selectedChannel) {
+          const response = await fetch(
+            `https://intelli-python-backend.onrender.com/conversations/${selectedChannel}`
+          );
+          const data = await response.json();
+          setConversations(data);
+        }
       } catch (error) {
         console.error("Error fetching conversations:", error);
       }
     };
 
     fetchConversations();
-  }, []);
+  }, [selectedChannel]);
 
   const handleChannelClick = (channel: Channel) => {
     setSelectedChannel(channel);
@@ -59,7 +61,7 @@ export default function ConversationsPage() {
                 <h1 className="text-2xl font-bold">Channels</h1>
               </div>
             </div>
-            <div className="bg-white border border-gray-50 rounded-md p-4 y-2">
+        <div className="bg-white border border-gray-50 rounded-md p-4 y-2">
         <div className="flex flex-col">          
           <button
             className={`p-2 rounded-md ${
@@ -107,34 +109,30 @@ export default function ConversationsPage() {
           </div>
         </div>
         <div className="ml-4 bg-white border border-gray-300 rounded-md p-4 flex-1">
-          {selectedChannel && (
-            <div className="p-4 border rounded-lg shadow-md">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-500">{selectedChannel}</span>
-              </div>
-              {conversations
-                .filter(
-                  (conversation) => conversation.sender === selectedChannel
-                )
-                .map((conversation) => (
-                  <div
-                    key={conversation.id}
-                    className="p-4 border rounded-lg shadow-md"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-500">
-                        {conversation.sender}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {conversation.timestamp}
-                      </span>
-                    </div>
-                    <p>{conversation.message}</p>
-                  </div>
-                ))}
+        {selectedChannel && (
+          <div className="p-4 border rounded-lg shadow-md">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-500">{selectedChannel}</span>
             </div>
-          )}
-        </div>
+            {conversations.map((conversation) => (
+              <div
+                key={conversation.id}
+                className="p-4 border rounded-lg shadow-md"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-500">
+                    {conversation.sender}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    {conversation.timestamp}
+                  </span>
+                </div>
+                <p>{conversation.message}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       </div>
     </div>
   );
