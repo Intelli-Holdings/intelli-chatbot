@@ -17,7 +17,7 @@ interface User {
 
 export default function Header() {
   const { user } = useAuth();
-  const firstName = user ? user.firstName : 'Guest';
+  const firstName = user ? user.firstName : '';
   const companyName = user ? user.companyName : '';
 
   const getGreeting = () => {
@@ -36,7 +36,7 @@ export default function Header() {
       <nav className="h-14 flex items-center justify-between px-4">
         <Image alt="Intelli Concierge" className="h-16" src="/Logo.svg" height={80} width={80} />
         <div>
-          <h1 className="text-xl font-semibold">{getGreeting()}, {firstName}!</h1>
+          <h1 className="text-xl font-semibold">{getGreeting()} {firstName}</h1>
         </div>
         <div className={cn("block lg:!hidden")}>
           <MobileSidebar />
