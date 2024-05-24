@@ -112,9 +112,9 @@ export default function Signin() {
     <div className="flex min-h-screen flex-col bg-[#E6F4FF]">
       <div className="mx-auto my-auto w-full max-w-md rounded-lg shadow-md bg-white p-8">
         <CardTitle className="flex items-center justify-center">
-          <Image alt="Intelli Logo" src={logo} />
+         
         </CardTitle>
-        <h1 className="text-center text-2xl font-semibold">Welcome back to Intelli</h1>
+        <h1 className="text-center text-2xl font-semibold">Login to Continue</h1>
         <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium text-gray-700" htmlFor="email">
@@ -126,7 +126,11 @@ export default function Signin() {
             <label className="block text-sm font-medium text-gray-700" htmlFor="password">
               Password
             </label>
+            
             <Input id="password" placeholder="**********" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            <Link href="/auth/forgotPassword" className="ml-auto inline-block text-sm underline">
+                Forgot your password?
+              </Link>
           </div>
           <Button className="w-full bg-blue-600 text-white" variant="default" type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
