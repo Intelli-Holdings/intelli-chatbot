@@ -169,9 +169,9 @@ export default function Signup() {
     <div key="1" className="flex min-h-screen bg-[#E5F4FF]">
       <div className="m-auto w-full max-w-md p-6 bg-white rounded-lg shadow-md">
         <CardTitle className="flex items-center justify-center">
-          <Image alt="Intelli Logo" src={logo} />
+         
         </CardTitle>
-        <h1 className="text-black text-xl font-semibold text-gray-700 text-center">Create a free account</h1>
+        <h1 className="text-black text-2xl font-semibold text-gray-700 text-center">Create Account</h1>
         <form className="mt-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col">
@@ -209,6 +209,9 @@ export default function Signup() {
             <label className="text-sm font-medium text-gray-700" htmlFor="password">
               Password
             </label>
+            <Link href="/auth/forgotPassword" className="ml-auto inline-block text-sm underline">
+                Forgot your password?
+              </Link>
             <Input id="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="************" type="password" required />
           </div>
           <div className="mt-6">
