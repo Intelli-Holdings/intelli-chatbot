@@ -1,7 +1,7 @@
 "use client";
-import Link from "next/link";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -11,27 +11,47 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-const resetPasswordSchema = z.object({
-  email: z.string().email("Invalid email address"),
-});
+const resetPasswordSchema = z
+  .object({
+    newPassword: z.string().min(8, "Password must be at least 8 characters long"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export default function ResetPassword() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const reset_token = searchParams.get("reset_token");
+  const [errorMessage, setErrorMessage] = useState("");
+
   const form = useForm({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      email: "",
+      newPassword: "",
+      confirmPassword: "",
     },
   });
 
   const handleSubmit = async (data) => {
     try {
-      await resetPassword(data.email);
-      toast.success("Password reset email sent successfully.");
-      router.push("/auth/login");
+      const response = await resetPassword(reset_token, data.newPassword);
+
+      if (response.success) {
+        toast.success("Password reset successful.");
+        // Redirect or navigate to the desired page
+      } else {
+        setErrorMessage(response.error);
+      }
     } catch (error) {
-      toast.error("Error sending password reset email. Please try again.");
+      if (error.message === "Token expired") {
+        setErrorMessage("Invalid or expired reset token");
+      } else if (error.message === "Token already used") {
+        setErrorMessage("Token already used");
+      } else {
+        setErrorMessage("Token invalid or doesn't exist");
+      }
     }
   };
 
@@ -41,40 +61,48 @@ export default function ResetPassword() {
         <CardTitle className="flex justify-center">
           <h1 className="text-2xl font-semibold">Reset Your Password</h1>
         </CardTitle>
-        <CardDescription>
-          Enter your email address, and we shall send you a link to reset your password.
-        </CardDescription>
+        <CardDescription>Enter a new password for your account.</CardDescription>
+        {errorMessage && <p className="text-red-500">{errorMessage}</p>}
         <form className="mt-4 space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
           <div>
-            <label className="block text-sm font-medium text-gray-700" htmlFor="email">
-              Email
+            <label className="block text-sm font-medium text-gray-700" htmlFor="newPassword">
+              New Password
             </label>
             <Input
-              {...form.register("email")}
-              id="email"
-              placeholder="youremail@company.com"
-              type="email"
+              {...form.register("newPassword")}
+              id="newPassword"
+              placeholder="Enter new password"
+              type="password"
               required
             />
-            {form.formState.errors.email && (
-              <p className="text-red-500">{form.formState.errors.email.message}</p>
+            {form.formState.errors.newPassword && (
+              <p className="text-red-500">{form.formState.errors.newPassword.message}</p>
             )}
           </div>
-          <Button className="w-full bg-blue-600 text-white" variant="default" type="submit">
-            Reset Password
+          <div>
+            <label className="block text-sm font-medium text-gray-700" htmlFor="confirmPassword">
+              Confirm Password
+            </label>
+            <Input
+              {...form.register("confirmPassword")}
+              id="confirmPassword"
+              placeholder="Confirm new password"
+              type="password"
+              required
+            />
+            {form.formState.errors.confirmPassword && (
+              <p className="text-red-500">{form.formState.errors.confirmPassword.message}</p>
+            )}
+          </div>
+          <Button
+            className="w-full bg-blue-600 text-white"
+            variant="default"
+            type="submit"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? "Resetting Password..." : "Reset Password"}
           </Button>
         </form>
-        <div className="mt-4">
-          <span className="text-sm text-gray-500">
-           Did not receive a password reset link{" "}
-          </span>
-          <Link
-            href="/auth/register"
-            className="text-sm font-medium text-blue-600"
-          >
-            Resend message
-          </Link>
-        </div>
       </div>
     </div>
   );
