@@ -115,7 +115,7 @@ import { register } from "@/lib/auth/authService"
 import { toast } from 'sonner';
 import Image from "next/image"
 import { CardTitle } from "@/components/ui/card"
-import logo from "@/public/Logo.svg"
+import logo from "@/public/Intelli.svg"
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Signup() {

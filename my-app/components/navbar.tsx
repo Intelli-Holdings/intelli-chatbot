@@ -10,7 +10,7 @@ export function Navbar() {
         <div className="container mx-auto flex items-center justify-between px-4 py-2">
           <div className="flex items-center">
             <a className="" href="/">
-              <Image alt="Intelli Concierge" className="h-16" src="/Logo.svg"  height={80} width={80} />
+              <Image alt="Intelli Concierge" className="h-16" src="/Intelli.svg"  height={30} width={30} />
             </a>
           </div>
           <nav className="hidden md:flex space-x-4"> {/* Hide on mobile screens */}

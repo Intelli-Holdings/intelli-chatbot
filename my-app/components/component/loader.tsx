@@ -13,17 +13,13 @@ export function Loader() {
           <div className="mb-4">
             <Image
               alt="Intelli logo"
-              className="h-24 w-24"
-              height="100"
-              src="/Logo.svg"
-              style={{
-                aspectRatio: "100/100",
-                objectFit: "cover",
-              }}
-              width="100"
+              height={40}    
+              width={40}         
+              src="/Intelli.svg"             
             />
-            <PulsatingLoader />
+            
           </div>
+          <PulsatingLoader />
         </>
 
     </div>
