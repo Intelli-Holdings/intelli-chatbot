@@ -27,9 +27,15 @@ export default function ChangePassword() {
     },
   });
 
-  const handleSubmit = async (data) => {
+  interface ChangePasswordFormData {
+    oldPassword: string;
+    newPassword: string;
+  }
+
+
+  const handleSubmit = async (data: ChangePasswordFormData) => {
     try {
-      await changePassword(data.oldPassword, data.newPassword);
+      await changePassword({ oldPassword: data.oldPassword, newPassword: data.newPassword });
       toast.success('Password changed successfully.');
       // Optionally, you can redirect the user to a different page after successful password change
       // router.push('/dashboard');

@@ -34,23 +34,29 @@ export default function ResetPassword() {
     },
   });
 
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (data: any) => {
     try {
-      const response = await resetPassword(reset_token, data.newPassword);
-
-      if (response.success) {
-        toast.success("Password reset successful.");
-        // Redirect or navigate to the desired page
+      if (reset_token) {
+        const response = await resetPassword({ token: reset_token, newPassword: data.newPassword });
+  
+        if (response.success) {
+          toast.success("Password reset successful.");
+          // Redirect or navigate to the desired page
+        } else {
+          setErrorMessage(response.error);
+        }
       } else {
-        setErrorMessage(response.error);
+        setErrorMessage("Invalid or missing reset token");
       }
     } catch (error) {
-      if (error.message === "Token expired") {
-        setErrorMessage("Invalid or expired reset token");
-      } else if (error.message === "Token already used") {
-        setErrorMessage("Token already used");
-      } else {
-        setErrorMessage("Token invalid or doesn't exist");
+      if (error instanceof Error) {
+        if (error.message === "Token expired") {
+          setErrorMessage("Invalid or expired reset token");
+        } else if (error.message === "Token already used") {
+          setErrorMessage("Token already used");
+        } else {
+          setErrorMessage("Token invalid or doesn't exist");
+        }
       }
     }
   };
