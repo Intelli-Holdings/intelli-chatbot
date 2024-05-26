@@ -48,13 +48,12 @@ export function Home() {
             Intelli Concierge
           </h1>
           <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
-            Automate customer support responses.
+            Customer Support on Autopilot.
           </p>
           <p className="text-center text-lg font-bold font-medium text-gray-800">
             Improve customer experience by automating responses to frequently
             asked questions. Handle responses across 3 different channels
-            seamlessly with one platform. All this power is available at an
-            affordable price.
+            seamlessly with one platform. 
           </p>
           <div className="mt-6 flex flex-col items-center space-y-2 sm:flex-row sm:justify-center sm:space-x-4 pb-6">
            
