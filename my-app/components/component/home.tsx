@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 
 import Image from "next/image";
 
+
 import mendiata from "@/public/mendiata.png";
 import labadi from "@/public/Labadi-logo.png";
 import aquasafari from "@/public/Aqua-Safari-Logo.png";
@@ -33,6 +34,7 @@ import Pie from "@/public/piechart.png";
 import Reviews from "@/components/component/reviews";
 import Waitlist from "@/components/component/waitlist";
 import { PreviewLanding } from "@/components/sections/preview-landing";
+import SkewedInfiniteScroll from "../skewed-scroll";
 
 
 
@@ -46,16 +48,15 @@ export function Home() {
             Intelli Concierge
           </h1>
           <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
-            Automate customer support responses.
+            Customer Support on Autopilot.
           </p>
           <p className="text-center text-lg font-bold font-medium text-gray-800">
             Improve customer experience by automating responses to frequently
             asked questions. Handle responses across 3 different channels
-            seamlessly with one platform. All this power is available at an
-            affordable price.
+            seamlessly with one platform. 
           </p>
           <div className="mt-6 flex flex-col items-center space-y-2 sm:flex-row sm:justify-center sm:space-x-4 pb-6">
-            <Waitlist />
+           
           </div>
 
           <div className="mx-auto">
@@ -187,13 +188,13 @@ export function Home() {
           </div>
          
         </section>
-        <section className="py-12  shadow-lg rounded-xl p-4">
+        <section className="py-12 rounded-xl p-4">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center">
               What Our Customers Say
             </h2>
-            <div className="mt-6 flex justify-center space-x-4">
-              <Reviews />
+            <div className="">
+            <SkewedInfiniteScroll />
             </div>
           </div>
         </section>
@@ -233,7 +234,9 @@ export function Home() {
             </div>
           </div>
         </section>
+      
       </main>
+
     </div>
   );
 }

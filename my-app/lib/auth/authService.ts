@@ -41,7 +41,7 @@ interface LoginPayload {
   
   const changePassword = async (payload: ChangePasswordPayload) => {
     try {
-      const response = await api.post('/auth/change-password/', payload);
+      const response = await api.post('/auth/change_password/', payload);
       return response.data;
     } catch (error) {
       throw error;
@@ -54,7 +54,7 @@ interface LoginPayload {
   
   const forgotPassword = async (payload: ForgotPasswordPayload) => {
     try {
-      const response = await api.post('/auth/forgot-password/', payload);
+      const response = await api.post('/auth/forgot_password/', payload);
       return response.data;
     } catch (error) {
       throw error;
@@ -95,7 +95,7 @@ interface LoginPayload {
   
   const resetPassword = async (payload: ResetPasswordPayload) => {
     try {
-      const response = await api.post('/auth/reset-password/', payload);
+      const response = await api.post('/auth/reset_password/', payload);
       return response.data;
     } catch (error) {
       throw error;
@@ -104,7 +104,7 @@ interface LoginPayload {
   
   const verifyEmail = async (token: string) => {
     try {
-      const response = await api.post('/auth/verify-email/', { token });
+      const response = await api.post('/auth/verify_email/', { token });
       return response.data;
     } catch (error) {
       throw error;

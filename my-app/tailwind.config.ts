@@ -55,9 +55,13 @@ const config: Config = {
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)'
+        sm: 'calc(var(--radius) - 4px)',
       },
       keyframes: {
+        "caret-blink": {
+          "0%,70%,100%": { opacity: "1" },
+          "20%,50%": { opacity: "0" },
+        },
         'accordion-down': {
           from: { height: '0' },
           to: { height: 'var(--radix-accordion-content-height)' }
@@ -65,12 +69,28 @@ const config: Config = {
         'accordion-up': {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' }
-        }
+        },
+        'logo-cloud': {
+                from: { transform: 'translateX(0)' },
+                 to: { transform: 'translateX(calc(-100% - 4rem))' },
+        },
+        'skew-scroll': {
+          '0%': {
+            transform:
+              'rotatex(20deg) rotateZ(-20deg) skewX(20deg) translateZ(0) translateY(0)',
+          },
+          '100%': {
+            transform:
+              'rotatex(20deg) rotateZ(-20deg) skewX(20deg) translateZ(0) translateY(-100%)',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out'
-      }
+        'accordion-up': 'accordion-up 0.2s ease-out',
+        'logo-cloud': 'logo-cloud 30s linear infinite', 
+        'skew-scroll': 'skew-scroll 20s linear infinite',
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

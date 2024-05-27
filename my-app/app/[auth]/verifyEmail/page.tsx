@@ -1,12 +1,13 @@
 import React from 'react';
-import Signin from "@/components/component/signin";
+import VerifyEmail from '@/components/component/verify_email';
 import { Navbar } from '@/components/navbar';
 
-export default function Login () {
+
+export default function Verify () {
     return (
         <div>
             <Navbar />
-            <Signin />
+            <VerifyEmail />
         </div>
     );
 };
