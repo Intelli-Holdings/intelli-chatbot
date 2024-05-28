@@ -31,15 +31,11 @@ export function EmployeeList() {
     const fetchEmployees = async () => {
       try {
         const response = await fetch("https://intelli-python-backend.onrender.com/dashboard/employees/");
-        const fetchedEmployees = await response.json();
-        if (Array.isArray(fetchedEmployees)) {
-          setEmployees(fetchedEmployees);
-        } else {
-          console.error("Fetched data is not an array:", fetchedEmployees);
-        }
+        const data = await response.json();
+          setEmployees(data);
       } catch (error) {
-        console.error("Error fetching employees:", error);
-      }
+        console.error("Error fetching employees", error);
+      }       
     };
 
     fetchEmployees();
@@ -50,7 +46,7 @@ export function EmployeeList() {
       <CardHeader>
         <CardTitle>Employees List</CardTitle>
         <CardDescription>
-          Invite your team members to collaborate.
+          View all employees in your organisation.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6">
@@ -62,16 +58,20 @@ export function EmployeeList() {
                   <p className="text-sm text-muted-foreground">{employee.email}</p>
                 </div>
               </div>
-              <Popover>
+              
+                  {/* 
+
+                  <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className="ml-auto">
                     {employee.role} <ChevronDownIcon className="ml-2 h-4 w-4 text-muted-foreground" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0" align="end">
-                  {/* Popover content can be dynamic based on roles */}
                 </PopoverContent>
-              </Popover>
+              </Popover>                 
+                   */}
+                
             </div>
           ))
         ) : (
