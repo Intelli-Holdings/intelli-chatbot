@@ -5,22 +5,22 @@ const navigation = {
     { name: 'Book Meeting', href: '' },
     {
       name: 'Twitter',
-      href: 'https://twitter.com/justansub',
+      href: 'https://twitter.com/Intelli',
     },
     {
       name: 'Github',
-      href: 'https://www.youtube.com/@SpeedyBrand-SEO',
+      href: 'https://github.com/Sqweya-AI',
     },
     {
       name: 'LinkedIn',
-      href: 'https://www.linkedin.com/company/speedy-brand-inc/',
+      href: 'https://www.linkedin.com/company/intelli-concierge',
     },
   ],
   company: [
     { name: 'Terms', href: '/terms' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Privacy', href: '/privacy' },
-    { name: 'Partner', href: '/' },
+    { name: 'Partner', href: '/partner' },
     { name: 'AI For Enterprise', href: '/enterprise' },
   ],
 }
