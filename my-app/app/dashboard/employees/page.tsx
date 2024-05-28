@@ -1,18 +1,7 @@
 "use client";
 import Link from "next/link";
-import ReservationsTable from "@/app/dashboard/reservations/ReservationsTable";
 import { InviteEmployee } from "@/components/invite-employee";
 import { TeamMembers } from "@/components/team-members";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
-import { toast } from "sonner";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -21,41 +10,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Input } from "@/components/ui/input";
-import { Search } from "@/components/search";
-import Image from "next/image";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  CreditCard,
-  MoreHorizontalIcon,
-  MoreVerticalIcon,
-  File,
-  ListFilter,
-  X,
-  Check,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
 
-import React, { useEffect, useState } from "react";
+
+import React from "react";
 import { EmployeeList } from "@/components/get-employees";
 
 
