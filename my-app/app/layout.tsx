@@ -6,12 +6,18 @@ import { Analytics } from "@vercel/analytics/react"
 import { CSPostHogProvider } from './providers'
 
 const inter = Manrope({ subsets: ["latin"] });
-
+<link
+  rel="icon"
+  href="/icon.ico"
+  type="image/ico"
+  sizes="16x16"
+/>
 export const metadata: Metadata = {
   title: "Intelli Concierge",
   description: "Your Intelligent Assistant",
+  
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icon.ico',
     shortcut: '/favicon-16x16.png',
     apple: '/apple-touch-icon.png'
   },
