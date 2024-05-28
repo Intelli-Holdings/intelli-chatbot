@@ -122,19 +122,21 @@ export default function Page () {
     }
   };
 
-  const filteredReservations = reservations.filter((reservation) => {
-    const fullName = `${reservation.first_name} ${reservation.last_name}`.toLowerCase();
-    const searchQueryLower = searchQuery.toLowerCase();
+  const filteredReservations = Array.isArray(reservations)
+  ? reservations.filter((reservation) => {
+      const fullName = `${reservation.first_name} ${reservation.last_name}`.toLowerCase();
+      const searchQueryLower = searchQuery.toLowerCase();
 
-    if (filterStatus && reservation.status !== filterStatus) {
-      return false;
-    }
-    return (
-      fullName.includes(searchQueryLower) ||
-      reservation.customer_email.toLowerCase().includes(searchQueryLower) ||
-      reservation.customer_phone.includes(searchQueryLower)
-    );
-  });
+      if (filterStatus && reservation.status !== filterStatus) {
+        return false;
+      }
+      return (
+        fullName.includes(searchQueryLower) ||
+        reservation.customer_email.toLowerCase().includes(searchQueryLower) ||
+        reservation.customer_phone.includes(searchQueryLower)
+      );
+    })
+  : [];
 
   return (
     <div className="grid min-h-screen w-full">
