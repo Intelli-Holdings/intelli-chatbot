@@ -1,5 +1,4 @@
 "use client"
-
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,26 +9,47 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-
 import { Separator } from "@/components/ui/separator"
 import BlockCopyButton from "@/components/copy-button"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import KeywordsInput from "@/components/blocks/tag-input"
-import { sendInvites } from "@/lib/dashboard/employeeService"
 
 export function InviteEmployee() {
-  const [keywords, setKeywords] = useState<string[]>([])
+  const [email, setEmail] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleKeywordsChange = (newKeywords: string[]) => {
-    setKeywords(newKeywords)
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value)
   }
 
-  const handleSendInvites = () => {
-    sendInvites(keywords)
+  const handleSendInvite = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(
+        "https://intelli-python-backend.onrender.com/dashboard/employees/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      )
+
+      if (response.ok) {
+        console.log("Invite sent successfully")
+      } else {
+        console.error("Failed to send invite")
+      }
+    } catch (error) {
+      console.error("Error sending invite:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <Card>
+    <>
       <CardHeader>
         <CardTitle>Invite Employee</CardTitle>
         <CardDescription>
@@ -46,19 +66,23 @@ export function InviteEmployee() {
               code="http://example.com/link/to/document"
             />
           </TooltipProvider>
-        </div> */}
+        </div>
         
+          <KeywordsInput onKeywordsChange={handleKeywordsChange} />
+        */}
         <Separator className="my-4" />
-        <div className="space-y-4">
-          <h4 className="text-medium font-medium">
-            Invite employees via email
-          </h4>
-          <div className="grid gap-6">
-            <KeywordsInput onKeywordsChange={handleKeywordsChange} />
-            <Button onClick={handleSendInvites}>Send Invite</Button>
-          </div>
+        <div className="flex flex-col space-y-4">
+          <Input
+            id="email"
+            placeholder="Enter employee email"
+            value={email}
+            onChange={handleEmailChange}
+          />
+          <Button onClick={handleSendInvite} disabled={isLoading}>
+            {isLoading ? "Sending Invite..." : "Send Invite"}
+          </Button>
         </div>
       </CardContent>
-    </Card>
+    </>
   )
 }
