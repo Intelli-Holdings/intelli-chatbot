@@ -57,8 +57,8 @@ export const UserNav = React.memo(() => {
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
               <AvatarImage
-                src={"/path/to/placeholder.png"}
-                alt={user.firstName ?? "User"}
+                src={""}
+                alt={user.imageUrl ?? "User"}
               />
               <AvatarFallback>{user.firstName?.[0] ?? "?"}</AvatarFallback>
             </Avatar>
@@ -68,7 +68,7 @@ export const UserNav = React.memo(() => {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">
-                {user.firstName}
+                {user.emailAddresses[0].emailAddress}
               </p>
               <p className="text-xs leading-none text-muted-foreground"></p>
             </div>
@@ -78,8 +78,8 @@ export const UserNav = React.memo(() => {
             <DropdownMenuItem>
               <Link href="/auth/user-profile">
                   Profile
-                  <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
               </Link>
+              <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem>
               Billing
