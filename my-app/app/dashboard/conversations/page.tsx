@@ -83,16 +83,16 @@ export default function ConversationsPage() {
           </div>
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <Card x-chunk="dashboard-01-chunk-0">
-          <Link href="/dashboard/conversations/social">
+          <Link href="/dashboard/conversations/whatsapp">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-              Social Media 
+              Whatsapp Conversations
                            
               </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">20 messages answered</div>
+              <div className="text-2xl font-bold">3 messages answered</div>
               <p className="text-xs text-muted-foreground">
                 +20.1% from last month
               </p>
@@ -100,10 +100,25 @@ export default function ConversationsPage() {
             </Link>
           </Card>
           <Card x-chunk="dashboard-01-chunk-1">
-          <Link href="/dashboard/conversations/mail">              
+          <Link href="/dashboard/conversations/elli">    
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Website Chatbot Conversations</CardTitle>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">12 conversations</div>
+              <p className="text-xs text-muted-foreground">
+                +1% from last month
+              </p>
+            </CardContent>          
+            
+            </Link>
+          </Card>
+          <Card x-chunk="dashboard-01-chunk-2">
+            <Link href="#">            
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Email Assistant
+                Email Assistant Threads
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -115,32 +130,17 @@ export default function ConversationsPage() {
             </CardContent>
             </Link>
           </Card>
-          <Card x-chunk="dashboard-01-chunk-2">
-            <Link href="/dashboard/conversations/elli">
-            
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Website Widget</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">+12,234 conversations</div>
-              <p className="text-xs text-muted-foreground">
-                +19% from last month
-              </p>
-            </CardContent>
-            </Link>
-          </Card>
           <Card x-chunk="dashboard-01-chunk-3">
-            <Link href="/dashboard/conversations/voice">
+            <Link href="#">
            
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Voice Assistant</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">+573 calls</div>
+              <div className="text-2xl font-bold">+20 calls</div>
               <p className="text-xs text-muted-foreground">
-                +201 since last hour
+                +2 from yesterday
               </p>
             </CardContent>
             </Link>
