@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import Link from 'next/link';
 
-export default function SocialMediaPage() {
+export default function WhatsappConvosPage() {
   return (
     <div className="flex min-h-screen">
       <div className="flex flex-col w-full">
