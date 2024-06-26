@@ -34,7 +34,7 @@ export default function WhatsappConvosPage() {
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href="/dashboard/conversations/social">Social Media</Link>
+                    <Link href="/dashboard/conversations/social">Whatsapp</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
               </BreadcrumbList>
