@@ -66,7 +66,7 @@ export function ChatPreview() {
 
       {chatWindowOpen && (
         <div
-          style={{ width: "380px", height: "600px" }}
+        
           className="fixed bottom-40 right-10 p-2 bg-white rounded-lg shadow-lg"
         >
           <ChatWindow/>

@@ -6,19 +6,23 @@ import { UserNav } from "./user-nav";
 import Link from "next/link";
 import useAuth from '@/lib/auth/useAuth'; // Update the import path
 import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
 
 interface User {
   photoURL: string | null;
   displayName: string | null;
   email: string | null;
   firstName: string | null; // Add the firstName property
-  companyName: string | null; // Add the companyName property
+  companyName: string | null; // Add the companyName property 
 }
 
 export default function Header() {
-  const { user } = useAuth();
-  const firstName = user ? user.firstName : '';
-  const companyName = user ? user.companyName : '';
+
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  if (!isLoaded || !isSignedIn) {
+    return null;
+  }
 
   const getGreeting = () => {
     const currentHour = new Date().getHours();
@@ -36,7 +40,7 @@ export default function Header() {
       <nav className="h-14 flex items-center justify-between px-4">
         <Image alt="Intelli Concierge" className="h-16" src="/Intelli.svg" height={25} width={25} />
         <div>
-          <h1 className="text-xl font-semibold">{getGreeting()} {firstName}</h1>
+          <h1 className="text-xl font-semibold">{getGreeting()} <span style={{ color: '#007fff' }}>{user.firstName}</span></h1>
         </div>
         <div className={cn("block lg:!hidden")}>
           <MobileSidebar />

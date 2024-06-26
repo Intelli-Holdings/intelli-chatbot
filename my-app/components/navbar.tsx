@@ -24,16 +24,15 @@ export function Navbar() {
           <div className="flex space-x-2">
             <a
               className="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-md shadow-sm hover:bg-gray-100"
-              href="/auth/login"
+              href="/auth/sign-in"
             >
-              Log In
+              Sign In
             </a>
             <a
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700"
-              href="/auth/register"
+              href="/auth/sign-up"
             >
-              Get Started
-            </a>
+Sign Up            </a>
           </div>
         </div>
       </div>

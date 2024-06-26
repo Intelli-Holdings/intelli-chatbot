@@ -3,7 +3,15 @@ import { Manrope } from "next/font/google";
 import "@/app/globals.css";
 import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
+import Script from "next/script";
 import { CSPostHogProvider } from './providers'
+import {
+  ClerkProvider,
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  UserButton
+} from '@clerk/nextjs';
 
 const inter = Manrope({ subsets: ["latin"] });
 <link
@@ -25,6 +33,8 @@ export const metadata: Metadata = {
 
 };
 
+
+
 export const viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: 'white' },
@@ -38,9 +48,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    <ClerkProvider>
     <html lang="en" suppressHydrationWarning>
       <CSPostHogProvider>
       <Analytics />
+      <SignedOut>          <SignInButton />        </SignedOut>        <SignedIn>          <UserButton />        </SignedIn>
       <body className={inter.className}>{children}
       <Toaster
       toastOptions={{
@@ -57,6 +69,9 @@ export default function RootLayout({
   
       </body>
        </CSPostHogProvider>
+       <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
+       <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />
     </html>
+    </ClerkProvider>
   );
 }

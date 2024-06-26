@@ -10,10 +10,10 @@ export const metadata: Metadata = {
 
 export const viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'white' },
-    { media: '(prefers-color-scheme: dark)', color: 'black' }
-  ]
-}
+    { media: "(prefers-color-scheme: light)", color: "white" },
+    { media: "(prefers-color-scheme: dark)", color: "black" },
+  ],
+};
 
 export default function DashboardLayout({
   children,
@@ -25,7 +25,7 @@ export default function DashboardLayout({
       <Toaster position="top-right" />
       <Header />
       <div className="flex h-screen">
-       <Sidebar />
+        <Sidebar />
         <main className="w-full pt-16">{children}</main>
       </div>
     </div>

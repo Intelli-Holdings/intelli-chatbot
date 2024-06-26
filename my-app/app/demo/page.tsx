@@ -20,8 +20,7 @@ export default function demoPage (){
     <Button onClick={renderWebsite} className="bg-blue-600 text-white px-2 py-2"> Preview Website </Button>
         
     </div>
-      <ChatPreview/>
-      
+      <ChatPreview/>      
       </div>        
     );
 };

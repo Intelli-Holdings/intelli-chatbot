@@ -206,7 +206,6 @@ export function ChatWindow() {
 
   return (
     <div
-      key="1"
       className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-lg"
     >
       <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
@@ -223,23 +222,18 @@ export function ChatWindow() {
           </div>
         </div>
       </div>
-      <div className="flex flex-col items-start justify-between flex-1 p-2">
-        <ScrollArea className="h-[calc(50vh-100px)]">
+      <div className="justify-between p-1">
+        <ScrollArea className="h-[calc(60vh-100px)]">
           <div>
             <Card className="shadow-lg border-none">
               <CardContent>
                 <CardHeader>
                   <CardTitle>Welcome to Elli</CardTitle>
                   <CardDescription>
-                    Elli is an AI-powered assistant that can be trained to
-                    answer inquiries about your hotel, make reservations, and
-                    provide information about your hotel. Elli is available
-                    24/7.
+                    Elli is an AI assistant that can be trained to
+                    answer inquiries about your business to your customers.
                   </CardDescription>
-                </CardHeader>
-                <div className="max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg bg-[E5EEFF] text-gray p-3 rounded-lg">
-                  Hi👋, I am Elli your front desk assistant.
-                </div>
+                </CardHeader>      
               </CardContent>
             </Card>
           </div>
