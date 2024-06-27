@@ -1,59 +1,71 @@
-// app/components/ConversationList.tsx
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { ScrollArea } from '@radix-ui/react-scroll-area';
 
 interface Conversation {
   id: number;
-  clientName: string;
-  messages: { text: string, timestamp: string }[];
+  sender_id: string;
+  recipient_id: string;
+  chat_history: { role: string; content: string }[];
+  created_at: string;
 }
 
-const ConversationList = () => {
+interface ConversationListProps {
+  onSelectConversation: (conversation: Conversation) => void;
+}
+
+const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversation }) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch conversations data from an API or use static data
-    const fetchedConversations: Conversation[] = [
-      {
-        id: 1,
-        clientName: 'Alexander',
-        messages: [
-          { text: 'Hi, there! I would like to ask about my order #1920543.', timestamp: '2024-06-21T11:00:00Z' },
-          { text: 'Hi Alexander, we\'re sorry to hear that...', timestamp: '2024-06-21T11:20:00Z' },
-          { text: 'Hello, thanks for the speed and expedient action...', timestamp: '2024-06-21T12:00:00Z' },
-        ],
-      },
-      {
-        id: 2,
-        clientName: 'John Doe',
-        messages: [
-          { text: 'Can you help me with my order?', timestamp: '2024-06-20T10:00:00Z' },
-          { text: 'Sure, I will check that for you.', timestamp: '2024-06-20T10:10:00Z' },
-        ],
-      },
-    ];
+    const fetchConversations = async () => {
+      try {
+        const response = await fetch('https://intelli-python-backend-zwyu.onrender.com/dashboard/conversations/whatsapp/');
+        if (!response.ok) {
+          throw new Error('Failed to fetch conversations');
+        }
+        const data = await response.json();
+        setConversations(data);
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to load conversations');
+        console.error(err);
+        setLoading(false);
+      }
+    };
 
-    setConversations(fetchedConversations);
+    fetchConversations();
   }, []);
 
+  if (loading) return <div>Loading conversations...</div>;
+  if (error) return <div>Error: {error}</div>;
+
   return (
-    <div className="flex flex-col p-4 space-y-4">
+    <ScrollArea className="flex flex-col p-4 space-y-4 overflow-y-auto">
+      <div className="flex w-full flex-col gap-1">                
       {conversations.map((conversation) => (
-        <Link href={`/dashboard/conversations/${conversation.id}`} key={conversation.id}>
-          <div className="block p-4 border rounded-lg hover:bg-gray-100">
-            <div className="flex justify-between">
-              <span className="font-medium">{conversation.clientName}</span>
-              <span className="text-sm text-gray-500">
-                {new Date(conversation.messages[conversation.messages.length - 1].timestamp).toLocaleString()}
-              </span>
-            </div>
-            <div className="text-sm text-gray-500">
-              {conversation.messages.length} messages
-            </div>
+        <ScrollArea
+          key={conversation.id}
+          className="block p-4 border rounded-lg hover:bg-gray-100 cursor-pointer"
+          onClick={() => onSelectConversation(conversation)}
+        >
+          <div className="flex justify-between">
+            <span className="font-medium">Customer Contact: {conversation.recipient_id}</span>
+            <span className="text-sm text-gray-500">
+              {new Date(conversation.created_at).toLocaleString()}
+            </span>
           </div>
-        </Link>
+          <div className="text-sm text-gray-500">
+            {conversation.chat_history.length} messages
+          </div>
+          
+        </ScrollArea>
       ))}
-    </div>
+     
+    
+      </div>
+    </ScrollArea>
   );
 }
 
