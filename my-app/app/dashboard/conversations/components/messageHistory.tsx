@@ -1,27 +1,49 @@
-import MessageBubble from "./messageBubble";
+import React from 'react'; 
+import clsx from 'clsx'; 
+import "./style.css"
 
+interface ChatMessage { 
+  role: string; 
+  content: string; 
+} 
 
-const MessageHistory = () => {
-  const messages = [
-    { id: 1, sender: 'Client', message: 'Hi, there! I would like to ask about my order #1920543. Your agent mentioned that it would be available on September 18. However, I haven\'t been notified yet by your company about my product availability. Could you provide me some news regarding it?', timestamp: '11:00', isClient: true, isHumanSupport: false },
-    { id: 2, sender: 'AI Assistant', message: 'Hi Alexander, we\'re sorry to hear that. Could you give us some time to check on your order first? We will update you as soon as possible. Thanks!', timestamp: '11:00', isClient: false, isHumanSupport: false },
-    { id: 3, sender: 'AI Assistant', message: 'Hi Alexander, sorry to make you wait. We\'ve checked your issue ticket numbered #0999 and forwarded your query to the Production Department. We will keep you updated as soon as possible. Sorry for the inconvenience!', timestamp: '11:20', isClient: false, isHumanSupport: false },
-    { id: 4, sender: 'Client', message: 'Hello, thanks for the speed and expedient action. I will keep in touch to find out how things go from here. Thanks', timestamp: '12:00', isClient: true, isHumanSupport: false },
-  ];
-
-  return (
-    <div className="flex flex-col space-y-2 p-4 overflow-y-auto">
-      {messages.map((message) => (
-        <MessageBubble
-          key={message.id}
-          sender={message.sender}
-          message={message.message}
-          isClient={message.isClient}
-          isHumanSupport={message.isHumanSupport}
-        />
-      ))}
-    </div>
-  );
+interface MessageHistoryProps { 
+  messages: ChatMessage[]; 
 }
+
+// Function to convert URLs in the text to clickable links
+const urlify = (text: string) => {
+  const urlPattern = /(https?:\/\/[^\s]+)/g;
+  return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600">${url}</a>`);
+};
+
+const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => { 
+  return ( 
+    <div className="space-y-4 p-4 bg-gray-50 rounded-lg"> 
+      {messages.map((message, index) => ( 
+        <div 
+          key={index} 
+          className={clsx( 
+            'flex', 
+            message.role === 'user' ? 'justify-start' : 'justify-end' 
+          )} 
+        > 
+          <div 
+            className={clsx( 
+              'max-w-xs px-4 py-2 text-md text-gray-700 rounded-lg shadow-sm break-words', 
+              message.role === 'user' ? 'bg-green-100' : 'bg-gray-100' 
+            )} 
+          > 
+            <p className="font-bold">{message.role === 'user' ? 'User' : 'Assistant'}</p> 
+            <p 
+              className="msg-content" 
+              dangerouslySetInnerHTML={{ __html: urlify(message.content) }} 
+            ></p> 
+          </div> 
+        </div> 
+      ))} 
+    </div> 
+  ); 
+}; 
 
 export default MessageHistory;

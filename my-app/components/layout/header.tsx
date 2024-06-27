@@ -38,16 +38,19 @@ export default function Header() {
   return (
     <div className="fixed top-0 left-0 right-0 supports-backdrop-blur:bg-background/60 border-b bg-background/95 backdrop-blur z-20">
       <nav className="h-14 flex items-center justify-between px-4">
-        <Image alt="Intelli Concierge" className="h-16" src="/Intelli.svg" height={25} width={25} />
+        <Link href="/dashboard" className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold">Intelli</h2>
+          <Image alt="Intelli Concierge" className="h-16" src="/Intelli.svg" height={25} width={25} />
+        </Link>
         <div>
-          <h1 className="text-xl font-semibold">{getGreeting()} <span style={{ color: '#007fff' }}>{user.firstName}</span></h1>
+          <h5 className="text font-semibold">{getGreeting()} <span style={{ color: '#007fff' }}> {user.firstName} </span></h5>
         </div>
         <div className={cn("block lg:!hidden")}>
           <MobileSidebar />
         </div>
         <div className="flex items-center gap-2">
           <UserNav />
-          <ThemeToggle />
+        
         </div>
       </nav>
     </div>

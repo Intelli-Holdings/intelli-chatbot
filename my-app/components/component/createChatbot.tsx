@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import toast from 'sonner'
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, File, Type, Upload } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 
 const CreateChatbot = () => {
   const [step, setStep] = useState(1);
@@ -12,6 +14,11 @@ const CreateChatbot = () => {
   const [manualLink, setManualLink] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [customText, setCustomText] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const handleWebsiteCrawl = () => {
     // Implement website crawling logic
@@ -24,19 +31,67 @@ const CreateChatbot = () => {
     setManualLink('');
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setUploadedFiles(Array.from(event.target.files));
+  const handleFileUpload = (files: FileList) => {
+    const fileArray = Array.from(files);
+    setUploadedFiles([...uploadedFiles, ...fileArray]);
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    if (event.dataTransfer.files) {
+      handleFileUpload(event.dataTransfer.files);
     }
   };
 
-  const handleCreateChatbot = () => {
-    // Implement chatbot creation logic
-    console.log('Creating chatbot with:', {
-      websiteUrl,
-      uploadedFiles,
-      customText,
-    });
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+  };
+
+  const handleClickUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleCreateChatbot = async () => {
+    try {
+      const formData = new FormData();
+      uploadedFiles.forEach(file => formData.append('files', file));
+
+      const response = await fetch('/api/create-chatbot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          websiteUrl,
+          uploadedFiles,
+          customText,
+          organizationId: 'your-org-id', // Replace with actual org ID
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Chatbot created successfully",
+          description: "Here's your embed code:",
+          action: <Button onClick={() => navigator.clipboard.writeText(data.embedCode)}>Copy</Button>,
+        });        
+       
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error creating chatbot",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -46,6 +101,16 @@ const CreateChatbot = () => {
         <p className="text-sm text-muted-foreground">
           Here you can add the sources that your AI Chatbot will be trained on.
         </p>
+        <Input
+          placeholder="Chatbot Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Textarea
+          placeholder="Chatbot Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="website" className="w-full">
@@ -87,7 +152,7 @@ const CreateChatbot = () => {
                 </div>
               </div>
               <div>
-                <label htmlFor="manual-link" className="block text-sm font-medium text-gray-700">Add manual links</label>
+                <label htmlFor="manual-link" className="block text-sm font-medium text-gray-700">Additional links</label>
                 <div className="mt-1 flex rounded-md shadow-sm">
                   <Input
                     type="url"
@@ -111,14 +176,20 @@ const CreateChatbot = () => {
           </TabsContent>
           <TabsContent value="files">
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
+              <div 
+                className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onClick={handleClickUpload}
+              >
                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-1 text-sm text-gray-600">Click to upload files or Drag & Drop</p>
                 <p className="text-xs text-gray-500">.pdf, .doc, .docx or .txt (max. 5MB)</p>
                 <input
                   type="file"
                   className="hidden"
-                  onChange={handleFileUpload}
+                  ref={fileInputRef}
+                  onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
                   multiple
                   accept=".pdf,.doc,.docx,.txt"
                 />

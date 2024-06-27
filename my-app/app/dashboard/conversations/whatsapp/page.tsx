@@ -1,6 +1,6 @@
-// app/dashboard/conversations/social/page.tsx
 "use client";
 
+import { useState } from 'react';
 import ConversationList from '@/app/dashboard/conversations/components/conversationsList';
 import ConversationView from '@/app/dashboard/conversations/components/conversationsView';
 import {
@@ -12,7 +12,21 @@ import {
 } from '@/components/ui/breadcrumb';
 import Link from 'next/link';
 
-export default function SocialMediaPage() {
+interface Conversation {
+  id: number;
+  sender_id: string;
+  recipient_id: string;
+  chat_history: { role: string; content: string }[];
+  created_at: string;
+}
+
+export default function WhatsappConvosPage() {
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+
+  const handleSelectConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+  };
+
   return (
     <div className="flex min-h-screen">
       <div className="flex flex-col w-full">
@@ -34,7 +48,7 @@ export default function SocialMediaPage() {
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href="/dashboard/conversations/social">Social Media</Link>
+                    <Link href="/dashboard/conversations/whatsapp">Whatsapp</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
               </BreadcrumbList>
@@ -43,10 +57,10 @@ export default function SocialMediaPage() {
         </div>
         <div className="flex flex-grow">
           <div className="w-1/3 border-r">
-            <ConversationList />
+            <ConversationList onSelectConversation={handleSelectConversation} />
           </div>
           <div className="w-2/3">
-            <ConversationView />
+            <ConversationView conversation={selectedConversation} />
           </div>
         </div>
       </div>
