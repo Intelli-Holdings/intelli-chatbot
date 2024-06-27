@@ -1,0 +1,75 @@
+.flex {
+    display: flex;
+  }
+  
+  .justify-start {
+    justify-content: flex-start;
+  }
+  
+  .justify-end {
+    justify-content: flex-end;
+  }
+  
+  .space-y-4 > :not(:last-child) {
+    margin-bottom: 1rem;
+  }
+  
+  .p-4 {
+    padding: 1rem;
+  }
+  
+  .bg-gray-50 {
+    background-color: #F9FAFB;
+  }
+  
+  .rounded-lg {
+    border-radius: 0.5rem;
+  }
+  
+  .max-w-xs {
+    max-width: 20rem;
+  }
+  
+  .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  
+  .bg-gray-100 {
+    background-color: #F3F4F6;
+  }
+  
+  .bg-green-100 {
+    background-color: #D4F8E8;
+  }
+  
+  .text-md {
+    font-size: 1rem;
+  }
+  
+  .text-gray-700 {
+    color: #4A5568;
+  }
+  
+  .font-bold {
+    font-weight: 700;
+  }
+  
+  .px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  
+  .mt-1 {
+    margin-top: 0.25rem;
+  }
+  
+  .msg-content a {
+    color: blue;
+    text-decoration: underline;
+    word-break: break-all;
+  }
