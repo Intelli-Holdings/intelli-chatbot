@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ScrollArea } from '@radix-ui/react-scroll-area';
+import { ScrollArea, Scrollbar } from '@radix-ui/react-scroll-area';
 import {
   AlertCircle,
   Archive,
@@ -87,7 +87,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
       <ScrollArea className="flex flex-col p-4 space-y-4 overflow-y-auto">
         <div className="flex w-full flex-col gap-1">
           {filteredConversations.map((conversation) => (
-            <ScrollArea
+            <div
               key={conversation.id}
               className="block p-4 border rounded-lg hover:bg-gray-100 cursor-pointer"
               onClick={() => onSelectConversation(conversation)}
@@ -101,9 +101,10 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
               <div className="text-sm text-gray-500">
                 {conversation.chat_history.length} messages
               </div>
-            </ScrollArea>
+            </div>
           ))}
         </div>
+        <Scrollbar orientation="vertical" />
       </ScrollArea>
     </>
   );
