@@ -79,7 +79,7 @@ export default function Page () {
     const fetchReservations = async () => {
       try {
         const response = await fetch(
-          "https://intelli-python-backend.onrender.com/dashboard/reservations/"
+          "https://intelli-python-backend-zwyu.onrender.com/dashboard/reservations/"
         );
         const data = await response.json();
         setReservations(data);
@@ -101,7 +101,7 @@ export default function Page () {
 
   const handleStatusChange = async (id: number, newStatus: 'accepted' | 'rejected') => {
     try {
-      const response = await fetch(`https://intelli-python-backend.onrender.com/dashboard/reservations/${id}/`, {
+      const response = await fetch(`https://intelli-python-backend-zwyu.onrender.com/dashboard/reservations/${id}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
