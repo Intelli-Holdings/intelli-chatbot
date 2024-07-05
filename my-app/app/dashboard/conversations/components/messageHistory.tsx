@@ -19,7 +19,7 @@ const urlify = (text: string) => {
 
 const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => { 
   return ( 
-    <div className="space-y-4 p-4 bg-gray-50 rounded-lg"> 
+    <div className="space-y-4 p-4 bg-gray-50 rounded-lg max-h-[70vh] overflow-y-auto"> 
       {messages.map((message, index) => ( 
         <div 
           key={index} 

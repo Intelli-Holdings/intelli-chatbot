@@ -12,11 +12,17 @@ import {
 } from '@/components/ui/breadcrumb';
 import Link from 'next/link';
 
+interface ChatHistoryItem {
+  role: string;
+  content: string;
+  timestamp: string;
+}
+
 interface Conversation {
   id: number;
   sender_id: string;
   recipient_id: string;
-  chat_history: { role: string; content: string }[];
+  chat_history: ChatHistoryItem[];
   created_at: string;
 }
 
