@@ -10,7 +10,7 @@ export function PreviewLanding() {
             <iframe
               className="w-full h-full"
               src="https://www.youtube.com/embed/Q_EYoV1kZWk?si=D3vDj0BKmVDPbxo5"
-              title="YouTube video player"
+              title="Video Player"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
               allowFullScreen
