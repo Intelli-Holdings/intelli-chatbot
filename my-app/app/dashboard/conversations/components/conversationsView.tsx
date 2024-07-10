@@ -1,17 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ConversationHeader from './conversationsHeader';
 import MessageHistory from './messageHistory';
 import MessageInput from './messageInput';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ScrollArea, Scrollbar } from '@radix-ui/react-scroll-area';
+import {Conversation, ChatMessage} from './types'
 
-interface Conversation {
-  id: number;
-  sender_id: string;
-  recipient_id: string;
-  chat_history: { role: string; content: string; timestamp: string }[];
-  created_at: string;
-}
 
 interface ConversationViewProps {
   conversation: Conversation | null;
@@ -35,7 +29,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full p-4 gap-2">
-        <ConversationHeader onTakeover={handleTakeover} senderId={conversation.recipient_id} />
+        <ConversationHeader 
+          onTakeover={handleTakeover} 
+          senderId={conversation.sender_id} 
+          conversation={conversation}
+        />
         <ScrollArea className="flex-grow max-h-[70vh] overflow-y-auto">
           <MessageHistory messages={conversation.chat_history} />
           <Scrollbar orientation="vertical" />
