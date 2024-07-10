@@ -44,16 +44,16 @@ export function Home() {
       <Navbar />
       <main className="pt-16">
         <section className="container mx-auto mt-8 px-4">
-          <h1 className="text-3xl font-thin text-center text-grey-400">
-            Intelli Concierge
+          <h1 className="text-6xl font-regular text-center text-grey-400">
+            Intelli 
           </h1>
-          <p className="mt-4 text-center text-6xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
+          <p className="mt-4 text-center text-5xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
             Customer Support on Autopilot.
           </p>
           <p className="text-center text-lg font-bold font-medium text-gray-800">
             Improve customer experience by automating responses to frequently
             asked questions. Handle responses across 3 different channels
-            seamlessly with one platform. 
+            seamlessly within one platform. 
           </p>
           <div className="mt-6 flex flex-col items-center space-y-2 sm:flex-row sm:justify-center sm:space-x-4 pb-6">
            
@@ -64,36 +64,33 @@ export function Home() {
           </div>
           
         </section>
-        <section className="bg-white-100 py-12 text-center  shadow-lg rounded-xl">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-blue-600">
-              Brands that Love Us
-            </h2>
-          
-            <div className="py-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <Image
-                alt="La Palm Royal Beach Hotel"
-                className="rounded-lg"
-                src={aquasafari}
-              />
-              <Image
-                alt="Mendiata Hotel"
-                className="rounded-lg"
-                src={mendiata}
-                height={120}
-              />
-              <Image
-                alt="Labadi Beach Hotel"
-                className="rounded-lg"
-                src={labadi}
-              />
-              
-            </div>
-          </div>
-        </section>
-        <section className="py-12 text-center">
-        
-        </section>
+        <section className="bg-white-100 py-12 text-center shadow-lg rounded-xl border border-gray-200 shadow-md">
+      <div className="container mx-auto px-4">
+        <h2 className="text-4xl font-bold text-center text-blue-600 mb-8">
+          Businesses Love Us
+        </h2>
+      
+        <div className="py-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <Image
+            alt="La Palm Royal Beach Hotel"
+            className="rounded-lg"
+            src={aquasafari}
+          />
+          <Image
+            alt="Mendiata Hotel"
+            className="rounded-lg"
+            src={mendiata}
+            height={120}
+          />
+          <Image
+            alt="Labadi Beach Hotel"
+            className="rounded-lg"
+            src={labadi}
+          />
+        </div>
+      </div>
+    </section>
+
         <section className="py-12 relative">
           <Image
             alt="Bg Pink"
@@ -105,8 +102,8 @@ export function Home() {
             <Badge>Use Cases</Badge>
           </div>
           <div className="container mx-auto px-4">
-            <h2 className="text-6xl font-bold text-center">
-              How Hotels use Intelli
+            <h2 className="text-4xl font-bold text-center text-blue-600">
+              How Your Business Can Use Intelli
             </h2>
             <div className="mt-20 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-8">
               <Card className="bg-[#007fff] bg-opacity-35">
@@ -135,7 +132,7 @@ export function Home() {
                   </div>
                   <div>
                     <p className="text-sm font-medium">
-                      Instantly Address Questions with your company Data
+                      Instantly Address Questions with your company assistant
                     </p>
                   </div>
                 </CardContent>
@@ -158,40 +155,66 @@ export function Home() {
         </section>
         <section className="py-12 ">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center">
-              What advantages does our software offer?
+            <h2 className="text-4xl font-bold text-center text-blue-600">
+              What Value Do You Get?
             </h2>
-            <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
-              <div>
-                <h3 className="text-xl font-semibold">
-                  Manage your customer service efficiently, save time
-                </h3>
-                <ul className="mt-2 list-disc pl-5 text-sm">
-                  <li>Streamline Support Processes for Swift Resolution</li>
-                  <li>Optimize Resources</li>
-                  <li>Utilize Advanced Algorithms</li>
-                  <li>Integrate with existing tools and platforms</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">
-                  Optimize your operations by reducing expenses
-                </h3>
-                <ul className="mt-2 list-disc pl-5 text-sm">
-                  <li>Cut down on manpower</li>
-                  <li>Reduce overhead costs</li>
-                  <li>Minimize training expenses</li>
-                  <li>Maintain high-quality service and reduce delays</li>
-                </ul>
-              </div>
-            </div>
+<div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
+        <div className="bg-white-100 border border-gray-200 rounded-lg shadow-md p-6">
+          <h3 className="text-xl font-semibold mb-4">
+            Manage your customer service efficiently, save time
+          </h3>
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Streamline Support Processes for Swift Resolution</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Optimize Resources</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Utilize Advanced Algorithms</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Integrate with existing tools and platforms</span>
+            </li>
+          </ul>
+        </div>
+        <div className="bg-white-100 border border-gray-200 rounded-lg shadow-md p-6">
+          <h3 className="text-xl font-semibold mb-4">
+            Optimize your operations by reducing expenses
+          </h3>
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Cut down on manpower</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Reduce overhead costs</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Minimize training expenses</span>
+            </li>
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>Maintain high-quality service and reduce delays</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
           </div>
          
         </section>
         <section className="py-12 rounded-xl p-4">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center">
-              What Our Customers Say
+            <h2 className="text-4xl font-bold text-center text-blue-600">
+              What Our Happy Customers Say
             </h2>
             <div className="">
             <SkewedInfiniteScroll />
@@ -200,8 +223,8 @@ export function Home() {
         </section>
         <section className="py-12">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center">
-              Frequently Asked Questions
+            <h2 className="text-4xl font-bold text-center text-blue-600">
+              Questions Frequently Asked..
             </h2>
             
             <div className="mt-8 max-w-2xl mx-auto">
