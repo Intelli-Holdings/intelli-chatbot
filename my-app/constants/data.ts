@@ -118,12 +118,6 @@ export const navItems: NavItem[] = [
     label: "Dashboard",
   },
   {
-    title: "Reservations",
-    href: "/dashboard/reservations",
-    icon: "LogIn",
-    label: "reservations",
-  },
-  {
     title: "Employees",
     href: "/dashboard/employees",
     icon: "User",
