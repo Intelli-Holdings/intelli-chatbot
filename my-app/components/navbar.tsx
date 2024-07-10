@@ -17,8 +17,8 @@ export function Navbar() {
             <a className="text-gray-600 hover:text-gray-900" href="/pricing">
               Pricing
             </a>
-            <a className="text-gray-600 hover:text-gray-900" href="/demo">
-              Demo
+            <a className="text-gray-600 hover:text-gray-900" href="https://calendly.com/sila-r0a9/30min">
+              Book Demo
             </a>
           </nav>
           <div className="flex space-x-2">
