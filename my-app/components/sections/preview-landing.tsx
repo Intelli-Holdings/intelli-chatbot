@@ -9,7 +9,7 @@ export function PreviewLanding() {
           <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-lg">
             <iframe
               className="w-full h-full"
-              src="https://www.youtube.com/embed/Q_EYoV1kZWk?si=D3vDj0BKmVDPbxo5"
+              src="https://www.youtube.com/embed/62C72x0Y6jA?si=LOCE2O8OshWUu_hq"
               title="Video Player"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
