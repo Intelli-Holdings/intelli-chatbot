@@ -11,11 +11,12 @@ interface ConversationViewProps {
   conversation: Conversation | null;
 }
 
-const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => {
-  const [isTakeover, setIsTakeover] = useState(false);
 
-  const handleTakeover = () => {
-    setIsTakeover(true);
+const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => {
+  const [isAIEnabled, setIsAIEnabled] = useState(true);
+
+  const handleTakeover = (aiEnabled: boolean) => {
+    setIsAIEnabled(aiEnabled);
   };
 
   if (!conversation) {
@@ -31,14 +32,19 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
       <div className="flex flex-col h-full p-4 gap-2">
         <ConversationHeader 
           onTakeover={handleTakeover} 
-          senderId={conversation.sender_id} 
+          senderId={conversation.recipient_id} 
           conversation={conversation}
         />
         <ScrollArea className="flex-grow max-h-[70vh] overflow-y-auto">
           <MessageHistory messages={conversation.chat_history} />
           <Scrollbar orientation="vertical" />
         </ScrollArea>
-        {isTakeover && <MessageInput />}
+        <MessageInput 
+          isAIEnabled={isAIEnabled}
+          customerNumber={conversation.recipient_id}
+          customerName={conversation.customer_number || 'Anonymous'}
+          onToggleSupport={() => setIsAIEnabled(!isAIEnabled)}
+        />
       </div>
     </TooltipProvider>
   );
