@@ -27,11 +27,25 @@ const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => {
   return (
     <div className="space-y-4 p-4 bg-gray-50 rounded-lg max-h-[70vh] overflow-y-auto">
       {messages.map((message, index) => (
-        <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-          <div className={`max-w-[70%] p-3 rounded-lg ${message.sender === 'user' ? 'bg-blue-100' : 'bg-gray-100'}`}>
-            <p dangerouslySetInnerHTML={{ __html: urlify(message.content || '') }}></p>
-            <small className="text-xs text-gray-500">{new Date(message.created_at).toLocaleString()}</small>
-          </div>
+        <div key={index} className="flex flex-col space-y-2">
+          {/* User Message Bubble */}
+          {message.content && (
+            <div className={clsx('max-w-[70%] p-3 rounded-lg bg-blue-100 self-start')}>
+              <p dangerouslySetInnerHTML={{ __html: urlify(message.content) }}></p>
+              <small className="text-xs text-gray-500">{new Date(message.created_at).toLocaleString()}</small>
+            </div>
+          )}
+
+          {/* Answer Message Bubble with Tag */}
+          {message.answer && (
+            <div className={clsx('max-w-[70%] p-3 rounded-lg bg-gray-100 self-end', {
+              'bg-gray-100': message.sender === 'ai',
+              'bg-green-100': message.sender === 'human'
+            })}>
+              <p dangerouslySetInnerHTML={{ __html: urlify(message.answer) }}></p>
+              <small className="text-xs text-gray-500">{new Date(message.created_at).toLocaleString()} - {message.sender === 'ai' ? 'AI' : 'Human'}</small>
+            </div>
+          )}
         </div>
       ))}
     </div>
