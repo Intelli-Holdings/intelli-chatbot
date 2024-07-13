@@ -13,6 +13,7 @@ import {
   UserButton
 } from '@clerk/nextjs';
 
+
 const inter = Manrope({ subsets: ["latin"] });
 <link
   rel="icon"
@@ -52,6 +53,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <CSPostHogProvider>
       <Analytics />
+      
       <SignedOut>          <SignInButton />        </SignedOut>        <SignedIn>          <UserButton />        </SignedIn>
       <body className={inter.className}>{children}
       <Toaster
@@ -66,6 +68,8 @@ export default function RootLayout({
 
       richColors
     />
+  
+    
   
       </body>
        </CSPostHogProvider>
