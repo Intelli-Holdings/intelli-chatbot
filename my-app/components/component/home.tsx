@@ -17,20 +17,14 @@ import Image from "next/image";
 import Testimonals from "@/components/testimonial";
 
 // image imports
-import mendiata from "@/public/mendiata.png";
-import labadi from "@/public/Labadi-logo.png";
-import aquasafari from "@/public/Aqua-Safari-Logo.png";
-import kempinski from "@/public/Kempiski.png";
-import accraCity from "@/public/accracity-logo.png";
-import movenpick from "@/public/movenpick.png";
+
 import pinkImage from "@/public/pink.png";
 import yellowImage from "@/public/yello.png";
 import Pie from "@/public/piechart.png";
 
 
 // Section and component imports
-import Reviews from "@/components/component/reviews";
-import Waitlist from "@/components/component/waitlist";
+
 import { PreviewLanding } from "@/components/sections/preview-landing";
 import SkewedInfiniteScroll from "@/components/skewed-scroll";
 import AnimatedLogoCloud from "../logo-cloud";
