@@ -1,0 +1,115 @@
+import { FC } from 'react'
+import Image from 'next/image'
+
+const testimonials = [
+  {
+    name: 'Bernard Addey Sackey',
+    description:
+      "Check out Intelli Concierge, the next big thing in customer support ? 🤔.",
+    profession: 'Software Developer at Agriguard',
+    image: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
+  },
+  {
+    name: 'Kwame Agyeman',
+    profession: 'Manager at Aqua Safari Resort',
+    description:
+      "We used to stress about our business and customers; eversince we put our customer support on autopilot, we got more revenue.",
+    image: 'https://images.unsplash.com/photo-1601455763557-db1bea8a9a5a',
+  },
+  {
+    name: 'Koffi Derek Addo',
+    profession: 'CEO at Agriguard',
+    description:
+      "This is customer support but on steroids; I love to see the application of AI responsibly.",
+    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
+  },
+  {
+    name: 'Joshhua Kiriki',
+    profession: 'Frontend Developer',
+    description:
+      "I believe in the power of automating service delivery with a human touch, Intelli concierge gives us the ability to do just that with their solution.",
+    image: 'https://images.unsplash.com/photo-1569913486515-b74bf7751574',
+  },
+  {
+    name: 'Frederick Osei',
+    profession: 'Manager at Mendiata Hotel',
+    description:
+      "The service we are delivering to our customers at Mendiata is exceptional, and when we added Intelli Concierge to this; the ratings and reviews we are getting are very heartwarming.",
+    image: 'https://images.unsplash.com/photo-1645830166230-187caf791b90',
+  },
+  {
+    name: 'Akweley Abena',
+    profession: 'UI/UX Designer',
+    description:
+      "Intelli is already leaving their mark everywhere in the world.",
+    image: 'https://images.unsplash.com/photo-1586297135537-94bc9ba060aa',
+  },
+]
+interface TestimonalCardProps {
+  name: string
+  description: string
+  image: string
+  profession: string
+}
+
+const TestimonialCard: FC<TestimonalCardProps> = ({
+  name,
+  description,
+  image,
+  profession,
+}) => {
+  return (
+    <div
+      className={`card-shadow dark:border-neutral-200 relative flex h-auto max-w-[22rem] select-none flex-col items-start justify-center overflow-hidden rounded-2xl border border-neutral-100 p-5 shadow-sm transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-sm dark:border-neutral-800 dark:hover:shadow-white/10`}
+    >
+      <div className="absolute right-0 top-0 h-24 w-24 rounded-2xl bg-gradient-to-r from-[#007fff]  to-[#007] opacity-20 blur-3xl"></div>
+      <div className="mb-0 flex h-fit flex-row items-center gap-3">
+        <Image
+          className="m-0 block h-11 w-11 rounded-full object-cover"
+          src={image}
+          alt={image}
+          width={120}
+          height={80}
+        />
+        <div className="mb-0 flex h-fit flex-col items-start">
+          <h3 className="m-0 text-base font-medium text-gray-500 dark:text-gray-900">
+            {name}
+          </h3>
+          <p className="font-regular m-0 text-center text-sm text-gray-600 dark:text-gray-400">
+            {profession}
+          </p>
+        </div>
+      </div>
+      <p className="mb-0 mt-3 text-left text-sm font-light text-gray-600 md:text-base dark:text-gray-400">
+        {description}
+      </p>
+    </div>
+  )
+}
+
+const Testimonals = () => {
+  return (
+    <div className="flex flex-col items-center justify-center gap-5 py-12">
+      <h1 className="mb-1 max-w-2xl text-center text-2xl font-semibold tracking-tighter text-blue-600 md:text-4xl">
+        Why Customers Love Intelli
+      </h1>
+      <p className="max-w-2xl text-center text-sm font-semibold text-gray-900 md:text-base dark:text-gray-400">
+        Intelli is loved and used by many companies. It is
+        a great tool for businesses that intend to improve customer experience.
+      </p>
+      <div className="relative mt-12 flex h-full w-full flex-col items-center justify-center gap-5 md:flex-row">
+        {[0, 1, 2].map((colIndex) => (
+          <div key={colIndex} className="flex flex-col justify-center gap-4">
+            {testimonials
+              .slice(colIndex * 2, colIndex * 2 + 2)
+              .map((testimonial) => (
+                <TestimonialCard key={testimonial.name} {...testimonial} />
+              ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default Testimonals
