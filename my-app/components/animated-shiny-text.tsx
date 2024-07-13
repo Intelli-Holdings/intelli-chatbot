@@ -1,4 +1,4 @@
-"use client";
+import React from "react";
 
 import { ArrowRightIcon } from "@radix-ui/react-icons";
 
@@ -21,3 +21,4 @@ export async function AnimatedShinyTextDemo() {
     </div>
   );
 }
+export default AnimatedShinyTextDemo;
