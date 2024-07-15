@@ -211,16 +211,14 @@ export function Home() {
         <AccordionTrigger>What payment methods are allowed?</AccordionTrigger>
         <AccordionContent>
         We embrace the global nature of business and hence use Credit
-                  cards. If in the near future more payment methods are added,
+                  cards, Mobile Money and Cash. If in the near future more payment methods are added,
                   we shall issue a statement informing you of the change.
         </AccordionContent>
       </AccordionItem>
     </Accordion>
               
             </div>
-            <div className="mt-8 text-center">
-              <Button variant="outline">View more</Button>
-            </div>
+            
           </div>
         </section>    
       </main>
