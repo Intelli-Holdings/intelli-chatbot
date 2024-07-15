@@ -54,7 +54,7 @@ export function Home() {
         <section className="bg-white-100 py-12 text-center shadow-lg rounded-xl border border-gray-200 shadow-md">
       <div className="container mx-auto px-4">
         <h2 className="mb-1 text-center text-2xl font-semibold tracking-tighter text-4xl font-bold text-center text-blue-600 mb-8">
-          Businesses Love Us
+          Our techstack is top-notch
         </h2>
         <AnimatedLogoCloud  />
       </div>
