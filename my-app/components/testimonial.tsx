@@ -7,42 +7,42 @@ const testimonials = [
     description:
       "Check out Intelli Concierge, the next big thing in customer support ? 🤔.",
     profession: 'Software Developer at Agriguard',
-    image: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
+    image: '/bern.jpeg',
   },
   {
-    name: 'Kwame Agyeman',
+    name: 'Kwame',
     profession: 'Manager at Aqua Safari Resort',
     description:
       "We used to stress about our business and customers; eversince we put our customer support on autopilot, we got more revenue.",
-    image: 'https://images.unsplash.com/photo-1601455763557-db1bea8a9a5a',
+    image: '/Aqua-Safari-Logo.png',
   },
   {
     name: 'Koffi Derek Addo',
     profession: 'CEO at Agriguard',
     description:
       "This is customer support but on steroids; I love to see the application of AI responsibly.",
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
+    image: '/derek.jpeg',
   },
   {
-    name: 'Joshhua Kiriki',
-    profession: 'Frontend Developer',
+    name: 'Andrews Ankomahene',
+    profession: 'CTO at Radii',
     description:
       "I believe in the power of automating service delivery with a human touch, Intelli concierge gives us the ability to do just that with their solution.",
-    image: 'https://images.unsplash.com/photo-1569913486515-b74bf7751574',
+    image: '/andre.jpeg',
   },
   {
     name: 'Frederick Osei',
     profession: 'Manager at Mendiata Hotel',
     description:
       "The service we are delivering to our customers at Mendiata is exceptional, and when we added Intelli Concierge to this; the ratings and reviews we are getting are very heartwarming.",
-    image: 'https://images.unsplash.com/photo-1645830166230-187caf791b90',
+    image: '/fred.jpeg',
   },
   {
     name: 'Akweley Abena',
     profession: 'UI/UX Designer',
     description:
       "Intelli is already leaving their mark everywhere in the world.",
-    image: 'https://images.unsplash.com/photo-1586297135537-94bc9ba060aa',
+    image: '/acquel.jpeg',
   },
 ]
 interface TestimonalCardProps {
