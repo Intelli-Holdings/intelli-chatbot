@@ -39,7 +39,7 @@ const testimonials = [
   },
   {
     name: 'Akweley Abena',
-    profession: 'UI/UX Designer',
+    profession: 'GDG Accra Partnerships Associate',
     description:
       "Intelli is already leaving their mark everywhere in the world.",
     image: '/acquel.jpeg',
