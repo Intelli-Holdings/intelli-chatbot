@@ -17,20 +17,18 @@ const logos = [
     name: 'Django',
     src: '/django.png',
   },
-
   {
     name: 'mistral',
     src: 'https://res.cloudinary.com/dfhp33ufc/image/upload/v1715276558/logos/tyos2ayezryjskox3wzs.svg',
   },
   {
     name: 'Microsoft Azure',
-    src: '/ms-azure.png',
+    src: '/Microsoft_Azure.png',
   },
   {
     name: 'OpenAI',
     src: '/OpenAI_Logo.jpeg',
   },
-
 ]
 
 const AnimatedLogoCloud = () => {
@@ -40,8 +38,7 @@ const AnimatedLogoCloud = () => {
         <div
           className="group relative mt-6 flex gap-6 overflow-hidden p-2"
           style={{
-            maskImage:
-              'linear-gradient(to left, transparent 0%, black 20%, black 80%, transparent 95%)',
+            maskImage: 'linear-gradient(to left, transparent 0%, black 20%)',
           }}
         >
           {Array(5)
@@ -55,11 +52,10 @@ const AnimatedLogoCloud = () => {
                   <div key={key} className="h-10 w-28 px-2 relative">
                     <Image
                       src={logo.src}
-                     
                       alt={`${logo.name} logo`}
                       layout="fill"
                       objectFit="contain"
-                      className="brightness-0"
+                      className="brightness-0 hover:brightness-100 transition-all duration-300"
                     />
                   </div>
                 ))}
