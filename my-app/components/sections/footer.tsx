@@ -2,7 +2,7 @@ import Image from 'next/image'
 
 const navigation = {
   connect: [
-    { name: 'Book Meeting', href: '' },
+    { name: 'Book A Demo', href: 'https://calendly.com/sila-r0a9/30min' },
     {
       name: 'Twitter',
       href: 'https://twitter.com/Intelli',
