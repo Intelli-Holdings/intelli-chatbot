@@ -17,7 +17,7 @@ const navigation = {
     },
   ],
   company: [
-    { name: 'Terms', href: '/terms' },
+    { name: 'Terms Of Service', href: '/terms-of-service' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Privacy', href: '/privacy' },
     { name: 'Partner', href: '/partner' },
