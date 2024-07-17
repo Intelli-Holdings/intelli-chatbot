@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollArea, Scrollbar } from '@radix-ui/react-scroll-area';
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const BASE_API_URL = 'https://intelli-python-backend-56zq.onrender.com';
 
@@ -30,13 +31,12 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const response = await fetch(`${BASE_API_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/254751578687/`);
+        const response = await fetch(`${BASE_API_URL}/appservice/conversations/whatsapp/chat_sessions/15556221967/254751578687/`);
         if (!response.ok) {
           throw new Error('Failed to fetch conversations');
         }
         const data: Message[] = await response.json();
         
-        // Group messages by customer number
         const groupedConversations = data.reduce((acc, message) => {
           const customerNumber = message.chatsession.customer_number;
           if (!acc[customerNumber]) {
@@ -62,8 +62,19 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
     customerNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div>Loading conversations...</div>;
-  if (error) return <div>Error: {error}</div>;
+  const SkeletonLoader = () => (
+    <div className="flex flex-col space-y-4">
+      {[...Array(5)].map((_, index) => (
+        <div key={index} className="p-4 border rounded-lg">
+          <div className="flex justify-between">
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-5 w-1/4" />
+          </div>
+          <Skeleton className="h-4 w-1/5 mt-1" />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -82,23 +93,29 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
       </div>
       <ScrollArea className="flex flex-col p-4 space-y-4 overflow-y-auto">
         <div className="flex w-full flex-col gap-1">
-          {filteredConversations.map(([customerNumber, messages]) => (
-            <div
-              key={customerNumber}
-              className="block p-4 border rounded-lg hover:none cursor-pointer"
-              onClick={() => onSelectConversation(customerNumber)}
-            >
-              <div className="flex justify-between">
-                <span className="text-s font-medium">Customer Contact: {customerNumber}</span>
-                <span className="text-sm text-gray-500">
-                  {new Date(messages[messages.length - 1].chatsession.updated_at).toLocaleString()}
-                </span>
+          {loading ? (
+            <SkeletonLoader />
+          ) : error ? (
+            <div>Error: {error}</div>
+          ) : (
+            filteredConversations.map(([customerNumber, messages]) => (
+              <div
+                key={customerNumber}
+                className="block p-4 border rounded-lg hover:none cursor-pointer"
+                onClick={() => onSelectConversation(customerNumber)}
+              >
+                <div className="flex justify-between">
+                  <span className="text-s font-medium">Customer Contact: {customerNumber}</span>
+                  <span className="text-sm text-gray-500">
+                    {new Date(messages[messages.length - 1].chatsession.updated_at).toLocaleString()}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500 mt-1">
+                  Messages: {messages.length}
+                </div>
               </div>
-              <div className="text-sm text-gray-500 mt-1">
-                Messages: {messages.length}
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
         <Scrollbar orientation="vertical" />
       </ScrollArea>
