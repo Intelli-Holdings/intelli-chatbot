@@ -10,7 +10,9 @@ const isProtectedRoute = createRouteMatcher([
   '/dashboard/billing',
   '/dashboard/settings',
   '/dashboard/employees',
- '/dashboard/conversations',
+  '/dashboard/conversations',
+  '/create-organization',
+  '/organization/organization-members',
   '/dashboard/conversations/elli',  
   '/dashboard/conversations/email',
   '/dashboard/conversations/voice-assistant',
@@ -20,6 +22,7 @@ const isProtectedRoute = createRouteMatcher([
   '/dashboard/conversations/whatsapp/chat_sessions/:phoneNumber/:recipientId',
   '/dashboard/conversations/whatsapp/chat_sessions/:phoneNumber/:recipientId/messages',
   // Add any additional routes here
+  // '/dashboard/conversations',
 ]);
 
 export default clerkMiddleware((auth, req) => {
