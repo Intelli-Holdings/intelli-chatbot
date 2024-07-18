@@ -5,7 +5,7 @@ import ConversationList from '@/app/dashboard/conversations/components/conversat
 import ConversationView from '@/app/dashboard/conversations/components/conversationsView';
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useMediaQuery } from '@/app/hooks/use-media-query';
-import RightSidebar from '@/components/right-sidebar'; 
+import RightSidebar from '@/components/right-sidebar';
 
 interface ChatMessage {
   content: string | null;
@@ -36,17 +36,16 @@ export default function WhatsappConvosPage() {
   const handleSelectConversation = async (customerNumber: string) => {
     const response = await fetch(`https://intelli-python-backend-56zq.onrender.com/appservice/conversations/whatsapp/chat_sessions/15556221967/254751578687/`);
     const data = await response.json();
-  
-    // Create a Conversation object with the fetched data
+    
     const conversation: Conversation = {
-      id: 1, // You need to determine the actual ID from your data or API response
-      sender_id: '15556221967', // Replace with actual sender ID if available
+      id: 1,
+      sender_id: '15556221967',
       recipient_id: customerNumber,
       chat_history: data,
-      created_at: new Date().toISOString(), // Replace with actual creation date if available
+      created_at: new Date().toISOString(),
       customer_number: customerNumber,
     };
-  
+    
     setSelectedConversation(conversation);
     if (isMobile) {
       setIsSheetOpen(true);
@@ -54,27 +53,25 @@ export default function WhatsappConvosPage() {
   };
 
   return (
-    <div className="flex">
-      <div className="flex flex-col w-full lg:w-3/4">
-        <div className="flex flex-grow">
-          <div className={`${isMobile ? 'w-full' : 'w-1/4'} border-r`}>
-            <ConversationList onSelectConversation={handleSelectConversation} phoneNumber={phoneNumber} />
-          </div>
-          {!isMobile && (
-            <div className="w-2/3">
-              <ConversationView conversation={selectedConversation} />
-            </div>
-          )}
-          {isMobile && (
-            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-              <SheetContent side="bottom" className="h-[80vh]">
-                <ConversationView conversation={selectedConversation} />
-              </SheetContent>
-            </Sheet>
-          )}
+    <div className="flex h-screen">
+      <div className="flex flex-grow w-full lg:w-3/4">
+        <div className={`${isMobile ? 'w-full' : 'w-1/3'} border-r`}>
+          <ConversationList onSelectConversation={handleSelectConversation} phoneNumber={phoneNumber} />
         </div>
+        {!isMobile && (
+          <div className="w-2/3 overflow-hidden">
+            <ConversationView conversation={selectedConversation} />
+          </div>
+        )}
+        {isMobile && (
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <SheetContent side="bottom" className="h-[80vh]">
+              <ConversationView conversation={selectedConversation} />
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
-      {!isMobile && <RightSidebar />}
+      {!isMobile && <div className=' w-1/3'><RightSidebar /></div>}
     </div>
   );
 }
