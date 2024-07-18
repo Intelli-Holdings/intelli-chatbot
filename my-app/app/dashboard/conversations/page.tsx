@@ -21,6 +21,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Define the props interface for StatCard
 interface StatCardProps {
@@ -28,21 +34,33 @@ interface StatCardProps {
   value: string;
   change: string;
   icon: LucideIcon;
+  href: string;
 }
 
 // Client Component for rendering the card
-function StatCard({ title, value, change, icon: Icon }: StatCardProps) {
+function StatCard({ title, value, change, icon: Icon, href }: StatCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{change}</p>
-      </CardContent>
-    </Card>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link href={href}>
+            <Card className="hover:bg-accent transition-colors duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{value}</div>
+                <p className="text-xs text-muted-foreground">{change}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Click to see conversations</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -81,38 +99,34 @@ async function StatsCards() {
 
   return (
     <>
-      <Link href="/dashboard/conversations/whatsapp">
-        <StatCard
-          title="Whatsapp Conversations"
-          value={`${stats?.whatsapp?.answered ?? 0} messages answered`}
-          change={`${stats?.whatsapp?.change ?? '0%'} from last month`}
-          icon={DollarSign}
-        />
-      </Link>
-      <Link href="/dashboard/conversations/elli">
-        <StatCard
-          title="Website Chatbot Conversations"
-          value={`${stats?.chatbot?.count ?? 0} conversations`}
-          change={`${stats?.chatbot?.change ?? '0%'} from last month`}
-          icon={CreditCard}
-        />
-      </Link>
-      <Link href="#">
-        <StatCard
-          title="Email Assistant Threads"
-          value={`+${stats?.email?.answered ?? 0} emails answered`}
-          change={`${stats?.email?.change ?? '0%'} from last month`}
-          icon={Users}
-        />
-      </Link>
-      <Link href="#">
-        <StatCard
-          title="Voice Assistant"
-          value={`+${stats?.voice?.calls ?? 0} calls`}
-          change={`${stats?.voice?.change ?? '0'} from yesterday`}
-          icon={Activity}
-        />
-      </Link>
+      <StatCard
+        title="Whatsapp Conversations"
+        value={`${stats?.whatsapp?.answered ?? 0} messages answered`}
+        change={`${stats?.whatsapp?.change ?? '0%'} from last month`}
+        icon={DollarSign}
+        href="/dashboard/conversations/whatsapp"
+      />
+      <StatCard
+        title="Website Chatbot Conversations"
+        value={`${stats?.chatbot?.count ?? 0} conversations`}
+        change={`${stats?.chatbot?.change ?? '0%'} from last month`}
+        icon={CreditCard}
+        href="/dashboard/conversations/elli"
+      />
+      <StatCard
+        title="Email Assistant Threads"
+        value={`+${stats?.email?.answered ?? 0} emails answered`}
+        change={`${stats?.email?.change ?? '0%'} from last month`}
+        icon={Users}
+        href="#"
+      />
+      <StatCard
+        title="Voice Assistant"
+        value={`+${stats?.voice?.calls ?? 0} calls`}
+        change={`${stats?.voice?.change ?? '0'} from yesterday`}
+        icon={Activity}
+        href="#"
+      />
     </>
   );
 }
