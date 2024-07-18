@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import ConversationList from '@/app/dashboard/conversations/components/conversationsList';
 import ConversationView from '@/app/dashboard/conversations/components/conversationsView';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useMediaQuery } from '@/app/hooks/use-media-query';
+import RightSidebar from '@/components/right-sidebar'; 
 
 interface ChatMessage {
   content: string | null;
@@ -53,8 +54,8 @@ export default function WhatsappConvosPage() {
   };
 
   return (
-    <div className="">
-      <div className="flex flex-col w-full">
+    <div className="flex">
+      <div className="flex flex-col w-full lg:w-3/4">
         <div className="flex flex-grow">
           <div className={`${isMobile ? 'w-full' : 'w-1/4'} border-r`}>
             <ConversationList onSelectConversation={handleSelectConversation} phoneNumber={phoneNumber} />
@@ -73,6 +74,7 @@ export default function WhatsappConvosPage() {
           )}
         </div>
       </div>
+      {!isMobile && <RightSidebar />}
     </div>
   );
 }
