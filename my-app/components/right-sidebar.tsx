@@ -6,7 +6,7 @@ import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 
 const RightSidebar = () => {
   return (
-    <div className="hidden md:block lg:w-1/4 border-l p-4">
+    <div className="hidden md:block  border-l p-4">
       {/* Sales Labels Card */}
       <Card className="mb-4">
         <CardContent>
