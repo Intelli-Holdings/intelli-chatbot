@@ -118,24 +118,30 @@ export const navItems: NavItem[] = [
     label: "Dashboard",
   },
   {
-    title: "Reservations",
-    href: "/dashboard/reservations",
-    icon: "LogIn",
-    label: "reservations",
-  },
-  {
-    title: "Employees",
-    href: "/dashboard/employees",
-    icon: "User",
-    label: "employees",
-  },
-  {
     title: "Conversations",
     href: "/dashboard/conversations",
-    icon: "Laptop",
+    icon: "MessageSquareDot",
     label: "Conversations",
   },
   {
+    title: "Notifications",
+    href: "/dashboard/notifications",
+    icon: "BellDot",
+    label: "Notifications",
+  },
+  {
+    title: "Organization",
+    href: "/dashboard/organization",
+    icon: "Building",
+    label: "Organization",
+  }, 
+
+];
+
+
+{/**
+  
+    {
     title: "Billing",
     href: "/dashboard/billing",
     icon: "CreditCard",
@@ -148,4 +154,6 @@ export const navItems: NavItem[] = [
     label: "Settings",
   },
   
-];
+  
+  
+  */}

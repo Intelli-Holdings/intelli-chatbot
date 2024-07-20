@@ -15,7 +15,7 @@ export default function ElliPage() {
         const fetchConversations = async () => {
             try {
                 const response = await fetch(
-                    "https://intelli-python-backend-zwyu.onrender.com/dashboard/conversations/whatsapp/"
+                    "https://intelli-python-backend-lxui.onrender.com/dashboard/conversations/whatsapp/"
                 );
                 const data = await response.json();
                 setConversations(data);

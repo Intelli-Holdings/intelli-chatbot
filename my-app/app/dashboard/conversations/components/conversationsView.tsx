@@ -4,24 +4,17 @@ import MessageHistory from './messageHistory';
 import MessageInput from './messageInput';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ScrollArea, Scrollbar } from '@radix-ui/react-scroll-area';
-
-interface Conversation {
-  id: number;
-  sender_id: string;
-  recipient_id: string;
-  chat_history: { role: string; content: string; timestamp: string }[];
-  created_at: string;
-}
+import { Conversation, ChatMessage } from './types'
 
 interface ConversationViewProps {
   conversation: Conversation | null;
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => {
-  const [isTakeover, setIsTakeover] = useState(false);
+  const [isAIEnabled, setIsAIEnabled] = useState(true);
 
-  const handleTakeover = () => {
-    setIsTakeover(true);
+  const handleTakeover = (aiEnabled: boolean) => {
+    setIsAIEnabled(aiEnabled);
   };
 
   if (!conversation) {
@@ -35,12 +28,21 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full p-4 gap-2">
-        <ConversationHeader onTakeover={handleTakeover} senderId={conversation.recipient_id} />
+        <ConversationHeader 
+          onTakeover={handleTakeover} 
+          senderId={conversation.recipient_id} 
+          conversation={conversation}
+        />
         <ScrollArea className="flex-grow max-h-[70vh] overflow-y-auto">
-          <MessageHistory messages={conversation.chat_history} />
+          <MessageHistory messages={conversation.messages} />
           <Scrollbar orientation="vertical" />
         </ScrollArea>
-        {isTakeover && <MessageInput />}
+        <MessageInput 
+          isAIEnabled={isAIEnabled}
+          customerNumber={conversation.recipient_id}
+          customerName={conversation.customer_number || 'Anonymous'}
+          onToggleSupport={() => setIsAIEnabled(!isAIEnabled)}
+        />
       </div>
     </TooltipProvider>
   );

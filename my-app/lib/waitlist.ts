@@ -6,11 +6,13 @@ export async function joinWaitlist(formData: FormData) {
     // Extract form data
     const email_address = formData.get('email')?.toString() || '';
     const company_name = formData.get('companyName')?.toString() || '';
+    const phone_number = formData.get('phoneNumber')?.toString() || ''; 
 
     // Construct payload
     const payload = {
       email_address,
       company_name,
+      phone_number, 
     };
 
     // Log payload in console

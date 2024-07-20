@@ -2,7 +2,7 @@ import Image from 'next/image'
 
 const navigation = {
   connect: [
-    { name: 'Book Meeting', href: '' },
+    { name: 'Book A Demo', href: 'https://calendly.com/sila-r0a9/30min' },
     {
       name: 'Twitter',
       href: 'https://twitter.com/Intelli',
@@ -17,7 +17,7 @@ const navigation = {
     },
   ],
   company: [
-    { name: 'Terms', href: '/terms' },
+    { name: 'Terms Of Service', href: '/terms-of-service' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Privacy', href: '/privacy' },
     { name: 'Partner', href: '/partner' },
@@ -50,7 +50,7 @@ const TwoColumnFooter = () => {
               Put your customer support - on autopilot
             </p>
             <div className="flex space-x-6 text-sm text-gray-700">
-              <div>Made with ❤️ from Africa.</div>
+              <div>Made with ❤️ from SF.</div>
             </div>
           </div>
           {/* Navigations */}

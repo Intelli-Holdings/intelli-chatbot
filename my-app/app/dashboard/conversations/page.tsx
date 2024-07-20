@@ -1,154 +1,174 @@
-"use client";
-import React, { useEffect, useState } from "react";
+import React, { Suspense } from "react";
+import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import Link from "next/link"
 import {
   Activity,
-  ArrowUpRight,
-  CircleUser,
   CreditCard,
   DollarSign,
-  Menu,
-  Package2,
-  Search,
   Users,
-} from "lucide-react"
-
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+  LucideIcon
+} from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
+// Define the props interface for StatCard
+interface StatCardProps {
+  title: string;
+  value: string;
+  change: string;
+  icon: LucideIcon;
+  href: string;
+}
+
+// Client Component for rendering the card
+function StatCard({ title, value, change, icon: Icon, href }: StatCardProps) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link href={href}>
+            <Card className="hover:bg-accent transition-colors duration-200">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{value}</div>
+                <p className="text-xs text-muted-foreground">{change}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Click to see conversations</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// Skeleton loader for StatCard
+function StatCardSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Skeleton className="h-4 w-[100px]" />
+        <Skeleton className="h-4 w-4 rounded-full" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-8 w-[100px] mb-2" />
+        <Skeleton className="h-3 w-[60px]" />
+      </CardContent>
+    </Card>
+  );
+}
+
+async function getConversationStats() {
+  try {
+    const res = await fetch('https://intelli-python-backend-lxui.onrender.com/appservice/conversations/whatsapp/conversation-stats', { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Failed to fetch conversation stats:", error);
+    return null;
+  }
+}
+
+// Async component to fetch and render stats
+async function StatsCards() {
+  const stats = await getConversationStats();
+
+  return (
+    <>
+      <StatCard
+        title="Whatsapp Conversations"
+        value={`${stats?.whatsapp?.answered ?? 0} messages answered`}
+        change={`${stats?.whatsapp?.change ?? '0%'} from last month`}
+        icon={DollarSign}
+        href="/dashboard/conversations/whatsapp"
+      />
+      <StatCard
+        title="Website Chatbot Conversations"
+        value={`${stats?.chatbot?.count ?? 0} conversations`}
+        change={`${stats?.chatbot?.change ?? '0%'} from last month`}
+        icon={CreditCard}
+        href="/dashboard/conversations/elli"
+      />
+      <StatCard
+        title="Email Assistant Threads"
+        value={`+${stats?.email?.answered ?? 0} emails answered`}
+        change={`${stats?.email?.change ?? '0%'} from last month`}
+        icon={Users}
+        href="#"
+      />
+      <StatCard
+        title="Voice Assistant"
+        value={`+${stats?.voice?.calls ?? 0} calls`}
+        change={`${stats?.voice?.change ?? '0'} from yesterday`}
+        icon={Activity}
+        href="#"
+      />
+    </>
+  );
+}
 
 export default function ConversationsPage() {
-
   return (
     <div className="grid min-h-screen w-full">
       <div className="flex p-4">
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="border-b">
-      <div className="flex h-16 items-center px-4">
-            <Breadcrumb className="hidden md:flex">
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard/conversations">Conversations</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-              </BreadcrumbList>
-            </Breadcrumb>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <div className="border-b">
+            <div className="flex h-16 items-center px-4">
+              <Breadcrumb className="hidden md:flex">
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink>
+                      <Link href="/dashboard">Dashboard</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link href="/dashboard/conversations">Conversations</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
           </div>
+          <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+            <Suspense fallback={
+              <>
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+              </>
+            }>
+              <StatsCards />
+            </Suspense>
           </div>
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-          <Card x-chunk="dashboard-01-chunk-0">
-          <Link href="/dashboard/conversations/whatsapp">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-              Whatsapp Conversations
-                           
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3 messages answered</div>
-              <p className="text-xs text-muted-foreground">
-                +20.1% from last month
-              </p>
-            </CardContent>
-            </Link>
-          </Card>
-          <Card x-chunk="dashboard-01-chunk-1">
-          <Link href="/dashboard/conversations/elli">    
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Website Chatbot Conversations</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">12 conversations</div>
-              <p className="text-xs text-muted-foreground">
-                +1% from last month
-              </p>
-            </CardContent>          
-            
-            </Link>
-          </Card>
-          <Card x-chunk="dashboard-01-chunk-2">
-            <Link href="#">            
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Email Assistant Threads
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">+50 emails answered</div>
-              <p className="text-xs text-muted-foreground">
-                +180.1% from last month
-              </p>
-            </CardContent>
-            </Link>
-          </Card>
-          <Card x-chunk="dashboard-01-chunk-3">
-            <Link href="#">
-           
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Voice Assistant</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">+20 calls</div>
-              <p className="text-xs text-muted-foreground">
-                +2 from yesterday
-              </p>
-            </CardContent>
-            </Link>
-          </Card>
-        </div>
-
-      </main>
-
+        </main>
       </div>
     </div>
   );
