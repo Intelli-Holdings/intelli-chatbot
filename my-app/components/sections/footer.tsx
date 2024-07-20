@@ -50,7 +50,7 @@ const TwoColumnFooter = () => {
               Put your customer support - on autopilot
             </p>
             <div className="flex space-x-6 text-sm text-gray-700">
-              <div>Made with ❤️ from Africa.</div>
+              <div>Made with ❤️ from SF.</div>
             </div>
           </div>
           {/* Navigations */}
