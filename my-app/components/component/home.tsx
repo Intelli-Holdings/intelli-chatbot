@@ -28,6 +28,8 @@ import Pie from "@/public/piechart.png";
 import { PreviewLanding } from "@/components/sections/preview-landing";
 import SkewedInfiniteScroll from "@/components/skewed-scroll";
 import AnimatedLogoCloud from "../logo-cloud";
+import PricingSection from "@/components/component/pricing-component";
+import CTASection from "./cta-section";
 
 
 
@@ -45,6 +47,19 @@ export function Home() {
             Improve customer experience by automating responses to frequently
             asked questions promptly.  
           </p>
+          <div className="flex justify-center mt-8 space-x-4">
+  <a href="/auth/sign-up">
+    <Button className="text-xl font-bold py-3 px-6 bg-blue-600 text-white rounded-md shadow-lg hover:bg-blue-500">
+      Get Started
+    </Button>
+  </a>
+  <a href="https://calendly.com/sila-r0a9/30min" target="_blank" rel="noopener noreferrer">
+    <Button className="text-xl font-bold py-3 px-6 bg-white text-blue-600 rounded-md shadow-lg hover:bg-gray-200 border border-blue-600">
+      Book A Demo
+    </Button>
+  </a>
+</div>
+
 
           <div className="mx-auto pt-10">
           <PreviewLanding />            
@@ -187,7 +202,8 @@ export function Home() {
             <Testimonals />            
           </div>          
         </section>
-        <section className="py-12">
+        <PricingSection />  
+        <section className="py-8">
           <div className="container mx-auto px-4">
             <h2 className="mb-1 text-center text-2xl font-semibold tracking-tighter text-4xl font-bold text-center  text-blue-600">
               Questions Frequently Asked..
@@ -221,6 +237,7 @@ export function Home() {
             
           </div>
         </section>    
+        <CTASection />        
       </main>
     </div>
   );
