@@ -11,20 +11,22 @@ import { joinWaitlist } from '@/lib/waitlist';
 const Waitlist: React.FC = () => {
     const [email, setEmail] = useState('');
     const [companyName, setCompanyName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false); // Added isLoading state
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (email && companyName) {
+        if (email && companyName && phoneNumber) {
             const formData = new FormData();
             formData.append('email', email);
             formData.append('companyName', companyName);
+            formData.append('phoneNumber', phoneNumber);
 
             try {
-                setIsLoading(true); // Set isLoading to true before submitting the form
+                setIsLoading(true);
 
                 const { success } = await joinWaitlist(formData);
 
@@ -38,7 +40,7 @@ const Waitlist: React.FC = () => {
                 console.error('Error joining waitlist:', error);
                 setError('An error occurred while joining the waitlist');
             } finally {
-                setIsLoading(false); // Set isLoading to false after form submission is complete
+                setIsLoading(false);
             }
         } else {
             setError('Please fill in all fields');
@@ -75,7 +77,7 @@ const Waitlist: React.FC = () => {
                     <CardTitle className="text-center">Join Our Waitlist.</CardTitle>
                     <CardDescription className="">
                         <p className="text-center text-lg font-bold font-medium text-gray-800">
-                            We are currently in private beta. Sign up to get early access to our platform.
+                            Sign up to gain early access to our platform.
                         </p>
                     </CardDescription>
                 </CardHeader>
@@ -101,7 +103,17 @@ const Waitlist: React.FC = () => {
                             />
                         </Label>
                         <br />
-                        <Button type="submit" disabled={isLoading}>
+                        <Label>
+                            Phone Number:
+                            <Input
+                                placeholder="Your phone number"
+                                type="tel"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                            />
+                        </Label>
+                        <br />
+                        <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md text-lg" type="submit" disabled={isLoading}>
                             {isLoading ? 'Joining Waitlist...' : 'Join Waitlist'}
                         </Button>
                     </form>
