@@ -24,7 +24,14 @@ const CTASection = () => {
         </div>
       </div>
       <p className="text-xs text-gray-500 mt-8 text-center max-w-4xl mx-auto">
-        The generative capabilities of all Intelli products and services are made possible through providers like OpenAI, Azure OpenAI, and Mistral AI. These providers receive, process, and store data as input that every client interacting with our products submits. If you feel uncomfortable using these services, please feel free to opt out.
+        By joining our waitlist, you agree to our{' '}
+        <a href="/privacy" className="underline">
+          Privacy Policy
+        </a> and our {' '}
+        <a href="/terms-of-service" className="underline">
+          Terms of Service
+        </a>
+        . We respect your privacy and take protecting it seriously.
       </p>
     </section>
   );
