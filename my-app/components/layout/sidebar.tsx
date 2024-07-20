@@ -16,7 +16,7 @@ export default function Sidebar() {
               Menu Overview
             </h2>
             <DashboardNav items={navItems} />
-            <div className="pt-20 bottom-10">
+            {/* <div className="pt-20 bottom-10">
                 <Card>
                   <CardHeader>
                     <CardTitle>Upgrade to Premium</CardTitle>
@@ -32,6 +32,9 @@ export default function Sidebar() {
                   </CardContent>
                 </Card>
               </div>
+            
+            */}
+            
           </div>
         </div>
       </div>
