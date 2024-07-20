@@ -72,12 +72,12 @@ const Waitlist: React.FC = () => {
 
     return (
         <>
-            <Card className="shadow-lg mt-6 sm:justify-center bg-grey border-none">
+            <Card className="shadow-md  sm:justify-center bg-grey border-none">
                 <CardHeader>
                     <CardTitle className="text-center">Join Our Waitlist.</CardTitle>
                     <CardDescription className="">
                         <p className="text-center text-lg font-bold font-medium text-gray-800">
-                            Sign up to gain early access to our platform.
+                           Sign up to gain early access to our platform.
                         </p>
                     </CardDescription>
                 </CardHeader>
@@ -113,7 +113,7 @@ const Waitlist: React.FC = () => {
                             />
                         </Label>
                         <br />
-                        <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md text-lg" type="submit" disabled={isLoading}>
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md text-lg" type="submit" disabled={isLoading}>
                             {isLoading ? 'Joining Waitlist...' : 'Join Waitlist'}
                         </Button>
                     </form>
