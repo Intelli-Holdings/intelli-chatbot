@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ChartContainer } from "@/components/ui/chart";
 import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
+import { Component } from "./chart";
 
 const RightSidebar = () => {
   return (
@@ -19,6 +20,7 @@ const RightSidebar = () => {
       <Card className="mb-4">
         <CardContent>
           <h2 className="text-xl font-semibold p-2">Sentiment Analysis</h2>
+         
           <ChartContainer
             config={{
               positive: {
