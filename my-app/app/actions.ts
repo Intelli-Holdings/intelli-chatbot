@@ -43,7 +43,7 @@ export async function toggleAISupport(formData: FormData) {
 
     console.log('Handing over to AI:', payload);
 
-    const response = await fetch('https://intelli-python-backend-56zq.onrender.com/appservice/conversations/whatsapp/handover_conversation/', {
+    const response = await fetch('https://intelli-python-backend-lxui.onrender.com/appservice/conversations/whatsapp/handover_conversation/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -103,14 +103,14 @@ export async function sendMessage(formData: FormData) {
     const payload: MessagePayload = {
       customer_number: typeof customerNumber === 'string' ? customerNumber : 'default',
       customer_name: typeof customerName === 'string' ? customerName : 'Anonymous',
-      phone_number: "15556221967",
+      phone_number: "233553221408",
       content: content,
       answer: typeof answer === 'string' ? answer : ''
     };
 
     console.log('Payload:', payload);
 
-    const response = await fetch('https://intelli-python-backend-56zq.onrender.com/appservice/conversations/whatsapp/send_message/', {
+    const response = await fetch('https://intelli-python-backend-lxui.onrender.com/appservice/conversations/whatsapp/send_message/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

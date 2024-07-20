@@ -18,7 +18,7 @@ export async function GET() {
     const orgId = memberships.data[0].organization_id; // Assuming the user belongs to one organization
     const token = await getToken();
 
-    const response = await fetch(`https://intelli-python-backend-56zq.onrender.com/dashboard/conversations/whatsapp/`, {
+    const response = await fetch(`https://intelli-python-backend-lxui.onrender.com/dashboard/conversations/whatsapp/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
