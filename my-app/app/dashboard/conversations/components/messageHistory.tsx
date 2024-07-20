@@ -1,24 +1,15 @@
 import React from 'react';
-import clsx from 'clsx'; 
+import clsx from 'clsx';
 import "./style.css"
-
-interface ChatMessage {
-  content: string | null;
-  answer: string;
-  created_at: string;
-  sender: string | null;
-  chatsession: {
-    customer_number: string;
-    updated_at: string;
-  };
-}
+import { ChatMessage } from './types';  // Import the ChatMessage type from your types file
 
 interface MessageHistoryProps {
   messages: ChatMessage[];
 }
 
 // Function to convert URLs in the text to clickable links
-const urlify = (text: string) => {
+const urlify = (text: string | null | undefined) => {
+  if (typeof text !== 'string') return '';
   const urlPattern = /(https?:\/\/[^\s]+)/g;
   return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600">${url}</a>`);
 };

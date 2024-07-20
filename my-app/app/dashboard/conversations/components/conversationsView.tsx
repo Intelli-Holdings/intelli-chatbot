@@ -1,16 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import ConversationHeader from './conversationsHeader';
 import MessageHistory from './messageHistory';
 import MessageInput from './messageInput';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ScrollArea, Scrollbar } from '@radix-ui/react-scroll-area';
-import {Conversation, ChatMessage} from './types'
-
+import { Conversation, ChatMessage } from './types'
 
 interface ConversationViewProps {
   conversation: Conversation | null;
 }
-
 
 const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => {
   const [isAIEnabled, setIsAIEnabled] = useState(true);
@@ -36,7 +34,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
           conversation={conversation}
         />
         <ScrollArea className="flex-grow max-h-[70vh] overflow-y-auto">
-          <MessageHistory messages={conversation.chat_history} />
+          <MessageHistory messages={conversation.messages} />
           <Scrollbar orientation="vertical" />
         </ScrollArea>
         <MessageInput 

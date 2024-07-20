@@ -4,7 +4,7 @@ import { CornerDownLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { sendMessage, toggleAISupport } from '@/app/actions';  // Correct import statement
+import { sendMessage, toggleAISupport } from '@/app/actions';  
 
 interface MessageInputProps {
   isAIEnabled: boolean;
