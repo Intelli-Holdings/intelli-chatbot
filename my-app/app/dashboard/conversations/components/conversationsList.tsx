@@ -4,26 +4,29 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const BASE_API_URL = 'https://intelli-python-backend-56zq.onrender.com';
+const BASE_API_URL = 'https://intelli-python-backend-lxui.onrender.com';
 
 interface Message {
+  id: number;
   content: string;
   answer: string;
   created_at: string;
   sender: string;
-  chatsession: {
-    customer_number: string;
-    updated_at: string;
-  };
+}
+
+interface Conversation {
+  id: number;
+  customer_number: string;
+  messages: Message[];
+  updated_at: string;
 }
 
 interface ConversationListProps {
   onSelectConversation: (customerNumber: string) => void;
-  phoneNumber: string;
 }
 
-const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversation, phoneNumber }) => {
-  const [conversations, setConversations] = useState<{ [key: string]: Message[] }>({});
+const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversation }) => {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,22 +34,12 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const response = await fetch(`${BASE_API_URL}/appservice/conversations/whatsapp/chat_sessions/15556221967/254751578687/`);
+        const response = await fetch(`${BASE_API_URL}/appservice/conversations/whatsapp/chat_sessions/233553221408/`);
         if (!response.ok) {
           throw new Error('Failed to fetch conversations');
         }
-        const data: Message[] = await response.json();
-        
-        const groupedConversations = data.reduce((acc, message) => {
-          const customerNumber = message.chatsession.customer_number;
-          if (!acc[customerNumber]) {
-            acc[customerNumber] = [];
-          }
-          acc[customerNumber].push(message);
-          return acc;
-        }, {} as { [key: string]: Message[] });
-
-        setConversations(groupedConversations);
+        const data: Conversation[] = await response.json();
+        setConversations(data);
         setLoading(false);
       } catch (err) {
         setError('Failed to load conversations');
@@ -56,10 +49,10 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
     };
 
     fetchConversations();
-  }, [phoneNumber]);
+  }, []);
 
-  const filteredConversations = Object.entries(conversations).filter(([customerNumber]) =>
-    customerNumber.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredConversations = conversations.filter((conversation) =>
+    conversation.customer_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const SkeletonLoader = () => (
@@ -98,20 +91,20 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
           ) : error ? (
             <div>Error: {error}</div>
           ) : (
-            filteredConversations.map(([customerNumber, messages]) => (
+            filteredConversations.map((conversation) => (
               <div
-                key={customerNumber}
+                key={conversation.id}
                 className="block p-4 border rounded-lg hover:none cursor-pointer"
-                onClick={() => onSelectConversation(customerNumber)}
+                onClick={() => onSelectConversation(conversation.customer_number)}
               >
                 <div className="flex justify-between">
-                  <span className="text-s font-medium">Customer Contact: {customerNumber}</span>
+                  <span className="text-s font-medium">Customer Contact: {conversation.customer_number}</span>
                   <span className="text-sm text-gray-500">
-                    {new Date(messages[messages.length - 1].chatsession.updated_at).toLocaleString()}
+                    {new Date(conversation.updated_at).toLocaleString()}
                   </span>
                 </div>
                 <div className="text-sm text-gray-500 mt-1">
-                  Messages: {messages.length}
+                  Messages: {conversation.messages.length}
                 </div>
               </div>
             ))
