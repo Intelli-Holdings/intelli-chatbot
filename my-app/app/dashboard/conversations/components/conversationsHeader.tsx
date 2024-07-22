@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Conversation } from './types';
-import { toggleAISupport } from '@/app/actions';  // Add this import
+import { toggleAISupport } from '@/app/actions';  
 
 interface ConversationHeaderProps {
   onTakeover: (isAIEnabled: boolean) => void;
@@ -16,10 +16,13 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ onTakeover, sen
   const handleToggleSupport = async () => {
     try {
       const formData = new FormData();
+      formData.append('phoneNumber', conversation?.phone_number || senderId || '');
       formData.append('customerNumber', conversation?.customer_number || conversation?.recipient_id || '');
       formData.append('enableAI', (!isAIEnabled).toString());
 
       await toggleAISupport(formData);
+      console.log(formData)
+
       setIsAIEnabled(!isAIEnabled);
       onTakeover(!isAIEnabled);
     } catch (e) {
