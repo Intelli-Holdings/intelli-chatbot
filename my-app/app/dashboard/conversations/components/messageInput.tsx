@@ -8,6 +8,7 @@ import { sendMessage, toggleAISupport } from '@/app/actions';
 
 interface MessageInputProps {
   isAIEnabled: boolean;
+  phoneNumber: string;
   customerNumber: string;
   customerName: string;
   onToggleSupport: () => void;
@@ -43,20 +44,6 @@ const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber
     }
   };
 
-  const handleToggleSupport = async () => {
-    try {
-      // Create a FormData object from the ConversationData object
-      const formData = new FormData();
-      formData.append('customerNumber', customerNumber);
-      formData.append('enableAI', (!isAIEnabled).toString());
-
-      await toggleAISupport(formData);
-      onToggleSupport();
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  };
-
   return (
     <div>
       <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring">
@@ -65,7 +52,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber
         </Label>
         <Input
           id="message"
-          placeholder="Reply to the messages here..."
+          placeholder="Input the most recent message from customer..."
           className="border-0 p-3 shadow-xs focus-visible:ring-0"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
