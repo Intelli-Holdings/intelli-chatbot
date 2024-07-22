@@ -10,18 +10,18 @@ interface MessageInputProps {
   isAIEnabled: boolean;
   phoneNumber: string;
   customerNumber: string;
-  customerName: string;
+
   onToggleSupport: () => void;
 }
 
 interface ConversationData {
   customerNumber: string;
-  customerName: string;
+
   answer?: string; 
   enableAI?: string; 
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber, customerName, onToggleSupport }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber, onToggleSupport }) => {
   const [message, setMessage] = useState('');
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,6 @@ const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber
     try {
       const formData = new FormData(event.target as HTMLFormElement);
       formData.append('customerNumber', customerNumber);
-      formData.append('customerName', customerName);
       formData.append('answer', answer);
       
       const response = await sendMessage(formData);
