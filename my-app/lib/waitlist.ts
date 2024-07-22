@@ -1,4 +1,5 @@
 'use server';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 
 export async function joinWaitlist(formData: FormData) {
@@ -19,7 +20,7 @@ export async function joinWaitlist(formData: FormData) {
     console.log('Waitlist payload:', JSON.stringify(payload, null, 2));
 
     // Send data to the backend API
-    const response = await fetch('https://intelli-python-backend.onrender.com/waitlist/', {
+    const response = await fetch(`${API_BASE_URL}/waitlist/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
