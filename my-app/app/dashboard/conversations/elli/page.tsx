@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Conversation {
     id: number;
@@ -15,7 +16,7 @@ export default function ElliPage() {
         const fetchConversations = async () => {
             try {
                 const response = await fetch(
-                    "https://intelli-python-backend-lxui.onrender.com/dashboard/conversations/whatsapp/"
+                    `${API_BASE_URL}/dashboard/conversations/whatsapp/`
                 );
                 const data = await response.json();
                 setConversations(data);

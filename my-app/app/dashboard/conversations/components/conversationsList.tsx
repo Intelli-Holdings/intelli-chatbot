@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const BASE_API_URL = 'https://intelli-python-backend-lxui.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Message {
   id: number;
@@ -34,7 +34,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const response = await fetch(`${BASE_API_URL}/appservice/conversations/whatsapp/chat_sessions/233553221408/`);
+        const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/233553221408/`);
         if (!response.ok) {
           throw new Error('Failed to fetch conversations');
         }
@@ -60,8 +60,8 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
       {[...Array(5)].map((_, index) => (
         <div key={index} className="p-4 border rounded-lg">
           <div className="flex justify-between">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-5 w-1/4" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-1/4" />
           </div>
           <Skeleton className="h-4 w-1/5 mt-1" />
         </div>

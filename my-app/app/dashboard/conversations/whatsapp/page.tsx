@@ -7,6 +7,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useMediaQuery } from '@/app/hooks/use-media-query';
 import RightSidebar from '@/components/right-sidebar';
 import { Conversation, ChatMessage } from '@/app/dashboard/conversations/components/types';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function WhatsappConvosPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -20,7 +21,7 @@ export default function WhatsappConvosPage() {
 
   const fetchConversations = async () => {
     try {
-      const response = await fetch('https://intelli-python-backend-lxui.onrender.com/appservice/conversations/whatsapp/chat_sessions/233553221408/');
+      const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/233553221408/`);
       if (!response.ok) {
         throw new Error('Failed to fetch conversations');
       }
