@@ -6,10 +6,10 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@clerk/nextjs";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// New types based on the provided data structure
 type Business = {
   id: number;
   name: string;
@@ -58,14 +58,17 @@ interface ChatbotCardProps {
 
 export function DashComponent() {
   const router = useRouter();
+  const { user } = useUser();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
+      if (!user) return; 
       try {
-      // Use the environment variable for the API endpoint
-      const response = await fetch(`${API_BASE_URL}/appservice/list/grace@proconnectpay.com/`);
+  
+        const userEmail = user.emailAddresses[0].emailAddress;
+        const response = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
         if (!response.ok) {
           throw new Error('Failed to fetch stats');
         }
@@ -90,7 +93,7 @@ export function DashComponent() {
     };
 
     fetchStats();
-  }, []);
+  },[user]);
 
   const handleWebsiteWidgetClick = () => {
     router.push('/dashboard/create-chatbot');
