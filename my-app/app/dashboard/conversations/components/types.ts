@@ -12,6 +12,6 @@ export interface Conversation {
   customer_number: string;
   messages: ChatMessage[];
   updated_at: string;
-  sender_id: string;
+  phone_number: string;
   recipient_id: string;
 }
