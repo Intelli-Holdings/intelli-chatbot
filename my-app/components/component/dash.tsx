@@ -6,11 +6,45 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@clerk/nextjs";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+type Business = {
+  id: number;
+  name: string;
+  slug: string;
+  owner: string;
+  org_id: string;
+  created_at: string;
+};
+
+type ChatSession = {
+  id: number;
+  customer_number: string;
+  updated_at: string;
+};
+
+type WhatsAppAccount = {
+  id: number;
+  business: Business;
+  phone_number_id: string;
+  phone_number: string;
+  app_secret: string;
+  created_at: string;
+  chatsessions: ChatSession[];
+  whatsapp_business_account_id: string;
+};
+
+type DashboardStats = {
+  totalAssistants: number;
+  totalConversations: number;
+  totalLeads: number;
+};
 
 interface DashboardMetricProps {
   title: string;
   value: number | null;
-  total: number;
   icon: React.ElementType;
   isLoading: boolean;
 }
@@ -22,26 +56,34 @@ interface ChatbotCardProps {
   icon: React.ReactNode;
 }
 
-interface DashboardStats {
-  totalChatbots: number;
-  totalMessages: number;
-  totalLeads: number;
-}
-
 export function DashComponent() {
   const router = useRouter();
+  const { user } = useUser();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
+      if (!user) return; 
       try {
-        const response = await fetch('/api/dashboard-stats');
+  
+        const userEmail = user.emailAddresses[0].emailAddress;
+        const response = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
         if (!response.ok) {
           throw new Error('Failed to fetch stats');
         }
-        const data: DashboardStats = await response.json();
-        setStats(data);
+        const data: WhatsAppAccount[] = await response.json();
+        
+        // Calculate stats from the fetched data
+        const totalAssistants = data.length;
+        const totalConversations = data.reduce((sum, account) => sum + account.chatsessions.length, 0);
+        const totalLeads = new Set(data.flatMap(account => account.chatsessions.map(session => session.customer_number))).size;
+
+        setStats({
+          totalAssistants,
+          totalConversations,
+          totalLeads
+        });
       } catch (error) {
         console.error('Error fetching stats:', error);
         setStats(null);
@@ -51,7 +93,7 @@ export function DashComponent() {
     };
 
     fetchStats();
-  }, []);
+  },[user]);
 
   const handleWebsiteWidgetClick = () => {
     router.push('/dashboard/create-chatbot');
@@ -61,7 +103,7 @@ export function DashComponent() {
     router.push('/dashboard/create-whatsapp-assistant');
   };
 
-  const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, total, icon: Icon, isLoading }) => (
+  const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, icon: Icon, isLoading }) => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">
@@ -73,7 +115,7 @@ export function DashComponent() {
         {isLoading ? (
           <Skeleton className="h-8 w-20" />
         ) : (
-          <div className="text-2xl font-bold">{value !== null ? value : 0}/{total}</div>
+          <div className="text-2xl font-bold">{value !== null ? value : 0}</div>
         )}
         <p className="text-xs text-muted-foreground">{title}</p>
       </CardContent>
@@ -98,23 +140,20 @@ export function DashComponent() {
         <main className="p-5">
           <div className="grid gap-4 md:grid-cols-3">
             <DashboardMetric
-              title="Total Chatbots"
-              value={stats?.totalChatbots ?? null}
-              total={1}
+              title="Total Assistants"
+              value={stats?.totalAssistants ?? null}
               icon={Bot}
               isLoading={isLoading}
             />
             <DashboardMetric
-              title="Total Messages"
-              value={stats?.totalMessages ?? null}
-              total={40}
+              title="Total Conversations"
+              value={stats?.totalConversations ?? null}
               icon={MessageSquare}
               isLoading={isLoading}
             />
             <DashboardMetric
               title="Total Leads"
               value={stats?.totalLeads ?? null}
-              total={5}
               icon={Users}
               isLoading={isLoading}
             />
@@ -126,7 +165,7 @@ export function DashComponent() {
           </p>
       
           <div className="grid gap-4 md:grid-cols-2">
-          <ChatbotCard
+            <ChatbotCard
               title="Create Website Widget"
               description="Start building a new chatbot for your website"
               onClick={handleWebsiteWidgetClick}
@@ -136,7 +175,6 @@ export function DashComponent() {
                   alt="WhatsApp Logo"
                   width={20}
                   height={20}
-
                   className="text-primary-foreground bg-transparent"
                 />
               }

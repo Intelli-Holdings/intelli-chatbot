@@ -8,19 +8,20 @@ import { sendMessage, toggleAISupport } from '@/app/actions';
 
 interface MessageInputProps {
   isAIEnabled: boolean;
+  phoneNumber: string;
   customerNumber: string;
-  customerName: string;
+
   onToggleSupport: () => void;
 }
 
 interface ConversationData {
   customerNumber: string;
-  customerName: string;
+
   answer?: string; 
   enableAI?: string; 
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber, customerName, onToggleSupport }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber, onToggleSupport }) => {
   const [message, setMessage] = useState('');
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -31,27 +32,12 @@ const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber
     try {
       const formData = new FormData(event.target as HTMLFormElement);
       formData.append('customerNumber', customerNumber);
-      formData.append('customerName', customerName);
       formData.append('answer', answer);
       
       const response = await sendMessage(formData);
       console.log('Message sent successfully:', response);
       setMessage('');
       setAnswer('');
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  };
-
-  const handleToggleSupport = async () => {
-    try {
-      // Create a FormData object from the ConversationData object
-      const formData = new FormData();
-      formData.append('customerNumber', customerNumber);
-      formData.append('enableAI', (!isAIEnabled).toString());
-
-      await toggleAISupport(formData);
-      onToggleSupport();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -65,7 +51,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ isAIEnabled, customerNumber
         </Label>
         <Input
           id="message"
-          placeholder="Reply to the messages here..."
+          placeholder="Input the most recent message from customer..."
           className="border-0 p-3 shadow-xs focus-visible:ring-0"
           value={message}
           onChange={(e) => setMessage(e.target.value)}

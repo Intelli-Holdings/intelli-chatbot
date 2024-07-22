@@ -59,7 +59,9 @@ const Waitlist: React.FC = () => {
     if (hasSubmitted) {
         return (
             <div>
-                <span>Thanks for signing up! You have joined our Community of Beta Users.</span>
+                <span>
+                {toast.success('Thanks for signing up! You have joined our Community of Beta Users.')}
+                </span>
             </div>
         );
     } else if (error) {

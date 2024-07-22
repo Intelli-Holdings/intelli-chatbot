@@ -49,13 +49,13 @@ export function Home() {
           </p>
           <div className="flex justify-center mt-8 space-x-4">
   <a href="/auth/sign-up">
-    <Button className="text-xl font-bold py-3 px-6 bg-blue-600 text-white rounded-md shadow-lg hover:bg-blue-500">
+    <Button className="text-xl font-bold py-8 px-8 bg-blue-600 text-white rounded-md shadow-lg hover:bg-blue-500">
       Get Started
     </Button>
   </a>
   <a href="https://calendly.com/sila-r0a9/30min" target="_blank" rel="noopener noreferrer">
-    <Button className="text-xl font-bold py-3 px-6 bg-white text-blue-600 rounded-md shadow-lg hover:bg-gray-200 border border-blue-600">
-      Book A Demo
+    <Button className="text-xl font-bold py-8 px-8 bg-white text-blue-600 rounded-md shadow-lg hover:bg-gray-200 border border-blue-600">
+      Book Demo
     </Button>
   </a>
 </div>

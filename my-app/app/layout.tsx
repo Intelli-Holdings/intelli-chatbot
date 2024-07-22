@@ -4,7 +4,9 @@ import "@/app/globals.css";
 import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
 import Script from "next/script";
-import { CSPostHogProvider } from './providers'
+
+import { PHProvider } from './providers'
+import dynamic from 'next/dynamic'
 import {
   ClerkProvider,
   SignInButton,
@@ -13,6 +15,9 @@ import {
   UserButton
 } from '@clerk/nextjs';
 
+const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
+  ssr: false,
+})
 
 const inter = Manrope({ subsets: ["latin"] });
 <link
@@ -51,11 +56,13 @@ export default function RootLayout({
   return (
     <ClerkProvider>
     <html lang="en" suppressHydrationWarning>
-      <CSPostHogProvider>
+    <PHProvider>
       <Analytics />
       
       <SignedOut>          <SignInButton />        </SignedOut>        <SignedIn>          <UserButton />        </SignedIn>
-      <body className={inter.className}>{children}
+      <body className={inter.className}>
+      <PostHogPageView /> 
+        {children}
       <Toaster
       toastOptions={{
         classNames: {
@@ -72,7 +79,7 @@ export default function RootLayout({
     
   
       </body>
-       </CSPostHogProvider>
+       </PHProvider>
        <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
        <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />
     </html>

@@ -1,7 +1,7 @@
-// app/actions.ts
 'use server';
 
 import { revalidatePath } from 'next/cache';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface MessagePayload {
   customer_number: string;
@@ -23,27 +23,39 @@ interface ChatMessage {
 }
 
 interface AITogglePayload {
+  phone_number: string;
   customer_number: string;
   enable_ai: boolean;
 }
 
 export async function toggleAISupport(formData: FormData) {
-  const customerNumber = formData.get('customerNumber');
+  const customerNumber = formData.get('phoneNumber');
+  const businessNumber = formData.get('phoneNumber'); // Changed from 'businessNumber' to 'phoneNumber'
   const enableAI = formData.get('enableAI') === 'true';
+
+  console.log('Raw form data:', {
+    customerNumber,
+    businessNumber,}
+  );
 
   if (!customerNumber || typeof customerNumber !== 'string') {
     throw new Error('Invalid customer number');
   }
 
+  if (!businessNumber || typeof businessNumber !== 'string') {
+    throw new Error('Invalid business number');
+  }
+
   try {
     const payload: AITogglePayload = {
+      phone_number: businessNumber,
       customer_number: customerNumber,
       enable_ai: enableAI
     };
 
     console.log('Handing over to AI:', payload);
 
-    const response = await fetch('https://intelli-python-backend-lxui.onrender.com/appservice/conversations/whatsapp/handover_conversation/', {
+    const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/takeover_conversation/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -60,57 +72,45 @@ export async function toggleAISupport(formData: FormData) {
     const responseData = await response.json();
     console.log('AI support toggled successfully:', responseData);
 
-    // Update the conversation state in the database or state management system
-    // This is a placeholder for where you would update your local state
-    // updateConversationState(customerNumber, enableAI);
-
-    // Revalidate the conversations path to reflect the changes
-    revalidatePath('/conversations');
-
     return {
       success: true,
       message: enableAI ? 'Conversation handed over to AI' : 'Human support has taken over the conversation',
       isAIEnabled: enableAI
     };
-  } catch (error) {
-    console.error('Error in toggleAISupport:', error);
-    throw new Error('Failed to toggle AI support');
-  }
+  } catch (error) {{}}
 }
 
-// This function would update your local state or database
-// Implement this based on your state management solution
-function updateConversationState(customerNumber: string, isAIEnabled: boolean) {
-  // Update your local state or database
-  // For example, if using a database:
-  // await db.conversation.update({
-  //   where: { customerNumber: customerNumber },
-  //   data: { isAIEnabled: isAIEnabled }
-  // });
-}
 
 export async function sendMessage(formData: FormData) {
   const content = formData.get('message');
-  const customerNumber = formData.get('customerNumber') || 'default';
-  const customerName = formData.get('customerName') || 'Anonymous';
+  const customerNumber = formData.get('customerNumber');
+  const customerName = formData.get('customerName');
   const answer = formData.get('answer') || '';
 
-  if ( typeof content !== 'string') {
-    throw new Error('Invalid message content');
+  console.log('Raw form data:', {
+    message: content,
+    customerNumber,
+    customerName,
+    answer
+  });
+
+  if (typeof content !== 'string' || content.trim() === '') {
+    throw new Error('Invalid or empty message content');
   }
 
   try {
     const payload: MessagePayload = {
-      customer_number: typeof customerNumber === 'string' ? customerNumber : 'default',
+      customer_number: customerNumber === 'string' ? customerNumber : 'unknown',
       customer_name: typeof customerName === 'string' ? customerName : 'Anonymous',
-      phone_number: "233553221408",
+      phone_number: '233553221408',      
       content: content,
       answer: typeof answer === 'string' ? answer : ''
     };
 
-    console.log('Payload:', payload);
+    console.log('Processed payload:', payload); 
+    return false
 
-    const response = await fetch('https://intelli-python-backend-lxui.onrender.com/appservice/conversations/whatsapp/send_message/', {
+    const response = await fetch('${API_BASE_URL}/appservice/conversations/whatsapp/send_message/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

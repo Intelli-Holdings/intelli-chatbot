@@ -3,8 +3,9 @@ import { ScrollArea, Scrollbar } from '@radix-ui/react-scroll-area';
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUser } from "@clerk/nextjs";
 
-const BASE_API_URL = 'https://intelli-python-backend-lxui.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Message {
   id: number;
@@ -26,30 +27,48 @@ interface ConversationListProps {
 }
 
 const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversation }) => {
+  const { user } = useUser();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchConversations = async () => {
+    const fetchData = async () => {
+      if (!user) return;
+
       try {
-        const response = await fetch(`${BASE_API_URL}/appservice/conversations/whatsapp/chat_sessions/233553221408/`);
-        if (!response.ok) {
+        const userEmail = user.emailAddresses[0].emailAddress;
+        
+        // First API call to get phone_number
+        const accountResponse = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
+        if (!accountResponse.ok) {
+          throw new Error('Failed to fetch account data');
+        }
+        const accountData = await accountResponse.json();
+        const phoneNumber = accountData[0]?.phone_number;
+
+        if (!phoneNumber) {
+          throw new Error('Phone number not found');
+        }
+
+        // Second API call to get conversations
+        const conversationsResponse = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`);
+        if (!conversationsResponse.ok) {
           throw new Error('Failed to fetch conversations');
         }
-        const data: Conversation[] = await response.json();
-        setConversations(data);
+        const conversationsData: Conversation[] = await conversationsResponse.json();
+        setConversations(conversationsData);
         setLoading(false);
       } catch (err) {
-        setError('Failed to load conversations');
+        setError('Failed to load data');
         console.error(err);
         setLoading(false);
       }
     };
 
-    fetchConversations();
-  }, []);
+    fetchData();
+  }, [user]);
 
   const filteredConversations = conversations.filter((conversation) =>
     conversation.customer_number.toLowerCase().includes(searchTerm.toLowerCase())
@@ -60,8 +79,8 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
       {[...Array(5)].map((_, index) => (
         <div key={index} className="p-4 border rounded-lg">
           <div className="flex justify-between">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-5 w-1/4" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-4 w-1/4" />
           </div>
           <Skeleton className="h-4 w-1/5 mt-1" />
         </div>

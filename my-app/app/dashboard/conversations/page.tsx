@@ -28,6 +28,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 // Define the props interface for StatCard
 interface StatCardProps {
   title: string;
@@ -82,7 +84,7 @@ function StatCardSkeleton() {
 
 async function getConversationStats() {
   try {
-    const res = await fetch('https://intelli-python-backend-lxui.onrender.com/appservice/conversations/whatsapp/conversation-stats', { cache: 'no-store' });
+    const res = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/conversation-stats`, { cache: 'no-store' });
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }

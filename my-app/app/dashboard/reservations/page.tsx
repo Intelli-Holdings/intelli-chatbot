@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/table";
 
 import React, { useEffect, useState } from "react";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 
 interface Reservation {
   id: number;
@@ -79,7 +81,7 @@ export default function Page () {
     const fetchReservations = async () => {
       try {
         const response = await fetch(
-          "https://intelli-python-backend-lxui.onrender.com/dashboard/reservations/"
+          `${API_BASE_URL}/dashboard/reservations/`
         );
         const data = await response.json();
         setReservations(data);
@@ -101,7 +103,7 @@ export default function Page () {
 
   const handleStatusChange = async (id: number, newStatus: 'accepted' | 'rejected') => {
     try {
-      const response = await fetch(`https://intelli-python-backend-lxui.onrender.com/dashboard/reservations/${id}/`, {
+      const response = await fetch(`${API_BASE_URL}/dashboard/reservations/${id}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
