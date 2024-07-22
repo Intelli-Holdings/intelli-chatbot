@@ -4,6 +4,7 @@ import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 
 import {
@@ -26,11 +27,24 @@ interface User {
 type SignOut = () => void;
 
 export const UserNav = React.memo(() => {
+  const { signOut, openUserProfile } = useClerk();
   const { isLoaded, isSignedIn, user } = useUser();
+
+  const imageUrl = user?.imageUrl ?? "/path/to/placeholder.png";
+const params = new URLSearchParams();
+params.set("width", "32");
+params.set("height", "32");
+params.set("fit", "cover");
+
+const optimizedImageUrl = `${imageUrl}?${params.toString()}`;
 
   if (!isLoaded || !isSignedIn) {
     return null;
   }
+
+  const handleSignOut = () => {
+    signOut();
+  };
 
   if (!user) {
     return (
@@ -54,10 +68,7 @@ export const UserNav = React.memo(() => {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
-              <AvatarImage
-                src={""}
-                alt={user.imageUrl ?? "User"}
-              />
+            <AvatarImage src={optimizedImageUrl} alt={user.firstName ?? "User"} />
               <AvatarFallback>{user.firstName?.[0] ?? "?"}</AvatarFallback>
             </Avatar>
           </Button>
@@ -73,13 +84,12 @@ export const UserNav = React.memo(() => {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <Link href="/auth/user-profile">
-                  Profile
-              </Link>
+            <DropdownMenuItem onSelect={() => openUserProfile()}>
+              Profile
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            {/**
+             * <DropdownMenuItem>
               Billing
               <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
             </DropdownMenuItem>
@@ -88,9 +98,13 @@ export const UserNav = React.memo(() => {
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem>New Team</DropdownMenuItem>
+             * 
+             * 
+             * */}
+            
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleSignOut}>
             Log out
             <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
           </DropdownMenuItem>
