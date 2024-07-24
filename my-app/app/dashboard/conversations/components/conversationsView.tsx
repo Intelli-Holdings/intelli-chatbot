@@ -11,12 +11,8 @@ interface ConversationViewProps {
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => {
-  const [isAIEnabled, setIsAIEnabled] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const handleTakeover = (aiEnabled: boolean) => {
-    setIsAIEnabled(aiEnabled);
-  };
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -35,21 +31,14 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full p-4 gap-2">
-        <ConversationHeader 
-          onTakeover={handleTakeover} 
-          senderId={conversation.phone_number} 
-          conversation={conversation}
-        />
+      <ConversationHeader conversation={conversation} />
         <ScrollArea ref={scrollAreaRef} className="flex-grow max-h-[70vh] overflow-y-auto">
           <MessageHistory messages={conversation.messages} />
           <Scrollbar orientation="vertical" />
         </ScrollArea>
         <MessageInput 
-          isAIEnabled={isAIEnabled}
-          phoneNumber={conversation.phone_number}
-          customerNumber={conversation.customer_number}
-          onToggleSupport={() => setIsAIEnabled(!isAIEnabled)}
-        />
+  customerNumber={conversation.customer_number || conversation.recipient_id}
+/>
       </div>
     </TooltipProvider>
   );

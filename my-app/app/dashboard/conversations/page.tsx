@@ -1,4 +1,6 @@
 import React, { Suspense } from "react";
+import { useUser } from "@clerk/nextjs";
+
 import Link from "next/link";
 import {
   Breadcrumb,
@@ -38,6 +40,12 @@ interface StatCardProps {
   icon: LucideIcon;
   href: string;
 }
+
+type ChatSession = {
+  id: number;
+  customer_number: string;
+  updated_at: string;
+};
 
 // Client Component for rendering the card
 function StatCard({ title, value, change, icon: Icon, href }: StatCardProps) {
@@ -84,7 +92,7 @@ function StatCardSkeleton() {
 
 async function getConversationStats() {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/conversation-stats`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE_URL}/appservice/list/`, { cache: 'no-store' });
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
@@ -103,13 +111,13 @@ async function StatsCards() {
     <>
       <StatCard
         title="Whatsapp Conversations"
-        value={`${stats?.whatsapp?.answered ?? 0} messages answered`}
+        value={`${stats?.whatsapp?.answered ?? 0} conversations`}
         change={`${stats?.whatsapp?.change ?? '0%'} from last month`}
         icon={DollarSign}
         href="/dashboard/conversations/whatsapp"
       />
       <StatCard
-        title="Website Chatbot Conversations"
+        title="Website Widget Conversations"
         value={`${stats?.chatbot?.count ?? 0} conversations`}
         change={`${stats?.chatbot?.change ?? '0%'} from last month`}
         icon={CreditCard}
@@ -117,14 +125,14 @@ async function StatsCards() {
       />
       <StatCard
         title="Email Assistant Threads"
-        value={`+${stats?.email?.answered ?? 0} emails answered`}
+        value={`${stats?.email?.answered ?? 0} emails `}
         change={`${stats?.email?.change ?? '0%'} from last month`}
         icon={Users}
         href="#"
       />
       <StatCard
         title="Voice Assistant"
-        value={`+${stats?.voice?.calls ?? 0} calls`}
+        value={`${stats?.voice?.calls ?? 0} calls`}
         change={`${stats?.voice?.change ?? '0'} from yesterday`}
         icon={Activity}
         href="#"

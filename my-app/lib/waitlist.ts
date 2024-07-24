@@ -20,7 +20,7 @@ export async function joinWaitlist(formData: FormData) {
     console.log('Waitlist payload:', JSON.stringify(payload, null, 2));
 
     // Send data to the backend API
-    const response = await fetch(`${API_BASE_URL}/waitlist/`, {
+    const response = await fetch(`${API_BASE_URL}/intelli_waitlist/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

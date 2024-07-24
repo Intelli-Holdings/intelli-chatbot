@@ -5,7 +5,7 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Intelli Dashboard",
-  description: "This is your home for intuitive customer support.",
+  description: "The Dashboard for Businesses that care about their customers.",
 };
 
 export const viewport = {
@@ -22,7 +22,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div suppressHydrationWarning>
-      <Toaster position="top-right" />
+     <Toaster position="top-right" />
       <Header />
       <div className="flex h-screen">
         <Sidebar />
