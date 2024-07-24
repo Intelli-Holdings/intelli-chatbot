@@ -11,12 +11,8 @@ interface ConversationViewProps {
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => {
-  const [isAIEnabled, setIsAIEnabled] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const handleTakeover = (aiEnabled: boolean) => {
-    setIsAIEnabled(aiEnabled);
-  };
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -41,7 +37,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
           <Scrollbar orientation="vertical" />
         </ScrollArea>
         <MessageInput 
-  phoneNumber={conversation.phone_number}
   customerNumber={conversation.customer_number || conversation.recipient_id}
 />
       </div>
