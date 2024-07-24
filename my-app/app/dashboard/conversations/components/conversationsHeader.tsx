@@ -4,27 +4,22 @@ import { Conversation } from './types';
 import { toggleAISupport } from '@/app/actions';  
 
 interface ConversationHeaderProps {
-  onTakeover: (isAIEnabled: boolean) => void;
-  senderId: string;
   conversation: Conversation | null;
 }
 
-const ConversationHeader: React.FC<ConversationHeaderProps> = ({ onTakeover, senderId, conversation }) => {
-  const [isAIEnabled, setIsAIEnabled] = useState(true); // Assuming AI is enabled by default
+const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation }) => {
   const [error, setError] = useState<string | null>(null);
 
-  const handleToggleSupport = async () => {
+  const handleTakeover = async () => {
+    if (!conversation) return;
+
     try {
       const formData = new FormData();
-      formData.append('phoneNumber', conversation?.phone_number || senderId || '');
-      formData.append('customerNumber', conversation?.customer_number || conversation?.recipient_id || '');
-      formData.append('enableAI', (!isAIEnabled).toString());
+      formData.append('phoneNumber', conversation.phone_number);
+      formData.append('customerNumber', conversation.customer_number || conversation.recipient_id);
 
-      await toggleAISupport(formData);
-      console.log(formData)
-
-      setIsAIEnabled(!isAIEnabled);
-      onTakeover(!isAIEnabled);
+      const result = await toggleAISupport(formData);
+      console.log('Takeover result:', result);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -38,8 +33,8 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ onTakeover, sen
         <h2 className="text-xl font-semibold">
           Conversation with {conversation.customer_number || conversation.recipient_id}
         </h2>
-        <Button onClick={handleToggleSupport}>
-          {isAIEnabled ? 'Takeover Conversation' : 'Handover to AI Assistant'}
+        <Button onClick={handleTakeover}>
+          Takeover Conversation
         </Button>
       </div>
       {error && <p className="text-red-500">{error}</p>}
