@@ -9,7 +9,6 @@ export default function Homepage() {
     <main className="min-h-screen p-4 bg-white">
       <Home />
       <TwoColumnFooter />
-     
     </main>
   );
 }
