@@ -1,12 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { MessageSquare, Bot, Users } from 'lucide-react';
+import { MessageSquare, Bot, Users,   ArrowUpRight } from 'lucide-react';
 import { CardDescription, CardContent, Card, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { useRouter } from 'next/navigation';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from "@clerk/nextjs";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar"
+import { PiechartChart } from '@/components/charts/piecharts';
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -158,7 +175,121 @@ export function DashComponent() {
               isLoading={isLoading}
             />
           </div>
-      
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center">
+  <div className="flex">
+    <div className="flex flex-col items-start mr-8">
+      <div className="flex items-center mb-2">
+        <div className="w-3 h-3 bg-blue-500 rounded-full mr-2" />
+        <span>Website Widget</span>
+      </div>
+      <div className="flex items-center mb-2">
+        <div className="w-3 h-3 bg-green-500 rounded-full mr-2" />
+        <span>WhatsApp Assistant</span>
+      </div>
+      <div className="flex items-center mb-2">
+        <div className="w-3 h-3 bg-pink-500 rounded-full mr-2" />
+        <span>Instagram Assistant</span>
+      </div>
+      <div className="flex items-center mb-2">
+        <div className="w-3 h-3 bg-red-500 rounded-full mr-2" />
+        <span>Email Assistant</span>
+      </div>
+      <div className="flex items-center mb-2">
+        <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2" />
+        <span>Others</span>
+      </div>
+    </div>
+    <div className="flex flex-col items-center">
+      <PiechartChart  />
+    </div>
+  </div>
+</CardContent>
+
+        </Card>
+        <Card>
+          <CardHeader className="">
+            <CardTitle>Escalations - WhatsApp</CardTitle>
+            <Button variant="outline" size="sm" >
+              Filter
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">You have 2 pending conversations</p>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <Avatar>
+                  <AvatarImage src="/placeholder-user.jpg" />
+                  <AvatarFallback>MK</AvatarFallback>
+                </Avatar>
+                <div className="ml-4">
+                  <p className="font-medium">Sent an Image</p>
+                  <p className="text-sm text-muted-foreground">Martin Koji</p>
+                </div>
+                <Badge variant="secondary" className="ml-auto">
+                  Neutral
+                </Badge>
+              </div>
+              <div className="flex items-center">
+                <Avatar>
+                  <AvatarImage src="/placeholder-user.jpg" />
+                  <AvatarFallback>KB</AvatarFallback>
+                </Avatar>
+                <div className="ml-4">
+                  <p className="font-medium">Flight details</p>
+                  <p className="text-sm text-muted-foreground">0567987221</p>
+                </div>
+                <Badge variant="secondary" className="ml-auto">
+                  Excited
+                </Badge>
+              </div>
+              <div className="flex items-center">
+                <Avatar>
+                  <AvatarImage src="/placeholder-user.jpg" />
+                  <AvatarFallback>KB</AvatarFallback>
+                </Avatar>
+                <div className="ml-4">
+                  <p className="font-medium">Payment</p>
+                  <p className="text-sm text-muted-foreground">Kofi Bataman</p>
+                </div>
+                <Badge variant="secondary" className="ml-auto">
+                  Money
+                </Badge>
+              </div>
+              <div className="flex items-center">
+                <Avatar>
+                  <AvatarImage src="/placeholder-user.jpg" />
+                  <AvatarFallback>NY</AvatarFallback>
+                </Avatar>
+                <div className="ml-4">
+                  <p className="font-medium">Further Info</p>
+                  <p className="text-sm text-muted-foreground">Nana Yaa</p>
+                </div>
+                <Badge variant="secondary" className="ml-auto">
+                  Worried
+                </Badge>
+              </div>
+              <div className="flex items-center">
+                <Avatar>
+                  <AvatarImage src="/placeholder-user.jpg" />
+                  <AvatarFallback>050348567</AvatarFallback>
+                </Avatar>
+                <div className="ml-4">
+                  <p className="font-medium">Payment</p>
+                  <p className="text-sm text-muted-foreground">050348567</p>
+                </div>
+                <Badge variant="secondary" className="ml-auto">
+                  Money
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
           <h2 className="text-2xl font-bold mt-8 mb-4">Create your Assistants</h2>
           <p className="text-muted-foreground mb-4">
             Create customized assistants for your business&apos;s customer support.
