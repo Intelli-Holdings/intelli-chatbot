@@ -39,7 +39,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
 
       try {
         const userEmail = user.emailAddresses[0].emailAddress;
-        
+
         // First API call to get phone_number
         const accountResponse = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
         if (!accountResponse.ok) {
@@ -89,7 +89,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   );
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <form>
           <div className="relative">
@@ -103,35 +103,39 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
           </div>
         </form>
       </div>
-      <ScrollArea className="flex flex-col p-4 space-y-4 overflow-y-auto">
+      <ScrollArea className="flex-1 p-4 space-y-4 overflow-y-auto">
         <div className="flex w-full flex-col gap-1">
           {loading ? (
             <SkeletonLoader />
           ) : error ? (
             <div>Error: {error}</div>
           ) : (
-            filteredConversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className="block p-4 border rounded-lg hover:none cursor-pointer"
-                onClick={() => onSelectConversation(conversation.customer_number)}
-              >
-                <div className="flex justify-between">
-                  <span className="text-s font-medium">Customer Contact: {conversation.customer_number}</span>
-                  <span className="text-sm text-gray-500">
-                    {new Date(conversation.updated_at).toLocaleString()}
-                  </span>
+            filteredConversations.map((conversation) => {
+              const lastMessage = conversation.messages[conversation.messages.length - 1];
+
+              return (
+                <div
+                  key={conversation.id}
+                  className="block p-4 border rounded-sm last:border-0 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => onSelectConversation(conversation.customer_number)}
+                >
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">{conversation.customer_number}</span>
+                    <span className="text-sm text-gray-500">
+                      {new Date(conversation.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {lastMessage ? lastMessage.content : 'No messages yet'}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  Messages: {conversation.messages.length}
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
         <Scrollbar orientation="vertical" />
       </ScrollArea>
-    </>
+    </div>
   );
 }
 
