@@ -2,8 +2,8 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // Define routes that should be protected
 const isProtectedRoute = createRouteMatcher([
-  '/demo',
-  '/chat',
+  // '/demo',
+  // '/chat',
   '/dashboard',
   '/dashboard/create-chatbot',
   '/dashboard/reservations',
