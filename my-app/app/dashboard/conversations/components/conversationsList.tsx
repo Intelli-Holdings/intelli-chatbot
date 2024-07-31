@@ -70,9 +70,16 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
     fetchData();
   }, [user]);
 
-  const filteredConversations = conversations.filter((conversation) =>
-    conversation.customer_number.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredConversations = conversations.filter((conversation) => {
+    const matchesCustomerNumber = conversation.customer_number.toLowerCase().includes(searchTerm.toLowerCase());
+  
+    const matchesMessage = conversation.messages.some((message) =>
+      message.content.toLowerCase().includes(searchTerm.toLowerCase()), 
+    );
+  
+    return matchesCustomerNumber || matchesMessage;
+  });
+  
 
   const SkeletonLoader = () => (
     <div className="flex flex-col space-y-4">
