@@ -4,7 +4,6 @@ import { Conversation } from './types';
 import { takeoverConversation, handoverConversation } from '@/app/actions';
 import { useUser } from '@clerk/nextjs';
 
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface ConversationHeaderProps {
@@ -16,7 +15,6 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
   const { user } = useUser();
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [isAiSupport, setIsAiSupport] = useState<boolean>(false);
-
 
   useEffect(() => {
     if (user?.primaryEmailAddress?.emailAddress) {
@@ -60,7 +58,6 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
       setIsAiSupport(!isAiSupport);
     } catch (e) {
       setError((e as Error).message);
-      
     }
   };
 
@@ -73,9 +70,15 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
           Conversation with {conversation.customer_number || conversation.recipient_id}
         </h2>
         <Button onClick={handleToggleAISupport}>
-          {isAiSupport ? 'Handover to AI ' : 'Takeover Conversation'}
+          {isAiSupport ? 'Handover to AI' : 'Takeover Conversation'}
         </Button>
       </div>
+      {isAiSupport && (
+        <div className="bg-purple-100 text-red-700 p-3 rounded-lg">
+          <p>Remember to handover to AI when you&apos;re done sending messages.</p>
+        </div>
+      )}
+      {error && <p className="text-red-500">{error}</p>}
     </div>
   );
 };
