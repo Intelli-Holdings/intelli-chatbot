@@ -36,23 +36,20 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
-
+  
       try {
         const userEmail = user.emailAddresses[0].emailAddress;
-
-        // First API call to get phone_number
         const accountResponse = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
         if (!accountResponse.ok) {
           throw new Error('Failed to fetch account data');
         }
         const accountData = await accountResponse.json();
         const phoneNumber = accountData[0]?.phone_number;
-
+  
         if (!phoneNumber) {
           throw new Error('Phone number not found');
         }
-
-        // Second API call to get conversations
+  
         const conversationsResponse = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`);
         if (!conversationsResponse.ok) {
           throw new Error('Failed to fetch conversations');
@@ -66,7 +63,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
         setLoading(false);
       }
     };
-
+  
     fetchData();
   }, [user]);
 
@@ -88,8 +85,9 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
           <div className="flex justify-between">
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-4 w-1/5 mt-1" />
           </div>
-          <Skeleton className="h-4 w-1/5 mt-1" />
+          
         </div>
       ))}
     </div>
