@@ -73,3 +73,29 @@
     text-decoration: underline;
     word-break: break-all;
   }
+
+  /* ScrollArea container styles */
+.scrollArea {
+  position: relative;
+}
+
+/* Scrollbar styles */
+.scrollbar {
+  width: 2px; /* Thin scrollbar width */
+  height: 8px; /* Thin scrollbar height */
+}
+
+/* Scrollbar thumb styles */
+.scrollbar::-webkit-scrollbar-thumb {
+  background-color: #888; /* Thumb color */
+  border-radius: 4px; /* Round the edges */
+}
+
+.scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #555; /* Thumb color on hover */
+}
+
+/* Scrollbar track styles */
+.scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1; /* Track color */
+}
