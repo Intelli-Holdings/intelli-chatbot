@@ -6,48 +6,46 @@ import { Navbar } from "@/components/navbar"
 
 const pricingPlans = [
   {
-    name: 'Basic',
-    description: 'Start with the essential tools to boost your customer experience.',
-    monthlyPrice: 40,
-    annualPrice: 480,
-    link: 'https://paystack.com/pay/gnhtnpaxpg',
+    name: 'Website Widget',
+    description: 'Convert more visitors that come to your website into paying customers. ',
+    monthlyPrice: 8,
+    annualPrice: 96,
+    link: 'https://paystack.com/pay/qc6a1bvrpu',
     features: [
       'Elli Website Chatbot',
-      'Integrate with META platforms( FB, IG, WA)',
-      'Reservations Booking engine integration',
+      'Integrate with any website(Wordpress, Wix, etc.)',
+      'Dashboard to manage conversations',
+      'Unlimited conversations',
 
     ],
   },
   {
-    name: 'Premium',
+    name: 'Whatsapp Assistant',
     description:
-      'Unlock enhanced features to supercharge your customer service.',
-    monthlyPrice: 80,
-    annualPrice: 960,
-    link: 'https://paystack.com/pay/qc6a1bvrpu',
+      'Never miss a sales opportunity by delivering instant responses to your customers on WhatsApp.',
+    monthlyPrice: 20,
+    annualPrice: 240,
+    link: 'https://paystack.com/pay/gnhtnpaxpg',
     features: [
-      'Everything in Basic plan',
-      'Integrate with Email',
-      'View conversation history',
-      'Integrate with Hotel management platforms',
-      'Integrate with CRM platforms',
+      'An AI-powered WhatsApp assistant',
+      'Automated responses',
+      'Takeover by human support staff',
+      'Sentiment analysis of customer messages',
+      'Dashboard to manage conversations',
     ],
   },
   {
-    name: 'Enterprise',
+    name: 'Custom',
     description:
-      'Everything we have to offer for ultimate customization for enterprises.',
+      'If you have a large customer base and need a custom solution, this plan is for you.',
     monthlyPrice: null,
-    annualPrice: 10000,
+    annualPrice: null,
     link: 'https://paystack.com/pay/s1j1m9987s',
     features: [
-      'Everything in Premium plan',
-      'AI Voice Agent',
-      'Email assistant',
-      'White-labeling & custom branding',
-      'Dedicated account manager',
-      '24/7 priority support',
-      'Cloud hosting & security'
+      'Custom AI assistant',
+      'Custom integrations',
+      'Dedicated support',
+      'Unlimited conversations',
     ],
   },
 ]
@@ -64,10 +62,10 @@ export function Pricing () {
           Pricing
         </div>
         <p className="mt-2 text-3xl font-bold tracking-tight text-gray-800 sm:text-4xl">
-          Accessible pricing, Great Value.
+          Scalable Pricing That Grows With Your Business.
         </p>
         <p className="text-md max-w-xl text-gray-700 md:text-center ">
-          Get started with Intelli today and take your business to the next level.
+          Get Started Today.
         </p>
       </div>
       <div className="flex items-center justify-center gap-3">
