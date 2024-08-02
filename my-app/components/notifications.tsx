@@ -17,55 +17,56 @@ interface Notification {
   event_type: string;
   message: string;
   timestamp: string;
-  read: boolean;
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function NotificationsComponent() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    // Function to fetch notifications from your backend
-    const fetchNotifications = async () => {
-      try {
-        const response = await fetch('/api/notifications'); // Adjust this URL to your backend endpoint
-        if (!response.ok) {
-          throw new Error('Failed to fetch notifications');
-        }
-        const data: Notification[] = await response.json();
-        setNotifications(data);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
+    // Set up WebSocket connection
+    const socket = new WebSocket(`${API_BASE_URL}/ws/events/`);
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Message from server:', data.message);
+      
+      // Add the new notification to our state
+      if (data.event_type && data.message) {
+        setNotifications(prevNotifications => [
+          {
+            id: Date.now().toString(), // Generate a temporary ID
+            event_type: data.event_type,
+            message: data.message,
+            timestamp: new Date().toISOString()
+          },
+          ...prevNotifications
+        ]);
       }
     };
 
-    fetchNotifications();
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
 
-    // Set up an interval to periodically fetch new notifications
-    const intervalId = setInterval(fetchNotifications, 30000); // Fetch every 30 seconds
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
 
-    // Clean up the interval on component unmount
-    return () => clearInterval(intervalId);
+    // Clean up the WebSocket connection on component unmount
+    return () => {
+      socket.close();
+    };
   }, []);
 
   const sortNotifications = () => {
     const sorted = [...notifications].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     setNotifications(sorted);
-  };
-
-  const markAsRead = async (id: string) => {
-    try {
-      const response = await fetch(`/api/notifications/${id}/mark-read`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to mark notification as read');
-      }
-      setNotifications(notifications.map(notification => 
-        notification.id === id ? { ...notification, read: true } : notification
-      ));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
   };
 
   return (
@@ -104,18 +105,13 @@ export default function NotificationsComponent() {
           </button>
           <ul className="space-y-2">
             {notifications.map((notification) => (
-              <li key={notification.id} className={`bg-gray-100 p-2 rounded flex justify-between items-center ${notification.read ? 'opacity-50' : ''}`}>
+              <li key={notification.id} className="bg-gray-100 p-2 rounded flex justify-between items-center">
                 <div>
                   <strong>{notification.event_type}:</strong> {notification.message}
                 </div>
-                {!notification.read && (
-                  <button 
-                    onClick={() => markAsRead(notification.id)}
-                    className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                  >
-                    Mark as Read
-                  </button>
-                )}
+                <div className="text-sm text-gray-500">
+                  {new Date(notification.timestamp).toLocaleString()}
+                </div>
               </li>
             ))}
           </ul>
