@@ -37,7 +37,7 @@ const TwoColumnFooter = () => {
       <div className="mx-auto max-w-7xl px-2">
         <div className="flex flex-col justify-between lg:flex-row">
           <div className="space-y-8">
-            <Image height={25} width={25} src="/intelli.svg" alt="Intelli logo" className="h-7 w-auto" />
+            <Image height={25} width={25} src="https://www.intelliconcierge.com/Intelli.svg" alt="Intelli logo" className="h-7 w-auto" />
             <p className="text-md max-w-xs leading-6 text-gray-700">
               Put your customer support - on autopilot
             </p>
