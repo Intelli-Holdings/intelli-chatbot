@@ -15,26 +15,7 @@ export default function Sidebar() {
             <h2 className="mb-2 px-4 text-xl font-semibold tracking-tight">
               Menu Overview
             </h2>
-            <DashboardNav items={navItems} />
-            {/* <div className="pt-20 bottom-10">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Upgrade to Premium</CardTitle>
-                    <CardDescription>
-                      Unlock all our features and get a dedicated account manager plus email
-                      support from our team.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button size="sm" className="w-full">
-                      Upgrade
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            
-            */}
-            
+            <DashboardNav items={navItems} />            
           </div>
         </div>
       </div>
