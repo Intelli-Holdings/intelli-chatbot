@@ -37,6 +37,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
+
 export function LineMultipleChart() {
   return (
     <Card>
