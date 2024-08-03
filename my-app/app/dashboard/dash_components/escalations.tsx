@@ -5,7 +5,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const EscalationItem = ({ name, subtitle, status }) => (
+interface EscalationItemProps {
+  name: string;
+  subtitle: string;
+  status: string;
+}
+
+const EscalationItem: React.FC<EscalationItemProps> = ({ name, subtitle, status }) => (
   <div className="flex items-center justify-between py-2">
     <div className="flex items-center">
       <Avatar className="h-8 w-8">
