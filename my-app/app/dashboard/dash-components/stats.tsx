@@ -1,8 +1,15 @@
 import React from 'react';
-import { MessageSquare, Users, CalendarCheck, Activity } from 'lucide-react';
+import { MessageSquare, Users, CalendarCheck, Activity, LucideIcon } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 
-const DashboardMetric = ({ title, value, change, icon: Icon }) => (
+interface DashboardMetricProps {
+  title: string;
+  value: string;
+  change: string;
+  icon: LucideIcon;
+}
+
+const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, change, icon: Icon }) => (
   <Card>
     <CardContent className="p-6">
       <div className="flex items-center justify-between">
