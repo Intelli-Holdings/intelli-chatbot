@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollArea, Scrollbar } from '@radix-ui/react-scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,7 +36,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
-  
+
       try {
         const userEmail = user.emailAddresses[0].emailAddress;
         const accountResponse = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
@@ -45,11 +45,11 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
         }
         const accountData = await accountResponse.json();
         const phoneNumber = accountData[0]?.phone_number;
-  
+
         if (!phoneNumber) {
           throw new Error('Phone number not found');
         }
-  
+
         const conversationsResponse = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`);
         if (!conversationsResponse.ok) {
           throw new Error('Failed to fetch conversations');
@@ -63,20 +63,19 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
         setLoading(false);
       }
     };
-  
+
     fetchData();
   }, [user]);
 
   const filteredConversations = conversations.filter((conversation) => {
     const matchesCustomerNumber = conversation.customer_number.toLowerCase().includes(searchTerm.toLowerCase());
-  
+
     const matchesMessage = conversation.messages.some((message) =>
-      message.content.toLowerCase().includes(searchTerm.toLowerCase()), 
+      message.content.toLowerCase().includes(searchTerm.toLowerCase()),
     );
-  
+
     return matchesCustomerNumber || matchesMessage;
   });
-  
 
   const SkeletonLoader = () => (
     <div className="flex flex-col space-y-4">
@@ -87,7 +86,6 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
             <Skeleton className="h-4 w-1/4" />
             <Skeleton className="h-4 w-1/5 mt-1" />
           </div>
-          
         </div>
       ))}
     </div>
@@ -108,8 +106,8 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
           </div>
         </form>
       </div>
-      <ScrollArea className="flex-1 p-4 space-y-4 overflow-y-auto">
-        <div className="flex w-full flex-col gap-1">
+      <ScrollArea className="h-screen">
+        <div className="flex flex-col gap-2 p-4 pt-0">
           {loading ? (
             <SkeletonLoader />
           ) : error ? (
@@ -119,26 +117,29 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
               const lastMessage = conversation.messages[conversation.messages.length - 1];
 
               return (
-                <div
+                <button
                   key={conversation.id}
-                  className="block p-4 border rounded-sm last:border-0 hover:bg-gray-100 cursor-pointer"
+                  className="flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent"
                   onClick={() => onSelectConversation(conversation.customer_number)}
                 >
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium">{conversation.customer_number}</span>
-                    <span className="text-sm text-gray-500">
-                      {new Date(conversation.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                  <div className="flex w-full flex-col gap-1">
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold">{conversation.customer_number}</div>
+                      </div>
+                      <div className="ml-auto text-xs text-muted-foreground">
+                        {new Date(conversation.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                    <div className="text-xs font-medium">
+                      {lastMessage ? lastMessage.content : 'No messages yet'}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    {lastMessage ? lastMessage.content : 'No messages yet'}
-                  </div>
-                </div>
+                </button>
               );
             })
           )}
         </div>
-        <Scrollbar orientation="vertical" />
       </ScrollArea>
     </div>
   );
