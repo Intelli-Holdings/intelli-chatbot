@@ -10,6 +10,8 @@ interface Notification {
   event_type: string;
   message: string;
   timestamp: string;
+  customerNumber?: string;
+  customerName?: string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -43,7 +45,7 @@ export default function NotificationsComponent() {
   useEffect(() => {
     if (!phoneNumber) return;
 
-    const socket = new WebSocket(`${API_BASE_URL}/ws/events/${phoneNumber}`);
+    const socket = new WebSocket(`wss://intelli-python-backend-lxui.onrender.com/ws/events/${phoneNumber}/`);
 
     socket.onopen = () => {
       console.log('WebSocket connection established');
@@ -51,34 +53,32 @@ export default function NotificationsComponent() {
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Message from server:', data.message);
+      console.log('Message from server:', data);
 
-      if (data.event_type && data.message) {
-        const newNotification = {
-          id: Date.now().toString(),
-          event_type: data.event_type,
-          message: data.message,
-          timestamp: new Date().toISOString()
-        };
-        setNotifications(prevNotifications => [
-          newNotification,
-          ...prevNotifications
-        ]);
+      const newNotification: Notification = {
+        id: Date.now().toString(),
+        event_type: 'Customer Request',
+        message: data.message,
+        timestamp: new Date().toISOString(),
+        customerNumber: data.message.match(/customer number : (\d+)/)?.[1],
+        customerName: data.message.match(/customer name : (\w+)/)?.[1]
+      };
 
-        // Display the notification using toast
-        toast.custom(t => (
-          <div className={`bg-white p-4 shadow-md rounded-md flex items-center justify-between ${t.visible ? 'animate-enter' : 'animate-leave'}`}>
-            <div>
-              <strong>{newNotification.event_type}:</strong> {newNotification.message}
-              <div className="text-sm text-gray-500">{new Date(newNotification.timestamp).toLocaleString()}</div>
-            </div>
-            <div className="flex space-x-2">
-              <button onClick={() => resolveNotification(newNotification.id)} className="text-green-500 hover:text-green-700">Resolve</button>
-              <button onClick={() => toast.dismiss(t.id)} className="text-red-500 hover:text-red-700">X</button>
-            </div>
+      setNotifications(prevNotifications => [newNotification, ...prevNotifications]);
+
+      // Display the notification using toast
+      toast.custom(t => (
+        <div className={`bg-white p-4 shadow-md rounded-md flex items-center justify-between ${t.visible ? 'animate-enter' : 'animate-leave'}`}>
+          <div>
+            <strong>{newNotification.event_type}:</strong> {newNotification.message}
+            <div className="text-sm text-gray-500">{new Date(newNotification.timestamp).toLocaleString()}</div>
           </div>
-        ));
-      }
+          <div className="flex space-x-2">
+            <button onClick={() => resolveNotification(newNotification.id)} className="text-green-500 hover:text-green-700">Resolve</button>
+            <button onClick={() => toast.dismiss(t.id)} className="text-red-500 hover:text-red-700">X</button>
+          </div>
+        </div>
+      ), { duration: 5000 });
     };
 
     socket.onerror = (error) => {
@@ -95,8 +95,6 @@ export default function NotificationsComponent() {
   }, [phoneNumber]);
 
   const resolveNotification = (id: string) => {
-    // Implement your resolve logic here
-    console.log(`Notification ${id} resolved`);
     setNotifications(notifications.filter(notification => notification.id !== id));
   };
 
@@ -116,13 +114,26 @@ export default function NotificationsComponent() {
         <div className="mt-6">
           <ul className="space-y-2">
             {notifications.map((notification) => (
-              <li key={notification.id} className="bg-gray-100 p-2 rounded flex justify-between items-center">
-                <div>
-                  <strong>{notification.event_type}:</strong> {notification.message}
+              <li key={notification.id} className="bg-gray-100 p-4 rounded flex flex-col">
+                <div className="flex justify-between items-center mb-2">
+                  <strong>{notification.event_type}</strong>
+                  <div className="text-sm text-gray-500">
+                    {new Date(notification.timestamp).toLocaleString()}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500">
-                  {new Date(notification.timestamp).toLocaleString()}
-                </div>
+                <p>{notification.message}</p>
+                {notification.customerName && (
+                  <p className="text-sm text-gray-600">Customer: {notification.customerName}</p>
+                )}
+                {notification.customerNumber && (
+                  <p className="text-sm text-gray-600">Phone: {notification.customerNumber}</p>
+                )}
+                <button 
+                  onClick={() => resolveNotification(notification.id)}
+                  className="self-end mt-2 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                >
+                  Resolve
+                </button>
               </li>
             ))}
           </ul>
