@@ -40,7 +40,7 @@ const pricingPlans = [
       'If you have a large customer base and need a custom solution, this plan is for you.',
     monthlyPrice: null,
     annualPrice: null,
-    link: 'https://paystack.com/pay/s1j1m9987s',
+    link: 'https://cal.com/intelli/entreprise-sales',
     features: [
       'Custom AI assistant',
       'Custom integrations',

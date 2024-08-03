@@ -54,7 +54,7 @@ const PricingSection = () => {
         'Enterprise-grade support',
         'Custom integrations',
       ],
-      ctaLink: 'https://calendly.com/sila-r0a9/30min',
+      ctaLink: 'https://cal.com/intelli/entreprise-sales',
     },
   ];
 
