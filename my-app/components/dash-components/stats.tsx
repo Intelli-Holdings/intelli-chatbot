@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MessageSquare, Users, CalendarCheck, Activity } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@clerk/nextjs";
-import { OverviewChart } from '@/components/dash-components/overview'; // Ensure correct import
+// import { OverviewChart } from '@/components/dash-components/overview'; // Ensure correct import
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -130,7 +130,6 @@ export function StatsOverview() {
           iconColor="text-red-500"
         />
       </div>
-      <OverviewChart isLoading={isLoading} />
     </div>
   );
 }
