@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Toaster, toast } from 'react-hot-toast';
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 interface Notification {
   id: string;
@@ -12,27 +14,31 @@ interface Notification {
   timestamp: string;
   customerNumber?: string;
   customerName?: string;
+  read: boolean; // Added to track if the notification has been read/resolved
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function NotificationsComponent() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
   const { user } = useUser();
+  const router = useRouter(); // Initialize the router
 
   const fetchUserData = useCallback(async (userEmail: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
+      const response = await fetch(
+        `${API_BASE_URL}/appservice/list/${userEmail}/`
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch user data');
+        throw new Error("Failed to fetch user data");
       }
       const data = await response.json();
       if (data && data.length > 0) {
         setPhoneNumber(data[0].phone_number);
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error("Error fetching user data:", error);
     }
   }, []);
 
@@ -43,50 +49,51 @@ export default function NotificationsComponent() {
   }, [user, fetchUserData]);
 
   useEffect(() => {
+    const storedNotifications = localStorage.getItem("notifications");
+    if (storedNotifications) {
+      setNotifications(JSON.parse(storedNotifications));
+    }
+
     if (!phoneNumber) return;
 
-    const socket = new WebSocket(`wss://intelli-python-backend-lxui.onrender.com/ws/events/${phoneNumber}/`);
+    const socket = new WebSocket(
+      `wss://intelli-python-backend-lxui.onrender.com/ws/events/${phoneNumber}/`
+    );
 
     socket.onopen = () => {
-      console.log('WebSocket connection established');
+      console.log("WebSocket connection established");
     };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Message from server:', data);
+      console.log("Message from server:", data);
 
       const newNotification: Notification = {
         id: Date.now().toString(),
-        event_type: 'Customer Request',
+        event_type: "Customer Request",
         message: data.message,
         timestamp: new Date().toISOString(),
         customerNumber: data.message.match(/customer number : (\d+)/)?.[1],
-        customerName: data.message.match(/customer name : (\w+)/)?.[1]
+        customerName: data.message.match(/customer name : (\w+)/)?.[1],
+        read: false,
       };
 
-      setNotifications(prevNotifications => [newNotification, ...prevNotifications]);
-
-      // Display the notification using toast
-      toast.custom(t => (
-        <div className={`bg-white p-4 shadow-md rounded-md flex items-center justify-between ${t.visible ? 'animate-enter' : 'animate-leave'}`}>
-          <div>
-            <strong>{newNotification.event_type}:</strong> {newNotification.message}
-            <div className="text-sm text-gray-500">{new Date(newNotification.timestamp).toLocaleString()}</div>
-          </div>
-          <div className="flex space-x-2">
-            <button onClick={() => resolveNotification(newNotification.id)} className="text-green-500 hover:text-green-700">Resolve</button>
-            <button onClick={() => toast.dismiss(t.id)} className="text-red-500 hover:text-red-700">X</button>
-          </div>
-        </div>
-      ), { duration: 5000 });
+      setNotifications((prevNotifications) => {
+        const updatedNotifications = [newNotification, ...prevNotifications];
+        localStorage.setItem(
+          "notifications",
+          JSON.stringify(updatedNotifications)
+        );
+        return updatedNotifications;
+      });
     };
 
     socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error("WebSocket error:", error);
     };
 
     socket.onclose = () => {
-      console.log('WebSocket connection closed');
+      console.log("WebSocket connection closed");
     };
 
     return () => {
@@ -94,13 +101,37 @@ export default function NotificationsComponent() {
     };
   }, [phoneNumber]);
 
-  const resolveNotification = (id: string) => {
-    setNotifications(notifications.filter(notification => notification.id !== id));
+  const resolveNotification = (id: string, customerNumber?: string) => {
+    setNotifications((prevNotifications) => {
+      const updatedNotifications = prevNotifications.map((notification) =>
+        notification.id === id ? { ...notification, read: true } : notification
+      );
+      localStorage.setItem(
+        "notifications",
+        JSON.stringify(updatedNotifications)
+      );
+      if (customerNumber) {
+        router.push(`/dashboard/conversations/whatsapp?customerNumber=${customerNumber}`);
+      }
+      return updatedNotifications;
+    });
+  };
+
+  const deleteNotification = (id: string) => {
+    setNotifications((prevNotifications) => {
+      const updatedNotifications = prevNotifications.filter(
+        (notification) => notification.id !== id
+      );
+      localStorage.setItem(
+        "notifications",
+        JSON.stringify(updatedNotifications)
+      );
+      return updatedNotifications;
+    });
   };
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Toaster position="top-right" reverseOrder={false} />
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b">
         <div className="flex items-center space-x-4">
           <nav className="space-x-4">
@@ -114,26 +145,66 @@ export default function NotificationsComponent() {
         <div className="mt-6">
           <ul className="space-y-2">
             {notifications.map((notification) => (
-              <li key={notification.id} className="bg-gray-100 p-4 rounded flex flex-col">
+              <li
+                key={notification.id}
+                className={`bg-gray-100 p-4 rounded flex flex-col ${
+                  notification.read ? "text-gray-500" : "text-black"
+                }`}
+              >
                 <div className="flex justify-between items-center mb-2">
-                  <strong>{notification.event_type}</strong>
-                  <div className="text-sm text-gray-500">
-                    {new Date(notification.timestamp).toLocaleString()}
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold">
+                      {notification.customerNumber || "Unknown"}
+                    </div>
+                    <div className="ml-auto text-sm text-muted-foreground">
+                      {new Date(notification.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-2">
+                    {!notification.read && (
+                      <Button
+                        onClick={() =>
+                          resolveNotification(notification.id, notification.customerNumber)
+                        }
+                        className="ml-auto gap-1"
+                        aria-label="Resolve notification"
+                      >
+                        <X className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() =>
+                        resolveNotification(notification.id, notification.customerNumber)
+                      }
+                      className="text-green-500 hover:text-green-700"
+                    >
+                      Resolve
+                    </Button>
+                    <Button
+                      onClick={() => deleteNotification(notification.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </div>
-                <p>{notification.message}</p>
+                <div className="text-md font-medium">
+                  {notification.message || "No messages yet"}
+                </div>
                 {notification.customerName && (
-                  <p className="text-sm text-gray-600">Customer: {notification.customerName}</p>
+                  <p className="text-sm text-gray-600">
+                    Customer: {notification.customerName}
+                  </p>
                 )}
                 {notification.customerNumber && (
-                  <p className="text-sm text-gray-600">Phone: {notification.customerNumber}</p>
+                  <p className="text-sm text-gray-600">
+                    Phone: {notification.customerNumber}
+                  </p>
                 )}
-                <button 
-                  onClick={() => resolveNotification(notification.id)}
-                  className="self-end mt-2 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                >
-                  Resolve
-                </button>
               </li>
             ))}
           </ul>
