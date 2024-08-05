@@ -8,13 +8,6 @@ import { Component } from "./chart";
 const RightSidebar = () => {
   return (
     <div className="hidden md:block  border-l p-4">
-      {/* Sales Labels Card */}
-      <Card className="mb-4">
-        <CardContent>
-          <h2 className="text-xl font-semibold p-2">Sales Labels</h2>
-          {/* Sales labels content goes here */}
-        </CardContent>
-      </Card>
 
       {/* Sentiment Analysis Card */}
       <Card className="mb-4">

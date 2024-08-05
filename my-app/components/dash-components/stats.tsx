@@ -82,7 +82,7 @@ export function StatsOverview() {
         const data: WhatsAppAccount[] = await response.json();
         const totalAssistants = data.length;
         const totalConversations = data.reduce((total, account) => total + account.chatsessions.length, 0);
-        const totalLeads = totalConversations * 0.2;
+        const totalLeads = totalConversations;
         setStats({ totalAssistants, totalConversations, totalLeads });
       } catch (error) {
         console.error('Error fetching stats:', error);
