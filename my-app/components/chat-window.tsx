@@ -106,7 +106,7 @@ export function ChatWindow() {
 
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-b-lg">
       <Link 
-  href="https://api.whatsapp.com/send/?phone=233553221408&text&type=phone_number&app_absent=0"
+  href="https://api.whatsapp.com/send/?phone=233536620120&text&type=phone_number&app_absent=0"
   target="_blank"
   rel="noopener noreferrer"
   className="inline-block"

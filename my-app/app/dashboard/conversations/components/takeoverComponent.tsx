@@ -6,15 +6,15 @@ import { useUser } from '@clerk/nextjs';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-interface ConversationHeaderProps {
-  conversation: Conversation | null;
+interface TakeOverComponentProps {
+  conversation: Conversation;
+  onTakeOver: () => void;
 }
 
-const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation }) => {
+const TakeOverComponent: React.FC<TakeOverComponentProps> = ({ conversation, onTakeOver }) => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useUser();
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
-  const [isAiSupport, setIsAiSupport] = useState<boolean>(false);
 
   useEffect(() => {
     if (user?.primaryEmailAddress?.emailAddress) {
@@ -39,7 +39,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
     }
   }, [user, conversation]);
 
-  const handleToggleAISupport = async () => {
+  const handleTakeOver = async () => {
     if (!conversation || !phoneNumber) return;
 
     try {
@@ -47,15 +47,10 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
       formData.append('phoneNumber', phoneNumber);
       formData.append('customerNumber', conversation.customer_number || conversation.recipient_id);
 
-      if (isAiSupport) {
-        const result = await handoverConversation(formData);
-        console.log('Handover result:', result);
-      } else {
-        const result = await takeoverConversation(formData);
-        console.log('Takeover result:', result);
-      }
+      const result = await takeoverConversation(formData);
+      console.log('Takeover result:', result);
 
-      setIsAiSupport(!isAiSupport);
+      onTakeOver();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -64,23 +59,16 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
   if (!conversation) return null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">
-          Conversation with {conversation.customer_number || conversation.recipient_id}
-        </h2>
-        <Button onClick={handleToggleAISupport}>
-          {isAiSupport ? 'Handover to AI' : 'Takeover Conversation'}
-        </Button>
-      </div>
-      {isAiSupport && (
-        <div className="bg-purple-100 text-red-700 p-3 rounded-lg">
-          <p>Remember to handover to AI when you&apos;re done sending messages.</p>
-        </div>
-      )}
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-xl font-semibold">
+        Conversation with {conversation.customer_number || conversation.recipient_id}
+      </h2>
+      <Button onClick={handleTakeOver}>
+        Takeover Conversation
+      </Button>
       {error && <p className="text-red-500">{error}</p>}
     </div>
   );
 };
 
-export default ConversationHeader;
+export default TakeOverComponent;

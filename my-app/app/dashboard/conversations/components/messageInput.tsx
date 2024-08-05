@@ -70,7 +70,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber }) => {
         </Label>
         <Input
           id="content"
-          placeholder="Input the message content..."
+          placeholder=""
           className="border-0 p-3 shadow-xs focus-visible:ring-0"
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -78,7 +78,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber }) => {
         />
         <Input
           id="answer"
-          placeholder="Answer from human support..."
+          placeholder="Type your response to a customer here..."
           className="border-0 p-3 mt-2 shadow-xs focus-visible:ring-0"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
