@@ -50,9 +50,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber }) => {
       const formData = new FormData();
       formData.append('customer_number', customerNumber);
       formData.append('phone_number', phoneNumber || '');
-      formData.append('content', content);
-      formData.append('answer', answer);
-      
+      formData.append('answer', answer);      
       const response = await sendMessage(formData);
       console.log('Message sent successfully:', response);
       setContent('');
@@ -64,18 +62,10 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber }) => {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring">
+      <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-lg border bg-background ">
         <Label htmlFor="content" className="sr-only">
           Message Content
         </Label>
-        <Input
-          id="content"
-          placeholder=""
-          className="border-0 p-3 shadow-xs focus-visible:ring-0"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          name="content"
-        />
         <Input
           id="answer"
           placeholder="Type your response to a customer here..."
