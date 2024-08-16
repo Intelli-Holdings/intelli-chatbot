@@ -68,7 +68,7 @@ export function Home() {
         </section>
         <section className="bg-white-100 py-12 text-center shadow-lg rounded-xl border border-gray-200 shadow-md">
       <div className="container mx-auto px-4">
-        <h2 className="mb-1 text-center text-2xl font-semibold tracking-tighter text-4xl font-bold text-center text-blue-600 mb-8">
+        <h2 className="mb-1 text-center text-2xl font-semibold tracking-tighter text-4xl font-bold text-center text-blue-600 ">
           Our techstack is top-notch
         </h2>
         <AnimatedLogoCloud  />
@@ -85,7 +85,7 @@ export function Home() {
           <div className="flex justify-center mb-4">
           <Badge>Use Cases</Badge>            
           </div>
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto">
             <h2 className="mb-1 text-center text-2xl font-semibold tracking-tighter text-4xl font-bold text-center text-blue-600">
               How Businesses Use Intelli
             </h2>
@@ -93,11 +93,11 @@ export function Home() {
               <Card className="bg-[#007fff] bg-opacity-35">
                 <CardContent className="p-6 space-y-2 backdrop-blur-lg rounded-lg">
                   <div className="text-sm">
-                    <CardTitle>Weekly & Monthly Insights:</CardTitle>
+                    <CardTitle>Rich Monthly Insights:</CardTitle>
                   </div>
                   <div>
                     <p className="text-sm font-medium">
-                      Elevate Report Quality, Minimize Time Investment
+                      Receive rich insights from conversations with the assistant, human agent resolution time and customer satisfaction.
                     </p>
                   </div>
                 </CardContent>
@@ -116,7 +116,7 @@ export function Home() {
                   </div>
                   <div>
                     <p className="text-sm font-medium">
-                      Instantly Address Questions with your company assistant
+                      Promptly respond to customer questions on your website, whatsapp, facebook, Instagram and email inbox.
                     </p>
                   </div>
                 </CardContent>
@@ -124,12 +124,11 @@ export function Home() {
               <Card className="bg-[#027EFE] bg-opacity-60">
                 <CardContent className="p-6 space-y-2 backdrop-blur-lg rounded-lg">
                   <div className="text-sm">
-                    <CardTitle>Effective Escalation Management:</CardTitle>
+                    <CardTitle>Timely Escalation Management:</CardTitle>
                   </div>
                   <div>
                     <p className="text-sm font-medium">
-                      Empower Teams, Managers, and hotel departments with access
-                      to issues escalated beyond the assistant.
+                      Immediately get notifications and alerts when customers request time-sensitive information and assistance.
                     </p>
                   </div>
                 </CardContent>
