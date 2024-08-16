@@ -15,17 +15,22 @@ export function DashComponent() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <div>
-          <Button variant="ghost" className="mr-2">Overview</Button>
-          <Button variant="outline">Channels</Button>
+          <Button variant="outline" className="mr-2">Overview</Button>
+          
         </div>
       </div>
 
       <StatsOverview />
 
-      <div className="grid gap-6 md:grid-cols-2">
+
+
+  {/**
+   * <div className="grid gap-6 md:grid-cols-2">
       <OverviewChart />
       <Escalations />
-      </div>
+      </div> 
+   * 
+   */}    
     </div>
   );
 }
