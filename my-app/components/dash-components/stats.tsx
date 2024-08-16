@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MessageSquare, Users, CalendarCheck, Activity } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@clerk/nextjs";
+import Link from 'next/link';
 // import { OverviewChart } from '@/components/dash-components/overview'; // Ensure correct import
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -45,28 +46,39 @@ interface DashboardMetricProps {
   icon: React.ElementType;
   isLoading: boolean;
   iconColor: string;
+  href?: string;
 }
 
-const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, change, icon: Icon, isLoading, iconColor }) => (
-  <Card>
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-          {isLoading ? (
-            <div className="text-3xl font-bold animate-pulse">Loading...</div>
-          ) : (
-            <h2 className="text-3xl font-bold">{value}</h2>
-          )}
-          {change && <p className="text-xs text-muted-foreground mt-1">{change}</p>}
+const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, change, icon: Icon, isLoading, iconColor, href }) => {
+  const CardInfo = (
+    <Card className={href ? "cursor-pointer" : ""}>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+            {isLoading ? (
+              <div className="text-3xl font-bold animate-pulse">Loading...</div>
+            ) : (
+              <h2 className="text-3xl font-bold">{value}</h2>
+            )}
+            {change && <p className="text-xs text-muted-foreground mt-1">{change}</p>}
+          </div>
+          <div className="p-2 bg-primary/10 rounded-full">
+            <Icon className={`h-6 w-6 ${iconColor}`} />
+          </div>
         </div>
-        <div className="p-2 bg-primary/10 rounded-full">
-          <Icon className={`h-6 w-6 ${iconColor}`} />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
+      </CardContent>
+    </Card>
+  );
+
+  return href ? (
+    <Link href={href} passHref>
+      {CardInfo}
+    </Link>
+  ) : (
+    CardInfo
+  );
+};
 
 export function StatsOverview() {
   const { user } = useUser();
@@ -112,6 +124,7 @@ export function StatsOverview() {
           icon={MessageSquare}
           isLoading={isLoading}
           iconColor="text-green-500"
+          href="/dashboard/conversations/whatsapp"
         />
         <DashboardMetric
           title="Total Leads"
