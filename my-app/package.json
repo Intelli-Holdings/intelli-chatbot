@@ -46,6 +46,7 @@
     "@tanstack/react-table": "^8.13.2",
     "@uploadthing/react": "^6.4.1",
     "@vercel/analytics": "^1.2.2",
+    "@vercel/speed-insights": "^1.0.12",
     "ai": "^3.0.8",
     "axios": "^1.6.8",
     "canvas-confetti": "^1.9.3",
