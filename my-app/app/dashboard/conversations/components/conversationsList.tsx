@@ -71,7 +71,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
     const matchesCustomerNumber = conversation.customer_number.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesMessage = conversation.messages.some((message) =>
-      message.content.toLowerCase().includes(searchTerm.toLowerCase()),
+      (message.content || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return matchesCustomerNumber || matchesMessage;
