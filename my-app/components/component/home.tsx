@@ -41,11 +41,11 @@ export function Home() {
         <section className="container mx-auto mt-8 px-4">
        
           <p className="mt-4 text-center text-5xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
-            Customer Support on Autopilot.
+           Increase Your Productivity with Intelli
           </p>
           <p className="text-center text-lg font-bold font-medium text-gray-800">
             Improve customer experience by automating responses to frequently
-            asked questions promptly.  
+            asked questions promptly. Get started with Intelli today.  
           </p>
           <div className="flex justify-center mt-8 space-x-4">
   <a href="/auth/sign-up">
@@ -66,14 +66,7 @@ export function Home() {
           </div>
           
         </section>
-        <section className="bg-white-100 py-12 text-center shadow-lg rounded-xl border border-gray-200 shadow-md">
-      <div className="container mx-auto px-4">
-        <h2 className="mb-1 text-center text-2xl font-semibold tracking-tighter text-4xl font-bold text-center text-blue-600 ">
-          Our techstack is top-notch
-        </h2>
-        <AnimatedLogoCloud  />
-      </div>
-    </section>
+
 
         <section className="py-12 relative">
           <Image
