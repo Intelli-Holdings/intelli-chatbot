@@ -96,7 +96,7 @@ export function Pricing () {
   )
 
   const PricingCards = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-2">
+    <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
       {pricingPlans.map((plan, index) => (
         <div
           key={index}
