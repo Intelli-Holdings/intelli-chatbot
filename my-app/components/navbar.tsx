@@ -1,41 +1,150 @@
-import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import Image from "next/image"
+"use client";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from "next/image";
+import { Menu, X } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
+const navItems = [
+  {
+    label: "Use Cases",
+    href: "#",
+    subItems: [
+      { label: "Automated Customer Support", href: "#" },
+      { label: "Flight Ticket Booking", href: "#" },
+      { label: "AI Student Support", href: "/document-processing" }
+    ],
+  },
+  {
+    label: "Resources",
+    href: "/resources",
+  },
+  {
+    label: "Company",
+    href: "/company",
+  },
+];
 
 export function Navbar() {
-    return (
-      <div className="fixed top-0 left-0 right-0 z-10 bg-white/50 backdrop-blur-md shadow-sm">
-        <div className="container mx-auto flex items-center justify-between px-4 py-2">
-          <div className="flex items-center">
-            <a className="flex items-center" href="/">
-              <Image alt="Intelli Concierge" className="h-16" src="/Intelli.svg" height={25} width={25} />
-              <span className="ml-2 text-2xl font-bold text-gray-900" style={{ lineHeight: '64px' }}>Intelli</span>
-            </a>
-          </div>
-          <nav className="hidden md:flex space-x-4"> {/* Hide on mobile screens */}
-            <a className="text-gray-600 hover:text-gray-900" href="/pricing">
-              Pricing
-            </a>
-            <a className="text-gray-600 hover:text-gray-900" href="https://calendly.com/sila-r0a9/30min">
-              Book Demo
-            </a>
-          </nav>
-          <div className="flex space-x-2">
-            <a
-              className="px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-md shadow-sm hover:bg-gray-100"
-              href="/auth/sign-in"
-            >
-              Sign In
-            </a>
-            <a
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700"
-              href="/auth/sign-up"
-            >
-              Sign Up
-            </a>
-          </div>
+  const [activeItem, setActiveItem] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleItemHover = (label: any) => {
+    setActiveItem(label);
+  };
+
+  const handleItemLeave = () => {
+    setActiveItem(null);
+  };
+
+  const handleNavigate = (href: any) => {
+    if (router) {
+      router.push(href);
+    }
+  };
+
+  const NavContent = ({ mobile = false }) => (
+    <div className={`flex ${mobile ? 'flex-col space-y-4' : 'items-center space-x-20'}`}>
+      {navItems.map((item) => (
+        <div
+          key={item.label}
+          className={`relative ${mobile ? 'w-full' : 'flex'}`}
+          onMouseEnter={() => handleItemHover(item.label)}
+          onMouseLeave={handleItemLeave}
+        >
+          <a
+            className={`text-gray-600 hover:text-yellow-500 font-medium ${mobile ? 'block py-2' : ''}`}
+            href={item.href}
+            onClick={() => handleNavigate(item.href)}
+          >
+            {item.label}
+          </a>
+          {activeItem === item.label && item.subItems && (
+            <div className={`${mobile ? 'mt-2' : 'absolute top-full mt-2'} w-48 bg-white shadow-lg rounded-md`}>
+              <div className="py-2">
+                {item.subItems.map((subItem) => (
+                  <a
+                    key={subItem.label}
+                    className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                    href={subItem.href}
+                    onClick={() => handleNavigate(subItem.href)}
+                  >
+                    {subItem.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+      ))}
+      <a
+        className={`text-gray-600 hover:text-yellow-500 font-medium ${mobile ? 'block py-2' : ''}`}
+        href="/pricing"
+      >
+        Pricing
+      </a>
+    </div>
+  );
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-10 bg-white/90 backdrop-blur-md">
+      <div className="container mx-auto flex items-center justify-between p-4">
+        <div className="flex items-center">
+          <a className="flex items-center" href="/">
+            <Image alt="Intelli Concierge" className="h-8 w-8" src="/Intelli.svg" height={32} width={32} />
+            <span className="ml-2 text-2xl font-bold text-gray-900">Intelli</span>
+          </a>
+        </div>
+        
+        {isMobile ? (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <nav className="flex flex-col h-full">
+                <div className="flex-1 py-4">
+                  <NavContent mobile />
+                </div>
+                <div className="py-4">
+                  <a
+                    className="block w-full text-center px-4 py-2 text-sm font-medium text-blue-500 border border-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition duration-300"
+                    href="/dashboard"
+                  >
+                    Dashboard
+                  </a>
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <>
+            <NavContent />
+            <div>
+              <a
+                className="px-4 py-2 text-sm font-medium text-blue-500 border border-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition duration-300"
+                href="/dashboard"
+              >
+                Dashboard
+              </a>
+            </div>
+          </>
+        )}
       </div>
-    )
+    </nav>
+  );
 }

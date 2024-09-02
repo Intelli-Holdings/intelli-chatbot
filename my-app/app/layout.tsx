@@ -3,6 +3,8 @@ import { Manrope } from "next/font/google";
 import "@/app/globals.css";
 import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
 import Script from "next/script";
 
 import { PHProvider } from './providers'
@@ -57,8 +59,8 @@ export default function RootLayout({
     <ClerkProvider>
     <html lang="en" suppressHydrationWarning>
     <PHProvider>
-      <Analytics />
-      
+      <Analytics />      
+      <SpeedInsights />
       <SignedOut>          <SignInButton />        </SignedOut>        <SignedIn>          <UserButton />        </SignedIn>
       <body className={inter.className}>
       <PostHogPageView /> 
