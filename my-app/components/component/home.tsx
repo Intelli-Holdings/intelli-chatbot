@@ -37,36 +37,30 @@ export function Home() {
     <div className="relative">
       <Navbar />
       <main className="pt-16">
-        <section className="container mx-auto mt-20 px-4">
-          <p className="mt-4 text-center text-5xl font-bold text-blue-600 mb-8 bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400">
-            Keep Your Customers Engaged, Effortlessly.
-          </p>
-          <p className="my-10 text-center text-lg font-bold font-medium text-gray-800">
-            Send reminders, scheduled messages, and
-            broadcast marketing campaigns at scale. From Whatsapp to Email, to
-            website chatbots to anything you can think of – we got you covered.
-          </p>
-          <div className="flex justify-center mt-8 space-x-4">
-            <a href="/auth/sign-up">
-              <Button className="text-xl font-bold py-8 px-8 bg-blue-600 text-white rounded-md shadow-lg hover:bg-blue-500">
-                Get Started
-              </Button>
-            </a>
-            <a
-              href="https://calendly.com/sila-r0a9/30min"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button className="text-xl font-bold py-8 px-8 bg-white text-blue-600 rounded-md shadow-lg hover:bg-gray-100 border border-blue-600">
-                Book Demo
-              </Button>
-            </a>
-          </div>
+      <section className="container mx-auto mt-20 px-4">
+  <p className="mt-4 text-center text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500 mb-10">
+    Engage clients in <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500">seconds</span> with AI
+  </p>
+  <p className="my-10 text-center text-2xl font-bold text-gray-800">
+    Introducing Intelli, the AI Customer Support layer for your business.
+  </p>
+  <div className="flex justify-center mt-8 space-x-4">
+  <a href="/auth/sign-up">
+    <Button className="text-xl font-bold py-8 px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
+      hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
+      ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
+      Sign-up for Free
+    </Button>
+  </a>
+</div>
 
-          <div className="mx-auto mt-10 px-4">
-            <PreviewLanding />
-          </div>
-        </section>
+
+
+  <div className="mx-auto mt-10 px-4">
+    <PreviewLanding />
+  </div>
+</section>
+
 
         <section className="py-10 relative">
           <Image

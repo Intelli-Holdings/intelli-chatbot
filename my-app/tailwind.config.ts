@@ -58,7 +58,6 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       keyframes: {
-
         "caret-blink": {
           "0%,70%,100%": { opacity: "1" },
           "20%,50%": { opacity: "0" },
@@ -72,8 +71,8 @@ const config: Config = {
           to: { height: '0' }
         },
         'logo-cloud': {
-                from: { transform: 'translateX(0)' },
-                 to: { transform: 'translateX(calc(-100% - 4rem))' },
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(calc(-100% - 4rem))' },
         },
         'skew-scroll': {
           '0%': {
@@ -93,13 +92,22 @@ const config: Config = {
             "background-position": "calc(100% + var(--shimmer-width)) 0",
           },
         },
+        pulse: {
+          '0%, 100%': {
+            boxShadow: '0 0 10px 2px rgba(56, 189, 248, 0.6)', // Light teal glow
+          },
+          '50%': {
+            boxShadow: '0 0 15px 5px rgba(56, 189, 248, 0.8)', // Stronger teal glow
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'logo-cloud': 'logo-cloud 30s linear infinite', 
+        'logo-cloud': 'logo-cloud 30s linear infinite',
         'skew-scroll': 'skew-scroll 20s linear infinite',
         shimmer: "shimmer 8s infinite",
+        pulse: 'pulse 2s infinite',
       },
     },
   },
