@@ -58,6 +58,11 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       keyframes: {
+        "border-beam": {
+          "100%": {
+            "offset-distance": "100%",
+          },
+        },
         "caret-blink": {
           "0%,70%,100%": { opacity: "1" },
           "20%,50%": { opacity: "0" },
@@ -100,12 +105,14 @@ const config: Config = {
             boxShadow: '0 0 15px 5px rgba(56, 189, 248, 0.8)', // Stronger teal glow
           },
         },
+       
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'logo-cloud': 'logo-cloud 30s linear infinite',
         'skew-scroll': 'skew-scroll 20s linear infinite',
+        'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
         shimmer: "shimmer 8s infinite",
         pulse: 'pulse 2s infinite',
       },
