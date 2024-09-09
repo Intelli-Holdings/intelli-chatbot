@@ -90,10 +90,10 @@ const TestimonialCard: FC<TestimonalCardProps> = ({
 const Testimonals = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-5 py-12">
-      <h1 className="mb-1 max-w-2xl text-center text-2xl font-semibold tracking-tighter text-blue-600 md:text-4xl">
-        Why Customers Love Intelli
-      </h1>
-      <p className="max-w-2xl text-center text-sm font-semibold text-gray-900 md:text-base dark:text-gray-400">
+      <h2 className="mb-1 text-center text-4xl font-bold tracking-tighter text-4xl font-bold text-center">
+        What People Are Saying
+      </h2>
+      <p className="max-w-2xl text-center text-sm font-semibold md:text-base ">
         Intelli is loved and used by many companies. It is
         a great tool for businesses that intend to improve customer experience.
       </p>
