@@ -42,7 +42,7 @@ export function Home() {
     Engage clients in <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500">seconds</span> with AI
   </p>
   <p className="my-10 text-center text-2xl font-bold text-gray-800">
-    Introducing Intelli, the AI Customer Support layer for your business.
+  Intelli, streamlines customer conversations for your business using AI across whatsapp, website and email.
   </p>
   <div className="flex justify-center mt-8 space-x-4">
   <a href="/auth/sign-up">

@@ -20,6 +20,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'intelli.medium.com',
+        port: '',
+        pathname: '/*',
+      },
     ],
   },
 };

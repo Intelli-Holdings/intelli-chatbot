@@ -83,11 +83,10 @@ export function DynamicBlog() {
 
   return (
     <div className="bg-white min-h-screen relative py-14">
-      <Navbar />
       <div className="container mx-auto px-4">
         <header className="container mx-auto my-12 text-center">
-          <h1 className="text-5xl font-bold text-left text-blue-600 mb-20">
-            Access all the resources to enhance the growth of your business
+          <h1 className="text-5xl text-center font-bold text-blue-600 mb-20">
+            Enhance the growth of your business
           </h1>
           <div className="flex justify-center space-x-8 mb-12">
             {['Articles', 'Videos', 'Courses'].map((category) => (
