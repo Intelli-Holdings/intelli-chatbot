@@ -14,9 +14,11 @@ function CommunicationCard({ title, description, iconPath, bgColor, bgOpacity }:
     <Card className={`${bgColor} ${bgOpacity}`}>
       <CardContent className="p-6 space-y-2 backdrop-blur-lg rounded-lg">
         <div className="flex items-center space-x-2">
+        <div className="bg-white p-2 rounded-xl shadow-lg relative">
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
             <path d={iconPath} />
           </svg>
+        </div>
           <CardTitle className="text-sm">{title}</CardTitle>
         </div>
         <p className="text-sm font-medium">{description}</p>
