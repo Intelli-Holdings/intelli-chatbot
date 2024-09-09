@@ -60,9 +60,9 @@ const Waitlist: React.FC = () => {
     return (
         <Card className="shadow-md sm:justify-center bg-grey border-none">
             <CardHeader>
-                <CardTitle className="text-center">Join Our Waitlist</CardTitle>
+                <CardTitle className="text-center text-2xl">Waitlist Form</CardTitle>
                 <CardDescription className="text-center text-lg font-bold font-medium text-gray-800">
-                    Sign up to gain early access and receive a 20% discount!
+                   Ensure to fill in all the fields before submitting.
                 </CardDescription>
             </CardHeader>
             <CardContent>

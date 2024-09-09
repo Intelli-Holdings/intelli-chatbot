@@ -61,10 +61,10 @@ const PricingSection = () => {
   return (
     <section className="container mx-auto px-4 py-16">
       <h2 className="text-3xl font-bold text-center mb-2">
-        Choose the right plan for your business
+        Choose a plan that works for you
       </h2>
       <p className="text-center text-gray-600 mb-6">
-        Flexible options to suit your needs and scale with your growth
+        Save 20% when you pay annually. All plans include a 7-day free trial.
       </p>
 
       <div className="flex items-center justify-center mb-8">
