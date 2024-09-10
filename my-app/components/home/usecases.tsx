@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 
+
 interface CommunicationCardProps {
   title: string;
   description: string;
@@ -14,7 +15,7 @@ function CommunicationCard({ title, description, iconPath, bgColor, bgOpacity }:
     <Card className={`${bgColor} ${bgOpacity}`}>
       <CardContent className="p-6 space-y-2 backdrop-blur-lg rounded-lg">
         <div className="flex items-center space-x-2">
-        <div className="bg-white p-2 rounded-xl shadow-lg relative">
+        <div className="bg-white p-2 rounded-xl shadow-md relative">
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
             <path d={iconPath} />
           </svg>
@@ -39,7 +40,7 @@ export default function Usecases() {
       />
       <CommunicationCard
         title="Websites:"
-        description="Businesses that have high traffic to their websites need to respond to customer questions promptly, using the website widget can address this need."
+        description="Businesses that have high traffic to their websites need to respond to customer inquiries promptly, using the website widget can address this need."
         iconPath="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"
         bgColor="bg-[#ACD4FF]"
         bgOpacity="bg-opacity-85"
