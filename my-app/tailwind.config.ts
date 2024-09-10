@@ -105,9 +105,20 @@ const config: Config = {
             boxShadow: '0 0 15px 5px rgba(56, 189, 248, 0.8)', // Stronger teal glow
           },
         },
+        orbit: {
+          "0%": {
+            transform:
+              "rotate(0deg) translateY(calc(var(--radius) * 1px)) rotate(0deg)",
+          },
+          "100%": {
+            transform:
+              "rotate(360deg) translateY(calc(var(--radius) * 1px)) rotate(-360deg)",
+          },
+        },
        
       },
       animation: {
+        
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'logo-cloud': 'logo-cloud 30s linear infinite',
@@ -115,6 +126,7 @@ const config: Config = {
         'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
         shimmer: "shimmer 8s infinite",
         pulse: 'pulse 2s infinite',
+        orbit: "orbit calc(var(--duration)*1s) linear infinite",
       },
     },
   },
