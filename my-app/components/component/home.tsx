@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import FAQcomponent from '@/components/home/FAQcomponent';
+import {OrbitingCirclesComponent} from '@/components/orbiting-circles';
 import {
   Accordion,
   AccordionContent,
@@ -67,26 +68,34 @@ export function Home() {
 <HowItWorksSection />
 
         <section className="py-10 relative">
-          <Image
-            alt="Bg Pink"
-            className="absolute top-1/2 right-0 transform -translate-y-1/2 w-60 h-60 bg-cover bg-center filter blur-md z-0"
-            style={{ backgroundImage: `url(${pinkImage})` }}
-            src={pinkImage}
-          />
+          
           <div className="flex justify-center mb-4">
-            <Badge>Use Cases</Badge>
+            <Badge>Channels</Badge>
           </div>
           <div className="container mx-auto">
-            <h2 className="mb-1 text-center text-4xl font-bold tracking-tighter text-4xl font-bold text-center">
-              How Businesses Use Intelli
+            <h2 className="text-center text-5xl font-bold mb-10">
+              Where can you use Intelli?
             </h2>
+            <OrbitingCirclesComponent />
             <Usecases />
+            <div className="flex justify-center mt-10 mb-10 space-x-4">
+  <a href="/auth/sign-up">
+    <Button className="text-xl font-bold py-8 px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
+      hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
+      ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
+    See Channels In Action
+    </Button>
+  </a>
+</div>
           </div>
         </section>
         <section className="py-12 ">
+        <div className="flex justify-center mb-4">
+            <Badge>Benefits</Badge>
+          </div>
           <div className="container mx-auto px-4">
-            <h2 className=" mb-1 text-center text-4xl font-bold tracking-tighter text-4xl font-bold text-center">
-              Let&lsquo;s talk about the benefits
+            <h2 className="text-center text-5xl font-bold mb-10">
+              Let&lsquo;s talk about what you gain
             </h2>
             <div className="container mx-auto sm:px-6 lg:px-8">
               <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
@@ -105,10 +114,7 @@ export function Home() {
                       <span className="mr-2">✅</span>
                       <span>Optimize Resources</span>
                     </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✅</span>
-                      <span>Utilize Advanced Algorithms</span>
-                    </li>
+                    
                     <li className="flex items-start">
                       <span className="mr-2">✅</span>
                       <span>Integrate with existing tools and platforms</span>
@@ -128,10 +134,7 @@ export function Home() {
                       <span className="mr-2">✅</span>
                       <span>Reduce overhead costs</span>
                     </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✅</span>
-                      <span>Minimize training expenses</span>
-                    </li>
+                    
                     <li className="flex items-start">
                       <span className="mr-2">✅</span>
                       <span>
@@ -145,7 +148,10 @@ export function Home() {
           </div>
         </section>
         <section className="py-12 rounded-xl p-4">
-          <div className="container mx-auto px-2">
+        <div className="flex justify-center mb-4">
+            <Badge>Testimonials</Badge>
+          </div>
+          <div className="container mx-auto px-4">
             <Testimonals />
           </div>
         </section>
