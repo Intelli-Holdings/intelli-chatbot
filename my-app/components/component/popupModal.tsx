@@ -10,10 +10,14 @@ const PopupModal: React.FC = () => {
     // Check how many times the user has visited the site
     const visitCount = parseInt(localStorage.getItem('visitCount') || '0', 10);
 
-    // Show the modal only if the user has visited fewer than 5 times
+    // Only show the modal if the user has visited fewer than 5 times
     if (visitCount < 5) {
-      setIsOpen(true);
-      localStorage.setItem('visitCount', (visitCount + 1).toString()); // Increment the visit count
+      const timer = setTimeout(() => {
+        setIsOpen(true); // Show the modal after 60 seconds
+        localStorage.setItem('visitCount', (visitCount + 1).toString()); // Increment the visit count
+      }, 60000); // 60 seconds in milliseconds
+
+      return () => clearTimeout(timer); 
     }
   }, []);
 
