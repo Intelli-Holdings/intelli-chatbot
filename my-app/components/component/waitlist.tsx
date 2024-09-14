@@ -48,7 +48,7 @@ const Waitlist: React.FC = () => {
                 }
             } catch (error) {
                 console.error('Error joining waitlist:', error);
-                toast.error('An error occurred while joining the waitlist');
+                toast.error('Something went wrong on, please try submitting again.');
             } finally {
                 setIsLoading(false);
             }
@@ -58,11 +58,11 @@ const Waitlist: React.FC = () => {
     };
 
     return (
-        <Card className="shadow-md sm:justify-center bg-grey border-none">
+        <Card className="sm:justify-center border-none">
             <CardHeader>
-                <CardTitle className="text-center text-2xl">Waitlist Form</CardTitle>
+                <CardTitle className="text-center text-2xl">Early Access Form</CardTitle>
                 <CardDescription className="text-center text-lg font-bold font-medium text-gray-800">
-                   Ensure to fill in all the fields before submitting.
+                   Join the waitlist to get a 20% discount.
                 </CardDescription>
             </CardHeader>
             <CardContent>

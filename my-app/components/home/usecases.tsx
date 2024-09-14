@@ -16,7 +16,7 @@ function CommunicationCard({ title, description, iconPath, bgColor, bgOpacity }:
       <CardContent className="p-6 space-y-2 backdrop-blur-lg rounded-lg">
         <div className="flex items-center space-x-2">
         <div className="bg-white p-2 rounded-xl shadow-md relative">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#007fff">
             <path d={iconPath} />
           </svg>
         </div>
