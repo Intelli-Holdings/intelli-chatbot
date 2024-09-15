@@ -42,29 +42,34 @@ export function Home() {
     <div className="relative">
       <Navbar />
       <main className="pt-16">
-      <section className="container mx-auto mt-10 px-4">
-  <p className="mt-4 text-center text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500 mb-10">
-    Engage clients in <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500">seconds</span> with AI
-  </p>
-  <p className="my-10 text-center text-2xl font-bold text-gray-800">
-  Intelli, streamlines customer conversations for your business using AI across whatsapp, website and email.
-  </p>
-  <div className="flex justify-center mt-8 mb-10 space-x-4">
-  <a href="/auth/sign-up">
-    <Button className="text-xl font-bold py-8 px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
-      hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
-      ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
-      Sign-up for Free
-    </Button>
-  </a>
-</div>
-
-
-
-  <div className="mx-auto mt-10 px-4">
+      <section className="container mt-10">
+          <h1 className="mt-4 text-center text-5xl sm:text-6xl md:text-8xl font-extrabold">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500">
+              Engage clients in{' '}
+            </span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500">
+              seconds
+            </span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500">
+              {' '}with AI
+            </span>
+          </h1>
+          <p className="my-10 text-center text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
+            Intelli streamlines customer conversations for your business using AI across WhatsApp, website, and email.
+          </p>
+          <div className="flex justify-center mt-8 mb-10">
+            <a href="/auth/sign-up">
+              <Button className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
+                hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
+                ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
+                Sign-up for Free
+              </Button>
+            </a>
+          </div>
+          <div className="mx-auto mt-10 px-4">
     <PreviewLanding />
   </div>
-</section>
+        </section>
 <HowItWorksSection />
 
         <section className="py-10 relative">
@@ -80,10 +85,10 @@ export function Home() {
             <Usecases />
             <div className="flex justify-center mt-10 mb-10 space-x-4">
   <a href="/auth/sign-up">
-    <Button className="text-xl font-bold py-8 px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
-      hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
-      ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
-    See Channels In Action
+    <Button className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
+                hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
+                ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
+    Explore Channels
     </Button>
   </a>
 </div>
