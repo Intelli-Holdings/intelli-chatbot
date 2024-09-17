@@ -36,6 +36,7 @@ import CTASection from "./cta-section";
 import BlurIn from "@/components/magicui/blur-in";
 import ProductTeamsSection from "../home/productSection";
 import HowItWorksSection from "../home/howItworks";
+import { BentoSection } from "@/components/home/bentoSection";
 
 export function Home() {
   return (
@@ -57,7 +58,8 @@ export function Home() {
           <p className="my-10 text-center text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
             Intelli streamlines customer conversations for your business using AI across WhatsApp, website, and email.
           </p>
-          <div className="flex justify-center mt-8 mb-10">
+        <PreviewLanding />
+    <div className="flex justify-center mt-4 mb-10">
             <a href="/auth/sign-up">
               <Button className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
                 hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
@@ -66,18 +68,15 @@ export function Home() {
               </Button>
             </a>
           </div>
-          <div className="mx-auto mt-10 px-4">
-    <PreviewLanding />
-  </div>
         </section>
 <HowItWorksSection />
 
-        <section className="py-10 relative">
+        <section >
           
           <div className="flex justify-center mb-4">
             <Badge>Channels</Badge>
           </div>
-          <div className="container mx-auto">
+          <div className="container mx-auto sm:px-6 lg:px-8">
             <h2 className="text-center text-5xl font-bold mb-10">
               Where can you use Intelli?
             </h2>
@@ -94,7 +93,8 @@ export function Home() {
 </div>
           </div>
         </section>
-        <section className="py-12 ">
+        <section >
+          
         <div className="flex justify-center mb-4">
             <Badge>Benefits</Badge>
           </div>
@@ -103,60 +103,18 @@ export function Home() {
               Let&lsquo;s talk about what you gain
             </h2>
             <div className="container mx-auto sm:px-6 lg:px-8">
-              <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
-                <div className="bg-white-100 border border-gray-200 rounded-lg shadow-md p-6">
-                  <h3 className="text-xl font-semibold mb-4">
-                    Manage your customer service efficiently, save time
-                  </h3>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start">
-                      <span className="mr-2">✅</span>
-                      <span>
-                        Streamline Support Processes for Swift Resolution
-                      </span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✅</span>
-                      <span>Optimize Resources</span>
-                    </li>
-                    
-                    <li className="flex items-start">
-                      <span className="mr-2">✅</span>
-                      <span>Integrate with existing tools and platforms</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="bg-white-100 border border-gray-200 rounded-lg shadow-md p-6">
-                  <h3 className="text-xl font-semibold mb-4">
-                    Optimize your operations by reducing expenses
-                  </h3>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start">
-                      <span className="mr-2">✅</span>
-                      <span>Cut down on manpower</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">✅</span>
-                      <span>Reduce overhead costs</span>
-                    </li>
-                    
-                    <li className="flex items-start">
-                      <span className="mr-2">✅</span>
-                      <span>
-                        Maintain high-quality service and reduce delays
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
+            <BentoSection />
+
+
+
             </div>
           </div>
         </section>
-        <section className="py-12 rounded-xl p-4">
+        <section className="mt-10">
         <div className="flex justify-center mb-4">
             <Badge>Testimonials</Badge>
           </div>
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto sm:px-6 lg:px-8">
             <Testimonals />
           </div>
         </section>

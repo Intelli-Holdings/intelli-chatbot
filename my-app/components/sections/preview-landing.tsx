@@ -6,7 +6,7 @@ import { VolumeX, Volume2 } from 'lucide-react';
 export function PreviewLanding() {
   return (
     <div className="pb-6 sm:pb-16">
-      <div className="container">
+      
         <div className="rounded-xl bg-muted/10 ring-1 ring-inset relative">
           <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-xl">
             <iframe
@@ -18,10 +18,9 @@ export function PreviewLanding() {
               frameBorder="0"
             ></iframe>
           </AspectRatio>
-          <div className="absolute top-8 right-8">
-          </div>
+        
         </div>
-      </div>
+      
     </div>
   );
 }
