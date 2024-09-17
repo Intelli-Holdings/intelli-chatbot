@@ -1,5 +1,5 @@
-import { CalendarIcon, FileTextIcon } from "@radix-ui/react-icons";
-import { BellIcon, Share2Icon } from "lucide-react";
+import { CalendarIcon, FileTextIcon, UpdateIcon } from "@radix-ui/react-icons";
+import { ArrowDownRightFromCircle, ArrowUpToLineIcon, BellIcon, CircleDotIcon, LucideBellDot, MessageCircleCodeIcon, MessageSquareDashedIcon, MessageSquareDiffIcon, MoreHorizontalIcon, Share2Icon, TargetIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -10,32 +10,33 @@ import {AnimatedListDemo} from "@/components/magicui/animated-list-demo";
 
 const files = [
   {
-    name: "bitcoin.pdf",
-    body: "Bitcoin is a cryptocurrency invented in 2008 by an unknown person or group of people using the name Satoshi Nakamoto.",
+    name: "Reduce expenses",
+    body: "✅ Cut down on manpower",
+
   },
   {
-    name: "finances.xlsx",
-    body: "A spreadsheet or worksheet is a file made of rows and columns that help sort data, arrange data easily, and calculate numerical data.",
+    name: "Optimize Resources",
+    body: "✅ Reduce overhead costs",
   },
   {
-    name: "logo.svg",
-    body: "Scalable Vector Graphics is an Extensible Markup Language-based vector image format for two-dimensional graphics with support for interactivity and animation.",
+    name: "Improve Service",
+    body: "✅ Maintain high-quality service and reduce delays.",
   },
   {
-    name: "keys.gpg",
-    body: "GPG keys are used to encrypt and decrypt email, files, directories, and whole disk partitions and to authenticate messages.",
+    name: "Better Support",
+    body: "✅ Streamline Support Processes for Swift Resolution.",
   },
   {
-    name: "seed.txt",
-    body: "A seed phrase, seed recovery phrase or backup seed phrase is a list of words which store all the information needed to recover Bitcoin funds on-chain.",
+    name: "Save Time",
+    body: "✅ Manage your customer service efficiently and save time.",
   },
 ];
 
 const features = [
   {
-    Icon: FileTextIcon,
-    name: "Save your files",
-    description: "We automatically save your files as you type.",
+    Icon: MoreHorizontalIcon,
+    name: "Business Upgrades",
+    description: "We help your business upgrade on the customer service.",
     href: "#",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
@@ -50,13 +51,13 @@ const features = [
             className={cn(
               "relative w-32 cursor-pointer overflow-hidden rounded-xl border p-4",
               "border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05]",
-              "dark:border-gray-50/[.1] dark:bg-gray-50/[.10] dark:hover:bg-gray-50/[.15]",
+              
               "transform-gpu blur-[1px] transition-all duration-300 ease-out hover:blur-none",
             )}
           >
             <div className="flex flex-row items-center gap-2">
               <div className="flex flex-col">
-                <figcaption className="text-sm font-medium dark:text-white ">
+                <figcaption className="text-sm font-medium text-grey-500 ">
                   {f.name}
                 </figcaption>
               </div>
@@ -68,31 +69,33 @@ const features = [
     ),
   },
   {
-    Icon: BellIcon,
-    name: "Notifications",
-    description: "Get notified when something happens.",
+    Icon: LucideBellDot,
+    name: "Timely Notifications",
+    description: "Get notified when a customer sends a time-sensitive message.",
     href: "#",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-2",
     background: (
-      <AnimatedListDemo className="absolute h-[300px] w-full border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-105" />
+      <AnimatedListDemo 
+      className="absolute h-[300px] w-full border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-105" />
     ),
   },
   {
     Icon: Share2Icon,
     name: "Integrations",
-    description: "Supports 100+ integrations and counting.",
+    description: "Supports 10+ integrations and counting.",
     href: "#",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-2",
     background: (
-      <AnimatedBeamDemo className="absolute h-[400px] border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-105" />
+      <AnimatedBeamDemo  className="absolute h-[400px] border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-105" /> 
+      
     ),
   },
   {
-    Icon: CalendarIcon,
-    name: "Calendar",
-    description: "Use the calendar to filter your files by date.",
+    Icon: MessageSquareDiffIcon,
+    name: "Scheduled Messages",
+    description: "Schedule important messages to be sent by a particular date.",
     className: "col-span-3 lg:col-span-1",
     href: "#",
     cta: "Learn more",
