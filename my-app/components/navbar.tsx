@@ -8,18 +8,19 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const navItems = [
   {
-    label: "Use Cases",
+    label: "Product",
     href: "#",
     subItems: [
-      { label: "Automated Customer Support", href: "#" },
-      { label: "Flight Ticket Booking", href: "#" },
-      { label: "AI Student Support", href: "/document-processing" }
+      { label: "Whatsapp Assistant", href: "/whatsapp-assistant" },
+      { label: "AI Travel Curator", href: "/travel-curator" },
+      { label: "Website Assistant", href: "/chat" }
     ],
   },
   {
     label: "Resources",
     href: "/resources",
   },
+ 
   {
     label: "Company",
     href: "/company",
