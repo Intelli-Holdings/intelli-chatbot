@@ -44,13 +44,12 @@ const faqData: FAQItem[] = [
 
 const FAQComponent: React.FC = () => {
   return (
-    <section className="container mx-auto px-4 py-16">
-      <div className="">
+      <div className="container mx-auto sm:px-6 lg:px-8">
         <h2 className="mb-1 text-center text-4xl font-bold tracking-tighter text-blue-600">
           Frequently Asked Questions
         </h2>
 
-        <div className="mt-8 rounded-xl h-auto overflow-hidden shadow-md px-8 py-12">
+        <div className="mt-8 rounded-xl h-auto overflow-hidden shadow-md px-8 py-16">
           <Accordion type="single" collapsible className="w-full">
             {faqData.map((item, index) => (
               <AccordionItem key={`item-${index + 1}`} value={`item-${index + 1}`}>
@@ -61,7 +60,6 @@ const FAQComponent: React.FC = () => {
           </Accordion>
         </div>
       </div>
-    </section>
   );
 };
 

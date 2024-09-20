@@ -83,12 +83,12 @@ const features = [
   {
     Icon: Share2Icon,
     name: "Integrations",
-    description: "Supports 10+ integrations and counting.",
+    description: "We integrate with your favourite apps and so much more.",
     href: "#",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-2",
     background: (
-      <AnimatedBeamDemo  className="absolute h-[400px] border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-105" /> 
+      <AnimatedBeamDemo  className="absolute h-[300px] w-full right-0 top-10 origin-top rounded-md border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-105" /> 
       
     ),
   },
@@ -103,7 +103,7 @@ const features = [
       <Calendar
         mode="single"
         selected={new Date(2022, 4, 11, 0, 0, 0)}
-        className="absolute right-0 top-10 origin-top rounded-md border transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_40%,#000_100%)] group-hover:scale-105"
+        className="absolute right-0 top-10 origin-top rounded-md border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_40%,#000_100%)] group-hover:scale-105"
       />
     ),
   },

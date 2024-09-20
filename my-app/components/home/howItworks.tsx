@@ -5,7 +5,7 @@ const HowItWorksSection = () => {
   return (
     <section className="py-12">
       <div className="container mx-auto text-center">
-        <h2 className="text-5xl font-bold mb-10">How it works</h2>
+        <h2 className="text-5xl font-bold mb-10">How to get started</h2>
         
         {/* Steps */}
         <div className="flex flex-col lg:flex-row items-center justify-center gap-12">

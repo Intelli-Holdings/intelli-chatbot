@@ -68,7 +68,7 @@ export function Pricing () {
           Get Started Today.
         </p>
       </div>
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex items-center justify-center gap-3 border-none ">
         <button
           onClick={() => setBillingCycle('M')}
           className={`rounded-lg px-4 py-2 text-sm font-medium ${

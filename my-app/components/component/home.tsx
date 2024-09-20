@@ -1,78 +1,64 @@
 import { Button } from "@/components/ui/button";
-import FAQcomponent from '@/components/home/FAQcomponent';
-import {OrbitingCirclesComponent} from '@/components/orbiting-circles';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import FAQcomponent from "@/components/home/FAQcomponent";
+import { OrbitingCirclesComponent } from "@/components/orbiting-circles";
+
 import { Navbar } from "@/components/navbar";
-import {
-  CardTitle,
-  CardDescription,
-  CardContent,
-  Card,
-} from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Testimonals from "@/components/testimonial";
 import Usecases from "@/components/home/usecases";
 
-// image imports
-
-import pinkImage from "@/public/pink.png";
-import yellowImage from "@/public/yello.png";
-import Pie from "@/public/piechart.png";
-
 // Section and component imports
 
 import { PreviewLanding } from "@/components/sections/preview-landing";
-import SkewedInfiniteScroll from "@/components/skewed-scroll";
-import AnimatedLogoCloud from "../logo-cloud";
-import PricingSection from "@/components/component/pricing-component";
-import CTASection from "./cta-section";
-
-import BlurIn from "@/components/magicui/blur-in";
-import ProductTeamsSection from "../home/productSection";
-import HowItWorksSection from "../home/howItworks";
+import HowItWorksSection from "@/components/home/howItworks";
 import { BentoSection } from "@/components/home/bentoSection";
+import { FooterDemo } from "@/components/home/Footer";
+
+import UseCaseSection from "@/components/home/useCaseSection";
 
 export function Home() {
   return (
     <div className="relative">
       <Navbar />
       <main className="pt-16">
-      <section className="container mt-10">
+        <section className="container mt-10">
           <h1 className="mt-4 text-center text-5xl sm:text-6xl md:text-8xl font-extrabold">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500">
-              Engage clients in{' '}
+              Engage clients in{" "}
             </span>
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500">
               seconds
             </span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500">
-              {' '}with AI
+              {" "}
+              with AI
             </span>
           </h1>
           <p className="my-10 text-center text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
-            Intelli streamlines customer conversations for your business using AI across WhatsApp, website, and email.
+            Intelli streamlines customer conversations for your business using
+            AI across WhatsApp, website, and email.
           </p>
-        <PreviewLanding />
-    <div className="flex justify-center mt-4 mb-10">
+          <PreviewLanding />
+          <div className="flex justify-center mt-4 mb-10">
             <a href="/auth/sign-up">
-              <Button className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
+              <Button
+                className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
                 hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
-                ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
+                ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation"
+              >
                 Sign-up for Free
               </Button>
             </a>
           </div>
         </section>
-<HowItWorksSection />
 
-        <section >
-          
+        <section className="container mt-10">
+        <HowItWorksSection />
+        </section>
+
+        <section>
           <div className="flex justify-center mb-4">
             <Badge>Channels</Badge>
           </div>
@@ -83,44 +69,61 @@ export function Home() {
             <OrbitingCirclesComponent />
             <Usecases />
             <div className="flex justify-center mt-10 mb-10 space-x-4">
-  <a href="/auth/sign-up">
-    <Button className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
+              <a href="/auth/sign-up">
+                <Button
+                  className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
                 hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
-                ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
-    Explore Channels
-    </Button>
-  </a>
-</div>
-          </div>
-        </section>
-        <section >
-          
-        <div className="flex justify-center mb-4">
-            <Badge>Benefits</Badge>
-          </div>
-          <div className="container mx-auto px-4">
-            <h2 className="text-center text-5xl font-bold mb-10">
-              Let&lsquo;s talk about what you gain
-            </h2>
-            <div className="container mx-auto sm:px-6 lg:px-8">
-            <BentoSection />
-
-
-
+                ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation"
+                >
+                  Explore Channels
+                </Button>
+              </a>
             </div>
           </div>
         </section>
+
+        <section>
+          <div className="flex justify-center mb-4">
+            <Badge>Benefits</Badge>
+          </div>
+          <div className="container mx-auto sm:px-6 lg:px-8">
+            <h2 className="text-center text-5xl font-bold mb-10">
+              Let&lsquo;s talk about what you gain
+            </h2>
+            <div className="">
+              <BentoSection />
+            </div>
+          </div>
+        </section>
+
         <section className="mt-10">
-        <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-4">
             <Badge>Testimonials</Badge>
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8">
             <Testimonals />
           </div>
         </section>
-        <PricingSection />
-        <FAQcomponent />
+
+        <section className="mt-10">
+          <div className="flex justify-center mb-4">
+            <Badge>Use Cases</Badge>
+          </div>
+          <div className="container mx-auto sm:px-6 lg:px-8">
+            <UseCaseSection />
+          </div>
+        </section>
+
+        <section className="mb-10 mt-10">
+        <div className="">
+       <FAQcomponent />
+       </div>
+
+        </section> 
+        
       </main>
+    
+      <FooterDemo />
     </div>
   );
 }
