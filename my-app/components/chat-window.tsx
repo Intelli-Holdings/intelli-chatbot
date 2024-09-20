@@ -21,9 +21,8 @@ export function ChatWindow() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
 
   return (
-    <div
-      className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-lg"
-    >
+    <div  className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-lg" >
+
       <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
         <div className="flex items-center space-x-2">
           <Avatar>
@@ -38,8 +37,9 @@ export function ChatWindow() {
           </div>
         </div>
       </div>
+
       <div className="justify-between p-1">
-        <ScrollArea className="h-[calc(60vh-100px)]">
+        <ScrollArea className="h-[calc(50vh-100px)]">
           <div>
             <Card className="shadow-lg border-none">
               <CardContent>
