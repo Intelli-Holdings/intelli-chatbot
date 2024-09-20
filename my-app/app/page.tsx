@@ -7,9 +7,8 @@ import PopupModal from "@/components/component/popupModal";
 
 export default function Homepage() {
   return (
-    <main className="min-h-screen p-4 bg-white">
+    <main className="min-h-screen p-2 bg-white">
       <Home />
-      <TwoColumnFooter />
       <PopupModal />
     </main>
   );
