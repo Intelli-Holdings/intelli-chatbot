@@ -48,7 +48,7 @@ const UseCaseSection = () => {
                   </p>
                   <Link href="/auth/sign-up">
                     <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
-                      Get Elli Today
+                      Sign Up
                     </button>
                   </Link>
                 </div>
@@ -108,7 +108,7 @@ const UseCaseSection = () => {
                   </p>
                   <Link href="/auth/sign-up">
                     <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
-                      Get Elli Today
+                      Sign Up
                     </button>
                   </Link>
                 </div>
@@ -208,7 +208,7 @@ const UseCaseSection = () => {
                   </p>
                   <Link href="/auth/sign-up">
                     <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
-                      Get Elli Today
+                      Get Started
                     </button>
                   </Link>
                 </div>
@@ -268,7 +268,7 @@ const UseCaseSection = () => {
                   </p>
                   <Link href="/auth/sign-up">
                     <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
-                      Get Elli Today
+                      Get Started 
                     </button>
                   </Link>
                 </div>
