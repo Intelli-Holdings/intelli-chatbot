@@ -32,8 +32,15 @@ export function FooterDemo() {
             </Link>           
           </h2>
           <div className="flex space-x-4">
-            <Linkedin size={24} />            
-            <Instagram size={24} />
+            <Link href="https://www.linkedin.com/company/intelli-concierge">
+            <Linkedin size={24} />     
+            </Link>
+                 
+            <Link href="https://www.instagram.com/intelli_concierge/">
+            <Instagram size={24} /> 
+            </Link>
+                 
+         
             
           </div>
         </div>
