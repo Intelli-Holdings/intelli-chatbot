@@ -118,11 +118,8 @@ export function Home() {
         <div className="">
        <FAQcomponent />
        </div>
-
-        </section> 
-        
-      </main>
-    
+        </section>         
+      </main>    
       <FooterDemo />
     </div>
   );
