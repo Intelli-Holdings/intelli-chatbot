@@ -8,14 +8,12 @@ export default function Company() {
       <main className="pt-16">
         <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
           <h1 className="text-5xl font-bold text-left text-blue-600 mb-20">
-            Building AI Products That Revolutionize Industries
+            AI Products That Create Market Segments
           </h1>
           <p className="mt-4 text-2xl text-left text-gray-600">
             At Intelli, we&apos;re not just building AI-powered products; we are creating a workplace where innovation, creativity, and fun go hand in hand. Join us as we shape the future, making businesses smarter, faster, and more efficient.
           </p>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded mt-10">
-            Learn More
-          </button>
+
         </section>
 
         <hr className="my-4 mx-auto border-t-1 border-gray-300 w-4/6" />
@@ -109,12 +107,6 @@ export default function Company() {
             </p>
           </div>
 
-          <div className="mb-8">
-            <h4 className="text-xl font-bold text-left text-gray-700">Join Our Team</h4>
-            <p className="mt-2 text-lg text-gray-600">
-              Ready to make a difference? Explore our open positions and find your next career opportunity at Intelli. Work on cutting-edge AI technologies, collaborate with talented professionals, and be part of a company that&apos;s driving innovation across industries.
-            </p>
-          </div>
         </section>
         <hr className="my-4 mx-auto border-t-1 border-gray-300 w-4/6" />
 
