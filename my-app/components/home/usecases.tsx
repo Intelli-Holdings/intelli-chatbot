@@ -30,7 +30,7 @@ function CommunicationCard({ title, description, iconPath, bgColor, bgOpacity }:
 
 export default function Usecases() {
   return (
-    <div className="mt-20 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-8">
+    <div className="mt-20 grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4" >
       <CommunicationCard
         title="Whatsapp:"
         description="Businesses whose primary communication method is WhatsApp use Intelli to broadcast messages, schedule important reminders, and automate responses."
