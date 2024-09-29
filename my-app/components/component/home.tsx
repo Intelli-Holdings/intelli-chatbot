@@ -22,8 +22,8 @@ export function Home() {
   return (
     <div className="relative">
       <Navbar />
-      <main className="pt-16">
-        <section className="container mt-10">
+      <main className="pt-20">
+        <section className="container mt-20">
           <h1 className="mt-4 text-center text-5xl sm:text-6xl md:text-8xl font-extrabold">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500">
               Engage clients in{" "}
@@ -41,7 +41,7 @@ export function Home() {
             AI across WhatsApp, website, and email.
           </p>
           <PreviewLanding />
-          <div className="flex justify-center mt-4 mb-10">
+          <div className="flex justify-center mt- mb-10">
             <a href="/auth/sign-up">
               <Button
                 className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
@@ -54,11 +54,11 @@ export function Home() {
           </div>
         </section>
 
-        <section className="container mt-10">
+        <section className="container mt-20">
         <HowItWorksSection />
         </section>
 
-        <section>
+        <section className="container mt-20">
           <div className="flex justify-center mb-4">
             <Badge>Channels</Badge>
           </div>
@@ -82,15 +82,15 @@ export function Home() {
           </div>
         </section>
 
-        <section>
-          <div className="flex justify-center mb-4">
+        <section className="container mt-20">
+          <div className="flex justify-center ">
             <Badge>Benefits</Badge>
           </div>
-          <div className="container mx-auto sm:px-6 lg:px-8">
+          <div className="container mx-auto sm:px-6 lg:px-8 ">
             <h2 className="text-center text-5xl font-bold mb-10">
               Let&lsquo;s talk about what you gain
             </h2>
-            <div className="">
+            <div className="mt-10">
               <BentoSection />
             </div>
           </div>
@@ -118,11 +118,8 @@ export function Home() {
         <div className="">
        <FAQcomponent />
        </div>
-
-        </section> 
-        
-      </main>
-    
+        </section>         
+      </main>    
       <FooterDemo />
     </div>
   );

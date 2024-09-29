@@ -1,50 +1,49 @@
 import Meteors from "@/components/magicui/meteors";
-import { Twitter, Facebook, Linkedin, Youtube, Instagram, Music } from 'lucide-react';
+import { Twitter, Facebook, Mail, Linkedin, Youtube, Instagram, Music } from 'lucide-react';
 import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function FooterDemo() {
+  const handleEmailClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    window.location.href = "mailto:support@intelliconcierge.com";
+  };
+
   return (
     <div className="relative flex h-[500px] w-full flex-col items-center justify-center overflow-hidden rounded-lg border bg-background md:shadow-xl">
       <Meteors number={30} />
       <div className="max-w-8xl mx-auto">
-     
-        {/* Top section with links 
-        <div className="grid grid-cols-4 gap-8 mb-12">
-          <div>
-            <h3 className="font-semibold mb-4">Intelli for Startups</h3>
-          
-          </div>
-          
-          <div>
-          
-          </div>
-          <div>
-          <h3 className="font-semibold mb-4">Intelli for Enterprise</h3>
-          </div>
-        </div>
-        */}
         
         {/* Middle section with contact and social links */}
         <div className="border-t border-b border-gray-700 py-8 flex justify-between items-center">
           <h2 className="text-4xl font-light">
-            <Link href="mailto:support@intelliconcierge.com">
-            <span className="font-bold text-[#007fff]">Contact us.</span>
-            </Link>           
+            <a href="mailto:support@intelliconcierge.com" onClick={handleEmailClick} className="font-bold text-[#007fff]">
+              Contact us.
+            </a>           
           </h2>
           <div className="flex space-x-4">
             <Link href="https://www.linkedin.com/company/intelli-concierge">
-            <Linkedin size={24} />     
+              <Linkedin size={24} />     
             </Link>
                  
             <Link href="https://www.instagram.com/intelli_concierge/">
-            <Instagram size={24} /> 
+              <Instagram size={24} /> 
             </Link>
-                 
-         
-            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a href="mailto:support@intelliconcierge.com" onClick={handleEmailClick}>
+                    <Mail size={24} /> 
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>support@intelliconcierge.com</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
-
+        
         {/* Bottom section with logo and legal links */}
         <div className="mt-12">
           <h1 className="text-8xl pointer-events-none whitespace-pre-wrap bg-gradient-to-b from-black to-slate-300/80 bg-clip-text text-8xl font-extrabold leading-none text-transparent ">Intelli</h1>
