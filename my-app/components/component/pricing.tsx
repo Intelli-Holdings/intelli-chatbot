@@ -23,8 +23,8 @@ const pricingPlans = [
     name: 'Whatsapp Assistant',
     description:
       'Never miss a sales opportunity by delivering instant responses to your customers on WhatsApp.',
-    monthlyPrice: 20,
-    annualPrice: 240,
+    monthlyPrice: 25,
+    annualPrice: 280,
     link: 'https://paystack.com/pay/gnhtnpaxpg',
     features: [
       'An AI-powered WhatsApp assistant',
