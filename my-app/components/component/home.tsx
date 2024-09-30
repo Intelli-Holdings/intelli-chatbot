@@ -41,7 +41,7 @@ export function Home() {
             AI across WhatsApp, website, and email.
           </p>
           <PreviewLanding />
-          <div className="flex justify-center mt- mb-10">
+    <div className="flex justify-center mt-10 mb-10">
             <a href="/auth/sign-up">
               <Button
                 className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
