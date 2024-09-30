@@ -5,7 +5,7 @@ import Image from "next/image";
 const WhatsAppDemo = () => {
   const [showQrCode, setShowQrCode] = useState(true);
 
-  const whatsappNumber = "256786871705";
+  const whatsappNumber = "15550230889";
   const whatsappUrl = `https://wa.me/${whatsappNumber}`; // WhatsApp chat URL
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(whatsappUrl)}&size=300x300`; // Use URL encoding for the QR code API
 
