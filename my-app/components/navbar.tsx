@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -16,10 +16,9 @@ const navItems = [
     ],
   },
   {
-    label: "Resources",
-    href: "/resources",
+    label: "Blog",
+    href: "/medium-blog",
   },
- 
   {
     label: "Company",
     href: "/company",
@@ -29,50 +28,61 @@ const navItems = [
 export function Navbar() {
   const [activeItem, setActiveItem] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false); // State to track dropdown open/close
+  const dropdownRef = useRef(null); // Ref for dropdown
   const router = useRouter();
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024);
     };
-    
+
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleItemHover = (label: any) => {
-    setActiveItem(label);
+  const handleDropdownToggle = () => {
+    setDropdownOpen(prev => !prev);
   };
 
-  const handleItemLeave = () => {
-    setActiveItem(null);
-  };
-
-  const handleNavigate = (href: any) => {
+  const handleNavigate = (href:any) => {
     if (router) {
       router.push(href);
+      setDropdownOpen(false); // Close dropdown when navigating
     }
   };
+
+  const handleClickOutside = (event:any) => {
+    if (dropdownRef.current && !(dropdownRef.current as HTMLElement).contains(event.target)) {
+      setDropdownOpen(false); // Close dropdown if clicked outside
+    }
+  };
+
+  useEffect(() => {
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownOpen]);
 
   const NavContent = ({ mobile = false }) => (
     <div className={`flex ${mobile ? 'flex-col space-y-4' : 'items-center space-x-20'}`}>
       {navItems.map((item) => (
-        <div
-          key={item.label}
-          className={`relative ${mobile ? 'w-full' : 'flex'}`}
-          onMouseEnter={() => handleItemHover(item.label)}
-          onMouseLeave={handleItemLeave}
-        >
+        <div key={item.label} className={`relative ${mobile ? 'w-full' : 'flex'}`}>
           <a
             className={`text-gray-600 hover:text-yellow-500 font-medium ${mobile ? 'block py-2' : ''}`}
             href={item.href}
-            onClick={() => handleNavigate(item.href)}
+            onClick={item.label === "Products" ? (e) => { e.preventDefault(); handleDropdownToggle(); } : () => handleNavigate(item.href)}
           >
             {item.label}
           </a>
-          {activeItem === item.label && item.subItems && (
-            <div className={`${mobile ? 'mt-2' : 'absolute top-full mt-2'} w-48 bg-white shadow-lg rounded-md`}>
+          {dropdownOpen && item.label === "Products" && item.subItems && (
+            <div ref={dropdownRef} className={`${mobile ? 'mt-2' : 'absolute top-full mt-2'} w-48 bg-white shadow-lg rounded-md`}>
               <div className="py-2">
                 {item.subItems.map((subItem) => (
                   <a
@@ -92,6 +102,7 @@ export function Navbar() {
       <a
         className={`text-gray-600 hover:text-yellow-500 font-medium ${mobile ? 'block py-2' : ''}`}
         href="/pricing"
+        onClick={() => handleNavigate("/pricing")}
       >
         Pricing
       </a>
@@ -107,7 +118,7 @@ export function Navbar() {
             <span className="ml-2 text-2xl font-bold text-gray-900">Intelli</span>
           </a>
         </div>
-        
+
         {isMobile ? (
           <Sheet>
             <SheetTrigger asChild>
