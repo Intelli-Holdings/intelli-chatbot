@@ -2,6 +2,8 @@ import React from 'react';
 import Recent from '@/components/sections/articles/recent';
 import settings from '@/content/_settings.json';
 import {Navbar} from '@/components/navbar';
+import Blog from '@/components/sections/blog/blog-layout';
+import BlogPage from '@/components/sections/blog/blog-page';
 
 interface Article {
   id: string;
@@ -35,7 +37,7 @@ export default async function Page() {
   return (
     <>
     <Navbar />  
-      <Recent mediumArticles={mediumArticles} />
+      <BlogPage />
     </>
   );
 }
