@@ -45,7 +45,7 @@ const faqData: FAQItem[] = [
 const FAQComponent: React.FC = () => {
   return (
       <div className="container mx-auto sm:px-6 lg:px-8">
-        <h2 className="mb-1 text-center text-4xl font-bold tracking-tighter text-blue-600">
+        <h2 className="mb-1 text-center text-4xl font-bold tracking-tighter">
           Frequently Asked Questions
         </h2>
 

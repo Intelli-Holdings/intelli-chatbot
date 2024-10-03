@@ -83,7 +83,7 @@ export function Home() {
         </section>
 
         <section className="container mt-20">
-          <div className="flex justify-center ">
+          <div className="flex justify-center mb-4">
             <Badge>Benefits</Badge>
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8 ">
@@ -105,7 +105,7 @@ export function Home() {
           </div>
         </section>
 
-        <section className="mt-10">
+        <section className="mb-10 mt-10">
           <div className="flex justify-center mb-4">
             <Badge>Use Cases</Badge>
           </div>

@@ -7,10 +7,10 @@ export default function Company() {
       <Navbar />
       <main className="pt-16">
         <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
-          <h1 className="text-5xl font-bold text-left text-blue-600 mb-20">
+          <h1 className="text-4xl font-bold text-left mb-4">
             AI Products That Create Market Segments
           </h1>
-          <p className="mt-4 text-2xl text-left text-gray-600">
+          <p className="mt-4 text-2xl text-left text-gray-400">
             At Intelli, we&apos;re not just building AI-powered products; we are creating a workplace where innovation, creativity, and fun go hand in hand. Join us as we shape the future, making businesses smarter, faster, and more efficient.
           </p>
 
@@ -18,7 +18,7 @@ export default function Company() {
 
         <hr className="my-4 mx-auto border-t-1 border-gray-300 w-4/6" />
         <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
-          <h2 className="text-3xl font-bold text-left text-blue-600 mb-10">Our Mission and Vision</h2>
+          <h2 className="text-3xl font-bold mb-10">Our Mission and Vision</h2>
 
           <div className="mb-8">
             <h4 className="text-xl font-bold text-left text-gray-700">Mission</h4>
@@ -38,7 +38,7 @@ export default function Company() {
         <hr className="my-4 mx-auto border-t-1 border-gray-300 w-4/6" />
 
         <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
-          <h2 className="text-3xl font-bold text-left text-blue-600 mb-10">Our Purpose</h2>
+          <h2 className="text-3xl font-bold mb-10">Our Purpose</h2>
 
           <h3 className="text-2xl font-bold text-left text-gray-700 mb-6">G.L.O.W. Values</h3>
 
@@ -75,7 +75,7 @@ export default function Company() {
         <hr className="my-4 mx-auto border-t-1 border-gray-300 w-4/6" />
 
         <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
-          <h2 className="text-3xl font-bold text-left text-blue-600 mb-10">Why Work With Us</h2>
+          <h2 className="text-3xl font-bold text-left mb-10">Why Work With Us</h2>
 
           <h3 className="text-2xl font-bold text-left text-gray-700 mb-6">Life at Intelli</h3>
 

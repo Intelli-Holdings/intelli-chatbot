@@ -60,9 +60,9 @@ const TestimonialCard: FC<TestimonalCardProps> = ({
 }) => {
   return (
     <div
-      className={`card-shadow dark:border-neutral-200 relative flex h-auto max-w-[22rem] select-none flex-col items-start justify-center overflow-hidden rounded-2xl border border-neutral-100 p-5 shadow-sm transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-sm dark:border-neutral-800 dark:hover:shadow-white/10`}
+      className={`card-shadow dark:border-neutral-100 relative flex h-auto max-w-[22rem] select-none flex-col items-start justify-center overflow-hidden rounded-2xl border border-neutral-100 p-5 shadow-sm transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-sm dark:border-neutral-800 dark:hover:shadow-white/10`}
     >
-      <div className="absolute right-0 top-0 h-24 w-24 rounded-2xl bg-gradient-to-r from-[#007fff]  to-[#007] opacity-20 blur-3xl"></div>
+      <div className="absolute right-0 top-0 h-24 w-24 rounded-2xl bg-gradient-to-r from-[#007fff]  to-[#68E4E6] opacity-20 blur-3xl"></div>
       <div className="mb-0 flex h-fit flex-row items-center gap-3">
         <Image
           className="m-0 block h-11 w-11 rounded-full object-cover"
