@@ -62,7 +62,7 @@ export function Pricing () {
           Pricing
         </div>
         <p className="mt-2 text-3xl font-bold tracking-tight text-gray-800 sm:text-4xl">
-          Scalable Pricing That Grows With Your Business.
+          Scalable Pricing For Your Business.
         </p>
         <p className="text-md max-w-xl text-gray-700 md:text-center ">
           Get Started Today.
@@ -100,9 +100,9 @@ export function Pricing () {
       {pricingPlans.map((plan, index) => (
         <div
           key={index}
-          className="w-full rounded-xl border-[1px] border-gray-300 bg-white p-6 text-left"
+          className="w-full rounded-xl border-[1px] border-gray-150 shadow-md bg-white p-6 text-left"
         >
-          <p className="mb-1 mt-0 text-2xl font-medium uppercase text-blue-500">
+          <p className="mb-1 mt-0 text-2xl font-bold uppercase text-blue-500">
             {plan.name}
           </p>
           <p className="my-0 mb-6 text-sm text-gray-600">{plan.description}</p>
