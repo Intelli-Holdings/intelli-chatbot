@@ -1,13 +1,11 @@
 // components/quickstart/technology-selection.tsx
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RowsIcon } from '@radix-ui/react-icons';
 
 const technologies = [
-  { name: 'Next.js', icon: '...' },
+  { name: 'Next.js', icon: '...', },
   { name: 'React', icon: '...' },
-  { name: 'Redux', icon: '...' },
-  { name: 'Zustand', icon: '...' },
-  { name: 'Svelte', icon: '...' },
   { name: 'Vue.js', icon: '...' },
   { name: 'SolidJS', icon: '...' },
   { name: 'JavaScript', icon: '...' },
