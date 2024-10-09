@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Users, CalendarCheck, Activity } from 'lucide-react';
+import { MessageSquare, Users, CalendarCheck } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@clerk/nextjs";
 import Link from 'next/link';
-// import { OverviewChart } from '@/components/dash-components/overview'; // Ensure correct import
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -108,7 +107,7 @@ export function StatsOverview() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <DashboardMetric
           title="Total Assistants"
           value={stats?.totalAssistants || 0}
@@ -133,14 +132,6 @@ export function StatsOverview() {
           icon={CalendarCheck}
           isLoading={isLoading}
           iconColor="text-yellow-500"
-        />
-        <DashboardMetric
-          title="Engagement Rate"
-          value={75}
-          change=""
-          icon={Activity}
-          isLoading={isLoading}
-          iconColor="text-red-500"
         />
       </div>
     </div>
