@@ -4,15 +4,11 @@ import { Button } from '@/components/ui/button';
 
 const steps = [
   {
-    title: 'Install Liveblocks',
-    description: 'Every package should use the same version.',
-    command: 'npm install @liveblocks/client @liveblocks/react',
+    title: 'Install Intelli',
+    description: 'Copy the snippet of Code below and add it into the header section of your website.',
+    command: 'npm install @intelli/client',
   },
-  {
-    title: 'Initialize the liveblocks.config.ts file',
-    description: 'We can use the CLI to generate this file for you.',
-    command: 'npx create-liveblocks-app@latest --init --framework react',
-  },
+
 ];
 
 export default function InstallationSteps() {
