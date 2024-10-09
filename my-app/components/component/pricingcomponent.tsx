@@ -70,7 +70,7 @@ const PricingComponent = () => {
           <span className={`ml-2 ${isAnnual ? 'font-semibold' : 'text-gray-500'}`}>Annual (Save 20%)</span>
         </div>
 
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-8 px-4">
           {plans.map((plan) => {
             const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
             const period = isAnnual ? 'year' : 'month';
