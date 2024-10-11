@@ -44,7 +44,7 @@ const PricingComponent = () => {
         'Multiple AI assistants',
         'Dedicated account manager',
         'Enterprise-grade support',
-        'Custom integrations',
+        'Access to Intelli APIs',
       ],
       buttonText: 'Contact Sales',
     },
