@@ -54,9 +54,9 @@ const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, change,
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+            <p className="text-xl font-medium text-muted-foreground mb-1">{title}</p>
             {isLoading ? (
-              <div className="text-3xl font-bold animate-pulse">Loading...</div>
+              <div className="text-lg font-thin animate-shimmer">Fetching data...</div>
             ) : (
               <h2 className="text-3xl font-bold">{value}</h2>
             )}
