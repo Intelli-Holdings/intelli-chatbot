@@ -34,7 +34,14 @@ import {
 export function DashComponent() {
   return (
     <div className="p-1 space-y-6">
-      <div className="flex justify-between items-center">
+
+      
+
+      <StatsOverview />
+
+      {/**
+       * 
+       * <div className="flex justify-between items-center">
         <Link href={"/dashboard/get-started"} onClick={() => {}}>
           <div>
             <TooltipProvider>
@@ -55,10 +62,7 @@ export function DashComponent() {
           </div>
         </Link>
       </div>
-
-      <StatsOverview />
-
-      {/**
+       * 
    * <div className="grid gap-6 md:grid-cols-2">
       <OverviewChart />
       <Escalations />
