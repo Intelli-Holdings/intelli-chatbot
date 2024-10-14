@@ -1,11 +1,11 @@
-import { OpenAIClient, AzureKeyCredential } from '@azure/openai';
+import { AzureKeyCredential, OpenAIClient } from "@azure/openai";
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 export const runtime = 'edge';
 
 // Create an OpenAI API client (that's edge friendly!)
 const client = new OpenAIClient(
-  'https://sqweya-subdomain.openai.azure.com/',
+  'https://intelliwebapp.openai.azure.com/',
   new AzureKeyCredential(process.env.AZURE_OPENAI_API_KEY!),
 );
 
@@ -32,27 +32,20 @@ export async function POST(req: Request) {
   ];
 
   // Ask Azure OpenAI for a streaming chat completion given the prompt
-  const response = await client.streamChatCompletions(
+  const response = await client.getChatCompletions(
     'gpt-35-turbo',
     messagesWithSystemMessage,
+    { maxTokens: 800 }
   );
 
-  // Convert the response into a friendly text-stream
-  const stream = OpenAIStream(response, {
-    onStart: async () => {
-      // This callback is called when the stream starts
-      // You can use this to save the prompt to your database (if applicable)
-      await savePromptToDatabase(messagesWithSystemMessage.join(' ')); // Combine messages into prompt
-    },
-    onToken: async (token) => {
-      // This callback is called for each token in the stream
-      // You can use this to debug the stream or save the tokens to your database (if needed)
-      console.log(token);
-    },
-    onCompletion: async (completion) => {
-      // This callback is called when the stream completes
-      // You can use this to save the final completion to your database (if applicable)
-      await saveCompletionToDatabase(completion);
+  // Extract the completion text from the response
+  const completion = response.choices[0].message?.content || '';
+
+  // Create a ReadableStream from the completion text
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(completion);
+      controller.close();
     },
   });
 
