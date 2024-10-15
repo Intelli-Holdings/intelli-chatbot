@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Users, CalendarCheck, Activity } from 'lucide-react';
+import { MessageSquare, Users, CalendarCheck } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@clerk/nextjs";
 import Link from 'next/link';
-// import { OverviewChart } from '@/components/dash-components/overview'; // Ensure correct import
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -55,9 +54,9 @@ const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, change,
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+            <p className="text-xl font-medium text-muted-foreground mb-1">{title}</p>
             {isLoading ? (
-              <div className="text-3xl font-bold animate-pulse">Loading...</div>
+              <div className="text-lg font-thin animate-shimmer">Fetching data...</div>
             ) : (
               <h2 className="text-3xl font-bold">{value}</h2>
             )}
@@ -108,7 +107,7 @@ export function StatsOverview() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <DashboardMetric
           title="Total Assistants"
           value={stats?.totalAssistants || 0}
@@ -133,14 +132,6 @@ export function StatsOverview() {
           icon={CalendarCheck}
           isLoading={isLoading}
           iconColor="text-yellow-500"
-        />
-        <DashboardMetric
-          title="Engagement Rate"
-          value={75}
-          change=""
-          icon={Activity}
-          isLoading={isLoading}
-          iconColor="text-red-500"
         />
       </div>
     </div>

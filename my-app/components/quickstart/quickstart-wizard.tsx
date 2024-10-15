@@ -1,15 +1,14 @@
-// components/quickstart/quickstart-wizard.tsx
-
 'use client';
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import InviteDeveloper from './invite-developer';
+import InviteDeveloper from './invite-employee';
 import BuildingOptions from './building-options';
 import TechnologySelection from './technology-selection';
 import InstallationSteps from './installation-steps';
+import CreateOrganization from './create-organization';
 
 interface Step {
   id: string;
@@ -18,13 +17,13 @@ interface Step {
 }
 
 const steps: Step[] = [
+  { id: 'create', title: 'Create', component: CreateOrganization },
   { id: 'invite', title: 'Invite', component: InviteDeveloper },
   { id: 'building', title: 'Build', component: BuildingOptions },
-  { id: 'technology', title: 'Refine', component: TechnologySelection },
-  { id: 'install', title: 'Install', component: InstallationSteps },
+
 ];
 
-export default function QuickstartWizard() {
+export default function GetStartedWizard() {
   const [currentStep, setCurrentStep] = useState(0);
 
   const CurrentStepComponent = steps[currentStep].component;
@@ -32,11 +31,11 @@ export default function QuickstartWizard() {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Get started with Liveblocks</CardTitle>
+        <CardTitle>Get started with Intelli</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs value={steps[currentStep].id} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             {steps.map((step, index) => (
               <TabsTrigger
                 key={step.id}

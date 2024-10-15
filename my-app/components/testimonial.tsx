@@ -9,13 +9,7 @@ const testimonials = [
     profession: 'Software Developer at Agriguard',
     image: '/bern.jpeg',
   },
-  {
-    name: 'Kwame',
-    profession: 'Manager at Aqua Safari Resort',
-    description:
-      "We used to stress about our business and customers; eversince we put our customer support on autopilot, we got more revenue.",
-    image: '/Aqua-Safari-Logo.png',
-  },
+ 
   {
     name: 'Koffi Derek Addo',
     profession: 'CEO at Agriguard',
@@ -30,13 +24,7 @@ const testimonials = [
       "I believe in the power of automating service delivery with a human touch, Intelli concierge gives us the ability to do just that with their solution.",
     image: '/andre.jpeg',
   },
-  {
-    name: 'Frederick Osei',
-    profession: 'Manager at Mendiata Hotel',
-    description:
-      "The service we are delivering to our customers at Mendiata is exceptional, and when we added Intelli Concierge to this; the ratings and reviews we are getting are very heartwarming.",
-    image: '/fred.jpeg',
-  },
+  
   {
     name: 'Akweley Abena',
     profession: 'GDG Accra Partnerships Associate',
