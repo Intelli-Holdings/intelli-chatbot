@@ -7,6 +7,8 @@ import { X } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
+import { Card } from "@/components/ui/card";
+
 interface Notification {
   id: string;
   event_type: string;
@@ -132,11 +134,12 @@ export default function NotificationsComponent() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Card>
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b">
         <div className="flex items-center space-x-4">
           <nav className="space-x-4">
             <Link className="text-xl font-bold mb-4" href="#">
-              Notification Dashboard
+              Notification Stream
             </Link>
           </nav>
         </div>
@@ -210,6 +213,9 @@ export default function NotificationsComponent() {
           </ul>
         </div>
       </main>
+
+      </Card>
+      
     </div>
   );
 }
