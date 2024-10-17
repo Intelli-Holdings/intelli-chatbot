@@ -118,6 +118,18 @@ export const navItems: NavItem[] = [
     label: "Dashboard",
   },
   {
+    title: "Analytics",
+    href: "/dashboard/analytics",
+    icon: "BarChart",
+    label: "Analytics",
+  },
+  {
+    title: "Assistants",
+    href: "/dashboard/assistants",
+    icon: "Bot",
+    label: "Assistants",
+  },
+  {
     title: "Conversations",
     href: "/dashboard/conversations",
     icon: "MessageSquareDot",
