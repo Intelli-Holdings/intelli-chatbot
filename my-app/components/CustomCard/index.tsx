@@ -67,7 +67,7 @@ const CustomCard: React.FC<CardComponentProps> = ({
           )}
           {currentStep + 1 === totalSteps && (
             <Button onClick={() => handleConfetti()} className="ml-auto">
-              🎉 Finish!
+              🎉Congratulations, You Finished the Tour!
             </Button>
           )}
         </div>
