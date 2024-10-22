@@ -133,13 +133,13 @@ export default function NotificationsComponent() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="space-y-4">
       <Card>
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b">
         <div className="flex items-center space-x-4">
           <nav className="space-x-4">
             <Link className="text-xl font-bold mb-4" href="#">
-              Notification Stream
+              Notification History
             </Link>
           </nav>
         </div>
