@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import Onboarding from "@/components/onboarding";
+import OnboardingComponent from "@/components/onboarding";
 
 
 export default function CreateTeamPage() {
@@ -39,10 +40,7 @@ export default function CreateTeamPage() {
 
   return (
     <div >   
-        
-            <Onboarding />          
-     
- 
+            <OnboardingComponent />          
     </div>
   );
 }
