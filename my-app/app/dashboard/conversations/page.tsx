@@ -207,29 +207,11 @@ export default function ConversationsPage() {
   const userEmail = user.emailAddresses[0].emailAddress;
 
   return (
-    <div className="grid min-h-screen w-full">
-      <div className="flex p-4">
+    <div className="container mx-auto px-4 py-8">
+       <h1 className="text-2xl font-bold mb-6">Conversations</h1>
+     
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-          <div className="border-b">
-            <div className="flex h-16 items-center px-4">
-              <Breadcrumb className="hidden md:flex">
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink>
-                      <Link href="/dashboard">Dashboard</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link href="/dashboard/conversations">Conversations</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-          </div>
+
           <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
             <Suspense fallback={
               <>
@@ -243,7 +225,7 @@ export default function ConversationsPage() {
             </Suspense>
           </div>
         </main>
-      </div>
+  
     </div>
   );
 }

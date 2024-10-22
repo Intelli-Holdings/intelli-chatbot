@@ -3,6 +3,15 @@ import Sidebar from "@/components/layout/sidebar";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 
+// Onborda
+import { Onborda, OnbordaProvider } from "onborda";
+import { steps } from "@/lib/steps";
+
+
+// Custom Card
+import CustomCard from "@/components/CustomCard";
+
+
 export const metadata: Metadata = {
   title: "Intelli Dashboard",
   description: "The Dashboard for Businesses that care about their customers.",
@@ -22,12 +31,25 @@ export default function DashboardLayout({
 }) {
   return (
     <div suppressHydrationWarning>
+      <OnbordaProvider>          
      <Toaster position="top-right" />
       <Header />
       <div className="flex h-screen">
         <Sidebar />
-        <main className="w-full pt-16">{children}</main>
+        <main className="w-full pt-16">
+        <Onborda
+        steps={steps}
+        showOnborda={true}
+        shadowRgb="55,48,163"
+        shadowOpacity="0.8"
+        cardComponent={CustomCard}
+        cardTransition={{ duration: 2, type: "tween" }}
+            >
+          {children}
+          </Onborda>
+          </main>
       </div>
+      </OnbordaProvider>
     </div>
   );
 }
