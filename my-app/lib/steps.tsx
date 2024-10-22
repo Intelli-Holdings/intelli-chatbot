@@ -33,7 +33,7 @@ export const steps: any = [
     {
         icon: <>📊</>,
         title: "Analytics Dashboard",
-        content: <>Access detailed analytics and insights about your assistants' performance, user engagement, and conversation metrics.</>,
+        content: <>Access detailed analytics and insights about your assistants&apos; performance, user engagement, and conversation metrics.</>,
         selector: "#analytics-link",
         side: "right",
         showControls: true,
@@ -63,7 +63,7 @@ export const steps: any = [
     {
         icon: <>🔔</>,
         title: "Notifications Center",
-        content: <>Stay informed with real-time alerts about your assistants' activities and important updates.</>,
+        content: <>Stay informed with real-time alerts about your assistants&apos; activities and important updates.</>,
         selector: "#notifications-link",
         side: "right",
         showControls: true,
@@ -73,7 +73,7 @@ export const steps: any = [
     {
         icon: <>🏢</>,
         title: "Organization Settings",
-        content: <>Manage your organization's preferences, team access, and global configurations.</>,
+        content: <>Manage your organization&apos;s preferences, team access, and global configurations.</>,
         selector: "#organization-link",
         side: "right",
         showControls: true,
@@ -234,7 +234,7 @@ export const steps: any = [
     {
         icon: <>🚀</>,
         title: "Get Started!",
-        content: <>You're ready to start using IntelliConcierge. Let's create your first assistant!</>,
+        content: <>You&apos;re ready to start using IntelliConcierge. Let&apos;s create your first assistant!</>,
         selector: "#step-get-started",
         side: "bottom",
         showControls: true,

@@ -220,7 +220,7 @@ const OnboardingComponent = () => {
                 {step.id === 3 && currentStep === 3 && (
                   <div className="mt-4 space-y-4">
                     <p className="text-sm text-gray-600">
-                      Make sure to copy your API key now as you won't be able to see it again. It
+                      Make sure to copy your API key now as you won&apos;t be able to see it again. It
                       may take a few seconds for it to propagate.
                     </p>
                     
@@ -233,7 +233,7 @@ const OnboardingComponent = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-sm text-gray-600">Here's your API key:</div>
+                      <div className="text-sm text-gray-600">Here&apos;s your API key:</div>
                       <div className="flex items-center space-x-2">
                         <code className="flex-1 bg-gray-100 p-2 rounded">{apiKey}</code>
                         <button
