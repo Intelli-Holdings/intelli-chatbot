@@ -7,6 +7,7 @@ const config: Config = {
     "./constants/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}'
   ],
   theme: {
     container: {

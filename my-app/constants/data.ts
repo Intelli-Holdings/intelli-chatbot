@@ -114,14 +114,20 @@ export const navItems: NavItem[] = [
   {
     title: "Command Center",
     href: "/dashboard",
-    icon: "LayoutDashboardIcon",
+    icon: "Home",
     label: "Dashboard",
   },
   {
-    title: "Conversations",
-    href: "/dashboard/conversations",
-    icon: "MessageSquareDot",
-    label: "Conversations",
+    title: "Analytics",
+    href: "/dashboard/analytics",
+    icon: "BarChart",
+    label: "Analytics",
+  },
+  {
+    title: "Assistants",
+    href: "/dashboard/assistants",
+    icon: "Bot",
+    label: "Assistants",
   },
   {
     title: "Notifications",
@@ -129,6 +135,13 @@ export const navItems: NavItem[] = [
     icon: "BellDot",
     label: "Notifications",
   },
+  {
+    title: "Conversations",
+    href: "/dashboard/conversations",
+    icon: "MessageSquareDot",
+    label: "Conversations",
+  },
+
   {
     title: "Organization",
     href: "/dashboard/organization",

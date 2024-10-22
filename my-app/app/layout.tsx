@@ -5,6 +5,13 @@ import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
+// Onborda
+import { Onborda, OnbordaProvider } from "onborda";
+import { steps } from "@/lib/steps";
+
+// Custom Card
+import CustomCard from "@/components/CustomCard";
+
 import Script from "next/script";
 
 import { PHProvider } from './providers'
@@ -65,7 +72,16 @@ export default function RootLayout({
       <SignedOut>          <SignInButton />        </SignedOut>        <SignedIn>          <UserButton />        </SignedIn>
       <body className={inter.className}>
       <PostHogPageView /> 
+      <OnbordaProvider>
+            <Onborda
+              steps={steps}
+              cardComponent={CustomCard}
+              shadowOpacity="0.8"
+            >
         {children}
+        </Onborda>   
+      </OnbordaProvider>
+       
       <Toaster
       toastOptions={{
         classNames: {
