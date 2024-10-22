@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useOrganizationList, useOrganization } from "@clerk/nextjs";
 import {
   Breadcrumb,
@@ -27,30 +28,13 @@ export default function Page() {
   }
 
   return (
-    <div className="grid min-h-screen w-full">
+    <div className="container mx-auto px-4 py-8">
+       <h1 className="text-2xl font-bold mb-6">Organizations</h1>
       <div className="flex flex-col">
-        <div className="border-b">
-          <div className="flex h-16 items-center px-4">
-            <Breadcrumb className="hidden md:flex">
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard/organization">Organization</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </div>
+
         <div className="grid gap-4 p-4 md:gap-8 md:p-6">
           <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Organizations</h2>
+           
             {userMemberships.data?.length > 0 ? (
               <>
                 <ul>
@@ -75,7 +59,7 @@ export default function Page() {
             ) : (
               <div>
                 <p>You are not a member of any organizations.</p>
-                <button onClick={handleCreateOrganization}>Create New Organization</button>
+                <Button onClick={handleCreateOrganization}>Create New Organization</Button>
               </div>
             )}
           </div>
