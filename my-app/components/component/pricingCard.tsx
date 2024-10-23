@@ -10,6 +10,7 @@ interface PricingCardProps {
   features: string[];
   buttonText: string;
   isRecommended?: boolean;
+  link: string; // New prop for the link URL
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({
@@ -20,6 +21,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
   features,
   buttonText,
   isRecommended = false,
+  link, // Accept the link as a prop
 }) => {
   return (
     <div
@@ -46,12 +48,12 @@ const PricingCard: React.FC<PricingCardProps> = ({
           </li>
         ))}
       </ul>
-      <button
-        className="w-full py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800 transition"
-        type="button"
+      <a
+        href={link} // Use the link prop
+        className="w-full block text-center py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800 transition"
       >
         {buttonText}
-      </button>
+      </a>
     </div>
   );
 };
