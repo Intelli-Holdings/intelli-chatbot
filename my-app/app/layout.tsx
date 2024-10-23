@@ -12,6 +12,9 @@ import { steps } from "@/lib/steps";
 // Custom Card
 import CustomCard from "@/components/CustomCard";
 
+//Next Step Js
+import { NextStepProvider, NextStep } from 'nextstepjs';
+
 import Script from "next/script";
 
 import { PHProvider } from './providers'
@@ -72,15 +75,13 @@ export default function RootLayout({
       <SignedOut>          <SignInButton />        </SignedOut>        <SignedIn>          <UserButton />        </SignedIn>
       <body className={inter.className}>
       <PostHogPageView /> 
-      <OnbordaProvider>
-            <Onborda
-              steps={steps}
-              cardComponent={CustomCard}
-              shadowOpacity="0.8"
+      <NextStepProvider>
+            <NextStep
+            steps={steps}
             >
         {children}
-        </Onborda>   
-      </OnbordaProvider>
+        </NextStep>   
+      </NextStepProvider>
        
       <Toaster
       toastOptions={{
