@@ -7,38 +7,40 @@ import { Switch } from '@/components/ui/switch'; // Import your custom switch co
 const PricingComponent = () => {
   const [isAnnual, setIsAnnual] = useState<boolean>(false);
 
-  // Updated pricing plans based on your provided code
+  // Updated pricing plans with added links
   const plans = [
     {
       name: 'Website Widget',
       monthlyPrice: 8,
       annualPrice: 80,  // 20% discount for annual
-      originalPrice: null, // No original price for this plan
+      originalPrice: null,
       features: [
         'Elli (Website widget) powered with AI',
         'Dashboard to track Conversations',
         'Basic technical support',
       ],
-      buttonText: 'Get Started',
+      buttonText: 'Sign Up',
+      link: '/auth/sign-up',  // Link to sign-up for this plan
     },
     {
       name: 'WhatsApp Assistant',
       monthlyPrice: 20,
       annualPrice: 200,  // 20% discount for annual
-      originalPrice: null, // No original price for this plan
+      originalPrice: null,
       features: [
         'WhatsApp AI assistant',
         'Dashboard to track Conversations',
         'Takeover conversations by human agents',
         'Sentiment Analysis of conversations',
       ],
-      buttonText: 'Get Started',
+      buttonText: 'Sign Up',
+      link: '/auth/sign-up',  // Link to sign-up for this plan
     },
     {
       name: 'Enterprise',
-      monthlyPrice: null, // No monthly price for this plan
-      annualPrice: null,  // Custom pricing
-      originalPrice: null, // No original price for custom pricing
+      monthlyPrice: null,
+      annualPrice: null,  
+      originalPrice: null,
       features: [
         'Tailored AI solution',
         'Multiple AI assistants',
@@ -47,6 +49,7 @@ const PricingComponent = () => {
         'Access to Intelli APIs',
       ],
       buttonText: 'Contact Sales',
+      link: 'https://cal.com/intelli/entreprise-sales',  // Custom link for Enterprise sales
     },
   ];
 
@@ -80,11 +83,12 @@ const PricingComponent = () => {
                 key={plan.name}
                 title={plan.name}
                 price={price !== null ? `$${price}` : 'Custom'}
-                originalPrice={plan.originalPrice ? `$${plan.originalPrice}` : ''} // Handling null for originalPrice
+                originalPrice={plan.originalPrice ? `$${plan.originalPrice}` : ''}
                 description="AI-powered solutions for your business."
                 features={plan.features}
                 buttonText={price !== null ? `Get ${isAnnual ? 'Annual' : 'Monthly'} Access` : plan.buttonText}
                 isRecommended={plan.name === 'Enterprise'}
+                link={plan.link}  // Add the respective link for the pricing card
               />
             );
           })}

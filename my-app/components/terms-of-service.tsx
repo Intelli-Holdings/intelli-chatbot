@@ -4,7 +4,7 @@ export default function TermsOfService () {
   const termsHtml = `
     <h1>Terms of Service</h1>
     <p><strong>Effective Date: June 20, 2024</strong></p>
-    <p>Welcome to Intelli Concierge, Inc. ("Intelli", "we", "our", "us"). These Terms of Service ("Terms") govern your use of our services, including subscriptions to our Basic Web Widget and WhatsApp offerings. By using our services, you agree to these Terms. If you do not agree, please do not use our services.</p>
+    <p>Welcome to Intelli Holdings Inc, ("Intelli", "Intelli Concierge", "we", "our", "us"). These Terms of Service ("Terms") govern your use of our services, including subscriptions to our Basic Web Widget and WhatsApp offerings. By using our services, you agree to these Terms. If you do not agree, please do not use our services.</p>
     
     <h2>1. Definitions</h2>
     <ul>

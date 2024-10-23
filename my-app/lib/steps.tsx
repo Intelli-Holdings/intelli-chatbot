@@ -2,7 +2,7 @@ export const steps: any = [
     // Getting Started with Intelli
     {
         icon: <>💬</>,
-        title: "Welcome to IntelliConcierge!",
+        title: "Welcome to Intelli!",
         content: <>Get started by learning how to create your first virtual assistant.</>,
         selector: "#step-create-assistant",
         side: "top",
@@ -234,7 +234,7 @@ export const steps: any = [
     {
         icon: <>🚀</>,
         title: "Get Started!",
-        content: <>You&apos;re ready to start using IntelliConcierge. Let&apos;s create your first assistant!</>,
+        content: <>You&apos;re ready to start using Intelli. Let&apos;s create your first assistant!</>,
         selector: "#step-get-started",
         side: "bottom",
         showControls: true,

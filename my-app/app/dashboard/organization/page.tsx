@@ -1,5 +1,8 @@
 "use client";
 import React from "react";
+import { ClerkLoading, CreateOrganization } from "@clerk/nextjs"
+import { CustomCreateOrganizationForm } from "@/components/CreateOrganization"
+import { MyMemberships } from "@/components/OrganizationList"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useOrganizationList, useOrganization } from "@clerk/nextjs";
@@ -30,40 +33,13 @@ export default function Page() {
   return (
     <div className="container mx-auto px-4 py-8">
        <h1 className="text-2xl font-bold mb-6">Organizations</h1>
-      <div className="flex flex-col">
+      <div className="flex w-full flex-col">
 
-        <div className="grid gap-4 p-4 md:gap-8 md:p-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-           
-            {userMemberships.data?.length > 0 ? (
-              <>
-                <ul>
-                  {userMemberships.data.map((mem) => (
-                    <li key={mem.id}>
-                      <span>{mem.organization.name}</span>
-                      <button
-                        onClick={() => setActive({ organization: mem.organization.id })}
-                      >
-                        Select
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  disabled={!userMemberships.hasNextPage}
-                  onClick={() => userMemberships.fetchNext()}
-                >
-                  Load more organizations
-                </button>
-              </>
-            ) : (
-              <div>
-                <p>You are not a member of any organizations.</p>
-                <Button onClick={handleCreateOrganization}>Create New Organization</Button>
-              </div>
-            )}
-          </div>
-        </div>
+      <ClerkLoading>Loading ...</ClerkLoading>
+      <h1 className="mb-4 mt-20">Fill in this form to create your organization</h1>
+        <CreateOrganization skipInvitationScreen={true} />
+        <h2 className="mb-4 mt-8">List of your organizations</h2>
+        <MyMemberships />
       </div>
     </div>
   );

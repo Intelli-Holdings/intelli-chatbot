@@ -5,22 +5,35 @@ const isProtectedRoute = createRouteMatcher([
   // '/demo',
   // '/chat',
   '/dashboard',
-  '/dashboard/create-chatbot',
+
   '/dashboard/reservations',
+  '/dashboard/analytics',
+  '/dashboard/assistants',
   '/dashboard/billing',
+
+   '/dashboard/conversations',
+   '/dashboard/conversations/elli',  
+   '/dashboard/conversations/email',
+   '/dashboard/conversations/voice-assistant',
+   '/dashboard/conversations/whatsapp',
+   '/dashboard/conversations/whatsapp/chat_sessions',
+   '/dashboard/conversations/whatsapp/chat_sessions/:phoneNumber',
+   '/dashboard/conversations/whatsapp/chat_sessions/:phoneNumber/:recipientId',
+   '/dashboard/conversations/whatsapp/chat_sessions/:phoneNumber/:recipientId/messages',
+
+   '/dashboard/create-chatbot',
+   '/dashboard/create-organization',
+   '/dashboard/create-team',
+   '/dashboard/get-started',
+
+   '/dashboard/notifications',
+  '/dashboard/organization',
   '/dashboard/settings',
   '/dashboard/employees',
-  '/dashboard/conversations',
-  '/create-organization',
+ 
+
   '/organization/organization-members',
-  '/dashboard/conversations/elli',  
-  '/dashboard/conversations/email',
-  '/dashboard/conversations/voice-assistant',
-  '/dashboard/conversations/whatsapp',
-  '/dashboard/conversations/whatsapp/chat_sessions',
-  '/dashboard/conversations/whatsapp/chat_sessions/:phoneNumber',
-  '/dashboard/conversations/whatsapp/chat_sessions/:phoneNumber/:recipientId',
-  '/dashboard/conversations/whatsapp/chat_sessions/:phoneNumber/:recipientId/messages',
+
   // Add any additional routes here
   // '/dashboard/conversations',
 ]);
