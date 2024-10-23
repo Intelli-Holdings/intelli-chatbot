@@ -17,7 +17,7 @@ interface Sparkle {
 
 interface SparklesTextProps {
   /**
-   * @default <div />
+   * @default <div/>
    * @type ReactElement
    * @description
    * The component to be rendered as the text
