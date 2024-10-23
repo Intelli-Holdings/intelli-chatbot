@@ -1,80 +1,55 @@
-"use client";
-import React from "react";
-import type { CardComponentProps } from "onborda";
-import { useOnborda } from "onborda";
-import { XIcon } from "lucide-react";
+'use client';
 
-import confetti from "canvas-confetti";
-
-// Shadcn
-import { Button } from "@/components/ui/button";
+import { CardComponentProps } from 'nextstepjs';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
-const CustomCard: React.FC<CardComponentProps> = ({
+const ShadcnCustomCard: React.FC<CardComponentProps> = ({
   step,
   currentStep,
   totalSteps,
   nextStep,
   prevStep,
+  skipTour,
   arrow,
 }) => {
-  // Onborda hooks
-  const { closeOnborda } = useOnborda();
-
-  function handleConfetti() {
-    closeOnborda();
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
-  }
-
   return (
-    <Card className="border-0 rounded-3xl max-w-vw">
+    <Card className="w-[350px]">
       <CardHeader>
-        <div className="flex items-start justify-between w-full">
-          <div>
-            <CardTitle className="mb-2 text-lg">
-              {step.icon} {step.title}
-            </CardTitle>
-            <CardDescription>
-              {currentStep + 1} of {totalSteps}
-            </CardDescription>
-          </div>
-          <Button variant="ghost" size="default" onClick={() => closeOnborda()}>
-            <XIcon size={16} />
-          </Button>
-        </div>
+        <CardTitle className="flex items-center justify-between">
+          <p>{step.title}</p>
+          {step.icon}
+        </CardTitle>
       </CardHeader>
-      <CardContent>{step.content}</CardContent>
-      <CardFooter>
-        <div className="flex justify-between w-full">
-          {currentStep !== 0 && (
-            <Button onClick={() => prevStep()}>Previous</Button>
-          )}
-          {currentStep + 1 !== totalSteps && (
-            <Button onClick={() => nextStep()} className="ml-auto">
-              Next
+      <CardContent>
+        <p>{step.content}</p>
+        {arrow}
+      </CardContent>
+      <CardFooter className="flex flex-col">
+        {step.showControls && (
+          <div className="flex justify-between w-full">
+            <Button onClick={prevStep} disabled={currentStep === 0} variant="outline">
+              Previous
             </Button>
-          )}
-          {currentStep + 1 === totalSteps && (
-            <Button onClick={() => handleConfetti()} className="ml-auto">
-              🎉Congratulations, You Finished the Tour!
+            <Button onClick={nextStep}>
+              {currentStep === totalSteps - 1 ? 'Finish' : 'Next'}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
+        {step.showSkip && (
+          <Button onClick={skipTour} variant={'ghost'} className="w-full">
+            Skip Tour
+          </Button>
+        )}
       </CardFooter>
-      <span className="text-card">{arrow}</span>
     </Card>
   );
 };
 
-export default CustomCard;
+export default ShadcnCustomCard;

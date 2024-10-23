@@ -7,7 +7,8 @@ const config: Config = {
     "./constants/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
-    './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}'
+    './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}',
+    './node_modules/nextstepjs/dist/**/*.{js,ts,jsx,tsx}'
   ],
   theme: {
     container: {

@@ -1,5 +1,19 @@
+
 import React from 'react';
+import { useState } from "react";
 import { FaLinkedin, FaInstagram } from 'react-icons/fa';
+import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Import NextStepJS components and hooks
+import { NextStepProvider, NextStep, useNextStep } from "nextstepjs";
+
+// Import the custom card component
+import ShadcnCustomCard from "@/components/CustomCard";
+
+// Import the tour steps
+import { steps } from "@/utils/tourSteps"; 
 
 import { useUser } from "@clerk/nextjs";
 
@@ -14,6 +28,21 @@ interface User {
 
 const Dashboard: React.FC = () => {
 
+      // Use the NextStepJS hook to control the tour
+  const { startNextStep } = useNextStep();
+  const [isBannerVisible, setIsBannerVisible] = useState(true);
+
+  // Handler for starting the tour
+ // const handleStartTour = () => {
+ //   startNextStep("mainTour");
+ // };
+
+  const onClickHandler = (tourName: string) => {
+    setIsBannerVisible(false);
+    startNextStep(tourName);
+  };
+
+
     const { isLoaded, isSignedIn, user } = useUser();
 
   if (!isLoaded || !isSignedIn) {
@@ -22,7 +51,30 @@ const Dashboard: React.FC = () => {
 
 
     return (
-        <div className="min-h-200 bg-blue-100 rounded-b-2xl">
+        <div className="space-y-8">
+             {/* Start Tour Button */}
+          <div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="default"
+                    className="mr-2 bg-[#007fff] rounded-xl pt-2 "                   
+                    onClick={() => onClickHandler('mainTour')}
+                  >
+                    <Sparkles size={16} className="mr-2" /> Start Tour
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>This gives you a product tour of Intelli</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+             <div className="min-h-200 bg-blue-100 rounded-b-2xl">
+           
+
             {/* Top banner */}
             <div className='w-full'>
                 <div className="bg-[#007fff] text-white py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-2xl">
@@ -36,7 +88,7 @@ const Dashboard: React.FC = () => {
             <div className="max-w-6xl mx-auto mt-0 p-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Card 1: Create an Assistant */}
-                    <div className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <div id="step3" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
                         <div>
                             <div className="text-2xl mb-4">🛠️</div>
                             <h2 className="text-xl font-semibold">Create an Assistant</h2>
@@ -48,7 +100,7 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Card 2: Invite a team member */}
-                    <div className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <div id="step2" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
                         <div>
                             <div className="text-2xl mb-4">🏢</div>
                             <h2 className="text-xl font-semibold">Create a team/organization</h2>
@@ -60,7 +112,7 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Card 3: View Notifications */}
-                    <div className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <div id="step4" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
                         <div>
                             <div className="text-2xl mb-4">🔔</div>
                             <h2 className="text-xl font-semibold">View Notifications</h2>
@@ -72,7 +124,7 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Card 4: View models */}
-                    <div className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <div id="step5" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
                         <div>
                             <div className="text-2xl mb-4">💭</div>
                             <h2 className="text-xl font-semibold">View Conversations</h2>
@@ -84,7 +136,7 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Card 5: Track your usage */}
-                    <div className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <div id="step6" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
                         <div>
                             <div className="text-2xl mb-4">📊</div>
                             <h2 className="text-xl font-semibold">View your Analytics</h2>
@@ -96,7 +148,7 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Card 6: Follow us on Socials */}
-                    <div className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
+                    <div id="step7" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
                         <div>
                             <div className="text-2xl mb-4">🤝</div>
                             <h2 className="text-xl font-semibold">Follow us on Socials</h2>
@@ -118,6 +170,9 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
         </div>
+
+        </div>
+       
     );
 };
 
