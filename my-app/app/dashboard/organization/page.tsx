@@ -14,6 +14,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { any } from "zod";
+import { JoinedOrganizations } from "@/components/MyOrganizations";
 
 export default function Page() {
   const { isLoaded, setActive, userMemberships, userInvitations, userSuggestions } = useOrganizationList({
@@ -31,15 +32,18 @@ export default function Page() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-4">
        <h1 className="text-2xl font-bold mb-6">Organizations</h1>
       <div className="flex w-full flex-col">
 
       <ClerkLoading>Loading ...</ClerkLoading>
-      <h1 className="mb-4 mt-20">Fill in this form to create your organization</h1>
-        <CreateOrganization skipInvitationScreen={true} />
-        <h2 className="mb-4 mt-8">List of your organizations</h2>
-        <MyMemberships />
+      <h1 className="mb-4 mt-5">Fill in this form to create your organization</h1>
+        <CreateOrganization 
+        afterCreateOrganizationUrl="/dashboard"
+        skipInvitationScreen={false} />
+        
+        <JoinedOrganizations />
+        
       </div>
     </div>
   );
