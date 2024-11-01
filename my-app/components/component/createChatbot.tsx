@@ -95,7 +95,7 @@ const CreateChatbot = () => {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="">
       <CardHeader>
         <CardTitle>Create your Chatbot - step {step}/3</CardTitle>
         <p className="text-sm text-muted-foreground">
