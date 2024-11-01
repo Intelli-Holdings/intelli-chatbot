@@ -62,7 +62,7 @@ const Dashboard: React.FC = () => {
                     className="mr-2 bg-[#007fff] rounded-xl pt-2 "                   
                     onClick={() => onClickHandler('mainTour')}
                   >
-                    <Sparkles size={16} className="mr-2" /> Start Tour
+                    <Sparkles size={16} className="mr-2" /> Click to Start Tour
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -87,19 +87,7 @@ const Dashboard: React.FC = () => {
             {/* Dashboard grid */}
             <div className="max-w-6xl mx-auto mt-0 p-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Card 1: Create an Assistant */}
-                    <div id="step3" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
-                        <div>
-                            <div className="text-2xl mb-4">🛠️</div>
-                            <h2 className="text-xl font-semibold">Create an Assistant</h2>
-                            <p className="text-gray-600 mt-1">Choose a channel and start building</p>
-                        </div>
-                        <div className="text-right mt-4">
-                            <a href="/dashboard/assistants" className="text-black hover:text-blue-600">↗</a>
-                        </div>
-                    </div>
-
-                    {/* Card 2: Invite a team member */}
+                    {/* Card 1: Invite a team member */}
                     <div id="step2" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
                         <div>
                             <div className="text-2xl mb-4">🏢</div>
@@ -110,6 +98,20 @@ const Dashboard: React.FC = () => {
                             <a href="/dashboard/organization" className="text-black hover:text-blue-600">↗</a>
                         </div>
                     </div>
+
+                    {/* Card 2: Create an Assistant */}
+                    <div id="step3" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
+                        <div>
+                            <div className="text-2xl mb-4">🛠️</div>
+                            <h2 className="text-xl font-semibold">Create an Assistant</h2>
+                            <p className="text-gray-600 mt-1">Choose a channel and start building</p>
+                        </div>
+                        <div className="text-right mt-4">
+                            <a href="/dashboard/channels" className="text-black hover:text-blue-600">↗</a>
+                        </div>
+                    </div>
+
+                    
 
                     {/* Card 3: View Notifications */}
                     <div id="step4" className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between hover:shadow-lg transition-shadow">
