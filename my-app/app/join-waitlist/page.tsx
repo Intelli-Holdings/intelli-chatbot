@@ -17,9 +17,6 @@ export default function Company() {
           <Waitlist />
         </section>
 
-        
-        
-        <WhatsAppSignup />
       </main>
     </div>
   );
