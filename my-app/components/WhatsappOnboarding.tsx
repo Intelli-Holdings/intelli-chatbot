@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/components/ui/card';
 import {Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import EmbeddedSignup from './EmbeddedSignup';
 
 const WhatsappAssistant = () => {
   const [formData, setFormData] = useState({
@@ -110,7 +111,7 @@ const WhatsappAssistant = () => {
       {/* Right Column: WhatsApp Signup Embed */}
       <div className="md:w-1/2 flex items-center justify-center">
         <div className="bg-gray-100 p-4 rounded-lg shadow-md w-full h-96 flex items-center justify-center">
-          
+          <EmbeddedSignup />
         </div>
       </div>
     </div>
