@@ -136,7 +136,7 @@ export function Navbar() {
                     className="block w-full text-center px-4 py-2 text-sm font-medium text-blue-500 border border-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition duration-300"
                     href="/dashboard"
                   >
-                    Dashboard
+                    Get Started
                   </a>
                 </div>
               </nav>
@@ -150,7 +150,7 @@ export function Navbar() {
                 className="px-4 py-2 text-sm font-medium text-blue-500 border border-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition duration-300"
                 href="/dashboard"
               >
-                Dashboard
+                Get Started
               </a>
             </div>
           </>
