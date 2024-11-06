@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Button } from "@/components/ui/button";
-import { VolumeX, Volume2 } from 'lucide-react';
 
 export function PreviewLanding() {
   return (
-    <div className="pb-6 sm:pb-16">
+    <div className="pb-6 sm:pb-16 relative">
       
-        <div className="rounded-xl bg-muted/10 ring-1 ring-inset relative">
+      {/* Inner border */}
+      <div className="">
+        <div className="rounded-xl bg-gray/100 ring-2 ring-inset ring-gray-200/50 shadow-lg">
           <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-xl">
             <iframe
               className="w-full h-full"
@@ -18,9 +18,8 @@ export function PreviewLanding() {
               frameBorder="0"
             ></iframe>
           </AspectRatio>
-        
         </div>
-      
+      </div>      
     </div>
   );
 }

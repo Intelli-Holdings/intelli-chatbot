@@ -17,6 +17,7 @@ import { BentoSection } from "@/components/home/bentoSection";
 import { FooterDemo } from "@/components/home/Footer";
 
 import UseCaseSection from "@/components/home/useCaseSection";
+import ValueProposition from "../ValueProposition";
 
 export function Home() {
   return (
@@ -40,7 +41,10 @@ export function Home() {
             Intelli streamlines customer conversations for your business using
             AI across WhatsApp, website, and email.
           </p>
+          
           <PreviewLanding />
+         
+          
     <div className="flex justify-center mt-10 mb-10">
             <a href="/auth/sign-up">
               <Button
@@ -57,6 +61,11 @@ export function Home() {
         <section className="container mt-20">
         <HowItWorksSection />
         </section>
+
+     
+        <ValueProposition />
+      
+        
 
         <section className="container mt-20">
           <div className="flex justify-center mb-4">

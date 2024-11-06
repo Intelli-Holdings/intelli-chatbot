@@ -1,23 +1,24 @@
 'use server';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-
 export async function joinWaitlist(formData: FormData) {
   try {
     // Extract form data
     const email_address = formData.get('email')?.toString() || '';
     const company_name = formData.get('companyName')?.toString() || '';
-    const phone_number = formData.get('phoneNumber')?.toString() || ''; 
+    const phone_number = formData.get('phoneNumber')?.toString() || '';
+    const full_name = formData.get('fullName')?.toString() || '';
 
     // Construct payload
     const payload = {
       email_address,
       company_name,
-      phone_number, 
+      phone_number,
+      full_name,
     };
 
     // Log payload in console
-    console.log('Waitlist payload:', JSON.stringify(payload, null, 2));
+    // console.log('Waitlist payload:', JSON.stringify(payload, null, 2));
 
     // Send data to the backend API
     const response = await fetch(`${API_BASE_URL}/intelli_waitlist/`, {

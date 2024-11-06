@@ -11,18 +11,20 @@ const Waitlist: React.FC = () => {
     const [email, setEmail] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [fullName, setFullName] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    const isFormValid = email && companyName && phoneNumber;
+    const isFormValid = email && companyName && phoneNumber && fullName;
 
     useEffect(() => {
         const savedForm = localStorage.getItem('waitlistForm');
         if (savedForm) {
-            const { email, companyName, phoneNumber } = JSON.parse(savedForm);
+            const { email, companyName, phoneNumber, fullName } = JSON.parse(savedForm);
             setEmail(email);
             setCompanyName(companyName);
             setPhoneNumber(phoneNumber);
+            setFullName(fullName);
         }
     }, []);
 
@@ -34,6 +36,7 @@ const Waitlist: React.FC = () => {
             formData.append('email', email);
             formData.append('companyName', companyName);
             formData.append('phoneNumber', phoneNumber);
+            formData.append('fullName', fullName);
 
             try {
                 setIsLoading(true);
@@ -41,14 +44,14 @@ const Waitlist: React.FC = () => {
 
                 if (success) {
                     setIsSubmitted(true);
-                    localStorage.setItem('waitlistForm', JSON.stringify({ email, companyName, phoneNumber }));
+                    localStorage.setItem('waitlistForm', JSON.stringify({ email, companyName, phoneNumber, fullName }));
                     toast.success('Success! You have joined the waitlist and received a 20% discount!');
                 } else {
                     toast.error('Failed to join waitlist');
                 }
             } catch (error) {
                 console.error('Error joining waitlist:', error);
-                toast.error('Something went wrong on, please try submitting again.');
+                toast.error('Something went wrong, please try submitting again.');
             } finally {
                 setIsLoading(false);
             }
@@ -58,51 +61,62 @@ const Waitlist: React.FC = () => {
     };
 
     return (
-        <Card className="sm:justify-center border-none">
+        <Card className="bg-white rounded-lg p-6">
             <CardHeader>
-                <CardTitle className="text-center text-2xl">Early Access Form</CardTitle>
-                <CardDescription className="text-center text-lg font-bold font-medium text-gray-800">
-                   Join the waitlist to get a 20% discount.
+                <CardTitle className="text-2xl font-bold text-gray-800 mb-2">Early Access Form</CardTitle>
+                <CardDescription className="text-lg font-medium text-gray-600">
+                    Join the waitlist to get a 20% discount.
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit}>
-                    <Label>
-                        Email:
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <Label className="block text-gray-700 font-medium mb-2">Full Name:</Label>
+                        <Input
+                            placeholder="Your full name"
+                            type="text"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            required
+                            className="border border-gray-150 shadow-sm rounded-md px-4 py-2 w-full focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <Label className="block text-gray-700 font-medium mb-2">Email:</Label>
                         <Input
                             placeholder="Your email address"
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
+                            className="border border-gray-150 shadow-sm rounded-md px-4 py-2 w-full focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500"
                         />
-                    </Label>
-                    <br />
-                    <Label>
-                        Company Name:
+                    </div>
+                    <div>
+                        <Label className="block text-gray-700 font-medium mb-2">Company Name:</Label>
                         <Input
                             placeholder="Your company name"
                             type="text"
                             value={companyName}
                             onChange={(e) => setCompanyName(e.target.value)}
                             required
+                            className="border border-gray-150 shadow-sm rounded-md px-4 py-2 w-full focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500"
                         />
-                    </Label>
-                    <br />
-                    <Label>
-                        Phone Number:
+                    </div>
+                    <div>
+                        <Label className="block text-gray-700 font-medium mb-2">Phone Number:</Label>
                         <Input
                             placeholder="Start with country code e.g +1"
                             type="tel"
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
                             required
+                            className="border border-gray-150 shadow-sm rounded-md px-4 py-2 w-full focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500"
                         />
-                    </Label>
-                    <br />
-                    <Button 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md text-lg" 
-                        type="submit" 
+                    </div>
+                    <Button
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md border border-gray-150 shadow-sm text-lg"
+                        type="submit"
                         disabled={!isFormValid || isLoading || isSubmitted}
                     >
                         {isSubmitted ? 'Joined Waitlist!' : isLoading ? 'Joining Waitlist...' : 'Join Waitlist'}

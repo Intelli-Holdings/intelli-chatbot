@@ -10,7 +10,7 @@ const UseCaseSection = () => {
       <h2 className="text-center text-5xl font-bold mb-10">
         Intelli is for these businesses.
       </h2>
-      <section className="bg-gray-100 py-16 rounded-xl">
+      <section className="bg-gray-10 py-16 border border-gray-100 rounded-xl">
         <div className="container mx-auto px-2 md:px-8 ">
           {/* Card 1: NGO Section */}
           <div className="bg-white mt-10 rounded-lg shadow-lg p-4">

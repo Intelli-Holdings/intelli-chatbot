@@ -1,4 +1,4 @@
-import {  Settings,  SparklesIcon, MousePointerClick, CogIcon, MousePointer, Package } from 'lucide-react'; // Assuming you are using lucide-react for icons
+import {  Settings,  SparklesIcon, MousePointerClick, Hammer, PenIcon, Clipboard, MousePointer, Package, Home, ShoppingBagIcon, HourglassIcon, Building, TreeDeciduous, ClipboardEdit} from 'lucide-react'; // Assuming you are using lucide-react for icons
 import { Button } from "@/components/ui/button";
 
 const HowItWorksSection = () => {
@@ -13,26 +13,26 @@ const HowItWorksSection = () => {
           {/* Step 1 */}
           <div className="flex flex-col items-center">
             <div className="bg-white p-4 rounded-3xl shadow-lg relative">
-              <SparklesIcon className="text-[#007fff]" size={48} />
+              <ClipboardEdit className="text-[#007fff]" size={48} />
               <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
                 1
               </span>
             </div>
             <p className="mt-4 text-lg font-medium">
-              Create an Assistant for a specific channel (Whatsapp, Website, etc)
+              Create an account 
             </p>
           </div>
 
           {/* Step 2 */}
           <div className="flex flex-col items-center">
             <div className="bg-white p-4 rounded-3xl shadow-lg relative">
-              <MousePointerClick className="text-teal-500" size={48} />
+              <Building className="text-teal-500" size={48} />
               <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
                 2
               </span>
             </div>
             <p className="mt-4 text-lg font-medium">
-              Test the Assistant to see how it works and make adjustments
+              Create an organization
             </p>
           </div>
 
@@ -45,7 +45,45 @@ const HowItWorksSection = () => {
               </span>
             </div>
             <p className="mt-4 text-lg font-medium">
-            Deploy the Assistant to handle customers inquiries
+            Choose a channel
+            </p>
+          </div>
+
+          {/* Step 4 */}
+          <div className="flex flex-col items-center">
+            <div className="bg-white p-4 rounded-3xl shadow-lg relative">
+              <SparklesIcon className="text-teal-500" size={48} />
+              <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
+                4
+              </span>
+            </div>
+            <p className="mt-4 text-lg font-medium">
+              Create an assistant        </p>
+          </div>
+
+          {/* Step 5 */}
+          <div className="flex flex-col items-center">
+            <div className="bg-white p-4 rounded-3xl shadow-lg relative">
+              <Hammer className="text-teal-500" size={48} />
+              <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
+                5
+              </span>
+            </div>
+            <p className="mt-4 text-lg font-medium">
+              Test the Assistant 
+            </p>
+          </div>
+
+          {/* Step 6 */}
+          <div className="flex flex-col items-center">
+            <div className="bg-white p-4 rounded-3xl shadow-lg relative">
+              <MousePointerClick className="text-teal-500" size={48} />
+              <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
+                6
+              </span>
+            </div>
+            <p className="mt-4 text-lg font-medium">
+              Deploy the Assistant 
             </p>
           </div>
 
