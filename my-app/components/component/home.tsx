@@ -1,13 +1,12 @@
 import { Button } from "@/components/ui/button";
 import FAQcomponent from "@/components/home/FAQcomponent";
-import { OrbitingCirclesComponent } from "@/components/orbiting-circles";
 
 import { Navbar } from "@/components/navbar";
 
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Testimonals from "@/components/testimonial";
-import Usecases from "@/components/home/usecases";
+
 
 // Section and component imports
 
@@ -16,8 +15,9 @@ import HowItWorksSection from "@/components/home/howItworks";
 import { BentoSection } from "@/components/home/bentoSection";
 import { FooterDemo } from "@/components/home/Footer";
 
-import UseCaseSection from "@/components/home/useCaseSection";
-import ValueProposition from "../ValueProposition";
+import ValueProposition from "@/components/ValueProposition";
+import PlatformCards from "@/components/platform-cards";
+import UsecaseComponent from "@/components/usecaseComponent";
 
 export function Home() {
   return (
@@ -62,21 +62,20 @@ export function Home() {
         <HowItWorksSection />
         </section>
 
-     
-        <ValueProposition />
-      
-        
-
         <section className="container mt-20">
+        <ValueProposition />      
+        </section>
+
+        <section className="">
           <div className="flex justify-center mb-4">
-            <Badge>Channels</Badge>
+            <Badge>Platforms</Badge>
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8">
             <h2 className="text-center text-5xl font-bold mb-10">
-              Where can you use Intelli?
+            Intelli can be used on these platforms
             </h2>
-            <OrbitingCirclesComponent />
-            <Usecases />
+            <PlatformCards />
+           
             <div className="flex justify-center mt-10 mb-10 space-x-4">
               <a href="/auth/sign-up">
                 <Button
@@ -84,14 +83,14 @@ export function Home() {
                 hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
                 ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation"
                 >
-                  Explore Channels
+                  Explore Platforms
                 </Button>
               </a>
             </div>
           </div>
         </section>
 
-        <section className="container mt-20">
+        <section className="">
           <div className="flex justify-center mb-4">
             <Badge>Benefits</Badge>
           </div>
@@ -119,7 +118,7 @@ export function Home() {
             <Badge>Use Cases</Badge>
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8">
-            <UseCaseSection />
+            <UsecaseComponent />
           </div>
         </section>
 

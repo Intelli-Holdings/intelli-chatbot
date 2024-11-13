@@ -93,7 +93,7 @@ const ValueProposition = () => {
   }
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-10">
+    <section className=" mx-auto px-4 py-10">
       <div className="text-center mb-12">
         <h2 className="text-5xl font-bold mb-10">
           Effortless customer support

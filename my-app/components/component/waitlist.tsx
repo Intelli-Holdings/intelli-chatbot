@@ -65,7 +65,7 @@ const Waitlist: React.FC = () => {
             <CardHeader>
                 <CardTitle className="text-2xl font-bold text-gray-800 mb-2">Early Access Form</CardTitle>
                 <CardDescription className="text-lg font-medium text-gray-600">
-                    Join the waitlist to get a 20% discount.
+                 Sign up to get early access by joining the waitlist.
                 </CardDescription>
             </CardHeader>
             <CardContent>
