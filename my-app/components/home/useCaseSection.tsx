@@ -8,12 +8,12 @@ const UseCaseSection = () => {
   return (
     <div>
       <h2 className="text-center text-5xl font-bold mb-10">
-        Intelli is for these businesses
+        Usecases for Intelli
       </h2>
       <section className="bg-gray-10 py-16 border border-gray-100 rounded-xl">
         <div className="container mx-auto px-2 md:px-8 ">
            {/* Card 1: Travel Agencies  */}
-           <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
+           <div className="bg-gray-10 py-16 border border-gray-100 mt-10 rounded-lg  p-4">
             <div className="space-y-4 mb-4">
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
                 {/* Left Section: Text Block */}
@@ -74,7 +74,7 @@ const UseCaseSection = () => {
           </div>
 
           {/* Card 2: NGO Section */}
-          <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
+          <div className="bg-gray-10 py-16 border border-gray-100 mt-10 rounded-lg p-4">
             <div className="space-y-2 mb-4">
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
                 {/* Left Section: Text Block */}
@@ -128,7 +128,7 @@ const UseCaseSection = () => {
           </div>
 
           {/* Card 3: Schools Section */}
-          <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
+          <div className="bg-gray-10 py-16 border border-gray-100 mt-10 rounded-lg p-4">
             <div className="space-y-2 mb-4">
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
                 {/* Left Section: Text Block */}
@@ -227,7 +227,7 @@ const UseCaseSection = () => {
           </div>
 
           {/* Card 4: Government Agencies Section  */}
-          <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
+          <div className="bg-gray-10 py-8 border border-gray-100 mt-10 rounded-lg p-4">
             <div className="space-y-4 mb-4">
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
                 {/* Left Section: Text Block */}
