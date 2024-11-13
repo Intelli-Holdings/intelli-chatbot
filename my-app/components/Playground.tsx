@@ -87,8 +87,8 @@ export default function Playground() {
       <CardContent className="p-2 sm:p-6">
         <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] bg-background">
           {/* Side Panel */}
-          <div className="w-full lg:w-1/4 lg:max-w-xs bg-muted p-2 sm:p-4 border-b lg:border-b-0 lg:border-r border-border overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-4">Playground</h2>
+          <div className="w-full lg:w-1/4 lg:max-w-xs bg-gray-50 p-4 sm:p-4 border border-b lg:border-b-0 lg:border-r border-border overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4">Canvas </h2>
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Switch
