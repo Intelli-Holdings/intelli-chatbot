@@ -62,7 +62,7 @@ const UseCaseSection = () => {
 
                 
                   <Image
-                    src="/support.png"
+                    src="/travel-agent.avif"
                     alt="Travel image"
                     width={600} // Specify the width
                     height={600} // Specify the height

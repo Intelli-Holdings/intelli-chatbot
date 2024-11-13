@@ -17,7 +17,7 @@ const UsecaseComponent = () => {
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
                 {/* Right Section: Image */}
                 <Image
-                  src="/travel agent.webp"
+                  src="/travel-agent.avif"
                   alt="Travel image"
                   width={600}
                   height={600}
@@ -36,9 +36,9 @@ const UsecaseComponent = () => {
                     <strong>How travel agencies use Intelli:</strong>
                     <br />
                     Travel agencies receive numerous inquiries about booking
-                    details, travel packages, visa requirements, and more. Intelli
-                    can automate responses to these common questions, providing
-                    customers with the information they need quickly and efficiently.
+                    details, travel packages, and visa requirements. Intelli
+                    responds to these common questions, on behalf of your agency providing
+                    customers with the information they need quickly.
                   </p>
 
                   <Link href="/usecases">
