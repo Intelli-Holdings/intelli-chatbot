@@ -63,10 +63,9 @@ export function Home() {
         <HowItWorksSection />
         </section>
 
-     
-        <ValueProposition />
-      
-        
+        <section className="container mt-20">
+        <ValueProposition />      
+        </section>
 
         <section className="">
           <div className="flex justify-center mb-4">
@@ -77,7 +76,7 @@ export function Home() {
             Intelli can be used on these platforms
             </h2>
             <PlatformCards />
-            <Usecases />
+           
             <div className="flex justify-center mt-10 mb-10 space-x-4">
               <a href="/auth/sign-up">
                 <Button
