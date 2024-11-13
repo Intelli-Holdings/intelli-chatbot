@@ -1,13 +1,12 @@
 import { Button } from "@/components/ui/button";
 import FAQcomponent from "@/components/home/FAQcomponent";
-import { OrbitingCirclesComponent } from "@/components/orbiting-circles";
 
 import { Navbar } from "@/components/navbar";
 
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Testimonals from "@/components/testimonial";
-import Usecases from "@/components/home/usecases";
+
 
 // Section and component imports
 
@@ -16,9 +15,9 @@ import HowItWorksSection from "@/components/home/howItworks";
 import { BentoSection } from "@/components/home/bentoSection";
 import { FooterDemo } from "@/components/home/Footer";
 
-import UseCaseSection from "@/components/home/useCaseSection";
-import ValueProposition from "../ValueProposition";
+import ValueProposition from "@/components/ValueProposition";
 import PlatformCards from "@/components/platform-cards";
+import UsecaseComponent from "@/components/usecaseComponent";
 
 export function Home() {
   return (
@@ -119,7 +118,7 @@ export function Home() {
             <Badge>Use Cases</Badge>
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8">
-            <UseCaseSection />
+            <UsecaseComponent />
           </div>
         </section>
 
