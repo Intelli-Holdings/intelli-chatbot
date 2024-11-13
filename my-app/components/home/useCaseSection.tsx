@@ -8,11 +8,72 @@ const UseCaseSection = () => {
   return (
     <div>
       <h2 className="text-center text-5xl font-bold mb-10">
-        Intelli is for these businesses.
+        Intelli is for these businesses
       </h2>
       <section className="bg-gray-10 py-16 border border-gray-100 rounded-xl">
         <div className="container mx-auto px-2 md:px-8 ">
-          {/* Card 1: NGO Section */}
+           {/* Card 1: Travel Agencies  */}
+           <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
+            <div className="space-y-4 mb-4">
+              <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
+                {/* Left Section: Text Block */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
+                      Travel
+                    </span>
+                  </div>
+                  <h2 className="text-3xl font-bold">Travel Agencies</h2>
+                  <p className="text-gray-700">
+                    <strong>Usecase:</strong>
+                    <br />
+                    Travel agencies often receive numerous inquiries about
+                    booking details, travel packages, visa requirements, and
+                    more. Intelli can automate responses to these common
+                    questions, providing customers with the information they
+                    need quickly and efficiently. It can also guide customers
+                    through the booking process with step-by-step instructions.
+                    For complex inquiries, human agents can seamlessly take
+                    over. With Intelli’s multilingual support, travel agencies
+                    can assist customers from around the world in their
+                    preferred language, and its 24/7 availability ensures
+                    customers receive support whenever they need it.
+                  </p>
+                  <p className="text-gray-700">
+                    <strong>Customer Satisfaction</strong>
+                    <br />
+                    Enhances the customer experience by providing quick and
+                    accurate information.
+                  </p>
+                  <p className="text-gray-700">
+                    <strong>Multi-lingual Support</strong>
+                    <br />
+                    Allows agencies to serve a global clientele, overcoming
+                    language barriers.
+                  </p>
+                  <Link href="/auth/sign-up">
+                    <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
+                      Get Started 
+                    </button>
+                  </Link>
+                </div>
+
+                {/* Right Section: Chatbot UI */}
+
+                
+                  <Image
+                    src="/support.png"
+                    alt="Travel image"
+                    width={600} // Specify the width
+                    height={600} // Specify the height
+                    className="w-auto h-auto object-cover border rounded-lg" // Ensure responsiveness
+                  />
+               
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: NGO Section */}
           <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
             <div className="space-y-2 mb-4">
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
@@ -66,7 +127,7 @@ const UseCaseSection = () => {
             </div>
           </div>
 
-          {/* Card 2: Schools Section */}
+          {/* Card 3: Schools Section */}
           <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
             <div className="space-y-2 mb-4">
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
@@ -165,7 +226,7 @@ const UseCaseSection = () => {
             </div>
           </div>
 
-          {/* Card 3: Government Agencies Section  */}
+          {/* Card 4: Government Agencies Section  */}
           <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
             <div className="space-y-4 mb-4">
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
@@ -227,66 +288,7 @@ const UseCaseSection = () => {
             </div>
           </div>
 
-          {/* Card 4: Travel Agencies  */}
-          <div className="bg-white mt-10 rounded-lg shadow-lg p-4">
-            <div className="space-y-4 mb-4">
-              <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
-                {/* Left Section: Text Block */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
-                      Travel
-                    </span>
-                  </div>
-                  <h2 className="text-3xl font-bold">Travel Agencies</h2>
-                  <p className="text-gray-700">
-                    <strong>Usecase:</strong>
-                    <br />
-                    Travel agencies often receive numerous inquiries about
-                    booking details, travel packages, visa requirements, and
-                    more. Intelli can automate responses to these common
-                    questions, providing customers with the information they
-                    need quickly and efficiently. It can also guide customers
-                    through the booking process with step-by-step instructions.
-                    For complex inquiries, human agents can seamlessly take
-                    over. With Intelli’s multilingual support, travel agencies
-                    can assist customers from around the world in their
-                    preferred language, and its 24/7 availability ensures
-                    customers receive support whenever they need it.
-                  </p>
-                  <p className="text-gray-700">
-                    <strong>Customer Satisfaction</strong>
-                    <br />
-                    Enhances the customer experience by providing quick and
-                    accurate information.
-                  </p>
-                  <p className="text-gray-700">
-                    <strong>Multi-lingual Support</strong>
-                    <br />
-                    Allows agencies to serve a global clientele, overcoming
-                    language barriers.
-                  </p>
-                  <Link href="/auth/sign-up">
-                    <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
-                      Get Started 
-                    </button>
-                  </Link>
-                </div>
-
-                {/* Right Section: Chatbot UI */}
-
-                
-                  <Image
-                    src="/support.png"
-                    alt="Travel image"
-                    width={600} // Specify the width
-                    height={600} // Specify the height
-                    className="w-auto h-auto object-cover border rounded-lg" // Ensure responsiveness
-                  />
-               
-              </div>
-            </div>
-          </div>
+         
         </div>
       </section>
     </div>
