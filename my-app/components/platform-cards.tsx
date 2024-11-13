@@ -1,27 +1,38 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import Image from 'next/image';
 
 const PlatformCards = () => {
   const platforms = [
-    { name: 'WhatsApp', Icon: Icons.whatsapp },
-    { name: 'Messenger', Icon: Icons.messenger },
-    { name: 'Meta', Icon: Icons.meta },
-    { name: 'Instagram', Icon: Icons.instagram }
+    { name: 'Facebook', src: '/facebook.png' },
+    { name: 'Messenger', src: '/messenger.png' },
+    { name: 'Whatsapp', src: '/whatsapp.png' },
+    { name: 'Instagram', src: '/instagram.png' },
+    { name: 'Email Inbox', src: '/email.png' },
+    { name: 'Website', src: '/website-icon.png' }
   ];
 
   return (
-    <div className="">      
+    <div className="relative w-full bg-background">
       <div className="mt-20 grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4">
-        {platforms.map(({ name, Icon }) => (
-          <Card key={name} className="group hover:shadow-lg transition-shadow duration-200">
+        {platforms.map(({ name, src }) => (
+          <Card
+            key={name}
+            className="group hover:shadow-lg transition-shadow duration-200 p-4 md:p-6" // Added padding
+          >
             <CardContent className="p-6">
               <div className="flex flex-col items-center space-y-4">
-                <div className="w-16 h-16 flex items-center justify-center rounded-full bg-gray-50 group-hover:bg-gray-100 transition-colors duration-200">
-                  <div className="w-10 h-10">
-                    <Icon />
-                  </div>
+                <div className="w-12 h-12 md:w-16 md:h-16">
+                  <Image
+                    alt={name}
+                    width={40}
+                    height={40}
+                    src={src}
+                    className="w-10 h-10" // Adjusted for smaller icon size
+                  />
                 </div>
-                <h2 className="text-xl font-medium text-gray-900 dark:text-gray-100">
+
+                <h2 className="text-xl font-medium text-black-200 dark:text-black-900">
                   {name}
                 </h2>
               </div>
@@ -35,7 +46,8 @@ const PlatformCards = () => {
 
 export default PlatformCards;
 
-const Icons = {
+
+const Src = {
   whatsapp: () => (
     <svg
       width="100"
