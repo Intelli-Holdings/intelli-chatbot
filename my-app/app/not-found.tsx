@@ -34,12 +34,12 @@ export default function NotFound() {
           Go Back
         </Button>
         <Button 
-          onClick={() => router.push("/dashboard")} 
+          onClick={() => router.push("/")} 
           variant="ghost" 
           size="lg"
           className="border border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white px-8 py-3 rounded-lg shadow-lg"
         >
-          Back to Home
+          Go to Home
         </Button>
       </div>
     </div>
