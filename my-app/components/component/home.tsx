@@ -72,7 +72,7 @@ export function Home() {
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8">
             <h2 className="text-center text-5xl font-bold mb-10">
-            Intelli can be used on these platforms
+            Intelli works on these platforms
             </h2>
             <PlatformCards />
            
