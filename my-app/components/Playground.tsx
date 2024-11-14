@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Edit, Send, Trash2, Plus, Upload, X, FileText } from 'lucide-react';
+import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
 
 export default function Playground() {
   const [useCustomAssistants, setUseCustomAssistants] = useState<boolean>(false);
@@ -96,11 +97,11 @@ export default function Playground() {
                   checked={useCustomAssistants}
                   onCheckedChange={setUseCustomAssistants}
                 />
-                <Label htmlFor="custom-assistant-mode">Use Custom Assistants</Label>
+                <Label htmlFor="custom-assistant-mode">Use Your Assistants</Label>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {useCustomAssistants ? "Custom Assistant" : "Model"}
+                  {useCustomAssistants ? "Your Assistant" : "Model"}
                 </label>
                 <Select 
                   value={selectedAssistant} 
@@ -125,7 +126,7 @@ export default function Playground() {
                   <DialogTrigger asChild>
                     <Button variant="outline" className="w-full">
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Custom Assistant
+                      Create New Assistant
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -138,7 +139,7 @@ export default function Playground() {
                         onChange={(e) => setNewAssistantName(e.target.value)}
                         placeholder="Enter assistant name"
                       />
-                      <Button onClick={handleAddAssistant}>Add Assistant</Button>
+                      <Button onClick={handleAddAssistant}>Create Assistant</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -152,16 +153,7 @@ export default function Playground() {
                   className="h-24"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Temperature: {temperature.toFixed(1)}</label>
-                <Slider
-                  value={[temperature]}
-                  onValueChange={(value) => setTemperature(value[0])}
-                  max={1}
-                  step={0.1}
-                  className="w-full"
-                />
-              </div>
+              
               <div>
                 <label htmlFor="file-upload" className="block text-sm font-medium text-foreground mb-1">
                   Upload Files
@@ -220,7 +212,7 @@ export default function Playground() {
           <div className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 p-4">
               <Card className="h-full">
-                <ScrollArea className="h-full p-4">
+                <ScrollArea className="h-full p-4">                 
                   {messages.map((msg, idx) => (
                     <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                       <p className={`font-bold ${msg.role === 'user' ? 'text-primary' : 'text-secondary'}`}>
@@ -231,12 +223,13 @@ export default function Playground() {
                       </p>
                     </div>
                   ))}
+                  
                 </ScrollArea>
               </Card>
             </div>
             <div className="p-2 sm:p-4 bg-background border-t border-border">
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                <Textarea
+                <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type your message here..."
