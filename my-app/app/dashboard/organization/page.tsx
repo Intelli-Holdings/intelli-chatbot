@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { ClerkLoading, CreateOrganization } from "@clerk/nextjs"
-import { CustomCreateOrganizationForm } from "@/components/CreateOrganization"
 import { MyMemberships } from "@/components/OrganizationList"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,7 @@ export default function Page() {
        <h1 className="text-2xl font-bold mb-6">Organizations</h1>
       <div className="flex w-full flex-col">
 
-      <ClerkLoading>Loading ...</ClerkLoading>
+      
       <h1 className="mb-4 mt-5">Fill in this form to create your organization</h1>
         <CreateOrganization 
         afterCreateOrganizationUrl="/dashboard"
