@@ -73,7 +73,7 @@ export const JoinedOrganizations = () => {
 
       <div className="flex justify-end mt-4 gap-2">
         <button
-          className="bg-purple-500 text-white rounded px-4 py-2 disabled:bg-gray-300"
+          className="bg-purple-500 text-white rounded-lg px-4 py-2 disabled:bg-gray-300"
           disabled={
             !userMemberships?.hasPreviousPage || userMemberships?.isFetching
           }
@@ -83,7 +83,7 @@ export const JoinedOrganizations = () => {
         </button>
 
         <button
-          className="bg-purple-500 text-white rounded px-4 py-2 disabled:bg-gray-300"
+          className="bg-purple-500 text-white rounded-lg px-4 py-2 disabled:bg-gray-300"
           disabled={
             !userMemberships?.hasNextPage || userMemberships?.isFetching
           }
