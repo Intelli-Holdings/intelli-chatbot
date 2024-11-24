@@ -24,7 +24,9 @@ import {
   SignInButton,
   SignedIn,
   SignedOut,
-  UserButton
+  UserButton,
+  RedirectToCreateOrganization,
+  OrganizationSwitcher,
 } from '@clerk/nextjs';
 
 const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
@@ -72,7 +74,17 @@ export default function RootLayout({
     <PHProvider>
       <Analytics />      
       <SpeedInsights />
-      <SignedOut>          <SignInButton />        </SignedOut>        <SignedIn>          <UserButton />        </SignedIn>
+      <SignedOut> 
+      <SignInButton />   
+      </SignedOut>        
+      <SignedIn>    
+      <OrganizationSwitcher 
+              afterCreateOrganizationUrl="/dashboard"
+              afterSelectOrganizationUrl="/dashboard"
+            />    
+      <UserButton />        
+      </SignedIn> 
+     
       <body className={inter.className}>
       <PostHogPageView /> 
       <NextStepProvider>
