@@ -4,7 +4,7 @@ import { Navbar } from "@/components/navbar";
 import React from "react";
 import WhatsAppSignup from "@/components/component/whatsappSignup";
 
-export default function Company() {
+export default function JoinWaitlist() {
   return (
     <div className="relative">
       <Navbar />

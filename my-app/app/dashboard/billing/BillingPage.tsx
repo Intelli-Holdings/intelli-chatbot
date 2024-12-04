@@ -67,7 +67,7 @@ export function BillingPage() {
   return (
     <div className="grid w-full ">
         
-      <main className="flex-1 bg-white rounded-lg shadow p-6 ml-4">
+      <main className="flex-1 bg-white p-6 ml-4">
         <h1 className="text-2xl font-semibold mb-4">Billing</h1>
         <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
           <Tabs defaultValue="payment">
@@ -128,58 +128,35 @@ export function BillingPage() {
                 <div className="mt-4 p-5">
                 <Button
        
-        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md"
+        className="bg-blue-600 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-md"
       >
         + Add Payment Method
       </Button>
       </div>
                 <CardContent>             
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="mt-6 flex">
-                      <div className="mt-4 p-8 max-w-sm bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md">
+                    <div className="">
+                      <Card className="mt-4 p-8 center-items max-w-sm bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md">
                         <div className="flex justify-between items-center mb-4">
                           <CreditCardIcon className="text-white" />
                           <div className="text-sm text-white">
-                            VALID TILL 05/24
+                            VALID TILL 05/29
                           </div>
                         </div>
                         <div className="text-white">
                           <div className="text-2xl font-medium">
-                            XXXX - XXXX - XXXX - 2563
+                            XXXX - XXXX - XXXX - 0001
                           </div>
                           <div className="mt-2 text-sm">NAME</div>
                           <div className="text-sm font-medium">
-                            LA VILLA HOTEL
+                            CARD HOLDER NAME
                           </div>
                         </div>
-                      </div>
+                      </Card>
                     </div>
+                    
                     <Card>
-                      <CardHeader className="px-7">
-                        <CardTitle>Credit Card</CardTitle>
-                        <CardDescription>
-                          XXXX - XXXX - XXXX - 2563
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-muted-foreground">
-                            VALID TILL 05/24
-                          </div>
-                          <CreditCard className="w-8 h-8" />
-                        </div>
-                        <div className="mt-4">
-                          <div className="text-lg font-medium">
-                            LA VILLA HOTEL
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            NAME
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className="px-7">
+                      <CardHeader className="px-6">
                         <CardTitle>PayPal</CardTitle>
                         <CardDescription></CardDescription>
                       </CardHeader>
@@ -205,20 +182,20 @@ export function BillingPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
+                  <Table className="bg-gray-100 shadow-md center-items bg-gradient-to-r from-accent-500 text-gray-900 rounded-xl shadow-md">
+                    <TableHeader className="mt-4 p-8 center-items bg-gradient-to-r from-accent-500 text-gray-900 ">
                       <TableRow>
                         <TableHead>Customer Name</TableHead>
-                        <TableHead className="hidden sm:table-cell">
+                        <TableHead className="font-medium sm:table-cell">
                           Type
                         </TableHead>
-                        <TableHead className="hidden sm:table-cell">
+                        <TableHead className="font-medium sm:table-cell">
                           Status
                         </TableHead>
-                        <TableHead className="hidden md:table-cell">
+                        <TableHead className="font-medium md:table-cell">
                           Date
                         </TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="font-medium text-right">Amount</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -253,7 +230,7 @@ export function BillingPage() {
                           Refund
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          <Badge className="text-xs bg-red text-muted" variant="destructive">
+                          <Badge className="text-xs" variant="destructive">
                             Failed
                           </Badge>
                         </TableCell>
@@ -273,8 +250,8 @@ export function BillingPage() {
                           Sale
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          <Badge className="text-xs" variant="secondary">
-                            Successful
+                          <Badge className="text-xs" variant="default">
+                            Normal
                           </Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">

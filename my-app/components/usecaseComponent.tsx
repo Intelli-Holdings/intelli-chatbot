@@ -175,7 +175,7 @@ const UsecaseComponent = () => {
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
                 {/* Right Section: Image */}
                 <Image
-                  src="/conversation.jpg"
+                  src="/gov3.webp"
                   alt="Government image"
                   width={700}
                   height={700}

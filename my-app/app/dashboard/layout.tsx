@@ -1,28 +1,8 @@
+// app/layout.tsx or the corresponding layout file
+import { Toaster } from "sonner";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
-import type { Metadata } from "next";
-import { Toaster } from "sonner";
-
-// Onborda
-import { Onborda, OnbordaProvider } from "onborda";
-import { steps } from "@/lib/steps";
-
-
-// Custom Card
-import CustomCard from "@/components/CustomCard";
-
-
-export const metadata: Metadata = {
-  title: "Intelli Dashboard",
-  description: "The Dashboard for Businesses that care about their customers.",
-};
-
-export const viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
-};
+import CreateOrganizationPopup from "@/components/CreateOrganizationPopup"; // Import the popup component
 
 export default function DashboardLayout({
   children,
@@ -30,16 +10,16 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div suppressHydrationWarning>     
-     <Toaster position="top-right" />
+    <div suppressHydrationWarning>
+      <Toaster position="top-right" />
       <Header />
       <div className="flex h-screen">
         <Sidebar />
-        <main className="w-full pt-16">        
-          {children}       
-          </main>
+        <main className="w-full pt-16">
+          <CreateOrganizationPopup /> {/* Show the popup if the user needs to create an organization */}
+          {children}
+        </main>
       </div>
-      
     </div>
   );
 }

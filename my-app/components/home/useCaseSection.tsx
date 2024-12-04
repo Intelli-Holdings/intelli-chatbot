@@ -276,7 +276,7 @@ const UseCaseSection = () => {
 
                 {/* Right Section: Chatbot UI */}
                 <Image
-                    src="/conversation.jpg"
+                    src="/gov3.webp"
                     alt="Travel image"
                     width={700} // Specify the width
                     height={700} // Specify the height
