@@ -20,7 +20,7 @@ const CreateOrganizationPopup = () => {
       }`}
     >
       <div className="bg-white p-8 rounded-lg shadow-lg">
-        <h2 className="text-lg font-regular mb-4">Let&apos;s get you started now that you have signed up</h2>
+        <h2 className="text-lg font-regular mb-4">Let&apos;s get you started.</h2>
         <CreateOrganization
           afterCreateOrganizationUrl="/dashboard"
           skipInvitationScreen={true}
