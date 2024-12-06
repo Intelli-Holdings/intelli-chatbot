@@ -1,39 +1,48 @@
 "use client";
-import { useState } from "react";
-import { useUser, useOrganizationList } from "@clerk/nextjs";
-import { CreateOrganization } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
+import { useUser, useOrganizationList, CreateOrganization } from "@clerk/nextjs";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 
 const CreateOrganizationPopup = () => {
   const { user } = useUser();
-  const { userMemberships } = useOrganizationList(); // Access the userMemberships field
-  const [showPopup, setShowPopup] = useState(true);
+  const { isLoaded, userMemberships } = useOrganizationList(); // Access the userMemberships field
+  const [showPopup, setShowPopup] = useState(false);
 
-  // Handle successful organization creation
-  const handleCreateOrganization = () => {
-    setShowPopup(false); // Close the popup when organization is created
-  };
+  useEffect(() => {
+    if (isLoaded) {
+      const hasOrganizations = userMemberships?.data?.length > 0;
+      const popupShown = localStorage.getItem('popupShown');
+
+      if (!hasOrganizations && !popupShown) {
+        setTimeout(() => {
+          setShowPopup(true);
+          localStorage.setItem('popupShown', 'true');
+        }, 10000); // Delay showing the popup by 10 seconds
+      }
+    }
+  }, [isLoaded, userMemberships]);
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex justify-center items-center bg-gray-900 bg-opacity-50 transition-all ${
-        showPopup ? "opacity-100" : "opacity-0 pointer-events-none"
-      }`}
-    >
-      <div className="bg-white p-8 rounded-lg shadow-lg">
-        <h2 className="text-lg font-regular mb-4">Let&apos;s get you started.</h2>
+    <Dialog open={showPopup} onOpenChange={setShowPopup}>
+      <DialogTrigger asChild>
+        <button className="hidden">Open Dialog</button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Let&apos;s get you started.</DialogTitle>
+        </DialogHeader>
         <CreateOrganization
           afterCreateOrganizationUrl="/dashboard"
           skipInvitationScreen={true}
           hideSlug={true}
         />
-        <button
-          className="mt-4 text-red-500 hover:text-red-700 default-transition"
-          onClick={() => setShowPopup(false)} // Close the popup manually
-        >
-          Close
-        </button>
-      </div>
-    </div>
+        <DialogClose asChild>
+          <button className="mt-4 text-red-500 hover:text-red-700 default-transition">
+            Close
+          </button>
+        </DialogClose>
+      </DialogContent>
+    </Dialog>
   );
 };
 

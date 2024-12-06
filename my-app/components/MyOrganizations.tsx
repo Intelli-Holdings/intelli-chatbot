@@ -38,8 +38,8 @@ export const JoinedOrganizations = () => {
         Create Organization
       </button>
 
-      <div className="overflow-x-auto shadow rounded-lg">
-        <table className="min-w-full bg-white rounded-lg">
+      <div className="overflow-x-auto rounded-xl border border-gray-300">
+        <table className="min-w-full bg-white-100">
           <thead>
             <tr className="bg-gray-50 border-b">
               <th className="py-2 px-4 text-left font-medium text-gray-600">
