@@ -1,0 +1,39 @@
+// types/mintConfig.ts
+
+export interface NavLink {
+    name: string;
+    url: string;
+  }
+  
+  export interface SidebarLink {
+    group: string;
+    pages: NavLink[];
+  }
+  
+  export interface MintConfig {
+    name: string;
+    logo: {
+      dark: string;
+      light: string;
+    };
+    favicon: string;
+    colors: {
+      primary: string;
+      light: string;
+      dark: string;
+      anchors: {
+        from: string;
+        to: string;
+      };
+    };
+    topbarLinks: NavLink[];
+    topbarCtaButton: {
+      name: string;
+      url: string;
+    };
+    secondaryMenu: NavLink[];
+    footerSocials: {
+      [key: string]: string;
+    };
+    navigation: SidebarLink[];
+  }
