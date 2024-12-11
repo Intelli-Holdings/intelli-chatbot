@@ -5,6 +5,10 @@ import path from 'path';
 import matter from 'gray-matter';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { mdxComponents } from './mdx-components';
+import { Topbar } from '@/components/docs/topbar';
+import { Footer } from '@/components/docs/footer';
+import { Sidebar } from '@/components/docs/sidebar';
+import { mintConfig } from '@/lib/mint-config';
 
 function getAllMdxFiles(dirPath: string, arrayOfFiles: string[] = []) {
   const files = fs.readdirSync(dirPath);
@@ -35,13 +39,22 @@ export default async function DocsPage() {
   });
 
   return (
-    <div className="prose dark:prose-invert max-w-5xl mx-auto px-4 py-8 space-y-10">
-      {mdxContents.map((content, index) => (
-        <div key={index}>
-         
-          <MDXRemote source={content} components={mdxComponents} />
+    <div className="flex flex-col min-h-screen">
+      <Topbar />
+      <div className="flex flex-1">
+        <Sidebar />
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 flex-1">
+          {mdxContents.map((content, index) => (
+            <div
+              key={index}
+              className="prose prose-headings:text-gray-800 prose-p:text-gray-600 prose-a:text-blue-500 prose-a:hover:text-blue-700 dark:prose-invert"
+            >
+              <MDXRemote source={content} components={mdxComponents} />
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+      <Footer />
     </div>
   );
 }
