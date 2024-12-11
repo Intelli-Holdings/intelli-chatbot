@@ -77,8 +77,7 @@ export default function RootLayout({
     <PHProvider>
       <Analytics />      
       <SpeedInsights />
-      <SignedOut> 
-      <SignInButton />   
+      <SignedOut>   
       </SignedOut>        
       <SignedIn>    
       <UserButton />        
