@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ArrowUp } from "lucide-react";
 
 export function ChatWindow() {
   const [messages, setMessages] = useState([
@@ -65,9 +66,9 @@ export function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col h-full max-w-md mx-auto bg-white rounded-lg shadow-lg">
+    <div className="flex flex-col max-w-[400px] mx-auto border rounded-xl">
       <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x2 border-none">
           <Avatar>
             <AvatarImage
               alt="Ellie's avatar"
@@ -76,15 +77,15 @@ export function ChatWindow() {
             <AvatarFallback>E</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <p className="text-xs font-semibold">Elli</p>
+            <p className="text-xl font-regular p-2">Elli</p>
           </div>
         </div>
       </div>
 
-      <div className="justify-between p-1">
-        <ScrollArea className="h-[calc(50vh-100px)]">
+      <div className="justify-between">
+        <ScrollArea className="h-[calc(60vh-100px)]">
           <div>
-            <Card className="shadow-lg border-none">
+            <Card className="shadow-sm border-none">
               <CardContent>
                 <CardHeader>
                   <CardTitle>Welcome to Elli</CardTitle>
@@ -101,7 +102,7 @@ export function ChatWindow() {
               key={m.id}
               className={`${
                 m.role === "user"
-                  ? "flex items-end space-x-2"
+                  ? "flex items-end space-x-16"
                   : "flex items-start justify-end space-x-2"
               } px-4 py-2 space-y-2`}
             >
@@ -120,7 +121,7 @@ export function ChatWindow() {
                 </Avatar>
               )}
               <div
-                className={`max-w-xs px-4 py-2 text-sm text-gray-700 rounded-lg ${
+                className={`max-w-xs px-3 p-1 text-sm text-gray-700 rounded-lg ${
                   m.role === "user" ? "bg-gray-100" : "bg-[#E5EEFF]"
                 }`}
               >
@@ -128,68 +129,50 @@ export function ChatWindow() {
               </div>
             </div>
           ))}
-        </ScrollArea>
-      </div>
+       </ScrollArea>
+      
 
       <form onSubmit={handleSubmit}>
-        <div className="flex flex-col justify-between p-1">
-          <div className="flex items-center px-1 py-2 bg-white">
+        <div className="flex flex-col justify-between ">
+          <div className="flex items-center m-1 px-1 p-1 rounded-xl border shadow-sm">
             <Input
-              className="flex-grow w-full p-2 rounded shadow-sm"
+              className="flex-grow w-full border-none rounded-lg m-1 p-2"
               value={input}
-              placeholder="How may I help you today?..."
+              placeholder="Chat with Elli."
               onChange={(e) => setInput(e.target.value)}
               disabled={isLoading}
+
             />
             <Button 
               type="submit" 
-              className="rounded p-2 ml-1"
+              className=" rounded-lg m-1 p-2"
               disabled={isLoading}
             >
-              <SendIcon className="w-8 h-8" />
+              <ArrowUp className="w-8 h-8" />
             </Button>
           </div>
         </div>
       </form>
+      
+      </div>
 
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-b-lg">
+      <div className="items-center p-2 m-1 bg-green-200 rounded-lg shadow-sm border border-green-400 hover:border-green-500">
         <Link 
-          href="https://api.whatsapp.com/send/?phone=233536620120&text&type=phone_number&app_absent=0"
+          href="https://api.whatsapp.com/send/?phone=254769758405&text&type=phone_number&app_absent=0"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block"
         >
-          Continue to
+         
           <Image
             src="/whatsapp.svg"
             alt="Continue to WhatsApp"
-            width={100}
-            height={100}
+            width={80}
+            height={80}
             className="hover:opacity-80 transition-opacity"
           />
         </Link>
       </div>
     </div>
-  );
-}
-
-function SendIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 512 512"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="32"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeMiterlimit="10"
-    >
-      <path d="M64 256c0 106 86 192 192 192s192-86 192-192S362 64 256 64 64 150 64 256z" />
-      <path d="M216 352l96-96-96-96" />
-    </svg>
   );
 }
