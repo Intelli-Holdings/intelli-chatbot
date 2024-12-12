@@ -5,10 +5,6 @@ import path from 'path';
 import matter from 'gray-matter';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { mdxComponents } from './mdx-components';
-import { Topbar } from '@/components/docs/topbar';
-import { Footer } from '@/components/docs/footer';
-import { Sidebar } from '@/components/docs/sidebar';
-import { mintConfig } from '@/lib/mint-config';
 
 function getAllMdxFiles(dirPath: string, arrayOfFiles: string[] = []) {
   const files = fs.readdirSync(dirPath);
@@ -39,10 +35,8 @@ export default async function DocsPage() {
   });
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Topbar />
-      <div className="flex flex-1">
-        <Sidebar />
+    <div className="flex flex-col min-h-screen">     
+      <div className="flex flex-1">        
         <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 flex-1">
           {mdxContents.map((content, index) => (
             <div
@@ -54,7 +48,7 @@ export default async function DocsPage() {
           ))}
         </div>
       </div>
-      <Footer />
+   
     </div>
   );
 }
