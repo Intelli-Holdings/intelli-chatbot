@@ -27,21 +27,14 @@ export const Topbar: React.FC = () => {
           ))}
           <a
   href={config.topbarCtaButton.url}
-  className="bg-blue-100 text-blue-600 border border-blue-500 hover:border-blue-800 px-4 py-2 rounded-full hover:bg-blue-100"
+  className="bg-blue-200 text-blue-600 border border-blue-500 hover:border-blue-600 px-4 py-2 rounded-xl hover:bg-blue-100"
 >
   {config.topbarCtaButton.name}
 </a>
         </div>
       </div>
 
-      {/* Secondary Menu */}
-      <div className="bg-gray-100 py-3 px-4 border-b border-gray-150">
-        {config.secondaryMenu.map((link: NavLink, index: number) => (
-          <a key={index} href={link.url} className="mr-6 hover:text-gray-300">
-            {link.name}
-          </a>
-        ))}
-      </div>
+      
     </div>
   );
 };
