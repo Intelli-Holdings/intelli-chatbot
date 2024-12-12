@@ -1,5 +1,3 @@
-// app/components/docs/sidebar.tsx
-
 import Link from 'next/link';
 import { mintConfig } from '@/lib/mint-config';
 import { MintConfig, SidebarLink, NavLink } from '@/types/mintConfig'; // Adjust the path if necessary
@@ -8,7 +6,7 @@ export const Sidebar: React.FC = () => {
   const config: MintConfig = mintConfig;
 
   return (
-    <div className="bg-white border-r border-gray-150 p-6 sticky top-0 h-screen overflow-y-auto">
+    <div className="bg-white border-r border-shadow-sm border-gray-150 p-12 sticky top-0 h-screen overflow-y-auto">
       <div className="space-y-8">
         {config.navigation.map((link: SidebarLink, index: number) => (
           <div key={index}>
