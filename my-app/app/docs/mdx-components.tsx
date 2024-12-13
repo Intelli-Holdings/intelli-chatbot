@@ -2,7 +2,7 @@
 
 import { Accordion, AccordionGroup } from '@/components/docs/accordion';
 import { Card, CardGroup } from '@/components/docs/card';
-import { CodeGroup } from '@/components/docs/code-group';
+import CodeGroup  from '@/components/docs/code-group';
 import { Tip } from '@/components/docs/tip';
 import { Note } from '@/components/docs/note';
 import { Warning } from '@/components/docs/warning';
@@ -14,6 +14,7 @@ import { Info } from '@/components/docs/info';
 import { ResponseField } from '@/components/docs/response-field';
 import { Topbar } from '@/components/docs/topbar';
 import { Footer } from '@/components/docs/footer';
+import { CodeBlock } from '@/components/docs/code-block';
 
 export const mdxComponents = {
   Accordion,
@@ -32,4 +33,5 @@ export const mdxComponents = {
   ResponseField,
   Topbar,
   Footer,
+  CodeBlock
 };
