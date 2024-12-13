@@ -4,7 +4,7 @@ const config: Config = {
     darkMode: ["class"],
     content: [
     "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./constants/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
@@ -194,6 +194,8 @@ const config: Config = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+	require("tailwindcss-animate"),
+  ],
 };
 export default config;
