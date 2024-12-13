@@ -1,6 +1,7 @@
 // app/lib/mint-config.ts
+import { MintConfig } from '@/types/mintConfig';
 
-export const mintConfig = {
+export const mintConfig: MintConfig = {
     name: 'Intelli Docs',
     logo: {
       dark: '/Intelli.svg',
@@ -26,11 +27,7 @@ export const mintConfig = {
       name: 'Dashboard',
       url: 'https://intelliconcierge.com/dashboard',
     },
-    secondaryMenu: [
-      { name: "About Us", url: "/about" },
-      { name: "Contact", url: "/contact" },
-      // Add more secondary menu links as needed
-    ],
+    
     footerSocials: {
       x: 'https://x.com/intelliconcierge',
       github: 'https://github.com/Sqweya-AI',
@@ -41,17 +38,10 @@ export const mintConfig = {
         group: "Documentation",
         pages: [
           { name: "Getting Started", url: "/docs/getting-started" },
-          { name: "API Reference", url: "/docs/api" },
+          { name: "API Documentation", url: "/docs/api" },
           { name: "Tutorials", url: "/docs/tutorials" },
         ],
       },
-      {
-        group: "Resources",
-        pages: [
-          { name: "Blog", url: "/blog" },
-          { name: "Support", url: "/support" },
-          { name: "Privacy Policy", url: "/privacy" },
-        ],
-      },
+      
     ],
   };
