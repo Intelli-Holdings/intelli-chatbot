@@ -43,5 +43,5 @@ export function Accordion({ title, icon, children }: AccordionProps) {
 }
 
 export function AccordionGroup({ children }: { children: ReactNode }) {
-  return <div className="border-t">{children}</div>;
+  return <div className="border rounded-lg">{children}</div>;
 }
