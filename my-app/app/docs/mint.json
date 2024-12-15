@@ -23,7 +23,7 @@
   ],
   "topbarCtaButton": {
     "name": "Dashboard",
-    "url": "https://intelliconcierge.com/dashboard"
+    "url": "/dashboard"
   },
   "tabs": [
     {
