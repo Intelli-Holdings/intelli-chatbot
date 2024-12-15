@@ -3,11 +3,14 @@
 export interface NavLink {
     name: string;
     url: string;
+    title?: string;
+    page?: string;
   }
   
   export interface SidebarLink {
     group: string;
     pages: NavLink[];
+    links?: NavLink[];
   }
   
   export interface MintConfig {
