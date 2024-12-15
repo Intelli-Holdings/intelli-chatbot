@@ -5,7 +5,7 @@ import { mintConfig } from '@/lib/mint-config';
 
 export const Footer: React.FC = () => {
   return (
-    <div className="bg-gray-800 text-white py-6 px-4">
+    <div className="bg-white-100 justify-items items-center border shadow-sm text-center text-blue-700 py-6 px-4">
       <div className="max-w-5xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-4">
           {Object.entries(mintConfig.footerSocials).map(([key, url], index) => (
