@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { Sidebar } from '@/components/docs/sidebar' 
+import  {Sidebar}  from '@/components/docs/sidebar' 
 import {Topbar} from '@/components/docs/topbar' 
 import {Footer} from '@/components/docs/footer' 
 // import { Sidebar } from '@/components/ui/sidebar'
