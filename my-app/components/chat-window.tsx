@@ -77,7 +77,7 @@ export function ChatWindow() {
             <AvatarFallback>E</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <p className="text-xl font-regular p-2">Elli</p>
+            <p className="text-2xl font-regular p-2">Elli</p>
           </div>
         </div>
       </div>
@@ -101,10 +101,8 @@ export function ChatWindow() {
             <div
               key={m.id}
               className={`${
-                m.role === "user"
-                  ? "flex items-end space-x-16"
-                  : "flex items-start justify-end space-x-2"
-              } px-4 py-2 space-y-2`}
+                m.role === "user" ? "flex items-end justify-start space-x-20" : "flex items-start justify-end space-x-2"
+              } px-4 py-1 space-y-2`}
             >
               {m.role === "user" ? (
                 <Avatar>
@@ -121,10 +119,11 @@ export function ChatWindow() {
                 </Avatar>
               )}
               <div
-                className={`max-w-xs px-3 p-1 text-sm text-gray-700 rounded-lg ${
-                  m.role === "user" ? "bg-gray-100" : "bg-[#E5EEFF]"
+                className={`max-w-sm px-2 p-1 text-sm rounded-t-xl border shadow-sm ${
+                  m.role === "user" ? "rounded-l-lg text-white bg-blue-500 border-blue-200 " : "rounded-r-lg text-black bg-[#F2F2F2] border-gray-200"
                 }`}
               >
+                
                 {m.content}
               </div>
             </div>
@@ -145,7 +144,7 @@ export function ChatWindow() {
             />
             <Button 
               type="submit" 
-              className=" rounded-lg m-1 p-2"
+              className=" bg-[#007fff] hover:bg-blue-600 rounded-lg m-1 p-2"
               disabled={isLoading}
             >
               <ArrowUp className="w-8 h-8" />
