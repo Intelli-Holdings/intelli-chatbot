@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
+
 // Onborda
 import { Onborda, OnbordaProvider } from "onborda";
 import { steps } from "@/lib/steps";
@@ -16,6 +17,9 @@ import CustomCard from "@/components/CustomCard";
 import { NextStepProvider, NextStep } from 'nextstepjs';
 
 import Script from "next/script";
+
+// Website widget 
+// import { ChatPreview } from "@/components/chat-preview";
 
 import { PHProvider } from './providers'
 import dynamic from 'next/dynamic'
