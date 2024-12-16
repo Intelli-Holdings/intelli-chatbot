@@ -1,4 +1,3 @@
-// app/docs/page.tsx
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -70,9 +69,9 @@ export default async function DocsPage({
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-0 dark:bg-gray-900 ">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Main Content Area */}
-      <main className="flex-1 max-w-auto mx-auto">
+      <main className="flex-1 max-w-4xl mx-auto px-6 py-8">
         <article className="mb-16 bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
           {/* Page Header */}
           <header className="bg-gray-100 dark:bg-gray-700 p-6 border-b border-gray-200 dark:border-gray-600">
