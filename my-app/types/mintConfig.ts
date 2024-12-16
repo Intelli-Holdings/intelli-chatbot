@@ -34,7 +34,7 @@ export interface NavLink {
       name: string;
       url: string;
     };
-    secondaryMenu: NavLink[];
+    
     footerSocials: {
       [key: string]: string;
     };
