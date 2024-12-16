@@ -26,7 +26,7 @@ export function ChatWindow() {
 
   
   const [messages, setMessages] = useState([
-    { id: 1, role: "assistant", content: "Hello! I'm Elli, your travel assistant. How can I help you plan your East African adventure today?" }
+    { id: 1, role: "assistant", content: "Hello! I'm Elli, Ask me anything about Intelli?" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +75,7 @@ export function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col max-w-[400px] mx-auto border rounded-xl">
+    <div className="flex flex-col max-w-[400px] mx-auto border bg-white rounded-xl">
       <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
         <div className="flex items-center space-x2 border-none">
           <Avatar>
@@ -108,8 +108,8 @@ export function ChatWindow() {
               <AlertTitle>Welcome to Elli</AlertTitle>
               <CardDescription>
                 Elli is an AI assistant that has been trained to
-                answer questions about an East African travel agency business.
-                Please review the Intelli Privacy Statement to understand how we process your information.
+                answer questions about Intelli.
+                Please review the Intelli <Link href="/privacy" text-color="green">Privacy Statement</Link> to understand how we process your information.
               </CardDescription>
             </CardHeader>
           </AlertDescription>
@@ -138,8 +138,8 @@ export function ChatWindow() {
                 </Avatar>
               )}
               <div
-                className={`max-w-sm px-2 p-1 text-sm rounded-t-xl border shadow-sm ${
-                  m.role === "user" ? "rounded-l-lg text-white bg-blue-500 border-blue-200 " : "rounded-r-lg text-black bg-[#F2F2F2] border-gray-200"
+                className={`max-w-sm px-2 p-1 text-sm border shadow-sm ${
+                  m.role === "user" ? "rounded-l-lg rounded-t-xl text-white bg-blue-500 border-blue-200 " : "rounded-r-lg rounded-b-xl text-black bg-[#F2F2F2] border-gray-200"
                 }`}
               >
                 
