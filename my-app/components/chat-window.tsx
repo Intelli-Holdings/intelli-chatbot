@@ -1,5 +1,6 @@
 "use client";
 import { AvatarImage, AvatarFallback, Avatar } from "@/components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Image from 'next/image';
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, XIcon } from "lucide-react";
+import { Toast, ToastAction, ToastDescription, ToastProvider, ToastTitle, ToastActionElement, ToastClose } from "@/components/ui/toast";
 
 export function ChatWindow() {
+  const [isAlertVisible, setIsAlertVisible] = useState(true);
+
+  const handleCloseAlert = () => {
+    setIsAlertVisible(false);
+  };
+
+  
   const [messages, setMessages] = useState([
     { id: 1, role: "assistant", content: "Hello! I'm Elli, your travel assistant. How can I help you plan your East African adventure today?" }
   ]);
@@ -84,18 +93,28 @@ export function ChatWindow() {
 
       <div className="justify-between">
         <ScrollArea className="h-[calc(60vh-100px)]">
-          <div>
-            <Card className="shadow-sm border-none">
-              <CardContent>
-                <CardHeader>
-                  <CardTitle>Welcome to Elli</CardTitle>
-                  <CardDescription>
-                    Elli is an AI assistant that has been trained to
-                    answer inquiries about an East African travel agency business.
-                  </CardDescription>
-                </CardHeader>      
-              </CardContent>
-            </Card>
+          <div className="px-1 py-2">            
+          {isAlertVisible && (
+        <Alert className="relative px-1 py-2 shadow-sm border-blue-200">
+          <button
+            onClick={handleCloseAlert}
+            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            aria-label="Close alert"
+          >
+            <XIcon className="h-5 w-5" />
+          </button>
+          <AlertDescription>
+            <CardHeader>
+              <AlertTitle>Welcome to Elli</AlertTitle>
+              <CardDescription>
+                Elli is an AI assistant that has been trained to
+                answer questions about an East African travel agency business.
+                Please review the Intelli Privacy Statement to understand how we process your information.
+              </CardDescription>
+            </CardHeader>
+          </AlertDescription>
+        </Alert>
+      )}
           </div>
           {messages.map((m) => (
             <div
