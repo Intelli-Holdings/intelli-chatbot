@@ -2,6 +2,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -10,6 +11,7 @@ const nextConfig = {
       'fs/promises': false,
       net: false,
       tls: false,
+      path: false,
     };
     return config;
   },
@@ -29,11 +31,14 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'api.qrserver.com', // Added to allow the Google Chart QR code
+        hostname: 'api.qrserver.com',
         port: '',
-        pathname: '/v1/create-qr-code/**', // This matches the path for generating QR codes
+        pathname: '/v1/create-qr-code/**',
       },
     ],
+  },
+  experimental: {
+    mdxRs: true,
   },
 };
 

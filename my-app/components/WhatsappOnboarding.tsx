@@ -40,7 +40,7 @@ const WhatsappAssistant = () => {
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded-lg shadow-sm"
               placeholder="WhatsApp phone number without leading (+)"
               aria-label="WhatsApp phone number without leading plus"
             />
@@ -53,7 +53,7 @@ const WhatsappAssistant = () => {
               name="accessToken"
               value={formData.accessToken}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded-lg shadow-sm"
               placeholder="Access token from your Meta App..."
               aria-label="WhatsApp Cloud API permanent access token"
             />
@@ -66,7 +66,7 @@ const WhatsappAssistant = () => {
               name="phoneNumberId"
               value={formData.phoneNumberId}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded-lg shadow-sm"
               placeholder="WhatsApp Cloud Phone number ID"
               aria-label="WhatsApp Cloud Phone number ID"
             />
@@ -79,7 +79,7 @@ const WhatsappAssistant = () => {
               name="businessAccountId"
               value={formData.businessAccountId}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded-lg shadow-sm"
               placeholder="WhatsApp cloud business ID"
               aria-label="WhatsApp cloud business ID"
             />
@@ -92,14 +92,14 @@ const WhatsappAssistant = () => {
               name="appVersion"
               value={formData.appVersion}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded-lg shadow-sm"
               placeholder="WhatsApp cloud Application version"
               aria-label="WhatsApp cloud Application version"
             />
           </div>
           <button
             type="submit"
-            className="w-full py-2 bg-blue-600 text-white font-semibold rounded-lg mt-4 hover:bg-blue-700"
+            className="w-full py-2 bg-gray-600 text-white font-medium rounded-xl shadow-md mt-4  hover:bg-blue-700"
             aria-label="Update Cloud API"
           >
             Create Assistant
@@ -110,7 +110,7 @@ const WhatsappAssistant = () => {
 
       {/* Right Column: WhatsApp Signup Embed */}
       <div className="md:w-1/2 flex items-center justify-center">
-        <div className="bg-gray-100 p-4 rounded-lg shadow-md w-full h-96 flex items-center justify-center">
+        <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-lg shadow-sm w-full h-full flex items-center justify-center">
           <EmbeddedSignup />
         </div>
       </div>

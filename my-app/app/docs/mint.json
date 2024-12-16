@@ -1,0 +1,95 @@
+{
+  "$schema": "https://intelliconcierge.com/schema.json",
+  "name": "Intelli Docs",
+  "logo": {
+    "dark": "/logo/intelli-dark.svg",
+    "light": "/logo/intelli-light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#007fff",
+    "light": "#0882C9",
+    "dark": "#007fff",
+    "anchors": {
+      "from": "#007fff",
+      "to": "#0882C9"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:support@intelliconcierge.com"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "/dashboard"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Tutorials",
+      "url": "tutorials"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Documentation",
+      "icon": "book-open-cover",
+      "url": "https://intelliconcierge.com/docs"
+    },
+    {
+      "name": "Community",
+      "icon": "slack",
+      "url": "https://intelliconcierge.com/community"
+    },
+    {
+      "name": "Blog",
+      "icon": "newspaper",
+      "url": "https://intelliconcierge.com/blog"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "development"
+      ]
+    },
+    {
+      "group": "Essentials",
+      "pages": [
+        "essentials/markdown",
+        "essentials/code",
+        "essentials/images",
+        "essentials/settings",
+        "essentials/navigation",
+        "essentials/reusable-snippets"
+      ]
+    },
+    {
+      "group": "API Documentation",
+      "pages": [
+        "api-reference/introduction"
+      ]
+    },
+    {
+      "group": "Endpoint Examples",
+      "pages": [
+        "api-reference/endpoint/get",
+        "api-reference/endpoint/create",
+        "api-reference/endpoint/delete"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "x": "https://x.com/intelliconcierge",
+    "github": "https://github.com/Sqweya-AI",
+    "linkedin": "https://www.linkedin.com/company/intelliconcierge"
+  }
+}

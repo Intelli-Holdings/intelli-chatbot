@@ -13,7 +13,7 @@ export default function DashboardLayout({
     <div suppressHydrationWarning>
       <Toaster position="top-right" />
       <Header />
-      <div className="flex h-screen">
+      <div className="flex">
         <Sidebar />
         <main className="w-full pt-16">
           <CreateOrganizationPopup /> {/* Show the popup if the user needs to create an organization */}
