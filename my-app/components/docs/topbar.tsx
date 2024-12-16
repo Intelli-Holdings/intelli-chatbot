@@ -19,22 +19,20 @@ export const Topbar: React.FC = () => {
           </Link>
         </div>
         <Search />
-        <div className="flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           {config.topbarLinks.map((link: NavLink, index: number) => (
             <a key={index} href={link.url} className="hover:text-gray-300">
               {link.name}
             </a>
           ))}
           <a
-  href={config.topbarCtaButton.url}
-  className="bg-blue-200 text-blue-600 border border-blue-500 hover:border-blue-600 px-4 py-2 rounded-xl hover:bg-blue-100"
->
-  {config.topbarCtaButton.name}
-</a>
+            href={config.topbarCtaButton.url}
+            className="bg-blue-200 text-blue-600 border border-blue-500 hover:border-blue-600 px-4 py-2 rounded-xl hover:bg-blue-100"
+          >
+            {config.topbarCtaButton.name}
+          </a>
         </div>
       </div>
-
-      
     </div>
   );
 };
