@@ -138,15 +138,15 @@ const EmbeddedSignup: React.FC = () => {
       <div id="fb-root"></div>
       <button
         onClick={launchWhatsAppSignup}
-        className="bg-[#1877f2] border-0 rounded px-6 py-2 text-white cursor-pointer font-bold hover:bg-[#1664d9] transition-colors"
+        className="bg-[#1877f2] border-0 rounded-xl px-6 py-2 text-white cursor-pointer font-normal shadow-md hover:bg-[#1664d9] transition-colors"
       >
         Login with Facebook
       </button>
       <div className="w-full space-y-2">
-        <p className="text-sm font-medium">Session info response:</p>
-        <pre id="session-info-response" className="bg-gray-50 p-2 rounded text-xs overflow-auto max-h-32"></pre>
-        <p className="text-sm font-medium">SDK response:</p>
-        <pre id="sdk-response" className="bg-gray-50 p-2 rounded text-xs overflow-auto max-h-32"></pre>
+        <p className="text-sm font-semibold">Session Info response:</p>
+        <pre id="session-info-response" className="bg-gray-800/10 p-2 rounded text-xs overflow-auto max-h-32"></pre>
+        <p className="text-sm font-semibold">SDK response:</p>
+        <pre id="sdk-response" className="bg-gray-800/10 p-2 rounded text-xs overflow-auto max-h-32"></pre>
       </div>
     </div>
   );
