@@ -1,10 +1,11 @@
-"use client"
+// app/docs/layout.tsx
 
-import React from 'react'
-import  {Sidebar}  from '@/components/docs/sidebar' 
-import {Topbar} from '@/components/docs/topbar' 
-import {Footer} from '@/components/docs/footer' 
-// import { Sidebar } from '@/components/ui/sidebar'
+"use client";
+
+import React from 'react';
+import Sidebar from '@/components/docs/sidebar';
+import { Topbar } from '@/components/docs/topbar';
+import { Footer } from '@/components/docs/footer';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -16,7 +17,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         {/* Main Content Area */}
         <div className="flex flex-1">
           {/* Sidebar */}
-          <Sidebar />
+          <Sidebar searchParams={{ page: undefined }} />
 
           {/* Content */}
           <main className="max-w-4xl mx-auto px-4 py-8 space-y-10 flex-1">
@@ -28,7 +29,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <Footer />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;
