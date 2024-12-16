@@ -23,7 +23,7 @@ export function DeploymentDialog({ assistantId }: DeploymentDialogProps) {
   const nextjsSnippet = `npm install @intelli/chat-widget
 
 // In your layout.tsx or page where you want the widget
-import { IntelliWidget } from '@neexa/chat-widget'
+import { IntelliWidget } from '@intelli/chat-widget'
 
 export default function Layout({ children }) {
   return (
