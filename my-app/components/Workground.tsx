@@ -35,7 +35,7 @@ export default function Workground() {
   const [assistantId, setAssistantId] = useState<string>("");
   const [websiteUrl, setWebsiteUrl] = useState<string>("https://example.com");
   const [widgetName, setWidgetName] = useState<string>("Elli");
-  const [avatarUrl, setAvatarUrl] = useState<string>("/images/default-avatar.png");
+  const [avatarUrl, setAvatarUrl] = useState<string>("/Avatar.png");
   const [brandColor, setBrandColor] = useState<string>("#007fff");
   const [customInstructions, setCustomInstructions] = useState<string>("");
   const [greetingMessage, setGreetingMessage] = useState<string>("Hello! I'm Elli, Ask me anything about Intelli?");
