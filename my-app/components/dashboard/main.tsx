@@ -33,7 +33,7 @@ const Dashboard: React.FC = () => {
             emoji: "🛠️",
             title: "Create an Assistant",
             description: "Choose a channel and start building",
-            href: "/dashboard/channels"
+            href: "/dashboard/assistants"
         },
         {
             id: "step3",
@@ -84,10 +84,10 @@ const Dashboard: React.FC = () => {
                 </TooltipProvider>
             </div>
 
-            <div className="min-h-200 bg-blue-100 rounded-b-2xl">
+            <div className="min-h-200 bg-gray-400/10 rounded-t-lg rounded-b-2xl">
                 {/* Top banner */}
                 <div className='w-full'>
-                    <div className="bg-[#007fff] text-white py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-2xl">
+                    <div className="bg-[#007fff] text-white py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-lg">
                         <h1 className="text-3xl font-bold">Welcome, <span style={{ color: 'yellow' }}>{user.firstName}</span></h1>
                         <p className="text-lg">Overview of Intelli</p>
                     </div>
@@ -104,8 +104,8 @@ const Dashboard: React.FC = () => {
                             <Link href={card.href} key={card.id}>
                                 <div
                                     id={card.id}
-                                    className="bg-white shadow-md p-6 rounded-lg flex flex-col justify-between 
-                                            hover:shadow-md transition-shadow cursor-pointer transform hover:scale-105
+                                    className="bg-white shadow-sm p-6 rounded-lg flex flex-col justify-between 
+                                            hover:shadow-md transition-none cursor-pointer transform hover:scale-105
                                             transition-all duration-100 ease-in-out"
                                 >
                                     <div>
