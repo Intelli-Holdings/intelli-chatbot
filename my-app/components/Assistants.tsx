@@ -13,7 +13,7 @@ interface Assistant {
 }
 
 export default function Assistants() {
-  // This would typically come from an API or database
+
   const [assistants, setAssistants] = useState<Assistant[]>([])
 
   return (
