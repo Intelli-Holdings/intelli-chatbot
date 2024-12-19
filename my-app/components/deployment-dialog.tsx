@@ -37,7 +37,7 @@ export default function Layout({ children }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full mt-4 shadow-sm">Create and Deploy Assistant</Button>
+        <Button className="w-full mt-4 shadow-sm">Create and Deploy Widget</Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
