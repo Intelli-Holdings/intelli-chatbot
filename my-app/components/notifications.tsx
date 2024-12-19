@@ -3,11 +3,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X } from 'lucide-react';
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Bell } from 'lucide-react';
+import { NotificationItem } from "@/components/notification-item";
 
 interface Notification {
   id: string;
@@ -133,89 +136,32 @@ export default function NotificationsComponent() {
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-      <header className="flex items-center justify-between px-6 py-4 bg-white border-b">
-        <div className="flex items-center space-x-4">
-          <nav className="space-x-4">
-            <Link className="text-xl font-bold mb-4" href="#">
-              Notification History
-            </Link>
-          </nav>
-        </div>
-      </header>
-      <main className="flex-grow p-6">
-        <div className="mt-6">
-          <ul className="space-y-2">
-            {notifications.map((notification) => (
-              <li
-                key={notification.id}
-                className={`bg-gray-100 p-4 rounded flex flex-col ${
-                  notification.read ? "text-gray-500" : "text-black"
-                }`}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="font-semibold">
-                      {notification.customerNumber || "Unknown"}
-                    </div>
-                    <div className="ml-auto text-sm text-muted-foreground">
-                      {new Date(notification.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    {!notification.read && (
-                      <Button
-                        onClick={() =>
-                          resolveNotification(notification.id, notification.customerNumber)
-                        }
-                        className="ml-auto gap-1"
-                        aria-label="Resolve notification"
-                      >
-                        <X className="h-4 w-4 text-gray-500 hover:text-gray-700" />
-                      </Button>
-                    )}
-                    <Button
-                      onClick={() =>
-                        resolveNotification(notification.id, notification.customerNumber)
-                      }
-                      className="text-green-500 hover:text-green-700"
-                    >
-                      Resolve
-                    </Button>
-                    <Button
-                      onClick={() => deleteNotification(notification.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-                <div className="text-md font-medium">
-                  {notification.message || "No messages yet"}
-                </div>
-                {notification.customerName && (
-                  <p className="text-sm text-gray-600">
-                    Customer: {notification.customerName}
-                  </p>
-                )}
-                {notification.customerNumber && (
-                  <p className="text-sm text-gray-600">
-                    Phone: {notification.customerNumber}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </main>
-
-      </Card>
-      
-    </div>
+    <Card className="">
+      <CardHeader className="border-b border-gray-200 pb-4">
+        <CardTitle className="flex items-center space-x-2 ">
+          <Bell className="h-6 w-6" />
+          <span>Notification History</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[400px] pr-4 p-2">
+          {notifications.length === 0 ? (
+            <p className="text-center text-muted-foreground">No notifications yet</p>
+          ) : (
+            <ul className="space-y-4">
+              {notifications.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  onResolve={resolveNotification}
+                  onDelete={deleteNotification}
+                />
+              ))}
+            </ul>
+          )}
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 }
+
