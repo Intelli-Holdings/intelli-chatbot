@@ -71,7 +71,7 @@ export default function WhatsappConvosPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="">
       <div className="flex-1 flex overflow-hidden">
         <div className={`${isMobile ? 'w-full' : 'w-1/3'} border-r`}>
           <ConversationList onSelectConversation={handleSelectConversation}/>
@@ -91,7 +91,7 @@ export default function WhatsappConvosPage() {
           </Sheet>
         )}
       </div>
-      {!isMobile && <RightSidebar />}
+     
     </div>
   );
 }
