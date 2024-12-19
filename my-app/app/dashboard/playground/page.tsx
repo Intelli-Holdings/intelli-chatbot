@@ -6,7 +6,7 @@ import Workground from '@/components/Workground';
 
 export const metadata: Metadata = {
   title: 'Playground | Dashboard',
-  description: 'Test and Edit your AI assistants',
+  description: 'Customise and Deploy your Website Widget',
 };
 
 export default function PlaygroundPage() {
