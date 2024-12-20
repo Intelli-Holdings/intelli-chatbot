@@ -146,7 +146,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
         <div id="chat-container">
           <div id="chat-header">
             <span id="header-spacer"></span>
-            <span id="chat-header-text">AAD Assistant</span>
+            <span id="chat-header-text">MEST Recruitment Assistant</span>
             <span id="close-chat" onClick={() => setIsOpen(false)}>&times;</span>
           </div>
           <div id="chat-box" ref={chatBoxRef}>
@@ -160,7 +160,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
           </div>
           {isLoading && (
             <div className="message assistant-message">
-              <div className="message-bubble assistant-bubble typing-indicator">
+              <div className="message-bubble assistant-bubble typing-indicator m-2">
                 <div className="typing-dots">
                   <span className="dot"></span>
                   <span className="dot"></span>
@@ -176,7 +176,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type a message..."
+              placeholder="Chat with the Assistant..."
             />
             <button onClick={handleSendMessage} className="send-button">
               <ArrowUp size={20} />
