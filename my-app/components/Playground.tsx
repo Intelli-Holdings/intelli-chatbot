@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,43 +24,61 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Edit,
-  Send,
-  Trash2,
-  Plus,
-  Upload,
-  X,
-  FileText,
-  ArrowUp,
-  XIcon,
-} from "lucide-react";
+import { Edit, Send, Trash2, Plus, Upload, X, FileText, ArrowUp, XIcon } from 'lucide-react';
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
+import { CreateWidgetData } from "@/types/widget";
+import { createWidget } from "@/lib/widgets";
+import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 
 export default function Playground() {
-  const [useCustomAssistants, setUseCustomAssistants] =
-    useState<boolean>(false);
-  const [selectedAssistant, setSelectedAssistant] =
-    useState<string>("gpt-3.5-turbo");
+  const [widgetData, setWidgetData] = useState<CreateWidgetData>({
+    organizationId: "",
+    assistantId: "",
+    websiteUrl: "",
+    widgetName: "",
+    colorPrimaryColor: "#007fff",
+    colorBubbleBackground: "#ffffff",
+    colorUserBubbleColor: "#007fff",
+    colorUserBubbleTextColor: "#ffffff",
+    colorTextColor: "#000000",
+    colorHeaderBackground: "#f0f0f0",
+    stylingBorderRadius: 8,
+    stylingBubbleShape: "rounded",
+    stylingPosition: "bottom-right",
+    stylingWidth: 350,
+    avatarUrl: "",
+    avatarShape: "circle",
+    enableMarkdown: false,
+    enableCodeHighlighting: false,
+  });
+
+  const [useCustomAssistants, setUseCustomAssistants] = useState<boolean>(false);
+  const [selectedAssistant, setSelectedAssistant] = useState<string>("gpt-3.5-turbo");
   const [temperature, setTemperature] = useState<number>(0.7);
-  const [messages, setMessages] = useState<
-    { role: "user" | "assistant"; content: string }[]
-  >([]);
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [newMessage, setNewMessage] = useState<string>("");
-  const [systemPrompt, setSystemPrompt] = useState<string>(
-    "You are a helpful assistant."
-  );
-  const [customAssistants, setCustomAssistants] = useState<string[]>([
-    "My Assistant 1",
-    "My Assistant 2",
-  ]);
+  const [systemPrompt, setSystemPrompt] = useState<string>("You are a helpful assistant.");
+  const [customAssistants, setCustomAssistants] = useState<string[]>(["My Assistant 1", "My Assistant 2"]);
   const [newAssistantName, setNewAssistantName] = useState<string>("");
   const [isAddingAssistant, setIsAddingAssistant] = useState<boolean>(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { organization } = useOrganization();
+  const { userMemberships, isLoaded } = useOrganizationList({
+    userMemberships: {
+      infinite: true,
+    },
+  });
+
   const defaultModels = ["gpt-3.5-turbo", "gpt-4", "claude-v1"];
+
+  useEffect(() => {
+    if (isLoaded && userMemberships.data && userMemberships.data.length > 0) {
+      handleWidgetDataChange("organizationId", userMemberships.data[0].organization.id);
+    }
+  }, [isLoaded, userMemberships.data]);
 
   const handleSendMessage = () => {
     if (newMessage) {
@@ -94,29 +112,18 @@ export default function Playground() {
       setUploadedFiles((prevFiles) => [...prevFiles, ...newFiles]);
 
       // Save to local storage
-      const storedFiles = JSON.parse(
-        localStorage.getItem("uploadedFiles") || "[]"
-      );
-      const updatedFiles = [
-        ...storedFiles,
-        ...newFiles.map((file) => file.name),
-      ];
+      const storedFiles = JSON.parse(localStorage.getItem("uploadedFiles") || "[]");
+      const updatedFiles = [...storedFiles, ...newFiles.map((file) => file.name)];
       localStorage.setItem("uploadedFiles", JSON.stringify(updatedFiles));
     }
   }, []);
 
   const handleRemoveFile = (fileName: string) => {
-    setUploadedFiles((prevFiles) =>
-      prevFiles.filter((file) => file.name !== fileName)
-    );
+    setUploadedFiles((prevFiles) => prevFiles.filter((file) => file.name !== fileName));
 
     // Remove from local storage
-    const storedFiles = JSON.parse(
-      localStorage.getItem("uploadedFiles") || "[]"
-    );
-    const updatedFiles = storedFiles.filter(
-      (name: string) => name !== fileName
-    );
+    const storedFiles = JSON.parse(localStorage.getItem("uploadedFiles") || "[]");
+    const updatedFiles = storedFiles.filter((name: string) => name !== fileName);
     localStorage.setItem("uploadedFiles", JSON.stringify(updatedFiles));
   };
 
@@ -132,231 +139,178 @@ export default function Playground() {
     [handleFileUpload]
   );
 
+  const handleWidgetDataChange = (key: keyof CreateWidgetData, value: any) => {
+    setWidgetData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleCreateWidget = async () => {
+    if (!widgetData.organizationId || !widgetData.assistantId) {
+      console.error("Organization and Assistant must be selected");
+      return;
+    }
+
+    try {
+      const response = await createWidget(widgetData);
+      console.log("Widget created:", response);
+      // Handle success (e.g., show a success message, reset form, etc.)
+    } catch (error) {
+      console.error("Error creating widget:", error);
+      // Handle error (e.g., show an error message)
+    }
+  };
+
   return (
-    <Card className=" ">
+    <Card className=" h-[700px]">
       <CardContent className="p-1 sm:p-6">
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] bg-background">
-          {/* Side Panel */}
-          <div className="w-full lg:w-1/4 lg:max-w-xs bg-gray-50 p-4 sm:p-4 border rounded-lg border-b lg:border-b-0 lg:border-r border-border ">
-            <h2 className="text-xl font-semibold mb-4">Canvas </h2>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="custom-assistant-mode"
-                  checked={useCustomAssistants}
-                  onCheckedChange={setUseCustomAssistants}
-                />
-                <Label htmlFor="custom-assistant-mode">
-                  Use Your Assistants
-                </Label>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  {useCustomAssistants ? "Your Assistant" : "Model"}
-                </label>
-                <Select
-                  value={selectedAssistant}
-                  onValueChange={setSelectedAssistant}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {(useCustomAssistants
-                        ? customAssistants
-                        : defaultModels
-                      ).map((assistant) => (
-                        <SelectItem key={assistant} value={assistant}>
-                          {assistant}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-              {useCustomAssistants && (
-                <Dialog
-                  open={isAddingAssistant}
-                  onOpenChange={setIsAddingAssistant}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create New Assistant
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Assistant</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      <Input
-                        value={newAssistantName}
-                        onChange={(e) => setNewAssistantName(e.target.value)}
-                        placeholder="Enter assistant name"
-                      />
-                      <Button onClick={handleAddAssistant}>
-                        Create Assistant
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  System Prompt
-                </label>
-                <Textarea
-                  value={systemPrompt}
-                  onChange={(e) => setSystemPrompt(e.target.value)}
-                  placeholder="Enter system prompt"
-                  className="h-24"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="file-upload"
-                  className="block text-sm font-medium text-foreground mb-1"
-                >
-                  Upload Files
-                </label>
-                <Dialog
-                  open={isUploadDialogOpen}
-                  onOpenChange={setIsUploadDialogOpen}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Files
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Upload Files</DialogTitle>
-                    </DialogHeader>
-                    <div
-                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer"
-                      onDragOver={onDragOver}
-                      onDrop={onDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={(e) => handleFileUpload(e.target.files)}
-                        className="hidden"
-                        multiple
-                      />
-                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                      <p className="mt-1 text-sm text-gray-600">
-                        Drag and drop files here, or click to select files
-                      </p>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                {uploadedFiles.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    {uploadedFiles.map((file) => (
-                      <div
-                        key={file.name}
-                        className="flex items-center justify-between bg-muted/50 p-2 rounded-md"
-                      >
-                        <div className="flex items-center">
-                          <FileText className="h-4 w-4 mr-2" />
-                          <span className="text-sm text-foreground truncate">
-                            {file.name}
-                          </span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveFile(file.name)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Main Chat Area */}
-          <div className="flex flex-col max-w-[400px] mx-auto border bg-white rounded-xl mt-2">
-            <div className="flex-1 p-4 m-2">
-              <Card className="h-full ">
-                <ScrollArea className="h-[calc(60vh-100px)] p-4">
-                  {messages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`mb-4 ${
-                        msg.role === "user" ? "text-right" : "text-left"
-                      }`}
-                    >
-                      <p
-                        className={`font-bold ${
-                          msg.role === "user"
-                            ? "text-primary border-b-rounded-xl"
-                            : "text-tertiary border-t-rounded-xl"
-                        }`}
-                      >
-                        {msg.role === "user" ? "You:" : "Assistant:"}
-                      </p>
-                      <p
-                        className={`${
-                          msg.role === "user"
-                            ? "bg-blue-700/10 border-b-rounded-xl"
-                            : "bg-gray-700/10 border-t-rounded-xl"
-                        } p-2 rounded-lg inline-block`}
-                      >
-                        {msg.content}
-                      </p>
-                    </div>
-                  ))}
-                </ScrollArea>
-              </Card>
-            </div>
-            <div className="p-1 bg-background border-t border-border">
-              <div className="flex items-center m-1 px-1 p-1 rounded-xl border shadow-sm">
-                <Input
-                  className="flex-grow w-full border-none rounded-lg m-1 p-2"
-                  value={newMessage}
-                  placeholder="Chat with your assistant."
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                />
-                <Button
-                  type="submit"
-                  className=" bg-[#007fff] hover:bg-blue-600 rounded-lg m-1 p-2"
-                >
-                  <Send className="w-8 h-8" />
-                  <span className="hidden sm:inline">Send</span>
-                </Button>
-              </div>
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 ">
-                <div className="flex space-x-1">
-                  <Button
-                    className="flex-1 sm:flex-none "
-                    variant="outline"
-                    onClick={handleClearConversation}
+        <div className=" h-[500px] sm:h-[calc(100vh-8rem)] bg-background">
+        <ScrollArea className=" w-full lg:w-[400px] h-[500px] sm:h-[calc(100vh-8rem)] lg:h-[600px] border border-border rounded-lg lg:rounded-l-lg lg:border-r lg:border-b">
+          <div className="w-full bg-gray-50 p-4 sm:p-4 border rounded-lg border-b lg:border-b-0 lg:border-r border-border ">
+            <h2 className="text-xl font-semibold mb-4">Widget Creator</h2>
+          
+              <div className="">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Organization</label>
+                  <Select 
+                    value={widgetData.organizationId} 
+                    onValueChange={(value) => handleWidgetDataChange("organizationId", value)}
+                    disabled={!isLoaded}
                   >
-                    <Trash2 className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Clear</span>
-                  </Button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {isLoaded && userMemberships.data && userMemberships.data.map((membership) => (
+                          <SelectItem key={membership.organization.id} value={membership.organization.id}>
+                            {membership.organization.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
+                <div>
+                  <Label htmlFor="assistantId">Assistant ID</Label>
+                  <Input
+                    id="assistantId"
+                    value={widgetData.assistantId}
+                    onChange={(e) => handleWidgetDataChange("assistantId", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="websiteUrl">Website URL</Label>
+                  <Input
+                    id="websiteUrl"
+                    value={widgetData.websiteUrl}
+                    onChange={(e) => handleWidgetDataChange("websiteUrl", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="widgetName">Widget Name</Label>
+                  <Input
+                    id="widgetName"
+                    value={widgetData.widgetName}
+                    onChange={(e) => handleWidgetDataChange("widgetName", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="colorPrimaryColor">Primary Color</Label>
+                  <Input
+                    id="colorPrimaryColor"
+                    type="color"
+                    value={widgetData.colorPrimaryColor}
+                    onChange={(e) => handleWidgetDataChange("colorPrimaryColor", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="stylingBubbleShape">Bubble Shape</Label>
+                  <Select
+                    value={widgetData.stylingBubbleShape}
+                    onValueChange={(value) => handleWidgetDataChange("stylingBubbleShape", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="square">Square</SelectItem>
+                      <SelectItem value="rounded">Rounded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="stylingPosition">Position</Label>
+                  <Select
+                    value={widgetData.stylingPosition}
+                    onValueChange={(value) => handleWidgetDataChange("stylingPosition", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top-left">Top Left</SelectItem>
+                      <SelectItem value="top-right">Top Right</SelectItem>
+                      <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                      <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="stylingWidth">Width</Label>
+                  <Input
+                    id="stylingWidth"
+                    type="number"
+                    value={widgetData.stylingWidth}
+                    onChange={(e) => handleWidgetDataChange("stylingWidth", parseInt(e.target.value, 10))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="avatarUrl">Avatar URL</Label>
+                  <Input
+                    id="avatarUrl"
+                    value={widgetData.avatarUrl}
+                    onChange={(e) => handleWidgetDataChange("avatarUrl", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="avatarShape">Avatar Shape</Label>
+                  <Select
+                    value={widgetData.avatarShape}
+                    onValueChange={(value) => handleWidgetDataChange("avatarShape", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="square">Square</SelectItem>
+                      <SelectItem value="rounded">Rounded</SelectItem>
+                      <SelectItem value="circle">Circle</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableMarkdown"
+                    checked={widgetData.enableMarkdown}
+                    onCheckedChange={(checked) => handleWidgetDataChange("enableMarkdown", checked)}
+                  />
+                  <Label htmlFor="enableMarkdown">Enable Markdown</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enableCodeHighlighting"
+                    checked={widgetData.enableCodeHighlighting}
+                    onCheckedChange={(checked) => handleWidgetDataChange("enableCodeHighlighting", checked)}
+                  />
+                  <Label htmlFor="enableCodeHighlighting">Enable Code Highlighting</Label>
+                </div>
+                <Button onClick={handleCreateWidget}>Create Widget</Button>
               </div>
-            </div>
+          
           </div>
+          </ScrollArea>
         </div>
       </CardContent>
     </Card>
   );
 }
+

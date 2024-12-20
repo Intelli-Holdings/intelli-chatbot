@@ -23,7 +23,7 @@ export function DeploymentDialog({ assistantId }: DeploymentDialogProps) {
   const nextjsSnippet = `npm install @intelli/chat-widget
 
 // In your layout.tsx or page where you want the widget
-import { IntelliWidget } from '@neexa/chat-widget'
+import { IntelliWidget } from '@intelli/chat-widget'
 
 export default function Layout({ children }) {
   return (
@@ -37,7 +37,7 @@ export default function Layout({ children }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full mt-4">Create and Deploy Assistant</Button>
+        <Button className="w-full mt-4 shadow-sm">Create and Deploy Widget</Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -50,7 +50,7 @@ export default function Layout({ children }) {
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="wordpress">WordPress</TabsTrigger>
             <TabsTrigger value="html">HTML</TabsTrigger>
-            <TabsTrigger value="nextjs">Next.js</TabsTrigger>
+            <TabsTrigger value="nextjs">Next.js & React</TabsTrigger>
           </TabsList>
           
           <TabsContent value="wordpress">
@@ -67,14 +67,14 @@ export default function Layout({ children }) {
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground italic">
-                How to Get Intelli WordPress Plugin? Search &ldquo;Intelli &ldquo; under wordpress plugins in your wordpress site.
+                How to Get the Intelli WordPress Plugin? Search &ldquo;Intelli &ldquo; under wordpress plugins in your wordpress site.
               </p>
             </div>
           </TabsContent>
 
           <TabsContent value="html">
             <div className="space-y-4">
-              <p className="text-sm">Copy and paste the code below to the header of the html page on which you want the widget to appear.</p>
+              <p className="text-sm">Copy and paste the code below in the header section of the html page on which you want the widget to appear.</p>
               <div className="relative">
                 <pre className="bg-muted p-4 rounded-lg overflow-x-auto whitespace-pre-wrap">{htmlSnippet}</pre>
                 <Button 
@@ -90,7 +90,7 @@ export default function Layout({ children }) {
 
           <TabsContent value="nextjs">
             <div className="space-y-4">
-              <p className="text-sm">Install the package and add the widget to your Next.js application:</p>
+              <p className="text-sm">Install the package and add the widget to your Next.js or React app:</p>
               <div className="relative">
                 <pre className="bg-muted p-4 rounded-lg overflow-x-auto whitespace-pre-wrap">{nextjsSnippet}</pre>
                 <Button 
@@ -101,6 +101,7 @@ export default function Layout({ children }) {
                   {copied === "nextjs" ? "Copied!" : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
+            
             </div>
           </TabsContent>
         </Tabs>

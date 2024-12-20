@@ -208,7 +208,7 @@ export default function ConversationsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-       <h1 className="text-2xl font-bold mb-6">Conversations</h1>
+       <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">Conversations</h1>
      
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
 
