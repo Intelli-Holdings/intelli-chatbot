@@ -72,26 +72,26 @@ export default function WhatsappConvosPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden h-screen">
         <div className={`${isMobile ? 'w-full' : 'w-1/3'} border-r`}>
           <ConversationList onSelectConversation={handleSelectConversation}/>
         </div>
         {!isMobile && (
           <div className="flex-1 overflow-y-auto">          
-            <ConversationView conversation={selectedConversation} />
+            <ConversationView conversation={selectedConversation} conversations={conversations} />
           </div>
         )}
         {isMobile && (
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetContent side="bottom" className="w-full sm:max-w-full">
               {selectedConversation && (
-                <ConversationView conversation={selectedConversation} />
+                <ConversationView conversation={selectedConversation} conversations={conversations} />
               )}
             </SheetContent>
           </Sheet>
         )}
       </div>
-     
     </div>
   );
 }
+
