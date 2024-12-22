@@ -91,7 +91,7 @@
 .message-bubble a {
   color: inherit;
   text-decoration: underline;
-  text-decoration-color: rgba(255, 255, 255, 0.4);
+  text-decoration-color: rgba(232, 231, 231, 0.4);
   transition: text-decoration-color 0.2s;
 }
 
@@ -107,5 +107,26 @@
 /* Preserve whitespace for formatted text */
 .message-bubble .text-sm {
   white-space: pre-wrap;
+}
+
+/* Date separator styling */
+.flex.justify-center.my-4 {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.flex.justify-center.my-4 span {
+  background-color: rgba(192, 192, 204, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+/* Adjust spacing for messages near date separators */
+.message-bubble + .flex.justify-center.my-4 {
+  margin-top: 1.5rem;
+}
+
+.flex.justify-center.my-4 + .message-bubble {
+  margin-top: 1.5rem;
 }
 
