@@ -15,7 +15,7 @@ export default function DashboardLayout({
       <Header />
       <div className="flex">
         <Sidebar />
-        <main className="w-full pt-16">
+        <main className="w-full ">
           <CreateOrganizationPopup /> {/* Show the popup if the user needs to create an organization */}
           {children}
         </main>

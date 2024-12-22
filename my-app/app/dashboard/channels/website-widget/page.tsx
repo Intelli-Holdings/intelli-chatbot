@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 
 import CreateChatbot from "@/components/component/createChatbot";
 
-export default function ChatbotsPage() {
+export default function WebsiteWidgetPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">

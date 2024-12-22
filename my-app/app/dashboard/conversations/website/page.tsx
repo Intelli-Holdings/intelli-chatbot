@@ -9,7 +9,7 @@ interface Conversation {
     timestamp: string;
 }
 
-export default function ElliPage() {
+export default function WebsiteConvosPage() {
     const [conversations, setConversations] = useState<Conversation[]>([]);
 
     useEffect(() => {
