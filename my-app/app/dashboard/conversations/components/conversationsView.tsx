@@ -6,11 +6,12 @@ import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import {  ArrowUp } from 'lucide-react'
+import { ArrowUp } from 'lucide-react'
 import { Conversation } from './types'
 import { format, parseISO } from 'date-fns'
-import ConversationHeader from './conversationsHeader';
-import MessageInput from './messageInput';
+import ConversationHeader from './conversationsHeader'
+import MessageInput from './messageInput'
+import { formatMessage } from '@/utils/formatMessage'
 import './message-bubble.css'
 
 interface ConversationViewProps {
@@ -18,8 +19,6 @@ interface ConversationViewProps {
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => {
-
-
   if (!conversation) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 border-gray-100">
@@ -32,6 +31,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
     <div className="flex flex-col h-screen bg-gray-50 mx-auto py-4">
       {/* Header */}
       <ConversationHeader conversation={conversation} />
+      
       {/* Messages Area */}
       <ScrollArea className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-4">
@@ -40,7 +40,9 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
               {message.content && (
                 <div className="message-bubble message-customer">
                   <div className="message-tail message-tail-left" />
-                  <p className="text-sm">{message.content}</p>
+                  <div className="text-sm">
+                    {formatMessage(message.content)}
+                  </div>
                   <span className="text-[10px] text-white/80 mt-1 block">
                     {format(parseISO(message.created_at), 'h:mm a')}
                   </span>
@@ -49,7 +51,9 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
               {message.answer && (
                 <div className={`message-bubble ${message.sender === 'ai' ? 'message-assistant' : 'message-human'}`}>
                   <div className={`message-tail ${message.sender === 'ai' ? 'message-tail-right-assistant' : 'message-tail-right-human'}`} />
-                  <p className="text-sm">{message.answer}</p>
+                  <div className="text-sm">
+                    {formatMessage(message.answer)}
+                  </div>
                   <span className={`text-[10px] ${message.sender === 'ai' ? 'text-black/60' : 'text-white/80'} mt-1 block`}>
                     {format(parseISO(message.created_at), 'h:mm a')} - {message.sender === 'ai' ? 'AI' : 'Human'}
                   </span>
@@ -59,6 +63,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
           ))}
         </div>
       </ScrollArea>     
+      
       {/* Input Area */}
       <MessageInput customerNumber={conversation.customer_number || conversation.recipient_id} />
     </div>
@@ -66,3 +71,4 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation }) => 
 }
 
 export default ConversationView;
+
