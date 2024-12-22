@@ -1,0 +1,64 @@
+/* Custom styles for message bubbles */
+.message-bubble {
+    position: relative;
+    transition: all 0.2s ease;
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    max-width: 80%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .message-bubble:hover {
+    transform: translateY(-1px);
+  }
+  
+  .message-tail {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+  }
+  
+  .message-customer {
+    background-color: #3b82f6;
+    color: white;
+    align-self: flex-start;
+  }
+  
+  .message-assistant {
+    background-color: #f3f4f6;
+    color: black;
+    align-self: flex-end;
+  }
+  
+  .message-human {
+    background-color: #10b981;
+    color: white;
+    align-self: flex-end;
+  }
+  
+  .message-tail-left {
+    border-width: 8px 8px 8px 0;
+    border-color: transparent #3b82f6 transparent transparent;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  
+  .message-tail-right-assistant {
+    border-width: 8px 0 8px 8px;
+    border-color: transparent transparent transparent #f3f4f6;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  
+  .message-tail-right-human {
+    border-width: 8px 0 8px 8px;
+    border-color: transparent transparent transparent #10b981;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  
+  
