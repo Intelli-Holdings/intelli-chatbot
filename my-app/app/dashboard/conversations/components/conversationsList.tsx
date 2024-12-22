@@ -92,14 +92,14 @@ const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversatio
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-screen space-y-2">
       <div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <form>
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="pt-5  ">
+            <Search className="absolute left-7 top-12 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search"
-              className="pl-8"
+              className="pl-8 border-dotted-gray-100 shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
