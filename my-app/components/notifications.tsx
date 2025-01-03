@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useNotifications } from "@/context/notifications-context";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { X } from 'lucide-react';
@@ -25,6 +27,7 @@ interface Notification {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function NotificationsComponent() {
+  const { setNotificationCount } = useNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const { user } = useUser();
@@ -52,6 +55,11 @@ export default function NotificationsComponent() {
       fetchUserData(user.primaryEmailAddress.emailAddress);
     }
   }, [user, fetchUserData]);
+
+  useEffect(() => {
+    const unreadCount = notifications.filter(n => !n.read).length;
+    setNotificationCount(unreadCount);
+  }, [notifications, setNotificationCount]);
 
   useEffect(() => {
     const storedNotifications = localStorage.getItem("notifications");
