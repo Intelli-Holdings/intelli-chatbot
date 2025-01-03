@@ -83,8 +83,7 @@ export default function RootLayout({
       <SpeedInsights />
       <SignedOut>   
       </SignedOut>        
-      <SignedIn>    
-      <UserButton />        
+      <SignedIn>            
       </SignedIn> 
      
       <body className={inter.className}>
