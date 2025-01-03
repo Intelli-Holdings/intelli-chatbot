@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MessageSquare, Users, CalendarCheck } from 'lucide-react';
+import { useDateRange } from '@/contexts/DateRangeContext'
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@clerk/nextjs";
 import Link from 'next/link';
@@ -68,7 +69,7 @@ const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, change,
         </div>
       </CardContent>
     </Card>
-  );
+  )
 
   return href ? (
     <Link href={href} passHref>
@@ -76,34 +77,54 @@ const DashboardMetric: React.FC<DashboardMetricProps> = ({ title, value, change,
     </Link>
   ) : (
     CardInfo
-  );
-};
+  )
+}
 
 export function StatsOverview() {
-  const { user } = useUser();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useUser()
+  const { dateRange } = useDateRange()
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (!user) return;
+      if (!user || !dateRange?.from || !dateRange?.to) return
       try {
-        const userEmail = user.emailAddresses[0].emailAddress;
-        const response = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}`);
-        const data: WhatsAppAccount[] = await response.json();
-        const totalAssistants = data.length;
-        const totalConversations = data.reduce((total, account) => total + account.chatsessions.length, 0);
-        const totalLeads = totalConversations;
-        setStats({ totalAssistants, totalConversations, totalLeads });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        const userEmail = user.emailAddresses[0].emailAddress
+        const params = new URLSearchParams({
+          from: dateRange.from.toISOString(),
+          to: dateRange.to.toISOString()
+        })
+        const response = await fetch(
+          `${API_BASE_URL}/appservice/list/${userEmail}?${params.toString()}`
+        )
+        const data: WhatsAppAccount[] = await response.json()
+        
+        // Filter chat sessions based on date range
+        const filteredData = data.map(account => ({
+          ...account,
+          chatsessions: account.chatsessions.filter(session => {
+            const sessionDate = new Date(session.updated_at)
+            return sessionDate >= dateRange.from! && sessionDate <= dateRange.to!
+          })
+        }))
 
-    fetchStats();
-  }, [user]);
+        const totalAssistants = filteredData.length
+        const totalConversations = filteredData.reduce(
+          (total, account) => total + account.chatsessions.length,
+          0
+        )
+        const totalLeads = totalConversations
+        setStats({ totalAssistants, totalConversations, totalLeads })
+      } catch (error) {
+        console.error('Error fetching stats:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [user, dateRange])
 
   return (
     <div className="space-y-4">
@@ -135,5 +156,5 @@ export function StatsOverview() {
         />
       </div>
     </div>
-  );
+  )
 }
