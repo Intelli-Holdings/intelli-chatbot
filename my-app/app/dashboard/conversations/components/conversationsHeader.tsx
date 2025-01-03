@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Conversation } from './types';
 import { takeoverConversation, handoverConversation } from '@/app/actions';
 import { useUser } from '@clerk/nextjs';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { format, parseISO } from 'date-fns'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -64,23 +66,39 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
   if (!conversation) return null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">
-          Conversation with {conversation.customer_number || conversation.recipient_id}
-        </h2>
-        <Button onClick={handleToggleAISupport}>
-          {isAiSupport ? 'Handover to AI' : 'Takeover Conversation'}
-        </Button>
+    <div className="flex flex-col w-full">
+      <div className="flex items-center justify-between p-4 border-b bg-white">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={`https://avatar.vercel.sh/${conversation.customer_number}.png`} />
+            <AvatarFallback>{conversation.customer_number.slice(0, 2)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="text-sm font-semibold">{conversation.customer_number || conversation.recipient_id}</h2>
+            <p className="text-xs text-muted-foreground">
+              Last active {format(parseISO(conversation.updated_at), 'MMM d, h:mm a')}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center ml-2">
+          <Button className='border border-blue-200 rounded-xl shadow-md' variant="default" onClick={handleToggleAISupport} size="sm">
+            {isAiSupport ? 'Handover to AI' : 'Takeover AI'}
+          </Button>     
+        </div>
       </div>
       {isAiSupport && (
-        <div className="bg-purple-100 text-red-700 p-3 rounded-lg">
+        <div className="w-full bg-purple-100 text-red-700 p-3 text-center">
           <p>Remember to handover to AI when you&apos;re done sending messages.</p>
         </div>
       )}
-      {error && <p className="text-red-500">{error}</p>}
+      {error && (
+        <div className="w-full bg-red-100 text-red-700 p-3 text-center">
+          <p>{error}</p>
+        </div>
+      )}
     </div>
   );
 };
 
 export default ConversationHeader;
+

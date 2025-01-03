@@ -1,4 +1,8 @@
+// app/layout.tsx or the corresponding layout file
+import { Toaster } from "sonner";
 import Header from "@/components/layout/header";
+import Sidebar from "@/components/layout/sidebar";
+import CreateOrganizationPopup from "@/components/CreateOrganizationPopup"; // Import the popup component
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -41,7 +45,9 @@ export default function DashboardLayout({
           </header>
           <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
             <Toaster position="top-right" />
-            <main className="">{children}</main>
+            <main className="">
+            <CreateOrganizationPopup /> 
+            {children}</main>
           </div>
         </SidebarInset>
       </SidebarProvider>

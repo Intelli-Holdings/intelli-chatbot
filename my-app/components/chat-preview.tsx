@@ -10,7 +10,7 @@ interface ChatIconProps {
 // Icon component
 const ChatIcon: React.FC<ChatIconProps> = ({ onClick, isOpen }) => (
   <div
-    className="fixed bottom-20 right-5 z-20 p-4 bg-gray-200 rounded-full cursor-pointer"
+    className="fixed bottom-20 right-5 z-20 p-4 bg-blue-200 rounded-full cursor-pointer"
     onClick={onClick}
   >
     {isOpen ? (
@@ -66,8 +66,7 @@ export function ChatPreview() {
 
       {chatWindowOpen && (
         <div
-        
-          className="fixed bottom-40 right-10 p-2 bg-white rounded-lg shadow-lg"
+          className="fixed bottom-36 right-5 rounded-xl shadow-sm"
         >
           <ChatWindow/>
         </div>

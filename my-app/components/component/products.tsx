@@ -14,21 +14,21 @@ export function Products() {
         <h1 className="text-4xl font-bold text-gray-900 leading-snug">
           We are building Africa’s most robust suite
           <br />
-          of AI-powered tools for businesses.
+          of AI tools for businesses.
         </h1>
         <p className="mt-6 text-lg text-gray-700 max-w-3xl mx-auto">
-          Our first product is called Intelli Concierge, for customer experience, a knowledgeable, humorous and
+          Our first product is called Intelli Concierge, for customer support, a knowledgeable, humorous and
           professional speech conversational AI.
           <br />
-          We are set to release more products down the line;
+          We are set to release more products;
         </p>
         <p className="mt-4 text-lg text-gray-700 max-w-3xl mx-auto italic">
-          Experience the power of Ai with your own eyes and ears
+          Experience the power of AI 
         </p>
         <div className="mt-8 mx-auto max-w-xs">
           <form className="flex flex-col space-y-4">
-            <Input placeholder="Your Email Address" type="email" />
-            <Button className="bg-blue-600 text-white hover:bg-blue-700">Book demo</Button>
+            <Input className="shadow-sm border border-gray-100" placeholder="Your Email Address" type="email" />
+            <Button className="bg-blue-600 shadow-sm text-white hover:bg-blue-700">Book Demo</Button>
           </form>
         </div>
       </header>

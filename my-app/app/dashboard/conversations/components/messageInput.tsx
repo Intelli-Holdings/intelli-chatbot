@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { sendMessage } from '@/app/actions';  
 import { useUser } from '@clerk/nextjs';
+import {  ArrowUp } from 'lucide-react'
+import { Card } from "@/components/ui/card"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -62,24 +64,25 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber }) => {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-lg border bg-background ">
-        <Label htmlFor="content" className="sr-only">
-          Message Content
-        </Label>
-        <Input
-          id="answer"
-          placeholder="Type your response to a customer here..."
-          className="border-0 p-3 mt-2 shadow-xs focus-visible:ring-0"
+      <form onSubmit={handleSubmit} className=" rounded-lg ">
+      <Card className="mx-2 border shadow-sm">
+        <div className="flex items-center p-1">
+          <Input 
+            placeholder="Reply to customer..." 
+           
+            id="answer"
+         
+          className="border-0 p-3 m-1 shadow-xs focus-visible:ring-0"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           name="answer"
-        />
-        <div className="flex items-center p-2 pt-0">
-          <Button type="submit" size="sm" className="ml-auto gap-1.5">
-            Send Message
-            <CornerDownLeft className="size-3.5" />
+          />
+          <Button type="submit" size="icon" variant='default' className="ml-2">
+       
+            <ArrowUp className="h-4 w-4" />           
           </Button>
         </div>
+      </Card>
       </form>
       {error && <p className="text-red-500">{error}</p>}
     </div>

@@ -1,72 +1,46 @@
-"use client"
-import { useOrganizationList } from "@clerk/nextjs"
-import { FormEventHandler, useState } from "react"
-import { UserMembershipParams } from "@/utils/organization"
+"use client";
+import { ClerkLoading, CreateOrganization } from "@clerk/nextjs"
+import { MyMemberships } from "@/components/OrganizationList"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useOrganizationList, useOrganization } from "@clerk/nextjs";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { any } from "zod";
+import { JoinedOrganizations } from "@/components/MyOrganizations";
 
-export function CustomCreateOrganizationForm() {
-  const { isLoaded, createOrganization, setActive, userMemberships } =
-    useOrganizationList(UserMembershipParams)
-  const [isSubmitting, setSubmitting] = useState(false)
+export default function CreateOrganizationStep() {
+  const { isLoaded, setActive, userMemberships, userInvitations, userSuggestions } = useOrganizationList({
+    userMemberships: {
+      infinite: true,
+    },
+  });
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault()
-    if (!isLoaded) {
-      return null
-    }
-    setSubmitting(true)
+  const handleCreateOrganization = () => {
+    handleCreateOrganization : any
+  };
 
-    const submittedData = Object.fromEntries(
-      new FormData(e.currentTarget).entries()
-    ) as { organizationName: string | undefined; asActive?: "on" }
-
-    if (!submittedData.organizationName) {
-      return
-    }
-
-    try {
-      const organization = await createOrganization({
-        name: submittedData.organizationName,
-      })
-      void userMemberships?.revalidate()
-      if (submittedData.asActive === "on") {
-        await setActive({ organization })
-      }
-    } finally {
-      if (e.target instanceof HTMLFormElement) {
-        e.target.reset()
-      }
-      setSubmitting(false)
-    }
+  if (!isLoaded) {
+    return <p>Loading...</p>;
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="w-full">
-        <label htmlFor="orgName">Organization Name</label>
-        <input
-          id="orgName"
-          type="text"
-          name="organizationName"
-          placeholder="e.g. Acme Co"
-          disabled={isSubmitting}
-        />
+    <div className="container mx-auto px-4 py-4">
+      <h1 className="text-2xl font-bold mb-6">Create Your Organization</h1>
+      <div className="flex w-full flex-col">
+
+      <ClerkLoading>Loading ...</ClerkLoading>
+      <h1 className="mb-4 mt-5">Fill in this form to create your organization</h1>
+        <CreateOrganization 
+        afterCreateOrganizationUrl="/dashboard"
+        skipInvitationScreen={false} />
+        
       </div>
-      <div className="flex w-full gap-1">
-        <label htmlFor="asActive" className="grow-0">
-          Set as active
-        </label>
-        <input
-          id="asActive"
-          type="checkbox"
-          name="asActive"
-          defaultChecked={true}
-          className="inline-block"
-          disabled={isSubmitting}
-        />
-      </div>
-      <button type="submit" disabled={isSubmitting || !isLoaded}>
-        Create organization {isSubmitting && "(Submitting)"}
-      </button>
-    </form>
-  )
+    </div>
+  );
 }

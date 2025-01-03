@@ -99,7 +99,7 @@ const Channels = () => {
         </div>
       ),
       buttonState: 'create' as ButtonState,
-      buttonLink: '/dashboard/channels/chatbot'
+      buttonLink: '/dashboard/playground'
     },
     {
       title: 'WhatsApp',

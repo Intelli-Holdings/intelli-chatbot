@@ -4,7 +4,7 @@ const config: Config = {
     darkMode: ["class"],
     content: [
     "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./constants/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
@@ -13,7 +13,7 @@ const config: Config = {
   ],
   theme: {
   	container: {
-  		center: 'true',
+		center: true,
   		padding: '2rem',
   		screens: {
   			'2xl': '1400px'
@@ -194,6 +194,8 @@ const config: Config = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+	require("tailwindcss-animate"),
+  ],
 };
 export default config;
