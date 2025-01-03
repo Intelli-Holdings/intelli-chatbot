@@ -117,6 +117,12 @@ export const navItems: NavItem[] = [
     icon: "Home",
     label: "Dashboard",
   },
+  {
+    title: "Analytics",
+    href: "/dashboard/analytics",
+    icon: "BarChart",
+    label: "Analytics",
+  },
   
   {
     title: "Channels",
@@ -131,16 +137,10 @@ export const navItems: NavItem[] = [
     label: "Assistants",
   },
   {
-    title: "Playground",
-    href: "/dashboard/playground",
-    icon: "Paintbrush",
-    label: "Playground",
-  },
-  {
-    title: "Analytics",
-    href: "/dashboard/analytics",
-    icon: "BarChart",
-    label: "Analytics",
+    title: "Conversations",
+    href: "/dashboard/conversations",
+    icon: "MessageSquareDot",
+    label: "Conversations",
   },
   {
     title: "Notifications",
@@ -149,12 +149,11 @@ export const navItems: NavItem[] = [
     label: "Notifications",
   },
   {
-    title: "Conversations",
-    href: "/dashboard/conversations",
-    icon: "MessageSquareDot",
-    label: "Conversations",
-  },
-
+    title: "Playground",
+    href: "/dashboard/playground",
+    icon: "Paintbrush",
+    label: "Playground",
+  }, 
   {
     title: "Organization",
     href: "/dashboard/organization",
