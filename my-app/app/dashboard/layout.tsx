@@ -4,7 +4,6 @@ import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import CreateOrganizationPopup from "@/components/CreateOrganizationPopup"; // Import the popup component
 import type { Metadata } from "next";
-import { Toaster } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarInset,
