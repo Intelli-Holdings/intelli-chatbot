@@ -7,6 +7,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "@/context/notifications-context"
+import { UserNav } from "@/components/user-nav"
 
 import {
   Sidebar,
@@ -15,6 +16,7 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
+  SidebarFooter,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
@@ -117,6 +119,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t">
+        <UserNav />
+      </SidebarFooter>
     </Sidebar>
   )
 }
