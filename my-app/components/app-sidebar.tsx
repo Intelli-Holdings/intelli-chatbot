@@ -16,7 +16,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
+
 const data = {
   navMain: [
     {
@@ -50,7 +50,7 @@ const data = {
     },
     {
       title: "Conversations",
-      url: "#",
+      url: "/dashboard/conversations",
       items: [
        
       ],
