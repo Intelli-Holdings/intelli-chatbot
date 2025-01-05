@@ -130,3 +130,55 @@
   margin-top: 1.5rem;
 }
 
+/* Header styling */
+.message-bubble h1, .message-bubble h2, .message-bubble h3, .message-bubble h4, .message-bubble h5, .message-bubble h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+/* Table styling */
+.message-bubble table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+.message-bubble th, .message-bubble td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.message-bubble th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+}
+
+/* List styling */
+.message-bubble ol, .message-bubble ul {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.message-bubble ol {
+  list-style-type: decimal;
+}
+
+.message-bubble ul {
+  list-style-type: disc;
+}
+
+.message-bubble li {
+  margin-bottom: 0.5em;
+}
+
+/* Link styling */
+.message-bubble a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.message-bubble a:hover {
+  text-decoration: underline;
+}
