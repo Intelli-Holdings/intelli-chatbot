@@ -1,31 +1,67 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { PlusCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { AssistantsList } from './AssistantsList'
 
 interface Assistant {
-  id: string
+  id: number
   name: string
-  description: string
+  prompt: string
+  assistant_id: string
+  organization: string | null
 }
 
 export default function Assistants() {
-
   const [assistants, setAssistants] = useState<Assistant[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchAssistants = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch assistants')
+        }
+
+        const data: Assistant[] = await response.json()
+        setAssistants(data)
+      } catch (error) {
+        console.error('Error fetching assistants:', error)
+        setAssistants([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAssistants()
+  }, [])
+
+  if (isLoading) {
+    return <p>Loading...</p>
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="">
       {assistants.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="">
           {assistants.map((assistant) => (
             <Card key={assistant.id}>
               <CardHeader>
                 <CardTitle>{assistant.name}</CardTitle>
-                <CardDescription>{assistant.description}</CardDescription>
+                <CardDescription>
+                  {assistant.prompt.substring(0, 100)}...
+                </CardDescription>
               </CardHeader>
+              <CardContent>
+                <Link href={`/assistants/${assistant.id}`} passHref>
+                  <Button variant="outline">View Details</Button>
+                </Link>
+              </CardContent>
             </Card>
           ))}
         </div>

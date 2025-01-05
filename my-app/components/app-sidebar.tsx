@@ -1,5 +1,13 @@
+"use client";
+
 import * as React from "react"
-import { GalleryVerticalEnd } from "lucide-react"
+import { Home, Building2, Layout, Bot, MessageCircle, Bell, BarChart, MessageSquareDot, BellDot, PaintRoller } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { useNotifications } from "@/context/notifications-context"
+import { UserNav } from "@/components/user-nav"
 
 import {
   Sidebar,
@@ -8,167 +16,73 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
+  SidebarFooter,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
 const data = {
   navMain: [
     {
-      title: "Getting Started",
-      url: "#",
-      items: [
-        {
-          title: "Installation",
-          url: "#",
-        },
-        {
-          title: "Project Structure",
-          url: "#",
-        },
-      ],
+      title: "Home",
+      url: "/dashboard",
+      icon: Home,
     },
     {
-      title: "Building Your Application",
-      url: "#",
-      items: [
-        {
-          title: "Routing",
-          url: "#",
-        },
-        {
-          title: "Data Fetching",
-          url: "#",
-          isActive: true,
-        },
-        {
-          title: "Rendering",
-          url: "#",
-        },
-        {
-          title: "Caching",
-          url: "#",
-        },
-        {
-          title: "Styling",
-          url: "#",
-        },
-        {
-          title: "Optimizing",
-          url: "#",
-        },
-        {
-          title: "Configuring",
-          url: "#",
-        },
-        {
-          title: "Testing",
-          url: "#",
-        },
-        {
-          title: "Authentication",
-          url: "#",
-        },
-        {
-          title: "Deploying",
-          url: "#",
-        },
-        {
-          title: "Upgrading",
-          url: "#",
-        },
-        {
-          title: "Examples",
-          url: "#",
-        },
-      ],
+      title: "Organization",
+      url: "/dashboard/organization",
+      icon: Building2,
     },
     {
-      title: "API Reference",
-      url: "#",
-      items: [
-        {
-          title: "Components",
-          url: "#",
-        },
-        {
-          title: "File Conventions",
-          url: "#",
-        },
-        {
-          title: "Functions",
-          url: "#",
-        },
-        {
-          title: "next.config.js Options",
-          url: "#",
-        },
-        {
-          title: "CLI",
-          url: "#",
-        },
-        {
-          title: "Edge Runtime",
-          url: "#",
-        },
-      ],
+      title: "Conversations",
+      url: "/dashboard/conversations",
+      icon: MessageSquareDot,
     },
     {
-      title: "Architecture",
-      url: "#",
-      items: [
-        {
-          title: "Accessibility",
-          url: "#",
-        },
-        {
-          title: "Fast Refresh",
-          url: "#",
-        },
-        {
-          title: "Next.js Compiler",
-          url: "#",
-        },
-        {
-          title: "Supported Browsers",
-          url: "#",
-        },
-        {
-          title: "Turbopack",
-          url: "#",
-        },
-      ],
+      title: "Notifications",
+      url: "/dashboard/notifications",
+      icon: BellDot,
+      showBadge: true,
     },
     {
-      title: "Community",
-      url: "#",
-      items: [
-        {
-          title: "Contribution Guide",
-          url: "#",
-        },
-      ],
+      title: "Channels",
+      url: "/dashboard/channels",
+      icon: Layout,
+    },
+    {
+      title: "Assistants",
+      url: "/dashboard/assistants",
+      icon: Bot,
+    },
+    
+    {
+      title: "Analytics",
+      url: "/dashboard/analytics",
+      icon: BarChart,
+    },
+    {
+      title: "Playground",
+      url: "/dashboard/playground",
+      icon: PaintRoller,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname()
+  const { notificationCount } = useNotifications()
+
   return (
     <Sidebar variant="floating" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <GalleryVerticalEnd className="size-4" />
+              <a href="/dashboard">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-gray-900 text-sidebar-primary-foreground">
+                  <Image alt="Intelli Logo" className="h-16 size-4" src="/Intelli.svg" height={25} width={25} />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Documentation</span>
-                  <span className="">v1.0.0</span>
+                  <span className="font-bold">Intelli</span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -179,28 +93,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarMenu className="gap-2">
             {data.navMain.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild>
-                  <a href={item.url} className="font-medium">
-                    {item.title}
-                  </a>
+              <SidebarMenuItem key={item.title} className="w-full">
+                <SidebarMenuButton asChild className="w-full">
+                  <Link href={item.url} className="w-full">
+                    <span className="relative w-full">
+                      <span
+                        className={cn(
+                          "group flex w-full items-center rounded-lg px-2 py-2 text-sm font-medium hover:bg-blue-100 hover:text-blue-600",
+                          pathname === item.url ? "bg-blue-500 text-white" : "transparent"
+                        )}
+                      >
+                        {item.icon && <item.icon className="mr-2 size-4" />}
+                        <span>{item.title}</span>
+                      </span>
+                      {item.showBadge && notificationCount > 0 && (
+                        <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
+                          {notificationCount}
+                        </span>
+                      )}
+                    </span>
+                  </Link>
                 </SidebarMenuButton>
-                {item.items?.length ? (
-                  <SidebarMenuSub className="ml-0 border-l-0 px-1.5">
-                    {item.items.map((item) => (
-                      <SidebarMenuSubItem key={item.title}>
-                        <SidebarMenuSubButton asChild isActive={item.isActive}>
-                          <a href={item.url}>{item.title}</a>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                ) : null}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t">
+        <UserNav />
+      </SidebarFooter>
     </Sidebar>
   )
 }

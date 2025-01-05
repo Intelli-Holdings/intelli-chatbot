@@ -13,6 +13,7 @@ export interface Conversation {
   messages: ChatMessage[];
   updated_at: string;
   phone_number: string;
+  customer_name: string;
   recipient_id: string;
 }
 
