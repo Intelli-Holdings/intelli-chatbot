@@ -17,6 +17,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
   const { user } = useUser();
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [isAiSupport, setIsAiSupport] = useState<boolean>(false);
+  const [customerName, setCustomerName] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.primaryEmailAddress?.emailAddress) {
@@ -40,6 +41,19 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
       fetchPhoneNumber();
     }
   }, [user, conversation]);
+
+  useEffect(() => {
+    if (conversation && conversation.messages) {
+      // Attempt to extract customer name from messages
+      for (const message of conversation.messages) {
+        const nameMatch = message.content?.match(/customer name : (\w+)/);
+        if (nameMatch && nameMatch[1]) {
+          setCustomerName(nameMatch[1]);
+          break;
+        }
+      }
+    }
+  }, [conversation]);
 
   const handleToggleAISupport = async () => {
     if (!conversation || !phoneNumber) return;
@@ -70,11 +84,13 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
       <div className="flex items-center justify-between p-4 border-b bg-white">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={`https://avatar.vercel.sh/${conversation.customer_number}.png`} />
-            <AvatarFallback>{conversation.customer_number.slice(0, 2)}</AvatarFallback>
+            <AvatarImage src={`https://avatar.vercel.sh/${conversation.customer_name}.png`} />
+            <AvatarFallback>{conversation.customer_name.slice(0, 2)}</AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="text-sm font-semibold">{conversation.customer_number || conversation.recipient_id}</h2>
+            <h2 className="text-sm font-semibold">
+              {customerName || conversation.customer_name || conversation.recipient_id}
+            </h2>
             <p className="text-xs text-muted-foreground">
               Last active {format(parseISO(conversation.updated_at), 'MMM d, h:mm a')}
             </p>
@@ -101,4 +117,3 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
 };
 
 export default ConversationHeader;
-
