@@ -1,84 +1,233 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { PlusCircle } from 'lucide-react'
-import Link from 'next/link'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { useOrganizationList } from "@clerk/nextjs"
+import { CreateAssistantDialog } from '@/components/create-assistant-dialog'
+import { Bot, CircleDot, Info, MoreVertical, Pencil } from 'lucide-react'
+import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { AssistantsList } from './AssistantsList'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Assistant {
   id: number
   name: string
-  prompt: string
   assistant_id: string
-  organization: string | null
+  organization: string
 }
 
 export default function Assistants() {
+  const { userMemberships, isLoaded } = useOrganizationList({
+    userMemberships: {
+      infinite: true,
+    },
+  });
+
   const [assistants, setAssistants] = useState<Assistant[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('')
+  const { toast } = useToast()
 
-  useEffect(() => {
-    const fetchAssistants = async () => {
-      setIsLoading(true)
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch assistants')
-        }
+  const fetchAssistants = async () => {
+    if (!selectedOrganizationId) return
 
-        const data: Assistant[] = await response.json()
-        setAssistants(data)
-      } catch (error) {
-        console.error('Error fetching assistants:', error)
-        setAssistants([])
-      } finally {
-        setIsLoading(false)
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${selectedOrganizationId}/`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch assistants')
       }
+
+      const data: Assistant[] = await response.json()
+      setAssistants(data)
+      
+      if (!isFirstLoad && data.length === 0) {
+        toast({
+          title: "No Assistants Found",
+          description: "This organization doesn't have any assistants yet. Create one to get started!",
+          duration: 5000,
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching assistants:', error)
+      setAssistants([])
+      toast({
+        title: "Error",
+        description: "Failed to fetch assistants. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+      setIsFirstLoad(false)
     }
-
-    fetchAssistants()
-  }, [])
-
-  if (isLoading) {
-    return <p>Loading...</p>
   }
 
-  return (
-    <div className="">
-      {assistants.length > 0 ? (
-        <div className="">
-          {assistants.map((assistant) => (
-            <Card key={assistant.id}>
-              <CardHeader>
-                <CardTitle>{assistant.name}</CardTitle>
-                <CardDescription>
-                  {assistant.prompt.substring(0, 100)}...
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href={`/assistants/${assistant.id}`} passHref>
-                  <Button variant="outline">View Details</Button>
-                </Link>
-              </CardContent>
-            </Card>
+  const handleOrganizationChange = (orgId: string) => {
+    setSelectedOrganizationId(orgId)
+    setIsFirstLoad(true)
+  }
+
+  const handleEditAssistant = (assistant: Assistant) => {
+    // TODO: Implement edit functionality
+    console.log('Edit assistant:', assistant)
+    toast({
+      title: "Edit Assistant",
+      description: `Editing ${assistant.name}...`,
+    })
+  }
+
+  useEffect(() => {
+    if (selectedOrganizationId) {
+      fetchAssistants()
+    }
+  }, [selectedOrganizationId])
+
+  if (!isLoaded) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="h-[240px] animate-pulse bg-muted" />
           ))}
         </div>
+      </div>
+    )
+  }
+
+  const selectedOrg = userMemberships?.data?.find(
+    membership => membership.organization.id === selectedOrganizationId
+  )
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">Organization</label>
+        <Select
+          value={selectedOrganizationId}
+          onValueChange={handleOrganizationChange}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select an organization" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {userMemberships?.data?.map((membership) => (
+                <SelectItem 
+                  key={membership.organization.id} 
+                  value={membership.organization.id}
+                >
+                  {membership.organization.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {selectedOrganizationId ? (
+        isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="h-[240px] animate-pulse bg-muted" />
+            ))}
+          </div>
+        ) : assistants.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CreateAssistantDialog onAssistantCreated={fetchAssistants} />
+            
+            {assistants.map((assistant) => (
+              <Card key={assistant.id} className="h-[240px] flex flex-col">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{assistant.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          ID: {assistant.assistant_id.slice(0, 12)}...
+                        </p>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => handleEditAssistant(assistant)}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit Assistant
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <div className="flex items-center space-x-2">
+                    <CircleDot className="w-3 h-3 fill-green-500 text-green-500" />
+                    <span className="text-sm">Active</span>
+                  </div>
+                  {selectedOrg && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Organization: {selectedOrg.organization.name}
+                    </p>
+                  )}
+                </CardContent>
+                <CardFooter className="border-t pt-4">
+                  <Button variant="outline" className="w-full" onClick={() => handleEditAssistant(assistant)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit Assistant
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>No Assistants Found</AlertTitle>
+              <AlertDescription>
+                This organization doesn&apos;t have any assistants yet. Create your first assistant to get started!
+              </AlertDescription>
+            </Alert>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <CreateAssistantDialog onAssistantCreated={fetchAssistants} />
+            </div>
+          </div>
+        )
       ) : (
         <Card className="text-center py-12">
           <CardContent>
-            <PlusCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-            <CardTitle className="mt-2">No assistants</CardTitle>
+            <CardTitle className="mt-2">Select an Organization</CardTitle>
             <CardDescription className="mt-1">
-              Get started by creating a new assistant.
+              Please select an organization to view its assistants.
             </CardDescription>
-            <div className="mt-6">
-              <Link href="/dashboard/channels" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                <PlusCircle className="h-5 w-5 mr-2" />
-                Create assistant
-              </Link>
-            </div>
           </CardContent>
         </Card>
       )}
