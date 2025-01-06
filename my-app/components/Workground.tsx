@@ -37,7 +37,6 @@ export default function Workground() {
   const [widgetName, setWidgetName] = useState<string>("Elli");
   const [avatarUrl, setAvatarUrl] = useState<string>("/Avatar.png");
   const [brandColor, setBrandColor] = useState<string>("#007fff");
-  const [customInstructions, setCustomInstructions] = useState<string>("");
   const [greetingMessage, setGreetingMessage] = useState<string>("Hello! I'm Elli, Ask me anything about Intelli?");
   const [showWelcomeDialog, setShowWelcomeDialog] = useState<boolean>(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,7 +86,6 @@ export default function Workground() {
       widgetName,
       avatarUrl,
       brandColor,
-      customInstructions,
       greetingMessage,
     };
 
@@ -211,15 +209,6 @@ export default function Workground() {
                   placeholder="#007fff"
                 />
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Custom Instructions</label>
-              <Textarea 
-                value={customInstructions} 
-                onChange={(e) => setCustomInstructions(e.target.value)}
-                placeholder="Enter custom instructions for your assistant"
-                className="h-24"
-              />
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Greeting Message</label>
