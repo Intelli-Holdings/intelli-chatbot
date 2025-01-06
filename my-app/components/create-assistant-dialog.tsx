@@ -39,10 +39,10 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isLoaded && userMemberships?.data?.length > 0) {
+    if (isLoaded && userMemberships?.data?.length > 0 && !selectedOrganizationId) {
       setSelectedOrganizationId(userMemberships.data[0].organization.id);
     }
-  }, [isLoaded, userMemberships]);
+  }, [isLoaded, userMemberships, selectedOrganizationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,10 +109,9 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
             <label className="block text-sm font-medium text-foreground mb-1">Organization</label>
             <Select
               value={selectedOrganizationId}
-              onValueChange={setSelectedOrganizationId}
-              disabled={!isLoaded}
+              onValueChange={(value) => setSelectedOrganizationId(value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select an organization" />
               </SelectTrigger>
               <SelectContent>
@@ -151,3 +150,4 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
     </Dialog>
   );
 }
+
