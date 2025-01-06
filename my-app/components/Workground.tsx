@@ -141,9 +141,9 @@ export default function Workground() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 p-2">
+    <div className="flex flex-col md:flex-row gap-4 p-2 border border-dotted border-2 rounded-lg">
       {/* Left Side: Form */}
-      <div className="md:w-1/2 bg-white shadow-md p-4 rounded-lg">
+      <div className="md:w-1/2 bg-white shadow-md p-6 rounded-lg border border-gray-200 rounded-xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <h2 className="text-xl font-semibold mb-4">
             Create a Website Widget
@@ -218,12 +218,29 @@ export default function Workground() {
               placeholder="Enter the URL for the avatar"
             />
           </div>
-          <InputField
-            label="Brand Color"
-            value={brandColor}
-            onChange={setBrandColor}
-            type="color"
-          />
+          <div>
+  <label className="block text-sm font-medium text-foreground mb-1">
+    Brand Color
+  </label>
+  <div className="flex items-center space-x-2">
+    <Input
+      type="color"
+      value={brandColor}
+      onChange={(e) => setBrandColor(e.target.value)}
+      className="w-12 h-10 p-1 border border-rounded-xl border-gray-300 rounded-md cursor-pointer"
+      title="Pick a color"
+    />
+    <Input
+      type="text"
+      value={brandColor}
+      onChange={(e) => setBrandColor(e.target.value)}
+      placeholder="#007fff"
+      title="Enter color code"
+      className="flex-1"
+    />
+  </div>
+</div>
+
           <InputField
             label="Greeting Message"
             value={greetingMessage}
@@ -238,7 +255,7 @@ export default function Workground() {
 
       {/* Right Side: Preview */}
       <div className="md:w-1/2 flex items-center justify-center">
-        <div className="flex flex-col w-full max-w-[400px] mx-auto bg-white rounded-xl overflow-hidden shadow-lg">
+        <div className="flex flex-col w-full max-w-[400px] mx-auto bg-white rounded-xl overflow-hidden shadow-md">
           <div
             className="flex items-center p-4 text-white"
             style={{ backgroundColor: brandColor }}
