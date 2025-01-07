@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { useOrganizationList } from "@clerk/nextjs"
 import { CreateAssistantDialog } from '@/components/create-assistant-dialog'
 import { Bot, CircleDot, Info, MoreVertical, Pencil } from 'lucide-react'
-import { useToast } from "@/components/ui/use-toast"
+import {toast} from 'sonner'
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -45,7 +45,6 @@ export default function Assistants() {
   const [isLoading, setIsLoading] = useState(false)
   const [isFirstLoad, setIsFirstLoad] = useState(true)
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('')
-  const { toast } = useToast()
 
   const fetchAssistants = async () => {
     if (!selectedOrganizationId) return
@@ -61,20 +60,12 @@ export default function Assistants() {
       setAssistants(data)
       
       if (!isFirstLoad && data.length === 0) {
-        toast({
-          title: "No Assistants Found",
-          description: "This organization doesn't have any assistants yet. Create one to get started!",
-          duration: 5000,
-        })
+        toast.error('No Assistants Found, create one to get started!')
       }
     } catch (error) {
       console.error('Error fetching assistants:', error)
       setAssistants([])
-      toast({
-        title: "Error",
-        description: "Failed to fetch assistants. Please try again.",
-        variant: "destructive",
-      })
+      toast.info('Failed to fetch assistants. This organization does not have assistants.')
     } finally {
       setIsLoading(false)
       setIsFirstLoad(false)
@@ -88,10 +79,7 @@ export default function Assistants() {
 
   const handleEditAssistant = (assistant: Assistant) => {
     console.log('Edit assistant:', assistant)
-    toast({
-      title: "Edit Assistant",
-      description: `Editing ${assistant.name}...`,
-    })
+   toast.info('Edit assistant feature coming soon!')
   }
 
   useEffect(() => {
