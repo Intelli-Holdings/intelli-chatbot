@@ -5,10 +5,10 @@ import { Copy } from 'lucide-react'
 import { useState } from "react"
 
 interface DeploymentDialogProps {
-  assistantId: string;
+  widget_key: string;
 }
 
-export function DeploymentDialog({ assistantId }: DeploymentDialogProps) {
+export function DeploymentDialog({ widget_key }: DeploymentDialogProps) {
   const [copied, setCopied] = useState<string>("")
 
   const handleCopy = (text: string, type: string) => {
@@ -17,7 +17,7 @@ export function DeploymentDialog({ assistantId }: DeploymentDialogProps) {
     setTimeout(() => setCopied(""), 2000)
   }
 
-  const htmlSnippet = `<script>var intelli_widget = "${assistantId}";</script>
+  const htmlSnippet = `<script>var intelli_widget = "${widget_key}";</script>
 <script src="https://chat-widget.intelliconcierge.com.ai/main.js?nonce=${Date.now()}"></script>`
 
   const nextjsSnippet = `npm install @intelli/chat-widget
@@ -29,7 +29,7 @@ export default function Layout({ children }) {
   return (
     <>
       {children}
-      <IntelliWidget assistantId="${assistantId}" />
+      <IntelliWidget assistantId="${widget_key}" />
     </>
   )
 }`
@@ -44,7 +44,7 @@ export default function Layout({ children }) {
           <DialogTitle>Website Chat Widget</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground mb-4">
-          This will allow you and the AI Assistant to receive and respond to Messages via your website.
+          This will allow you to receive and respond to messages via your website widget.
         </p>
         <Tabs defaultValue="wordpress">
           <TabsList className="grid grid-cols-3 mb-4">
@@ -57,11 +57,11 @@ export default function Layout({ children }) {
             <div className="space-y-4">
               <p className="text-sm">Copy the AI Assistant ID to Install On a WordPress Website using the Intelli WordPress plugin.</p>
               <div className="relative">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto">{assistantId}</pre>
+                <pre className="bg-muted p-4 rounded-lg overflow-x-auto">{widget_key}</pre>
                 <Button 
                   size="sm" 
                   className="absolute top-2 right-2"
-                  onClick={() => handleCopy(assistantId, "wordpress")}
+                  onClick={() => handleCopy(widget_key, "wordpress")}
                 >
                   {copied === "wordpress" ? "Copied!" : <Copy className="h-4 w-4" />}
                 </Button>
