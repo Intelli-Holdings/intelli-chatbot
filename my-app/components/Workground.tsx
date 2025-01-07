@@ -12,10 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/components/ui/use-toast";
 import { useOrganizationList } from "@clerk/nextjs";
 import Image from "next/image";
 import { Send, X, Loader } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Workground() {
   const { userMemberships, isLoaded } = useOrganizationList({
@@ -33,7 +33,6 @@ export default function Workground() {
     }
   };
 
-  const { toast } = useToast();
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedOrganizationId, setSelectedOrganizationId] =
     useState<string>("");
@@ -85,18 +84,14 @@ export default function Workground() {
     } catch (error) {
       console.error("Error fetching assistants:", error);
       setAssistants([]);
-      toast({
-        title: "Error",
-        description: "Could not fetch assistants. Please try again.",
-        variant: "destructive",
-      });
+      toast.info("Selected organisation does not have any assistants. Please create one to get started.");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
+  
     const formData = {
       organization: selectedOrganizationId,
       assistant: selectedAssistantId,
@@ -106,31 +101,21 @@ export default function Workground() {
       brand_color: brandColor,
       greeting_message: greetingMessage,
     };
-
+  
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        }
-      );
-
-      if (!response.ok) throw new Error("Failed to create widget");
-
-      toast({
-        title: "Success",
-        description: "Widget created successfully!",
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
-      setLoading(false);
+  
+      if (!response.ok) throw new Error("Failed to create widget");
+  
+      toast.success("Website Widget created successfully!");
     } catch (error) {
       console.error("Error submitting widget:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create widget. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to create widget. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
