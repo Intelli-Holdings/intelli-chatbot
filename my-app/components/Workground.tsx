@@ -109,7 +109,7 @@ export default function Workground() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/widgets/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
