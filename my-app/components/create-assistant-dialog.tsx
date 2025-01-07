@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus } from 'lucide-react';
-import { CreateAssistantData } from '@/types/assistant';
 
 interface CreateAssistantDialogProps {
   onAssistantCreated: () => void;
@@ -34,6 +33,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
   const [formData, setFormData] = useState({
     name: '',
     prompt: '',
+    organization_id: '',
   });
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const { toast } = useToast();
@@ -46,6 +46,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!selectedOrganizationId) {
       console.log('Submission blocked: No organization selected');
       toast({
@@ -58,9 +59,10 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
 
     setIsLoading(true);
     try {
-      const data: CreateAssistantData = {
-        ...formData,
-        organizationId: selectedOrganizationId,
+      const data = {
+        name: formData.name,
+        prompt: formData.prompt,
+        organization_id: selectedOrganizationId, 
       };
       
       // Enhanced logging of submission data
@@ -71,6 +73,8 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
         timestamp: new Date().toISOString(),
         apiEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`
       });
+
+      console.log("Submitting data to backend:", data); 
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
         method: 'POST',
@@ -95,9 +99,10 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
       });
       setOpen(false);
       onAssistantCreated();
-      setFormData({ name: '', prompt: '' });
+      setFormData({ name: '', prompt: '', organization_id: '' });
     } catch (error) {
-      console.error('Error creating assistant:', error);
+
+      console.error("Error creating assistant:", error);
       toast({
         title: "Error",
         description: "Failed to create assistant",
