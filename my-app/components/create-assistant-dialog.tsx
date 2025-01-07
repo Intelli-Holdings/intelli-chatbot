@@ -47,6 +47,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrganizationId) {
+      console.log('Submission blocked: No organization selected');
       toast({
         title: "Error",
         description: "Please select an organization",
@@ -61,6 +62,15 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
         ...formData,
         organizationId: selectedOrganizationId,
       };
+      
+      // Enhanced logging of submission data
+      console.log('Submitting Assistant Creation Data:', {
+        name: data.name,
+        prompt: data.prompt,
+        organizationId: data.organizationId,
+        timestamp: new Date().toISOString(),
+        apiEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`
+      });
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
         method: 'POST',
@@ -71,9 +81,14 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
       });
 
       if (!response.ok) {
+        console.error('Assistant creation failed:', {
+          status: response.status,
+          statusText: response.statusText,
+        });
         throw new Error('Failed to create assistant');
       }
 
+      console.log('Assistant created successfully');
       toast({
         title: "Success",
         description: "Assistant created successfully",
@@ -82,6 +97,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
       onAssistantCreated();
       setFormData({ name: '', prompt: '' });
     } catch (error) {
+      console.error('Error creating assistant:', error);
       toast({
         title: "Error",
         description: "Failed to create assistant",
@@ -150,4 +166,3 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
     </Dialog>
   );
 }
-
