@@ -101,7 +101,8 @@ export default function Workground() {
       brand_color: brandColor,
       greeting_message: greetingMessage,
     };
-  
+    
+    console.log("Payload being sent to the backend:", formData);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/`, {
         method: "POST",
