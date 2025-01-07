@@ -69,7 +69,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
       console.log('Submitting Assistant Creation Data:', {
         name: data.name,
         prompt: data.prompt,
-        organizationId: data.organizationId,
+        organization_id: data.organization_id,
         timestamp: new Date().toISOString(),
         apiEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`
       });
