@@ -87,7 +87,6 @@ export default function Assistants() {
   }
 
   const handleEditAssistant = (assistant: Assistant) => {
-    // TODO: Implement edit functionality
     console.log('Edit assistant:', assistant)
     toast({
       title: "Edit Assistant",
@@ -198,10 +197,9 @@ export default function Assistants() {
                     </p>
                   )}
                 </CardContent>
-                <CardFooter className="border-t pt-4">
-                  <Button variant="outline" className="w-full" onClick={() => handleEditAssistant(assistant)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit Assistant
+                <CardFooter>
+                  <Button variant="ghost" className="w-full">
+                    View Assistant
                   </Button>
                 </CardFooter>
               </Card>
