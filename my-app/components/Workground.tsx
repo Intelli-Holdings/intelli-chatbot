@@ -72,7 +72,7 @@ export default function Workground() {
   const fetchAssistants = async (organizationId: string) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${organizationId}/`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`
       );
       if (!response.ok) throw new Error("Failed to fetch assistants");
       const data = await response.json();
