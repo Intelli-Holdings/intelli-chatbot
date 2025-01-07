@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import Assistants from '@/app/dashboard/assistants/assistants';
+import Assistants from '@/components/Assistants';
 
 export const metadata: Metadata = {
   title: 'Assistants | Dashboard',

@@ -101,4 +101,3 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
 };
 
 export default ConversationHeader;
-
