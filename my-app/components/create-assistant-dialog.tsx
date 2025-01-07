@@ -14,8 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
 import { Plus } from 'lucide-react';
+import { toast } from "sonner";
 
 interface CreateAssistantDialogProps {
   onAssistantCreated: () => void;
@@ -36,7 +36,6 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
     organization_id: '',
   });
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
-  const { toast } = useToast();
 
   useEffect(() => {
     if (isLoaded && userMemberships?.data?.length > 0 && !selectedOrganizationId) {
@@ -46,68 +45,46 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!selectedOrganizationId) {
-      console.log('Submission blocked: No organization selected');
-      toast({
-        title: "Error",
-        description: "Please select an organization",
-        variant: "destructive",
-      });
+      console.log("Submission blocked: No organization selected");
+      toast.error("Please select an organization");
       return;
     }
-
+  
     setIsLoading(true);
     try {
       const data = {
         name: formData.name,
         prompt: formData.prompt,
-        organization_id: selectedOrganizationId, 
+        organization_id: selectedOrganizationId,
       };
-      
-      // Enhanced logging of submission data
-      console.log('Submitting Assistant Creation Data:', {
-        name: data.name,
-        prompt: data.prompt,
-        organization_id: data.organization_id,
-        timestamp: new Date().toISOString(),
-        apiEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`
-      });
-
-      console.log("Submitting data to backend:", data); 
-
+  
+      console.log("Submitting data to backend:", data);
+  
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
-
+  
       if (!response.ok) {
-        console.error('Assistant creation failed:', {
+        console.error("Assistant creation failed:", {
           status: response.status,
           statusText: response.statusText,
         });
-        throw new Error('Failed to create assistant');
+        throw new Error("Failed to create assistant");
       }
-
-      console.log('Assistant created successfully');
-      toast({
-        title: "Success",
-        description: "Assistant created successfully",
-      });
+  
+      toast.success("Assistant created successfully");
       setOpen(false);
       onAssistantCreated();
-      setFormData({ name: '', prompt: '', organization_id: '' });
+      setFormData({ name: "", prompt: "", organization_id: "" });
     } catch (error) {
-
       console.error("Error creating assistant:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create assistant",
-        variant: "destructive",
-      });
+      toast.error("Failed to create assistant");
     } finally {
       setIsLoading(false);
     }
