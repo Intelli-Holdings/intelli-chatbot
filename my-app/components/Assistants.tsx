@@ -52,7 +52,7 @@ export default function Assistants() {
 
     setIsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${selectedOrganizationId}/`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${selectedOrganizationId}/`)
       if (!response.ok) {
         throw new Error('Failed to fetch assistants')
       }
