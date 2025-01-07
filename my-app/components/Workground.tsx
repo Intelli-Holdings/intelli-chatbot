@@ -15,21 +15,35 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { useOrganizationList } from "@clerk/nextjs";
 import Image from "next/image";
-import { Send, X } from "lucide-react";
+import { Send, X, Loader } from "lucide-react";
 
 export default function Workground() {
   const { userMemberships, isLoaded } = useOrganizationList({
     userMemberships: { infinite: true },
   });
 
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && (file.type === "image/jpeg" || file.type === "image/png")) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const { toast } = useToast();
+  const [loading, setLoading] = useState<boolean>(false);
   const [selectedOrganizationId, setSelectedOrganizationId] =
     useState<string>("");
   const [assistants, setAssistants] = useState<{ id: string; name: string }[]>(
     []
   );
   const [selectedAssistantId, setSelectedAssistantId] = useState<string>("");
-  const [websiteUrl, setWebsiteUrl] = useState<string>("https://yourwebsite.com");
+  const [websiteUrl, setWebsiteUrl] = useState<string>(
+    "https://yourwebsite.com"
+  );
   const [widgetName, setWidgetName] = useState<string>("Your widget name");
   const [avatarUrl, setAvatarUrl] = useState<string>("/Avatar.png");
   const [brandColor, setBrandColor] = useState<string>("#007fff");
@@ -79,19 +93,9 @@ export default function Workground() {
     }
   };
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && (file.type === "image/jpeg" || file.type === "image/png")) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setAvatarUrl(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     const formData = {
       organization: selectedOrganizationId,
@@ -119,6 +123,7 @@ export default function Workground() {
         title: "Success",
         description: "Widget created successfully!",
       });
+      setLoading(false);
     } catch (error) {
       console.error("Error submitting widget:", error);
       toast({
@@ -126,6 +131,7 @@ export default function Workground() {
         description: "Failed to create widget. Please try again.",
         variant: "destructive",
       });
+      setLoading(false);
     }
   };
 
@@ -151,7 +157,7 @@ export default function Workground() {
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-            Organization
+              Organization
             </label>
             <Select
               value={selectedOrganizationId}
@@ -177,7 +183,7 @@ export default function Workground() {
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-            Assistant
+              Assistant
             </label>
             <Select
               value={selectedAssistantId}
@@ -203,6 +209,35 @@ export default function Workground() {
             value={widgetName}
             onChange={setWidgetName}
           />
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Avatar
+            </label>
+            <div className="flex items-center space-x-4">
+              <div className="relative w-12 h-12 rounded-full overflow-hidden">
+                <Image
+                  src={avatarUrl}
+                  alt="Assistant Avatar"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Upload Avatar
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/jpeg,image/png"
+                onChange={handleAvatarUpload}
+              />
+            </div>
+          </div>
           <InputField
             label="Website URL"
             value={websiteUrl}
@@ -215,31 +250,31 @@ export default function Workground() {
             <Input
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="Enter the URL for the avatar"
+              placeholder="URL for the avatar"
             />
           </div>
           <div>
-  <label className="block text-sm font-medium text-foreground mb-1">
-    Brand Color
-  </label>
-  <div className="flex items-center space-x-2">
-    <Input
-      type="color"
-      value={brandColor}
-      onChange={(e) => setBrandColor(e.target.value)}
-      className="w-12 h-10 p-1 border border-rounded-xl border-gray-300 rounded-md cursor-pointer"
-      title="Pick a color"
-    />
-    <Input
-      type="text"
-      value={brandColor}
-      onChange={(e) => setBrandColor(e.target.value)}
-      placeholder="#007fff"
-      title="Enter color code"
-      className="flex-1"
-    />
-  </div>
-</div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Brand Color
+            </label>
+            <div className="flex items-center space-x-2">
+              <Input
+                type="color"
+                value={brandColor}
+                onChange={(e) => setBrandColor(e.target.value)}
+                className="w-12 h-10 p-1 border border-rounded-xl border-gray-300 rounded-md cursor-pointer"
+                title="Pick a color"
+              />
+              <Input
+                type="text"
+                value={brandColor}
+                onChange={(e) => setBrandColor(e.target.value)}
+                placeholder="#007fff"
+                title="Enter color code"
+                className="flex-1"
+              />
+            </div>
+          </div>
 
           <InputField
             label="Greeting Message"
@@ -247,8 +282,15 @@ export default function Workground() {
             onChange={setGreetingMessage}
           />
 
-          <Button type="submit" className="w-full">
-            Create Widget
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
+              <div className="flex items-center justify-center space-x-2">
+                <Loader className="animate-spin h-5 w-5" />
+                <span>Creating Widget...</span>
+              </div>
+            ) : (
+              "Create Widget"
+            )}
           </Button>
         </form>
       </div>
