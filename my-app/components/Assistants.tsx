@@ -26,6 +26,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 interface Assistant {
   id: number
@@ -45,6 +48,8 @@ export default function Assistants() {
   const [isLoading, setIsLoading] = useState(false)
   const [isFirstLoad, setIsFirstLoad] = useState(true)
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('')
+  const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const fetchAssistants = async () => {
     if (!selectedOrganizationId) return
@@ -77,10 +82,48 @@ export default function Assistants() {
     setIsFirstLoad(true)
   }
 
-  const handleEditAssistant = (assistant: Assistant) => {
-    console.log('Edit assistant:', assistant)
-   toast.info('Edit assistant feature coming soon!')
-  }
+  const handleEditAssistant = async (updatedAssistant: Assistant) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.assistant_id}/`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedAssistant),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to edit assistant");
+
+      toast.success("Assistant updated successfully!");
+      setIsEditDialogOpen(false);
+      fetchAssistants(); // Refresh the assistant list
+    } catch (error) {
+      console.error("Error editing assistant:", error);
+      toast.error("Failed to edit assistant. Please try again.");
+    }
+  };
+
+  const handleDeleteAssistant = async (assistantId: string) => {
+    try {
+      if (!confirm("Are you sure you want to delete this assistant?")) return;
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to delete assistant");
+
+      toast.success("Assistant deleted successfully!");
+      fetchAssistants(); // Refresh the assistant list
+    } catch (error) {
+      console.error("Error deleting assistant:", error);
+      toast.error("Failed to delete assistant. Please try again.");
+    }
+  };
 
   useEffect(() => {
     if (selectedOrganizationId) {
@@ -163,12 +206,21 @@ export default function Assistants() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleEditAssistant(assistant)}
+                      <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedAssistant(assistant);
+                            setIsEditDialogOpen(true);
+                          }}
                           className="cursor-pointer"
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit Assistant
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteAssistant(assistant.assistant_id)}
+                          className="cursor-pointer text-red-500"
+                        >
+                          Delete Assistant
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -216,6 +268,33 @@ export default function Assistants() {
             </CardDescription>
           </CardContent>
         </Card>
+      )}
+      {/* Edit Assistant Dialog */}
+      {selectedAssistant && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Assistant</DialogTitle>
+            </DialogHeader>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleEditAssistant(selectedAssistant);
+              }}
+              className="space-y-4"
+            >
+              <Input
+                value={selectedAssistant.name}
+                onChange={(e:any) =>
+                  setSelectedAssistant((prev) => prev && { ...prev, name: e.target.value })
+                }
+                placeholder="Assistant Name"
+                required
+              />
+              <Button type="submit">Save Changes</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )
