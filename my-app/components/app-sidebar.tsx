@@ -28,10 +28,10 @@ const data = {
       icon: Home,
     },
     {
-      title: "Organization",
-      url: "/dashboard/organization",
-      icon: Building2,
-    },
+      title: "Assistants",
+      url: "/dashboard/assistants",
+      icon: Bot,
+    },    
     {
       title: "Conversations",
       url: "/dashboard/conversations",
@@ -47,13 +47,7 @@ const data = {
       title: "Channels",
       url: "/dashboard/channels",
       icon: Layout,
-    },
-    {
-      title: "Assistants",
-      url: "/dashboard/assistants",
-      icon: Bot,
-    },
-    
+    },    
     {
       title: "Analytics",
       url: "/dashboard/analytics",
@@ -63,6 +57,11 @@ const data = {
       title: "Playground",
       url: "/dashboard/playground",
       icon: PaintRoller,
+    },
+    {
+      title: "Organization",
+      url: "/dashboard/organization",
+      icon: Building2,
     },
   ],
 }
