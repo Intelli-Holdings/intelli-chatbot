@@ -93,8 +93,8 @@ export default function Workground() {
     setLoading(true);
   
     const formData = {
-      organization: selectedOrganizationId,
-      assistant: selectedAssistantId,
+      organization_id: selectedOrganizationId,
+      assistant_id: selectedAssistantId,
       widget_name: widgetName,
       website_url: websiteUrl,
       avatar_url: avatarUrl,
