@@ -1,4 +1,4 @@
-
+"use client";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import CreateOrganizationPopup from "@/components/CreateOrganizationPopup"; // Import the popup component
@@ -9,14 +9,12 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { QueryClient, QueryClientProvider } from 'react-query'
+import { useState } from 'react'
 
 // Notifications
 import ToastProvider from "@/components/ToastProvider";
 
-export const metadata: Metadata = {
-  title: "Intelli Dashboard",
-  description: "The Dashboard for Businesses that care about their customers.",
-};
 
 export const viewport = {
   themeColor: [
@@ -30,6 +28,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [queryClient] = useState(() => new QueryClient())
+
   return (
     <div suppressHydrationWarning>
       <SidebarProvider
@@ -46,9 +46,11 @@ export default function DashboardLayout({
           </header>
           <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
             <main className="">
+            <QueryClientProvider client={queryClient}>
               <CreateOrganizationPopup />
               {children}
-              <ToastProvider /> {/* Use the reusable ToastProvider */}
+              <ToastProvider /> 
+              </QueryClientProvider>
             </main>
           </div>
         </SidebarInset>
