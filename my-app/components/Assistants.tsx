@@ -51,6 +51,7 @@ import {
 interface Assistant {
   id: number;
   name: string;
+  prompt: string;
   assistant_id: string;
   organization: string;
 }
@@ -145,6 +146,11 @@ export default function Assistants() {
     }
   }, [selectedOrganizationId]);
 
+  const selectedOrg = userMemberships?.data?.find(
+    membership => membership.organization.id === selectedOrganizationId
+  )
+
+
   return (
     <div className="space-y-4">
       <div>
@@ -180,47 +186,65 @@ export default function Assistants() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {assistants.map((assistant) => (
             <Card key={assistant.id} className="h-[240px] flex flex-col">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{assistant.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        ID: {assistant.assistant_id.slice(0, 12)}...
-                      </p>
-                    </div>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Bot className="h-4 w-4 text-primary" />
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedAssistant(assistant);
-                          setIsEditDialogOpen(true);
-                        }}
-                      >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteAssistant(assistant.assistant_id)}
-                        className="text-red-500"
-                      >
-                        <Trash className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div>
+                    <CardTitle className="text-lg">{assistant.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      ID: {assistant.assistant_id.slice(0, 12)}...
+                    </p>
+                  </div>
                 </div>
-              </CardHeader>
-            </Card>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedAssistant(assistant);
+                            setIsEditDialogOpen(true);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit 
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteAssistant(assistant.assistant_id)}
+                          className="cursor-pointer text-red-500"
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <div className="flex items-center space-x-2">
+                <CircleDot className="w-3 h-3 fill-green-500 text-green-500" />
+                <span className="text-sm">Active</span>
+              </div>
+              {selectedOrg && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Organization: {selectedOrg.organization.name}
+                </p>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full">
+                View Assistant
+              </Button>
+            </CardFooter>
+          </Card>
+
           ))}
         </div>
       ) : (
@@ -287,6 +311,14 @@ export default function Assistants() {
                   setSelectedAssistant((prev) => prev && { ...prev, name: e.target.value })
                 }
                 placeholder="Assistant Name"
+                required
+              />
+              <Input
+                value={selectedAssistant.prompt}
+                onChange={(e:any) =>
+                  setSelectedAssistant((prev) => prev && { ...prev, prompt: e.target.value })
+                }
+                placeholder="Prompt"
                 required
               />
               <Button type="submit">Save Changes</Button>
