@@ -2,28 +2,15 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
-import {
-  Activity,
-  CreditCard,
-  MessageSquare,
-  Users,
-  LucideIcon
-} from "lucide-react";
+import { MessageSquare, Globe, LucideIcon } from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -33,21 +20,14 @@ import {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  change: string;
-  icon: LucideIcon;
-  href: string;
-}
-
-type ChatSession = {
+// Interfaces
+interface ChatSession {
   id: number;
   customer_number: string;
   updated_at: string;
-};
+}
 
-type AppService = {
+interface AppService {
   id: number;
   business: {
     id: number;
@@ -63,8 +43,42 @@ type AppService = {
   created_at: string;
   chatsessions: ChatSession[];
   whatsapp_business_account_id: string;
-};
+}
 
+interface Widget {
+  id: number;
+  widget_name: string;
+  widget_key: string;
+}
+
+interface Message {
+  id: number;
+  content: string;
+  answer: string;
+  timestamp: string;
+}
+
+interface Visitor {
+  id: number;
+  visitor_id: string;
+  visitor_email: string | null;
+  visitor_name: string | null;
+  visitor_phone: string | null;
+  ip_address: string;
+  created_at: string;
+  last_seen: string;
+  messages: Message[];
+}
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  change: string;
+  icon: React.ComponentType<{ className?: string }>;
+  href: string;
+}
+
+// Components
 function StatCard({ title, value, change, icon: Icon, href }: StatCardProps) {
   return (
     <TooltipProvider>
@@ -72,9 +86,9 @@ function StatCard({ title, value, change, icon: Icon, href }: StatCardProps) {
         <TooltipTrigger asChild>
           <Link href={href}>
             <Card className="hover:bg-accent transition-colors duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">              
+                <CardTitle className="text-sm font-medium">{title}</CardTitle> 
+                <Icon className="h-4 w-4 text-muted-foreground" />               
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{value}</div>
@@ -91,24 +105,24 @@ function StatCard({ title, value, change, icon: Icon, href }: StatCardProps) {
   );
 }
 
-function StatCardSkeleton() {
+function LoadingSkeleton() {
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <Skeleton className="h-4 w-[100px]" />
-        <Skeleton className="h-4 w-4 rounded-full" />
+        <div className="h-4 w-[100px] bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 w-4 bg-gray-100 rounded-full animate-pulse" />
       </CardHeader>
       <CardContent>
-        <Skeleton className="h-8 w-[100px] mb-2" />
-        <Skeleton className="h-3 w-[60px]" />
+        <div className="h-4 w-[100px] bg-gray-100 rounded mb-2 animate-pulse" />
+        <div className="h-3 w-[60px] bg-gray-200 rounded animate-pulse" />
       </CardContent>
     </Card>
   );
 }
 
-async function getAppServices(userEmail: string): Promise<AppService[]> {
+async function fetchAppServices(userEmail: string): Promise<AppService[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
@@ -119,52 +133,68 @@ async function getAppServices(userEmail: string): Promise<AppService[]> {
   }
 }
 
-function calculateChange(current: number, previous: number): string {
-  if (previous === 0) return '100%';
-  const changePercentage = ((current - previous) / previous) * 100;
-  return `${changePercentage.toFixed(2)}%`;
-}
-
 function StatsCards({ userEmail }: { userEmail: string }) {
   const [appServices, setAppServices] = useState<AppService[]>([]);
+  const [widgets, setWidgets] = useState<Widget[]>([]);
+  const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getAppServices(userEmail);
-        setAppServices(data);
+        // Fetch WhatsApp data
+        const appServicesData = await fetchAppServices(userEmail);
+        setAppServices(appServicesData);
+
+        // Fetch widgets
+        const widgetsResponse = await fetch(`${API_BASE_URL}/widgets/`);
+        if (!widgetsResponse.ok) {
+          throw new Error(`Failed to fetch widgets: ${widgetsResponse.statusText}`);
+        }
+        const widgetsData = await widgetsResponse.json();
+        setWidgets(widgetsData);
+
+        // Fetch visitors for first widget
+        if (widgetsData.length > 0) {
+          const firstWidgetKey = widgetsData[0].widget_key;
+          const visitorsResponse = await fetch(
+            `${API_BASE_URL}/widgets/${firstWidgetKey}/visitors/`
+          );
+          if (!visitorsResponse.ok) {
+            throw new Error(`Failed to fetch visitors: ${visitorsResponse.statusText}`);
+          }
+          const visitorsData = await visitorsResponse.json();
+          setVisitors(visitorsData);
+        }
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error("Error fetching data:", error);
         setAppServices([]);
+        setWidgets([]);
+        setVisitors([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStats();
+    fetchData();
   }, [userEmail]);
 
-  let totalConversations = 0;
-  let totalCustomers = new Set<string>();
+  // Calculate stats
+  const totalWhatsAppConversations = appServices.reduce(
+    (total, service) => total + service.chatsessions.length,
+    0
+  );
 
-  appServices.forEach(service => {
-    totalConversations += service.chatsessions.length;
-    service.chatsessions.forEach(session => {
-      totalCustomers.add(session.customer_number);
-    });
-  });
-
-  const previousConversations = 80;
-  const previousCustomers = 50;
+  const totalWebsiteMessages = visitors.reduce(
+    (total, visitor) => total + visitor.messages.length,
+    0
+  );
 
   if (isLoading) {
     return (
       <>
-        <StatCardSkeleton />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
+        <LoadingSkeleton />
+        <LoadingSkeleton />
       </>
     );
   }
@@ -172,27 +202,35 @@ function StatsCards({ userEmail }: { userEmail: string }) {
   return (
     <>
       <StatCard
-        title="Total Conversations"
-        value={`${totalConversations} conversations`}
-        change={`${calculateChange(totalConversations, previousConversations)} from last month`}
-        icon={MessageSquare}
+        title="Whatsapp Conversations"
+        value={`${totalWhatsAppConversations} conversations`}
+        change="Monitor your whatsapp conversations"
+        icon={({ className }) => (
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-md">
+            <Image
+              src="/whatsapp.png"
+              alt="WhatsApp"
+              width={20}
+              height={20}
+              className="object-contain"
+            />
+          </div>
+        )}              
         href="/dashboard/conversations/whatsapp"
       />
-      <StatCard
-        title="Unique Customers"
-        value={`${totalCustomers.size} customers`}
-        change={`${calculateChange(totalCustomers.size, previousCustomers)} from last month`}
-        icon={Users}
-        href=""
-      />
-      <StatCard
-        title="Whatsapp Assistants"
-        value={`${appServices.length} assistants`}
-        change="Monitor your active assistants"
-        icon={CreditCard}
-        href=""
-      />
       
+      <StatCard
+        title="Website Widget Conversations"
+        value={`${totalWebsiteMessages} messages`}
+        change={`From ${visitors.length} visitors`}
+        icon={
+          ({ className }) => (
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white text-green-500 shadow-md ">
+              <Globe />
+            </div>
+          )}
+        href="/dashboard/conversations/website"
+      />
     </>
   );
 }
@@ -201,31 +239,29 @@ export default function ConversationsPage() {
   const { user } = useUser();
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div>Loading user...</div>;
   }
 
   const userEmail = user.emailAddresses[0].emailAddress;
 
   return (
     <div className="container mx-auto px-4 py-8">
-       <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">Conversations</h1>
-     
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-
-          <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-            <Suspense fallback={
-              <>
-                <StatCardSkeleton />
-                <StatCardSkeleton />
-                <StatCardSkeleton />
-                <StatCardSkeleton />
-              </>
-            }>
-              <StatsCards userEmail={userEmail} />
-            </Suspense>
-          </div>
-        </main>
-  
+      <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">
+        Conversations
+      </h1>
+      
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+          <Suspense fallback={
+            <>
+              <LoadingSkeleton />
+              <LoadingSkeleton />
+            </>
+          }>
+            <StatsCards userEmail={userEmail} />
+          </Suspense>
+        </div>
+      </main>
     </div>
   );
 }
