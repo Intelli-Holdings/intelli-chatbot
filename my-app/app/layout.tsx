@@ -31,6 +31,9 @@ import {
   UserButton,
 } from '@clerk/nextjs';
 
+// Toast notifications
+import ToastProvider from "@/components/ToastProvider";
+
 const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
   ssr: false,
 })
@@ -77,45 +80,23 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-    <html lang="en" suppressHydrationWarning>
-    <PHProvider>
-      <Analytics />      
-      <SpeedInsights />
-      <SignedOut>   
-      </SignedOut>        
-      <SignedIn>            
-      </SignedIn> 
-     
-      <body className={inter.className}>
-      <PostHogPageView /> 
-      <NextStepProvider>
-            <NextStep
-            steps={steps}
-            >
-        {children}
-        </NextStep>   
-      </NextStepProvider>
-       
-      <Toaster
-      toastOptions={{
-        classNames: {
-          error: 'bg-red-400',
-          success: 'text-green-400',
-          warning: 'text-yellow-400',
-          info: 'bg-blue-400',
-        },
-      }}
-
-      richColors
-    />
-  
-    
-  
-      </body>
-       </PHProvider>
-       <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
-       <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />
-    </html>
+      <html lang="en" suppressHydrationWarning>
+        <PHProvider>
+          <Analytics />
+          <SpeedInsights />
+          <SignedOut></SignedOut>
+          <SignedIn></SignedIn>
+          <body className={inter.className}>
+            <PostHogPageView />
+            <NextStepProvider>
+              <NextStep steps={steps}>{children}</NextStep>
+            </NextStepProvider>
+            <ToastProvider />
+          </body>
+          <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
+          <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />
+        </PHProvider>
+      </html>
     </ClerkProvider>
   );
 }

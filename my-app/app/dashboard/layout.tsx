@@ -1,5 +1,4 @@
-// app/layout.tsx or the corresponding layout file
-import { Toaster } from "sonner";
+
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import CreateOrganizationPopup from "@/components/CreateOrganizationPopup"; // Import the popup component
@@ -10,6 +9,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+
+// Notifications
+import ToastProvider from "@/components/ToastProvider";
 
 export const metadata: Metadata = {
   title: "Intelli Dashboard",
@@ -40,13 +42,14 @@ export default function DashboardLayout({
         <AppSidebar />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />          
+            <SidebarTrigger className="-ml-1" />
           </header>
           <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <Toaster position="top-right" />
             <main className="">
-            <CreateOrganizationPopup /> 
-            {children}</main>
+              <CreateOrganizationPopup />
+              {children}
+              <ToastProvider /> {/* Use the reusable ToastProvider */}
+            </main>
           </div>
         </SidebarInset>
       </SidebarProvider>
