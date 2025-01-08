@@ -16,8 +16,12 @@ import { useOrganizationList } from "@clerk/nextjs";
 import Image from "next/image";
 import { Send, X, Loader } from "lucide-react";
 import { toast } from "sonner";
+import { DeploymentDialog } from "@/components/deployment-dialog";
 
 export default function Workground() {
+  const [widgetKey, setWidgetKey] = useState<string>("");
+  const [showDeploymentDialog, setShowDeploymentDialog] = useState<boolean>(false);
+
   const { userMemberships, isLoaded } = useOrganizationList({
     userMemberships: { infinite: true },
   });
@@ -66,7 +70,7 @@ export default function Workground() {
     if (selectedOrganizationId) {
       fetchAssistants(selectedOrganizationId);
     }
-  }, [selectedOrganizationId]);
+  }, [selectedOrganizationId]);  
 
   const fetchAssistants = async (organizationId: string) => {
     try {
@@ -378,6 +382,13 @@ export default function Workground() {
           </div>
         </div>
       </div>
+
+       {/* Deployment Dialog */}
+      {showDeploymentDialog && (
+        <DeploymentDialog 
+          onClose={() => setShowDeploymentDialog(false)}
+        />
+      )}
     </div>
   );
 }
