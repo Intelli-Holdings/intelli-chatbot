@@ -203,8 +203,8 @@ function StatsCards({ userEmail }: { userEmail: string }) {
     <>
       <StatCard
         title="Whatsapp Conversations"
-        value={`${totalWhatsAppConversations} conversations`}
-        change="Monitor your whatsapp conversations"
+        value={`${totalWhatsAppConversations} chats`}
+        change="Monitor whatsapp conversations"
         icon={({ className }) => (
           <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-md">
             <Image
