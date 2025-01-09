@@ -7,43 +7,24 @@ import { sendMessage } from '@/app/actions';
 import { useUser } from '@clerk/nextjs';
 import {  ArrowUp } from 'lucide-react'
 import { Card } from "@/components/ui/card"
+import {toast} from 'sonner'
+import { Conversation } from '@/app/dashboard/conversations/components/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface MessageInputProps {
   customerNumber: string;
+  phoneNumber: string;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ customerNumber }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ 
+  customerNumber,
+  phoneNumber 
+}) => {
   const [content, setContent] = useState('');
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
-  const { user } = useUser();
-
-  useEffect(() => {
-    if (user?.primaryEmailAddress?.emailAddress) {
-      const userEmail = user.primaryEmailAddress.emailAddress;
-
-      const fetchPhoneNumber = async () => {
-        try {
-          const response = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
-          const data = await response.json();
-          
-          // Ensure the response is not empty and contains the expected structure
-          if (data.length > 0 && data[0].phone_number) {
-            setPhoneNumber(data[0].phone_number);
-          } else {
-            setError('Phone number not found in the response.');
-          }
-        } catch (e) {
-          setError('Failed to fetch phone number.');
-        }
-      };
-
-      fetchPhoneNumber();
-    }
-  }, [user]);
+  const { user } = useUser();  
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -55,10 +36,12 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber }) => {
       formData.append('answer', answer);      
       const response = await sendMessage(formData);
       console.log('Message sent successfully:', response);
+      toast.success('Message sent successfully');
       setContent('');
       setAnswer('');
     } catch (e) {
       setError((e as Error).message);
+      toast.error('Failed to send message');
     }
   };
 
