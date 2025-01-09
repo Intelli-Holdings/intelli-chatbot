@@ -14,13 +14,15 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOrganizationList } from "@clerk/nextjs";
 import Image from "next/image";
-import { Send, X, Loader } from "lucide-react";
+import { Send, X, Loader } from 'lucide-react';
 import { toast } from "sonner";
 import { DeploymentDialog } from "@/components/deployment-dialog";
+import { WidgetCommunication } from "@/components/widget-communication";
 
 export default function Workground() {
   const [widgetKey, setWidgetKey] = useState<string>("");
   const [showDeploymentDialog, setShowDeploymentDialog] = useState<boolean>(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const { userMemberships, isLoaded } = useOrganizationList({
     userMemberships: { infinite: true },
@@ -29,6 +31,8 @@ export default function Workground() {
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && (file.type === "image/jpeg" || file.type === "image/png")) {
+      setAvatarFile(file); // Store the actual file
+      // Create a preview URL for the UI
       const reader = new FileReader();
       reader.onload = (e) => {
         setAvatarUrl(e.target?.result as string);
@@ -96,27 +100,32 @@ export default function Workground() {
     e.preventDefault();
     setLoading(true);
   
-    const formData = {
-      organization_id: selectedOrganizationId,
-      assistant_id: selectedAssistantId,
-      widget_name: widgetName,
-      website_url: websiteUrl,
-      avatar_url: avatarUrl,
-      brand_color: brandColor,
-      greeting_message: greetingMessage,
-    };
+    const formData = new FormData();
+    formData.append("organization_id", selectedOrganizationId);
+    formData.append("assistant_id", selectedAssistantId);
+    formData.append("widget_name", widgetName);
+    formData.append("website_url", websiteUrl);
+    formData.append("brand_color", brandColor);
+    formData.append("greeting_message", greetingMessage);
+    
+    // Append the actual image file if it exists
+    if (avatarFile) {
+      formData.append("avatar_url", avatarFile);
+    }
     
     console.log("Payload being sent to the backend:", formData);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: formData,
       });
   
       if (!response.ok) throw new Error("Failed to create widget");
   
+      const data = await response.json();
+      setWidgetKey(data.widget_key); 
       toast.success("Website Widget created successfully!");
+      setShowDeploymentDialog(true); 
     } catch (error) {
       console.error("Error submitting widget:", error);
       toast.error("Failed to create widget. Please try again.");
@@ -233,16 +242,7 @@ export default function Workground() {
             value={websiteUrl}
             onChange={setWebsiteUrl}
           />
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Avatar URL
-            </label>
-            <Input
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="URL for the avatar"
-            />
-          </div>
+
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
               Brand Color
@@ -287,106 +287,21 @@ export default function Workground() {
 
       {/* Right Side: Preview */}
       <div className="md:w-1/2 flex items-center justify-center">
-        <div className="flex flex-col w-full max-w-[400px] mx-auto bg-white rounded-xl overflow-hidden shadow-md">
-          <div
-            className="flex items-center p-4 text-white"
-            style={{ backgroundColor: brandColor }}
-          >
-            <div className="relative w-8 h-8 rounded-full overflow-hidden mr-3">
-              <Image
-                src={avatarUrl}
-                alt={widgetName}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <span className="font-semibold">{widgetName}</span>
-          </div>
-
-          {showWelcomeDialog && (
-            <div className="relative m-4 p-4 bg-white rounded-lg border shadow-sm">
-              <button
-                onClick={() => setShowWelcomeDialog(false)}
-                className="absolute top-2 right-2"
-              >
-                <X className="h-4 w-4 text-gray-500" />
-              </button>
-              <h3 className="font-semibold mb-2">Welcome to {widgetName}</h3>
-              <p className="text-sm text-gray-600">{greetingMessage}</p>
-            </div>
-          )}
-
-          <div className="flex-1 p-4">
-            <ScrollArea className="h-[400px]">
-              {messages.length === 0 ? (
-                <div className="flex items-start space-x-2 mb-4">
-                  <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-                    <Image
-                      src={avatarUrl}
-                      alt={widgetName}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-                    <p className="text-sm">{greetingMessage}</p>
-                  </div>
-                </div>
-              ) : (
-                messages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-start space-x-2 mb-4 ${
-                      msg.role === "user"
-                        ? "flex-row-reverse space-x-reverse"
-                        : ""
-                    }`}
-                  >
-                    <div
-                      className={`rounded-lg p-3 max-w-[80%] ${
-                        msg.role === "user"
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100"
-                      }`}
-                    >
-                      <p className="text-sm">{msg.content}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </ScrollArea>
-          </div>
-
-          <div className="border-t p-4">
-            <div className="flex items-center space-x-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Chat with your assistant..."
-                className="flex-1"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-              />
-              <Button
-                onClick={handleSendMessage}
-                style={{ backgroundColor: brandColor }}
-                className="text-white"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <WidgetCommunication
+          widgetKey={widgetKey}
+          widgetName={widgetName}
+          avatarUrl={avatarUrl}
+          brandColor={brandColor}
+          greetingMessage={greetingMessage}
+        />
       </div>
 
-       {/* Deployment Dialog */}
+      {/* Deployment Dialog */}
       {showDeploymentDialog && (
         <DeploymentDialog 
           onClose={() => setShowDeploymentDialog(false)}
+          widgetKey={widgetKey}
+          websiteUrl={websiteUrl}
         />
       )}
     </div>
@@ -408,3 +323,4 @@ function InputField({ label, value, onChange, type = "text" }: any) {
     </div>
   );
 }
+
