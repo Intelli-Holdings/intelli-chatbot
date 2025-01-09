@@ -134,16 +134,16 @@ const ConversationView: React.FC<ConversationViewProps> = ({
         onScrollCapture={handleScroll}
         ref={scrollAreaRef}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 ">
           {Object.entries(groupedMessages).map(([date, messages]) => (
-            <div key={date}>
+            <div className="" key={date}>
               {renderDateSeparator(date)}
               {messages.map((message) => (
                 <div key={message.id} className="flex flex-col">
                   {message.content && (
                     <div className="message-bubble message-customer">
                       <div className="message-tail message-tail-left" />
-                      <div className="text-sm">
+                      <div className=" text-sm">
                         {formatMessage(message.content)}
                       </div>
                       <span className="text-[10px] text-white/80 mt-1 block">

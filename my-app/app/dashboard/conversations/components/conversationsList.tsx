@@ -9,6 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from '@/components/ui/badge';
 import { Conversation } from './types';
 
+// Utility function to format numbers with k, M suffix
+const formatNumber = (num: number): string => {
+  if (num < 1000) return num.toString();
+  if (num < 1000000) return `${Math.floor(num / 1000)}k`;
+  return `${Math.floor(num / 1000000)}M`;
+};
+
 interface ConversationsListProps {
   conversations: Conversation[];
   onSelectConversation: (conversation: Conversation) => void;
@@ -44,8 +51,8 @@ const ConversationsList: React.FC<ConversationsListProps> = ({ conversations = [
     return (
       <div className="flex flex-col h-screen">
         <div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="relative pt-5">
-            <Search className="absolute left-3 top-[1.9rem] h-4 w-4 text-muted-foreground" />
+          <div className="pt-5">
+            <Search className="absolute left-7 top-12 h-4 w-4 text-muted-foreground" />
             <Input
               disabled
               placeholder="Search"
@@ -92,21 +99,21 @@ const ConversationsList: React.FC<ConversationsListProps> = ({ conversations = [
           />
         </div>
       </div>
-      <ScrollArea className="flex-1 p-2 overflow-y-auto ">
-        <div className="space-y-2">
+      <ScrollArea className="h-screen">
+        <div className="flex flex-col gap-2 p-4 pt-0">
           {filteredConversations.map((conversation) => {
             const lastMessage = conversation.messages[conversation.messages.length - 1]?.content || 'No messages yet';
             const unreadCount = conversation.messages.filter(m => !m.read).length;
             
             return (
-              <div
+              <button
                 key={conversation.id}
-                className="flex flex-coln p-4 hover:bg-secondary/50 cursor-pointer transition-colors items-start  rounded-lg border shadow-sm p-2 text-left text-sm transition-all hover:bg-accent"
+                className="flex flex-col items-start gap-2 rounded-lg shadow-md border p-3 text-left text-sm transition-all hover:bg-accent"
                 onClick={() => onSelectConversation(conversation)}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-medium truncate">
+                <div className="flex w-full flex-col gap-1">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-semibold truncate max-w-[80%]">
                       {conversation.customer_name || conversation.customer_number}
                     </span>
                     <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
@@ -120,14 +127,14 @@ const ConversationsList: React.FC<ConversationsListProps> = ({ conversations = [
                     {unreadCount > 0 && (
                       <Badge 
                         variant="outline" 
-                        className="ml-2 h-5 w-8 p-2 rounded-full p-0 flex items-center justify-center bg-blue-500 text-white"
+                        className="ml-2 h-5 min-w-[24px] p-2 rounded-full flex items-center justify-center bg-blue-500 text-white"
                       >
-                        {unreadCount}
+                        {formatNumber(unreadCount)}
                       </Badge>
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -153,4 +160,3 @@ const SkeletonLoader = () => (
 );
 
 export default ConversationsList;
-
