@@ -1,5 +1,6 @@
 
 export interface ChatMessage {
+  [x: string]: any;
   id: number;
   content: string | null;
   answer: string | null;
@@ -10,6 +11,7 @@ export interface ChatMessage {
 export interface Conversation {
   id: number;
   customer_number: string;
+  customer_name?: string; 
   messages: ChatMessage[];
   updated_at: string;
   phone_number: string;

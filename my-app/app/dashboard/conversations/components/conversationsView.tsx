@@ -13,12 +13,19 @@ import { Download, MoreVertical, Share } from 'lucide-react'
 import { exportToPDF, exportToCSV, exportToXLS, exportContacts } from '@/utils/exportUtils'
 import './message-bubble.css'
 
+
+
 interface ConversationViewProps {
   conversation: Conversation | null;
   conversations: Conversation[];
+  phoneNumber: string;
 }
 
-const ConversationView: React.FC<ConversationViewProps> = ({ conversation, conversations }) => {
+const ConversationView: React.FC<ConversationViewProps> = ({ 
+  conversation, 
+  conversations,
+  phoneNumber 
+}) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const dummyRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -39,8 +46,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, conve
 
   if (!conversation) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50 border-gray-100">
-        <p className="text-muted-foreground">Select a conversation to view details</p>
+      <div className="flex items-center justify-center h-screen bg-gray-50 ">
+        <p className="text-muted-foreground">Select a conversation to view messages.</p>
       </div>
     );
   }
@@ -97,10 +104,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, conve
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 mx-auto py-4">
-      <ConversationHeader conversation={conversation} />
+    <div className="flex flex-col h-screen mx-auto py-4 border-l">
+      <ConversationHeader conversation={conversation} 
+        phoneNumber={phoneNumber} />
       
-      <div className="flex justify-end space-x-1 px-1 py-1 ">
+      <div className="flex justify-end space-x-1 px-1 py-1 bg-white border-b border-gray-100">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
@@ -122,7 +130,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, conve
       </div>
       
       <ScrollArea 
-        className="flex-1 p-4 overflow-y-auto" 
+        className="flex-1 p-4 overflow-y-auto bg-gray-50" 
         onScrollCapture={handleScroll}
         ref={scrollAreaRef}
       >
@@ -162,7 +170,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ conversation, conve
         <div ref={dummyRef} />
       </ScrollArea>     
       
-      <MessageInput customerNumber={conversation.customer_number || conversation.recipient_id} />
+      <MessageInput customerNumber={conversation.customer_number || conversation.recipient_id} phoneNumber={phoneNumber} />
     </div>
   );
 }

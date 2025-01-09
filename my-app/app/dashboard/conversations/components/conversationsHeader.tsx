@@ -4,42 +4,23 @@ import { Conversation } from './types';
 import { takeoverConversation, handoverConversation } from '@/app/actions';
 import { useUser } from '@clerk/nextjs';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { format, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface ConversationHeaderProps {
   conversation: Conversation | null;
+  phoneNumber: string;
 }
 
-const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation }) => {
+const ConversationHeader: React.FC<ConversationHeaderProps> = ({ 
+  conversation,
+  phoneNumber 
+}) => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useUser();
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+
   const [isAiSupport, setIsAiSupport] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (user?.primaryEmailAddress?.emailAddress) {
-      const userEmail = user.primaryEmailAddress.emailAddress;
-
-      const fetchPhoneNumber = async () => {
-        try {
-          const response = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
-          const data = await response.json();
-
-          if (data.length > 0 && data[0].phone_number) {
-            setPhoneNumber(data[0].phone_number);
-          } else {
-            throw new Error('Phone number not found in the response.');
-          }
-        } catch (e) {
-          setError((e as Error).message);
-        }
-      };
-
-      fetchPhoneNumber();
-    }
-  }, [user, conversation]);
 
   const handleToggleAISupport = async () => {
     if (!conversation || !phoneNumber) return;
@@ -68,13 +49,13 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({ conversation })
   return (
     <div className="flex flex-col w-full">
       <div className="flex items-center justify-between p-4 border-b bg-white">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={`https://avatar.vercel.sh/${conversation.customer_number}.png`} />
-            <AvatarFallback>{conversation.customer_number.slice(0, 2)}</AvatarFallback>
+            <AvatarImage src={`https://avatar.vercel.sh/${conversation.customer_name || conversation.customer_number}.png`} />
+            <AvatarFallback>{(conversation.customer_name || conversation.phone_number).slice(0, 2)}</AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="text-sm font-semibold">{conversation.customer_number || conversation.recipient_id}</h2>
+            <h2 className="text-sm font-semibold">{conversation.customer_name || conversation.recipient_id}</h2>
             <p className="text-xs text-muted-foreground">
               Last active {format(parseISO(conversation.updated_at), 'MMM d, h:mm a')}
             </p>
