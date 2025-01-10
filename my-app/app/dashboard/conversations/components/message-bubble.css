@@ -2,9 +2,46 @@
   position: relative;
   padding: 0.75rem 1rem;
   margin: 0.5rem 0;
-  max-width: 80%;
+  max-width: 65%; /* Whatsapp-like width */
   border-radius: 1rem;
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
+
+.message-bubble.collapsed p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 4; /* Show first 4 lines */
+  -webkit-box-orient: vertical;
+}
+
+.message-bubble .read-more {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: block;
+  margin-top: 0.5rem;
+}
+
+.message-assistant .read-more {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.message-bubble a {
+  color: #e2e8f0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.message-assistant a {
+  color: #6366f1;
+}
+
+.message-human a {
+  color: #e2e8f0;
+}
+
 
 .message-customer {
   background-color: #3b82f6;
@@ -56,35 +93,19 @@
   top: 0;
 }
 
-/* List styling */
-.message-bubble ol {
-  list-style-type: decimal;
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-}
-
-.message-bubble ul {
-  list-style-type: disc;
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-}
-
-.message-bubble li {
-  margin: 0.25rem 0;
-  padding-left: 0.5rem;
-}
-
-/* Paragraph spacing */
+/* Truncate long messages */
 .message-bubble p {
-  margin: 0.75rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 5; /* Show first 5 lines */
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
 }
 
-.message-bubble p:first-child {
-  margin-top: 0;
-}
-
-.message-bubble p:last-child {
-  margin-bottom: 0;
+/* Reset when expanded */
+.message-bubble.expanded p {
+  -webkit-line-clamp: unset;
 }
 
 /* Link styling */
@@ -102,83 +123,4 @@
 
 .message-bubble a:hover {
   text-decoration-color: currentColor;
-}
-
-/* Preserve whitespace for formatted text */
-.message-bubble .text-sm {
-  white-space: pre-wrap;
-}
-
-/* Date separator styling */
-.flex.justify-center.my-4 {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.flex.justify-center.my-4 span {
-  background-color: rgba(192, 192, 204, 0.8);
-  backdrop-filter: blur(4px);
-}
-
-/* Adjust spacing for messages near date separators */
-.message-bubble + .flex.justify-center.my-4 {
-  margin-top: 1.5rem;
-}
-
-.flex.justify-center.my-4 + .message-bubble {
-  margin-top: 1.5rem;
-}
-
-/* Header styling */
-.message-bubble h1, .message-bubble h2, .message-bubble h3, .message-bubble h4, .message-bubble h5, .message-bubble h6 {
-  margin-top: 1em;
-  margin-bottom: 0.5em;
-  font-weight: bold;
-}
-
-/* Table styling */
-.message-bubble table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-bottom: 1em;
-}
-
-.message-bubble th, .message-bubble td {
-  border: 1px solid #e5e7eb;
-  padding: 0.5rem;
-  text-align: left;
-}
-
-.message-bubble th {
-  background-color: #f3f4f6;
-  font-weight: bold;
-}
-
-/* List styling */
-.message-bubble ol, .message-bubble ul {
-  padding-left: 1.5em;
-  margin-bottom: 1em;
-}
-
-.message-bubble ol {
-  list-style-type: decimal;
-}
-
-.message-bubble ul {
-  list-style-type: disc;
-}
-
-.message-bubble li {
-  margin-bottom: 0.5em;
-}
-
-/* Link styling */
-.message-bubble a {
-  color: #3b82f6;
-  text-decoration: none;
-}
-
-.message-bubble a:hover {
-  text-decoration: underline;
 }
