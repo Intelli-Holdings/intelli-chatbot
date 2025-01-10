@@ -1,25 +1,15 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
+import {useState} from 'react';
 import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
-  CardFooter,
 } from '@/components/ui/card';
 import { useOrganizationList } from '@clerk/nextjs';
 import { CreateAssistantDialog } from '@/components/create-assistant-dialog';
-import {
-  Bot,
-  CircleDot,
-  Info,
-  MoreVertical,
-  Pencil,
-  Trash,
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { Bot, MoreVertical, Pencil, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -47,103 +37,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-
-interface Assistant {
-  id: number;
-  name: string;
-  assistant_id: string;
-  organization: string;
-}
+import { DeleteAssistantDialog } from '@/components/delete-dialog-assistant';
+import useAssistants from '@/hooks/use-assistants';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function Assistants() {
   const { userMemberships, isLoaded } = useOrganizationList({
     userMemberships: { infinite: true },
   });
 
-  const [assistants, setAssistants] = useState<Assistant[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    assistants,
+    isLoading,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    isDeleteDialogOpen,
+    setIsDeleteDialogOpen,
+    selectedAssistant,
+    setSelectedAssistant,
+    handleEditAssistant,
+    handleDeleteAssistant,
+  } = useAssistants();
+
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
-  const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  const fetchAssistants = async () => {
-    if (!selectedOrganizationId) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${selectedOrganizationId}/`
-      );
-      if (!response.ok) {
-        throw new Error('Failed to fetch assistants');
-      }
-
-      const data: Assistant[] = await response.json();
-      setAssistants(data);
-
-      if (data.length === 0) {
-        toast.info('This organization does not have any assistants. Please create one.');
-      }
-    } catch (error) {
-      console.error('Error fetching assistants:', error);
-      toast.error('Failed to fetch assistants. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEditAssistant = async (updatedAssistant: Assistant) => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.assistant_id}/`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedAssistant),
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to edit assistant');
-
-      toast.success('Assistant updated successfully!');
-      setIsEditDialogOpen(false);
-      fetchAssistants();
-    } catch (error) {
-      console.error('Error editing assistant:', error);
-      toast.error('There was a problem editing the assistant. Please try again.');
-    }
-  };
-
-  const handleDeleteAssistant = async (assistantId: string) => {
-    try {
-      if (!confirm('Are you sure you want to delete this assistant?')) return;
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`,
-        { method: 'DELETE' }
-      );
-      console.log(response);
-
-      if (!response.ok) throw new Error('Failed to delete assistant');
-
-      toast.success('Assistant deleted successfully!');
-      fetchAssistants();
-    } catch (error) {
-      console.error('Error deleting assistant:', error);
-      toast.error('Failed to delete assistant. Please try again.');
-    }
-  };
 
   const handleOrganizationChange = (orgId: string) => {
     setSelectedOrganizationId(orgId);
-    fetchAssistants();
   };
-
-  useEffect(() => {
-    if (selectedOrganizationId) {
-      fetchAssistants();
-    }
-  }, [selectedOrganizationId]);
 
   return (
     <div className="space-y-4">
@@ -189,8 +109,14 @@ export default function Assistants() {
                     <div>
                       <CardTitle className="text-lg">{assistant.name}</CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        ID: {assistant.assistant_id.slice(0, 12)}...
+                        ID: {assistant.assistant_id?.slice(12)}...
                       </p>
+                      <CardContent className="text-sm text-muted-foreground">
+                        Organization: {assistant.organization}
+                      </CardContent>
+
+
+  
                     </div>
                   </div>
                   <DropdownMenu>
@@ -210,7 +136,10 @@ export default function Assistants() {
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleDeleteAssistant(assistant.assistant_id)}
+                        onClick={() => {
+                          setSelectedAssistant(assistant);
+                          setIsDeleteDialogOpen(true);
+                        }}
                         className="text-red-500"
                       >
                         <Trash className="mr-2 h-4 w-4" />
@@ -225,7 +154,6 @@ export default function Assistants() {
         </div>
       ) : (
         <Alert>
-          <Info className="h-4 w-4" />
           <AlertTitle>No Assistants Found</AlertTitle>
           <AlertDescription>
             This organization doesn&apos;t have any assistants. Please create one to get started.
@@ -235,7 +163,7 @@ export default function Assistants() {
 
       {selectedAssistant && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="h-200">
             <DialogHeader>
               <DialogTitle>Edit Assistant</DialogTitle>
             </DialogHeader>
@@ -254,19 +182,27 @@ export default function Assistants() {
                 placeholder="Assistant Name"
                 required
               />
-              <Input
-                value={selectedAssistant.organization}
+              <Textarea
+                value={selectedAssistant.prompt}
                 onChange={(e) =>
-                  setSelectedAssistant((prev) => prev && { ...prev, organization: e.target.value })
+                  setSelectedAssistant((prev) => prev && { ...prev, prompt: e.target.value })
                 }
-                placeholder="Organization ID"
-                required
+                placeholder="Assistant Prompt"
               />
+              
               <Button type="submit">Save Changes</Button>
             </form>
           </DialogContent>
         </Dialog>
       )}
+
+      <DeleteAssistantDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={() => selectedAssistant && handleDeleteAssistant(selectedAssistant.id)}
+        assistantName={selectedAssistant?.name || ''}
+      />
     </div>
   );
 }
+
