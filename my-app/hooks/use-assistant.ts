@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useOrganizationList } from '@clerk/nextjs';
 
 interface Assistant {
   id: number;
@@ -10,17 +11,24 @@ interface Assistant {
 }
 
 const useAssistants = () => {
+  const { userMemberships, isLoaded } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
+
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
 
   const fetchAssistants = async () => {
+    if (!selectedOrganizationId) return;
+
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${selectedOrganizationId}/`
       );
       if (!response.ok) {
         throw new Error('Failed to fetch assistants');
