@@ -1,13 +1,13 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useState, useEffect, useCallback } from 'react';
-import ConversationList from '@/app/dashboard/conversations/components/conversationsList';
-import ConversationView from '@/app/dashboard/conversations/components/conversationsView';
+import { useState, useEffect, useCallback } from "react";
+import ConversationList from "@/app/dashboard/conversations/components/conversationsList";
+import ConversationView from "@/app/dashboard/conversations/components/conversationsView";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { useMediaQuery } from '@/app/hooks/use-media-query';
-import RightSidebar from '@/components/right-sidebar';
-import { Conversation, ChatMessage } from '@/app/dashboard/conversations/components/types';
+import { useMediaQuery } from "@/app/hooks/use-media-query";
+import { Conversation } from "@/app/dashboard/conversations/components/types";
+import { toast } from "sonner";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -15,7 +15,8 @@ export default function WhatsappConvosPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { user } = useUser();
 
@@ -23,28 +24,34 @@ export default function WhatsappConvosPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
       if (!response.ok) {
-        throw new Error('Failed to fetch user data');
+        throw new Error("Failed to fetch user data");
       }
       const data = await response.json();
-      if (data && data.length > 0) {
+      if (data && data.length > 0 && data[0].phone_number) {
         setPhoneNumber(data[0].phone_number);
+      } else {
+        throw new Error("Phone number not found in the response");
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      setError((error as Error).message);
+      console.error("Error fetching user data:", error);
     }
   }, []);
 
   const fetchConversations = useCallback(async () => {
     if (!phoneNumber) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`);
+      const response = await fetch(
+        `${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch conversations');
+        throw new Error("Failed to fetch conversations");
       }
       const data: Conversation[] = await response.json();
-      setConversations(data);
+      setConversations(data || []); // Ensure `data` is an array
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      toast.error("Failed to fetch conversations");
+      console.error("Error fetching conversations:", error);
     }
   }, [phoneNumber]);
 
@@ -60,32 +67,37 @@ export default function WhatsappConvosPage() {
     }
   }, [phoneNumber, fetchConversations]);
 
-  const handleSelectConversation = (customerNumber: string) => {
-    const conversation = conversations.find(conv => conv.customer_number === customerNumber);
-    if (conversation) {
-      setSelectedConversation(conversation);
-      if (isMobile) {
-        setIsSheetOpen(true);
-      }
+  const handleSelectConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+    if (isMobile) {
+      setIsSheetOpen(true);
     }
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex-1 flex overflow-hidden h-screen">
-        <div className={`${isMobile ? 'w-full' : 'w-1/3'} border-r`}>
-          <ConversationList onSelectConversation={handleSelectConversation}/>
+      <div className="flex-1 flex overflow-hidden h-screen border border-gray-100">
+        <div className={`${isMobile ? "w-full" : "w-1/3"} `}>
+          <ConversationList conversations={conversations} onSelectConversation={handleSelectConversation} />
         </div>
         {!isMobile && (
-          <div className="flex-1 overflow-y-auto">          
-            <ConversationView conversation={selectedConversation} conversations={conversations} />
+          <div className="flex-1 overflow-y-auto">
+           <ConversationView 
+              conversation={selectedConversation} 
+              conversations={conversations}
+              phoneNumber={phoneNumber} 
+            />
           </div>
         )}
         {isMobile && (
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetContent side="bottom" className="w-full sm:max-w-full">
-              {selectedConversation && (
-                <ConversationView conversation={selectedConversation} conversations={conversations} />
+            {selectedConversation && (
+                <ConversationView 
+                  conversation={selectedConversation}
+                  conversations={conversations}
+                  phoneNumber={phoneNumber}
+                />
               )}
             </SheetContent>
           </Sheet>
@@ -94,4 +106,3 @@ export default function WhatsappConvosPage() {
     </div>
   );
 }
-

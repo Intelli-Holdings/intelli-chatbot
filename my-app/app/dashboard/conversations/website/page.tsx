@@ -218,6 +218,7 @@ export default function WebsiteConvosPage() {
                   <SelectValue placeholder="Select a widget" />
                 </SelectTrigger>
                 <SelectContent>
+                  <ScrollArea className="h-60 rounded-md shadow-sm">
                   <SelectGroup>
                     {widgets.map((widget) => (
                       <SelectItem key={widget.id} value={widget.widget_key}>
@@ -225,6 +226,7 @@ export default function WebsiteConvosPage() {
                       </SelectItem>
                     ))}
                   </SelectGroup>
+                  </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
