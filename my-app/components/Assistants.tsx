@@ -14,6 +14,7 @@ import { CreateAssistantDialog } from '@/components/create-assistant-dialog';
 import {
   Bot,
   CircleDot,
+  BadgeCheck,
   Info,
   MoreVertical,
   Pencil,
@@ -47,6 +48,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Textarea } from './ui/textarea';
 
 interface Assistant {
   id: number;
@@ -96,7 +98,7 @@ export default function Assistants() {
   const handleEditAssistant = async (updatedAssistant: Assistant) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.assistant_id}/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.id}/`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -111,16 +113,16 @@ export default function Assistants() {
       fetchAssistants();
     } catch (error) {
       console.error('Error editing assistant:', error);
-      toast.error('There was a problem editing the assistant. Please try again.');
+      toast.error('You failed to edit the assistant. Please try again.');
     }
   };
 
-  const handleDeleteAssistant = async (assistantId: string) => {
+  const handleDeleteAssistant = async (id: string) => {
     try {
       if (!confirm('Are you sure you want to delete this assistant?')) return;
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${id}/`,
         { method: 'DELETE' }
       );
       console.log(response);
@@ -175,15 +177,18 @@ export default function Assistants() {
           </SelectContent>
         </Select>
       </div>
+      
+      {selectedOrganizationId ? (
+        isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="h-[240px] animate-pulse bg-muted" />
+            ))}
+          </div>
+        ) : assistants.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CreateAssistantDialog onAssistantCreated={fetchAssistants} />
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="h-[240px] animate-pulse bg-muted" />
-          ))}
-        </div>
-      ) : assistants.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {assistants.map((assistant) => (
             <Card key={assistant.id} className="h-[240px] flex flex-col">
             <CardHeader>
@@ -194,9 +199,12 @@ export default function Assistants() {
                   </div>
                   <div>
                     <CardTitle className="text-lg">{assistant.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2">
+                    <BadgeCheck className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm text-muted-foreground">
                       ID: {assistant.assistant_id.slice(0, 12)}...
-                    </p>
+                    </span>
+                    </div>
                   </div>
                 </div>
                 <DropdownMenu>
@@ -248,55 +256,38 @@ export default function Assistants() {
           ))}
         </div>
       ) : (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>No Assistants Found</AlertTitle>
-          <AlertDescription>
-            This organization doesn&apos;t have any assistants. Please create one to get started.
-          </AlertDescription>
-        </Alert>
-      )}
+        <div className="space-y-4"> 
+          <Alert> 
+            <Info className="h-4 w-4" /> 
+            <AlertTitle>No Assistants Found</AlertTitle> 
+            <AlertDescription>
+              This organization doesn&apos;t have any assistants yet. Create your first assistant to get started!
+            </AlertDescription> 
+          </Alert> 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> 
+            <CreateAssistantDialog onAssistantCreated={fetchAssistants} /> 
+          </div> 
+        </div>
+      )
+    ) : (
+      <Card className="text-center py-12">
+        <CardContent>
+          <CardTitle className="mt-2">Select an Organization</CardTitle>
+          <CardDescription className="mt-1 font-medium">
+            Please select an organization to view its assistants. If there is none; create one and go to playground to create widget using the assistant you created.
+          </CardDescription>
+        </CardContent>
+      </Card>
+    )}
 
-      {selectedAssistant && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Assistant</DialogTitle>
-            </DialogHeader>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleEditAssistant(selectedAssistant);
-              }}
-              className="space-y-4"
-            >
-              <Input
-                value={selectedAssistant.name}
-                onChange={(e) =>
-                  setSelectedAssistant((prev) => prev && { ...prev, name: e.target.value })
-                }
-                placeholder="Assistant Name"
-                required
-              />
-              <Input
-                value={selectedAssistant.organization}
-                onChange={(e) =>
-                  setSelectedAssistant((prev) => prev && { ...prev, organization: e.target.value })
-                }
-                placeholder="Organization ID"
-                required
-              />
-              <Button type="submit">Save Changes</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
       {/* Edit Assistant Dialog */}
       {selectedAssistant && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Assistant</DialogTitle>
+              <DialogTitle>
+                Edit Assistant
+              </DialogTitle>
             </DialogHeader>
             <form
               onSubmit={(e) => {
@@ -307,25 +298,25 @@ export default function Assistants() {
             >
               <Input
                 value={selectedAssistant.name}
-                onChange={(e:any) =>
+                onChange={(e) =>
                   setSelectedAssistant((prev) => prev && { ...prev, name: e.target.value })
                 }
                 placeholder="Assistant Name"
                 required
               />
-              <Input
+              <Textarea
                 value={selectedAssistant.prompt}
-                onChange={(e:any) =>
+                onChange={(e) =>
                   setSelectedAssistant((prev) => prev && { ...prev, prompt: e.target.value })
                 }
                 placeholder="Prompt"
                 required
               />
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit">
+                Save Changes</Button>
             </form>
           </DialogContent>
         </Dialog>
       )}
     </div>
-  );
-}
+  )}
