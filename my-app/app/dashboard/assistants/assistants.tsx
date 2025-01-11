@@ -1,117 +1,208 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useOrganization } from "@clerk/nextjs"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { CreateAssistantDialog } from '@/components/create-assistant-dialog'
-import { Assistant } from '@/types/assistant'
-import { CircleDot } from 'lucide-react'
-import { useToast } from "@/components/ui/use-toast"
-
+import {useState} from 'react';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/card';
+import { useOrganizationList } from '@clerk/nextjs';
+import { CreateAssistantDialog } from '@/components/create-assistant-dialog';
+import { Bot, MoreVertical, Pencil, Trash } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { DeleteAssistantDialog } from '@/components/delete-dialog-assistant';
+import useAssistants from '@/hooks/use-assistant';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function Assistants() {
-  const { organization, isLoaded } = useOrganization()
-  const [assistants, setAssistants] = useState<Assistant[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const { toast } = useToast()
+  const { userMemberships, isLoaded } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
 
-  const fetchAssistants = async () => {
-    if (!organization) return
-    
-    try {
-      // Log the API call details for debugging
-      console.log('Fetching assistants for organization:', {
-        organizationId: organization.id,
-        apiUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organization.id}/`
-      })
-     
+  const {
+    assistants,
+    isLoading,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    isDeleteDialogOpen,
+    setIsDeleteDialogOpen,
+    selectedAssistant,
+    setSelectedAssistant,
+    handleEditAssistant,
+    handleDeleteAssistant,
+  } = useAssistants();
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organization.id}/`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
 
-      // Log the response status for debugging
-      console.log('API Response:', {
-        status: response.status,
-        statusText: response.statusText
-      })
+  const handleOrganizationChange = (orgId: string) => {
+    setSelectedOrganizationId(orgId);
+  };
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      console.log('Fetched assistants:', data)
-      setAssistants(data)
-    } catch (error) {
-      console.error('Error fetching assistants:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch assistants. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">
+          Organization
+        </label>
+        <Select value={selectedOrganizationId} onValueChange={handleOrganizationChange}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select an organization" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {userMemberships?.data?.map((membership) => (
+                <SelectItem
+                  key={membership.organization.id}
+                  value={membership.organization.id}
+                >
+                  {membership.organization.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
 
-  useEffect(() => {
-    if (isLoaded && organization) {
-      fetchAssistants()
-    }
-  }, [isLoaded, organization])
-
-  if (!isLoaded || isLoading) {
-    return (
-      <div className="space-y-4">
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="h-[240px] animate-pulse bg-muted" />
           ))}
         </div>
-      </div>
-    )
-  }
+      ) : assistants.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {assistants.map((assistant) => (
+            <Card key={assistant.id} className="h-[240px] flex flex-col">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <Bot className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{assistant.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        ID: {assistant.assistant_id?.slice(12)}...
+                      </p>
+                      <CardContent className="text-sm text-muted-foreground">
+                        Organization: {assistant.organization}
+                      </CardContent>
 
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <CreateAssistantDialog onAssistantCreated={fetchAssistants} />
-        
-        {assistants.map((assistant) => (
-          <Card key={assistant.id} className="h-[240px]">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  A
+
+  
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedAssistant(assistant);
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedAssistant(assistant);
+                          setIsDeleteDialogOpen(true);
+                        }}
+                        className="text-red-500"
+                      >
+                        <Trash className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  intelliconcierge.com
-                </span>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-sm text-muted-foreground">Free Plan</p>
-                <CardTitle>{assistant.name}</CardTitle>
-                <div className="flex items-center space-x-2">
-                  <CircleDot className="w-3 h-3 fill-green-500 text-green-500" />
-                  <span className="text-sm">Production</span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Updated {new Date(assistant.updated_at || '').toLocaleDateString()}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Alert>
+          <AlertTitle>No Assistants Found</AlertTitle>
+          <AlertDescription>
+            This organization doesn&apos;t have any assistants. Please create one to get started.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {selectedAssistant && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="h-200">
+            <DialogHeader>
+              <DialogTitle>Edit Assistant</DialogTitle>
+            </DialogHeader>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleEditAssistant(selectedAssistant);
+              }}
+              className="space-y-4"
+            >
+              <Input
+                value={selectedAssistant.name}
+                onChange={(e) =>
+                  setSelectedAssistant((prev) => prev && { ...prev, name: e.target.value })
+                }
+                placeholder="Assistant Name"
+                required
+              />
+              <Textarea
+                value={selectedAssistant.prompt}
+                onChange={(e) =>
+                  setSelectedAssistant((prev) => prev && { ...prev, prompt: e.target.value })
+                }
+                placeholder="Assistant Prompt"
+              />
+              
+              <Button type="submit">Save Changes</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      <DeleteAssistantDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={() => selectedAssistant && handleDeleteAssistant(selectedAssistant.id)}
+        assistantName={selectedAssistant?.name || ''}
+      />
     </div>
-  )
+  );
 }
+

@@ -1,26 +1,147 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Copy } from 'lucide-react'
-import { useState } from "react"
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Copy, Loader2 } from 'lucide-react';
+import { toast } from "sonner";
 
 interface DeploymentDialogProps {
-  assistantId: string;
+  onClose: () => void;
+  widgetKey: string;
+  websiteUrl: string;
 }
 
-export function DeploymentDialog({ assistantId }: DeploymentDialogProps) {
-  const [copied, setCopied] = useState<string>("")
+export function DeploymentDialog({ onClose, widgetKey, websiteUrl }: DeploymentDialogProps) {
+  const [copied, setCopied] = useState<string>("");
+  const [embeddingCode, setEmbeddingCode] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEmbeddingCode = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/${widgetKey}/embedding-code/`
+        );
+        if (!response.ok) throw new Error("Failed to fetch embedding code");
+        const data = await response.json();
+        setEmbeddingCode(data.embedding_code);
+      } catch (error) {
+        console.error("Error fetching embedding code:", error);
+        toast.error("Failed to fetch embedding code");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEmbeddingCode();
+  }, [widgetKey]);
 
   const handleCopy = (text: string, type: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(type)
-    setTimeout(() => setCopied(""), 2000)
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(""), 2000);
+    toast.success("Copied to clipboard");
+  };
+
+  if (isLoading) {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl mx-4 sm:mx-auto">
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
-  const htmlSnippet = `<script>var intelli_widget = "${assistantId}";</script>
-<script src="https://chat-widget.intelliconcierge.com.ai/main.js?nonce=${Date.now()}"></script>`
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-[95vw] sm:max-w-2xl mx-4 sm:mx-auto h-[90vh] sm:h-auto overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-lg sm:text-xl">Website Chat Widget</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground mb-4 px-1">
+          This will allow you to receive and respond to messages via your
+          website widget.
+        </p>
+        <Tabs defaultValue="html" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="html" className="text-xs sm:text-sm">HTML</TabsTrigger>
+            <TabsTrigger value="wordpress" className="text-xs sm:text-sm">WordPress</TabsTrigger>
+            <TabsTrigger value="nextjs" className="text-xs sm:text-sm">Next.js & React</TabsTrigger>
+          </TabsList>
 
-  const nextjsSnippet = `npm install @intelli/chat-widget
+          <TabsContent value="html">
+            <div className="space-y-4">
+              <p className="text-sm px-1">
+                Copy and paste the code below in the header section of your
+                website:
+              </p>
+              <div className="relative">
+                <pre className="bg-muted p-3 sm:p-4 rounded-lg overflow-x-auto text-xs sm:text-sm font-mono whitespace-pre-wrap break-all">
+                  {embeddingCode || "No embedding code available"}
+                </pre>
+                <Button
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={() => handleCopy(embeddingCode, "html")}
+                  disabled={!embeddingCode}
+                >
+                  {copied === "html" ? "Copied!" : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 px-1">
+                This code will initialize the chat widget on your website with
+                your specific configuration.
+              </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="wordpress">
+            <div className="space-y-4">
+              <p className="text-sm px-1">
+                Copy the AI Assistant ID to Install On a WordPress Website using
+                the Intelli WordPress plugin.
+              </p>
+              <div className="relative">
+                <pre className="bg-muted p-3 sm:p-4 rounded-lg overflow-x-auto text-xs sm:text-sm font-mono">
+                  {widgetKey}
+                </pre>
+                <Button
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={() => handleCopy(widgetKey, "wordpress")}
+                  disabled={!widgetKey}
+                >
+                  {copied === "wordpress" ? (
+                    "Copied!"
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 italic px-1">
+                How to Get the Intelli WordPress Plugin? Search &ldquo;Intelli
+                &ldquo; under wordpress plugins in your wordpress site.
+              </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="nextjs">
+            <div className="space-y-4">
+              <p className="text-sm px-1">
+                Install the package and add the widget to your Next.js or React
+                app:
+              </p>
+              <div className="relative">
+                <pre className="bg-muted p-3 sm:p-4 rounded-lg overflow-x-auto text-xs sm:text-sm font-mono whitespace-pre-wrap">
+                  {`npm install @intelli/chat-widget
 
 // In your layout.tsx or page where you want the widget
 import { IntelliWidget } from '@intelli/chat-widget'
@@ -29,83 +150,46 @@ export default function Layout({ children }) {
   return (
     <>
       {children}
-      <IntelliWidget assistantId="${assistantId}" />
+      <IntelliWidget assistantId="${widgetKey}" />
     </>
   )
-}`
+}`}
+                </pre>
+                <Button
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={() =>
+                    handleCopy(
+                      `npm install @intelli/chat-widget
 
+// In your layout.tsx or page where you want the widget
+import { IntelliWidget } from '@intelli/chat-widget'
+
+export default function Layout({ children }) {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="w-full mt-4 shadow-sm">Create and Deploy Widget</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Website Chat Widget</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground mb-4">
-          This will allow you and the AI Assistant to receive and respond to Messages via your website.
-        </p>
-        <Tabs defaultValue="wordpress">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="wordpress">WordPress</TabsTrigger>
-            <TabsTrigger value="html">HTML</TabsTrigger>
-            <TabsTrigger value="nextjs">Next.js & React</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="wordpress">
-            <div className="space-y-4">
-              <p className="text-sm">Copy the AI Assistant ID to Install On a WordPress Website using the Intelli WordPress plugin.</p>
-              <div className="relative">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto">{assistantId}</pre>
-                <Button 
-                  size="sm" 
-                  className="absolute top-2 right-2"
-                  onClick={() => handleCopy(assistantId, "wordpress")}
+    <>
+      {children}
+      <IntelliWidget assistantId="${widgetKey}" />
+    </>
+  )
+}`,
+                      "nextjs"
+                    )
+                  }
+                  disabled={!widgetKey}
                 >
-                  {copied === "wordpress" ? "Copied!" : <Copy className="h-4 w-4" />}
+                  {copied === "nextjs" ? (
+                    "Copied!"
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground italic">
-                How to Get the Intelli WordPress Plugin? Search &ldquo;Intelli &ldquo; under wordpress plugins in your wordpress site.
-              </p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="html">
-            <div className="space-y-4">
-              <p className="text-sm">Copy and paste the code below in the header section of the html page on which you want the widget to appear.</p>
-              <div className="relative">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto whitespace-pre-wrap">{htmlSnippet}</pre>
-                <Button 
-                  size="sm" 
-                  className="absolute top-2 right-2"
-                  onClick={() => handleCopy(htmlSnippet, "html")}
-                >
-                  {copied === "html" ? "Copied!" : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="nextjs">
-            <div className="space-y-4">
-              <p className="text-sm">Install the package and add the widget to your Next.js or React app:</p>
-              <div className="relative">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto whitespace-pre-wrap">{nextjsSnippet}</pre>
-                <Button 
-                  size="sm" 
-                  className="absolute top-2 right-2"
-                  onClick={() => handleCopy(nextjsSnippet, "nextjs")}
-                >
-                  {copied === "nextjs" ? "Copied!" : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            
             </div>
           </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
+

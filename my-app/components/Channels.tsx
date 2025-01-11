@@ -92,7 +92,7 @@ const Channels = () => {
   const channels = [
     {
       title: 'Website Widget',
-      description: 'Add a chat widget to your website and let your chatbot interact with visitors in real-time.',
+      description: 'Create a website widget for your website and speak with website visitors in real-time.',
       icon: (
         <div className="w-12 h-12 bg-purple-500 text-white rounded-lg flex items-center justify-center">
           <Globe className="w-8 h-8" />
