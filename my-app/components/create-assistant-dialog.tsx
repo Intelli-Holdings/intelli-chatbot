@@ -78,7 +78,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
         throw new Error("Failed to create assistant");
       }
   
-      toast.success("Assistant created successfully");
+      toast.success("Assistant created successfully; Pleave visit the playground to create a widget with this assistant");
       setOpen(false);
       onAssistantCreated();
       setFormData({ name: "", prompt: "", organization_id: "" });
