@@ -24,8 +24,8 @@ const PricingComponent = () => {
     },
     {
       name: 'WhatsApp Assistant',
-      monthlyPrice: 38,
-      annualPrice: 365,  // 20% discount for annual
+      monthlyPrice: 35,
+      annualPrice: 336,  // 20% discount for annual
       originalPrice: null,
       features: [
         'WhatsApp AI assistant',
