@@ -13,7 +13,7 @@ import Testimonals from "@/components/testimonial";
 import { PreviewLanding } from "@/components/sections/preview-landing";
 import HowItWorksSection from "@/components/home/howItworks";
 import { BentoSection } from "@/components/home/bentoSection";
-import { FooterDemo } from "@/components/home/Footer";
+import { FooterComponent} from "@/components/home/Footer";
 
 import ValueProposition from "@/components/ValueProposition";
 import PlatformCards from "@/components/platform-cards";
@@ -126,9 +126,10 @@ export function Home() {
         <div className="">
        <FAQcomponent />
        </div>
-        </section>         
+        </section>    
+        <FooterComponent />
       </main>    
-      <FooterDemo />
+      
     </div>
   );
 }
