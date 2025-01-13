@@ -33,6 +33,11 @@ const data = {
       icon: Bot,
     },    
     {
+      title: "Playground",
+      url: "/dashboard/playground",
+      icon: PaintRoller,
+    },
+    {
       title: "Conversations",
       url: "/dashboard/conversations",
       icon: MessageSquareDot,
@@ -52,12 +57,7 @@ const data = {
       title: "Analytics",
       url: "/dashboard/analytics",
       icon: BarChart,
-    },
-    {
-      title: "Playground",
-      url: "/dashboard/playground",
-      icon: PaintRoller,
-    },
+    },    
     {
       title: "Organization",
       url: "/dashboard/organization",
