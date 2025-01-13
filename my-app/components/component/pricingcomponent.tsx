@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import PricingCard from './pricingCard'; // Assuming you have a reusable PricingCard component
-import { Switch } from '@/components/ui/switch'; // Import your custom switch component
+import PricingCard from './pricingCard'; 
+import { Switch } from '@/components/ui/switch'; 
 
 const PricingComponent = () => {
   const [isAnnual, setIsAnnual] = useState<boolean>(false);
@@ -11,8 +11,8 @@ const PricingComponent = () => {
   const plans = [
     {
       name: 'Website Widget',
-      monthlyPrice: 8,
-      annualPrice: 80,  // 20% discount for annual
+      monthlyPrice: 15,
+      annualPrice: 240,  // 20% discount for annual
       originalPrice: null,
       features: [
         'Elli (Website widget) powered with AI',
@@ -24,8 +24,8 @@ const PricingComponent = () => {
     },
     {
       name: 'WhatsApp Assistant',
-      monthlyPrice: 20,
-      annualPrice: 200,  // 20% discount for annual
+      monthlyPrice: 38,
+      annualPrice: 365,  // 20% discount for annual
       originalPrice: null,
       features: [
         'WhatsApp AI assistant',
