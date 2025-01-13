@@ -15,9 +15,10 @@ const PricingComponent = () => {
       annualPrice: 240,  // 20% discount for annual
       originalPrice: null,
       features: [
-        'Elli (Website widget) powered with AI',
+        'AI powered website widget',
         'Dashboard to track Conversations',
         'Basic technical support',
+        
       ],
       buttonText: 'Sign Up',
       link: '/auth/sign-up',  // Link to sign-up for this plan
