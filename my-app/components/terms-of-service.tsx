@@ -84,7 +84,8 @@ export default function TermsOfService() {
 
     <h2 class="text-xl font-semibold mt-6 mb-2">12. Contact Us</h2>
     <p>If you have any questions about these Terms, please contact us at:</p>
-     <p>Intelli Holdings Inc with a registered address at 3500 South Dupont Highway, City of Dover, County of Kent, Delaware 19901 (United States)</p> 
+     <p>Intelli Holdings Inc with a registered address in the State of Delaware at
+251 little Falls Drive, city of Wilmington, County of Newcastle, Delaware 19808</p> 
     <ul class="list-disc list-inside pl-6">
         
       <li>Email: support@intelliconcierge.com</li>
