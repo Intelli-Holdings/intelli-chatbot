@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "@/app/globals.css";
 import { Toaster } from 'sonner';
-import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import Script from "next/script";
 
 
 // Onborda
@@ -16,10 +16,8 @@ import CustomCard from "@/components/CustomCard";
 //Next Step Js
 import { NextStepProvider, NextStep } from 'nextstepjs';
 
-import Script from "next/script";
-
-// Website widget 
-// import { ChatPreview } from "@/components/chat-preview";
+// Aptabase Analytics 
+import { AptabaseProvider } from '@aptabase/react';
 
 import { PHProvider } from './providers'
 import dynamic from 'next/dynamic'
@@ -81,16 +79,32 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
+        <head>
+<Script async src="https://www.googletagmanager.com/gtag/js?id=G-2V9CBMTJHN"></Script>
+
+<Script id="google-analytics" strategy="lazyOnload">
+  {
+    `
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-2V9CBMTJHN');
+    `
+  }
+</Script>
+        </head>
         <PHProvider>
-          <Analytics />
+        
           <SpeedInsights />
           <SignedOut></SignedOut>
           <SignedIn></SignedIn>
           <body className={inter.className}>
             <PostHogPageView />
+            <AptabaseProvider appKey="A-US-3705920924">
             <NextStepProvider>
               <NextStep steps={steps}>{children}</NextStep>
             </NextStepProvider>
+            </AptabaseProvider>
             <ToastProvider />
           </body>
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
