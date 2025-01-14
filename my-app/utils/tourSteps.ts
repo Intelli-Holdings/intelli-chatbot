@@ -9,17 +9,35 @@ export const steps: Tours = [
       {
         icon: "👋",
         title: "Welcome to Intelli",
-        content: "This is your Command Center. You can get started with Intelli from here; Let's explore the main features.",
-        selector: "#step1",
+        content: "This is your Command Center.",
+        selector: "#onborda-step1",
         side: "left",
         showControls: true,
         showSkip: true
       },
       {
-        icon: "🔧",
+        icon: "🪄",
         title: "Create an Assistant",
-        content: "Once you create an organization/team you can create assistants; Assistants belong to organizations; start building your first assistant by clicking the arrow on this card.",
-        selector: "#step2",
+        content: "An assistant works in the background for your business.",
+        selector: "#onborda-step2",
+        side: "right",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "🌐",
+        title: "Create a Website Widget",
+        content: "The website widget is powered by your assistant. Create, customize widget color, name and custome greeting here.",
+        selector: "#onborda-step3",
+        side: "right",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "📦",
+        title: "Create a Whatsapp Package",
+        content: "This package connects your assistant to your Whatsapp account and does some magic behind the scenes.",
+        selector: "#onborda-step4",
         side: "right",
         showControls: true,
         showSkip: true
@@ -27,8 +45,8 @@ export const steps: Tours = [
       {
         icon: "🔔",
         title: "View Notifications",
-        content: "When customers send time sensitive messages; we route them to you via our webhook so you get them instantly without delay.This is where you resolve escalations.",
-        selector: "#step3",
+        content: "When customers send time sensitive messages; you get them instantly and resolve their concerns.",
+        selector: "#onborda-step5",
         side: "top",
         showControls: true,
         showSkip: true
@@ -36,8 +54,8 @@ export const steps: Tours = [
       {
         icon: "💬",
         title: "View Conversations",
-        content: "This is pretty much your inbox; you can view messages between your customers and the assistant here. And access our features like takeover.",
-        selector: "#step4",
+        content: "This is your inbox; you can view and respond to messages from your customers here when you takeover the AI.",
+        selector: "#onborda-step6",
         side: "top",
         showControls: true,
         showSkip: true
@@ -45,8 +63,8 @@ export const steps: Tours = [
       {
         icon: "📊",
         title: "View Your Analytics",
-        content: "Dive deep into how your organization uses Intelli with analytics; monitor messages, resolution times, engagement rates and sentiments.",
-        selector: "#step5",
+        content: "Monitor messages, resolution times, engagement rates and any other usage metric we measure about your business.",
+        selector: "#onborda-step7",
         side: "top",
         showControls: true,
         showSkip: true
