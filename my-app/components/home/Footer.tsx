@@ -1,5 +1,5 @@
 import Meteors from "@/components/magicui/meteors";
-import { Twitter, Facebook, Mail, Linkedin, Youtube, Instagram, Music } from 'lucide-react';
+import { Twitter, Facebook, Linkedin, Youtube, Instagram, Music, Mail } from 'lucide-react';
 import Link from "next/link";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
@@ -20,13 +20,10 @@ export function FooterComponent() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <a
-                  href="mailto:support@intelliconcierge.com"
-                  onClick={handleEmailClick}
-                  className="block hover:text-gray-700 text-base sm:text-lg"
-                >
-                  support@intelliconcierge.com
-                </a>
+                <Link href="mailto:support@intelliconcierge.com" target="_blank" className="hover:text-yellow-300 flex items-center gap-2">
+                <Mail size={20} />
+                <span>Send Us Mail</span>
+                </Link>
               </TooltipTrigger>
               <TooltipContent>
                 <p>support@intelliconcierge.com</p>
@@ -73,9 +70,9 @@ export function FooterComponent() {
         <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
           <div className="text-3xl font-bold p-2">Intelli</div>
           <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-6">
-            <Link href="/terms" className="hover:text-yellow-500 text-base sm:text-lg">Terms of Use</Link>
+            <Link href="/terms-of-service" className="hover:text-yellow-500 text-base sm:text-lg">Terms of Use</Link>
             <Link href="/privacy" className="hover:text-yellow-500 text-base sm:text-lg">Privacy Policy</Link>
-            <span className="text-sm sm:text-base">©Intelli 2024</span>
+            <span className="text-sm sm:text-base">Copyright © {new Date().getFullYear()} Intelli Holdings Inc</span>
           </div>
         </div>
       </div>
