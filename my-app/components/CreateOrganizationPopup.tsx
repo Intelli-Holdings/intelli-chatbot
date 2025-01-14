@@ -26,7 +26,7 @@ const CreateOrganizationPopup = () => {
         // Only show popup if user has no organizations
         setTimeout(() => {
           setShowPopup(true);
-        }, 12000); // Keep the 12 second delay
+        }, 7000); // 7 second delay
       }
     }
   }, [isLoaded, userMemberships]);
