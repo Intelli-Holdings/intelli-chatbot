@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { formatDistanceToNow, format } from "date-fns";
+import { useOrganizationList } from '@clerk/nextjs';
 import { CountryInfo } from "@/components/country-info";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -27,7 +27,30 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Search, Settings, MoreVertical, ArrowUp } from "lucide-react";
+import { Search, Settings, MoreVertical, ArrowUp } from 'lucide-react';
+import { toast } from 'sonner';
+import {marked} from 'marked';
+
+const markdownStyles = `
+  .markdown-content {
+    overflow-wrap: break-word;
+  }
+  .markdown-content p {
+    margin-bottom: 0.5em;
+  }
+  .markdown-content ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+    margin-bottom: 0.5em;
+  }
+  .markdown-content h1, 
+  .markdown-content h2, 
+  .markdown-content h3 {
+    font-weight: bold;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+  }
+`;
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -79,28 +102,39 @@ export default function WebsiteConvosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
+  const [markedLoaded, setMarkedLoaded] = useState(false);
 
-  useEffect(() => {
-    const fetchWidgets = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`${API_BASE_URL}/widgets/`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch widgets: ${response.statusText}`);
-        }
-        const data = await response.json();
-        setWidgets(data);
-        setSelectedWidgetKey(data[0]?.widget_key || "");
-      } catch (error) {
-        console.error("Error fetching widgets:", error);
-        setError("Failed to load widgets.");
-      } finally {
-        setIsLoading(false);
+  const { userMemberships, isLoaded } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
+
+  const fetchWidgets = async (orgId: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/widgets/${orgId}/all/`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch widgets: ${response.statusText}`);
+        
       }
-    };
+      toast.error("Failed to load widgets.");
 
-    fetchWidgets();
-  }, []);
+      const data = await response.json();
+      setWidgets(data);
+      setSelectedWidgetKey(data[0]?.widget_key || "");
+    } catch (error) {
+      console.error("Error fetching widgets:", error);
+      setError("Failed to load widgets.");
+      toast.error("Failed to load widgets.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOrganizationChange = (orgId: string) => {
+    setSelectedOrganizationId(orgId);
+    fetchWidgets(orgId);
+  };
 
   useEffect(() => {
     if (!selectedWidgetKey) return;
@@ -117,6 +151,8 @@ export default function WebsiteConvosPage() {
             `Failed to fetch visitors for widget: ${response.statusText}`
           );
         }
+        toast.info("Failed to fetch visitors for widget.");
+
         const data = await response.json();
         setVisitors(
           data.sort(
@@ -127,6 +163,7 @@ export default function WebsiteConvosPage() {
       } catch (error) {
         console.error("Error fetching visitors:", error);
         setError("Failed to load visitors.");
+        toast.error("Failed to load visitors.");
       } finally {
         setIsLoading(false);
       }
@@ -145,6 +182,39 @@ export default function WebsiteConvosPage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    // Add markdown styles
+    const styleElement = document.createElement('style');
+    styleElement.textContent = markdownStyles;
+    document.head.appendChild(styleElement);
+    
+    loadDependencies();
+    
+    return () => {
+      styleElement.remove();
+    };
+  }, []);
+
+  const loadDependencies = () => {
+    return new Promise<void>((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+      script.onload = () => {
+        // Configure marked options for proper Markdown rendering
+        marked.setOptions({
+         // sanitize: false, // Allow HTML to enable proper list rendering
+          breaks: true,
+          gfm: true, // Enable GitHub Flavored Markdown
+         // headerIds: false, // Disable header IDs to keep it simple
+          //mangle: false // Disable mangling to preserve text
+        });
+        setMarkedLoaded(true);
+        resolve();
+      };
+      document.head.appendChild(script);
+    });
+  };
 
   const handleVisitorSelect = (visitor: Visitor) => {
     setSelectedVisitor(visitor);
@@ -209,10 +279,31 @@ export default function WebsiteConvosPage() {
           </div>
           <div className="flex items-center gap-4">
             <div className="w-60">
+              <Select value={selectedOrganizationId} onValueChange={handleOrganizationChange}>
+                <SelectTrigger className="p-2 border rounded">
+                  <SelectValue placeholder="Select an organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  <ScrollArea className="h-60 rounded-md shadow-sm">
+                    <SelectGroup>
+                      {userMemberships?.data?.map((membership) => (
+                        <SelectItem
+                          key={membership.organization.id}
+                          value={membership.organization.id}
+                        >
+                          {membership.organization.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-60">
               <Select
                 value={selectedWidgetKey}
                 onValueChange={setSelectedWidgetKey}
-                disabled={isLoading}
+                disabled={isLoading || !selectedOrganizationId}
               >
                 <SelectTrigger className="p-2 border rounded">
                   <SelectValue placeholder="Select a widget" />
@@ -280,7 +371,7 @@ export default function WebsiteConvosPage() {
                           </div>
                           <p className="text-sm text-gray-600 truncate">
                             {latestMessage
-                              ? latestMessage.content
+                              ? latestMessage.content || latestMessage.answer
                               : "No messages yet"}
                           </p>
                         </div>
@@ -319,32 +410,37 @@ export default function WebsiteConvosPage() {
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
                     {selectedVisitor.messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${
-                          message.content ? "justify-start" : "justify-end"
-                        }`}
-                      >
-                        <div
-                          className={`p-3 rounded-lg max-w-[80%] ${
-                            message.content
-                              ? "bg-green-200"
-                              : "bg-blue-500 text-white"
-                          }`}
-                        >
-                          <p className="break-words">
-                            {message.content || message.answer}
-                          </p>
-                          <p
-                            className={`text-xs mt-1 ${
-                              message.content
-                                ? "text-gray-500"
-                                : "text-blue-100"
-                            }`}
-                          >
-                            {formatDate(message.timestamp)}
-                          </p>
-                        </div>
+                      <div key={message.id} className="space-y-2">
+                        {message.content && (
+                          <div className="flex justify-start">
+                            <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-green-200">
+                              {/* eslint-disable-next-line react/no-danger */}
+                              {markedLoaded ? (
+                                <div dangerouslySetInnerHTML={{ __html: marked(message.content) as string }} />
+                              ) : (
+                                <p className="break-words">{message.content}</p>
+                              )}
+                              <p className="text-xs mt-1 text-gray-500">
+                                {formatDate(message.timestamp)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {message.answer && (
+                          <div className="flex justify-end">
+                            <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-blue-500 text-white">
+                              {/* eslint-disable-next-line react/no-danger */}
+                              {markedLoaded ? (
+                                <div dangerouslySetInnerHTML={{ __html: marked(message.answer) as string }} />
+                              ) : (
+                                <p className="break-words">{message.answer}</p>
+                              )}
+                              <p className="text-xs mt-1 text-blue-100">
+                                {formatDate(message.timestamp)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -399,32 +495,37 @@ export default function WebsiteConvosPage() {
                     <ScrollArea className="flex-1 p-4">
                       <div className="space-y-4">
                         {selectedVisitor.messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`flex ${
-                              message.content ? "justify-start" : "justify-end"
-                            }`}
-                          >
-                            <div
-                              className={`p-3 rounded-lg max-w-[80%] ${
-                                message.content
-                                  ? "bg-gray-100"
-                                  : "bg-blue-500 text-white"
-                              }`}
-                            >
-                              <p className="break-words">
-                                {message.content || message.answer}
-                              </p>
-                              <p
-                                className={`text-xs mt-1 ${
-                                  message.content
-                                    ? "text-gray-500"
-                                    : "text-blue-100"
-                                }`}
-                              >
-                                {formatDate(message.timestamp)}
-                              </p>
-                            </div>
+                          <div key={message.id} className="space-y-2">
+                            {message.content && (
+                              <div className="flex justify-start">
+                                <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-gray-100">
+                                  {/* eslint-disable-next-line react/no-danger */}
+                                  {markedLoaded ? (
+                                    <div dangerouslySetInnerHTML={{ __html: marked(message.content) as string }} />
+                                  ) : (
+                                    <p className="break-words">{message.content}</p>
+                                  )}
+                                  <p className="text-xs mt-1 text-gray-500">
+                                    {formatDate(message.timestamp)}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                            {message.answer && (
+                              <div className="flex justify-end">
+                                <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-blue-500 text-white">
+                                  {/* eslint-disable-next-line react/no-danger */}
+                                  {markedLoaded ? (
+                                    <div dangerouslySetInnerHTML={{ __html: marked(message.answer) as string }} />
+                                  ) : (
+                                    <p className="break-words">{message.answer}</p>
+                                  )}
+                                  <p className="text-xs mt-1 text-blue-100">
+                                    {formatDate(message.timestamp)}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

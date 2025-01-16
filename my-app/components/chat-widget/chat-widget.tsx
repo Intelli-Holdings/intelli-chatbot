@@ -4,6 +4,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import { ArrowUp } from 'lucide-react';
 
+// Configure marked to be synchronous
+marked.setOptions({ async: false });
+
 interface ChatWidgetProps {
   widgetKey: string;
   backendUrl: string;
@@ -152,8 +155,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
           <div id="chat-box" ref={chatBoxRef}>
             {messages.map((message, index) => (
               <div key={index} className={`message ${message.type}-message`}>
+                {/* eslint-disable-next-line react/no-danger */}
                 <div className={`message-bubble ${message.type}-bubble`}
-                     dangerouslySetInnerHTML={{ __html: marked(message.content) }}>
+                   dangerouslySetInnerHTML={{ __html: marked(message.content) as string }}>
                 </div>
               </div>
             ))}
