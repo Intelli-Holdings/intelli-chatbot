@@ -119,6 +119,8 @@
     "sass": "^1.78.0",
     "sharp": "^0.33.2",
     "slick-carousel": "^1.8.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "sonner": "^1.4.3",
     "svix": "^1.25.0",
     "tailwind-merge": "^2.2.1",
