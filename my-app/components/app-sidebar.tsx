@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react"
-import { Home, Building2, Layout, Bot, MessageCircle, Bell, BarChart, MessageSquareDot, BellDot, PaintRoller } from "lucide-react"
+import { Home, Building2, Layout, Bot, MessageCircle, Bell, BarChart, MessageSquareDot, BellDot, PaintRoller, PersonStanding, Contact } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -47,12 +47,13 @@ const data = {
       url: "/dashboard/notifications",
       icon: BellDot,
       showBadge: true,
-    },
+    },   
     {
-      title: "Channels",
-      url: "/dashboard/channels",
-      icon: Layout,
-    },    
+      title: "Contacts",
+      url: "/dashboard/contacts",
+      icon: Contact,
+      showBadge: true,
+    },   
     {
       title: "Analytics",
       url: "/dashboard/analytics",
