@@ -6,7 +6,7 @@ import { WebRTCConnection } from '@/lib/webrtc';
 import { io, Socket } from 'socket.io-client';
 import { getSocket, disconnectSocket } from '@/lib/socket';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_DEV_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export function useCall() {
   const [callState, setCallState] = useState<CallState>({
