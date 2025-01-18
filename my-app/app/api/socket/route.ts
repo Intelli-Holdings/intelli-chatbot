@@ -1,19 +1,24 @@
-import { Server } from 'socket.io';
-import { NextApiRequest } from 'next';
-import { NextApiResponseServerIO } from '@/types/socket';
+import { Server as SocketIOServer } from 'socket.io';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default function SocketHandler(req: NextApiRequest, res: NextApiResponseServerIO) {
-  if (!res.socket?.server.io) {
-    if (!res.socket) {
-      res.end();
-      return;
-    }
-    const io = new Server(res.socket.server, {
+let io: SocketIOServer;
+
+export async function GET(request: NextRequest) {
+  if (!io) {
+    // Create socket server if it doesn't exist
+    io = new SocketIOServer({
       path: '/api/socket',
       addTrailingSlash: false,
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST'],
+      },
     });
 
     io.on('connection', (socket) => {
+      console.log('Client connected:', socket.id);
+
       socket.on('call:initiate', (data) => {
         socket.to(data.recipientId).emit('call:incoming', data);
       });
@@ -28,11 +33,15 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       socket.on('call:end', (data) => {
         socket.to(data.recipientId).emit('call:ended');
       });
-    });
 
-    res.socket.server.io = io;
+      socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+      });
+    });
   }
 
-  res.end();
+  return new NextResponse('Socket server initialized', {
+    status: 200,
+  });
 }
 

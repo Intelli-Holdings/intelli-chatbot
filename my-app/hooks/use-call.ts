@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CallState, CallOptions, CallSignal } from '../types/call';
-import { WebRTCConnection } from '../lib/webrtc';
+import { CallState, CallOptions, CallSignal } from '@/types/call';
+import { WebRTCConnection } from '@/lib/webrtc';
 import { io, Socket } from 'socket.io-client';
+import { getSocket, disconnectSocket } from '@/lib/socket';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -23,20 +24,17 @@ export function useCall() {
   const webrtcRef = useRef<WebRTCConnection | null>(null);
 
   useEffect(() => {
-    socketRef.current = io(API_BASE_URL, {
-      path: '/api/socket',
-      auth: {
-        token: 'your-auth-token', // Add your authentication token here
-      },
-    });
+    const socket = getSocket();
 
-    socketRef.current.on('call:incoming', handleIncomingCall);
-    socketRef.current.on('call:signal', handleCallSignal);
-    socketRef.current.on('call:ended', handleCallEnded);
+    socket.on('call:incoming', handleIncomingCall);
+    socket.on('call:signal', handleCallSignal);
+    socket.on('call:ended', handleCallEnded);
 
     return () => {
-      socketRef.current?.disconnect();
-      cleanup();
+      socket.off('call:incoming', handleIncomingCall);
+      socket.off('call:signal', handleCallSignal);
+      socket.off('call:ended', handleCallEnded);
+      disconnectSocket();
     };
   }, []);
 
