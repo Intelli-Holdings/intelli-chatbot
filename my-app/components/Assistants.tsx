@@ -11,8 +11,15 @@ import {
 } from '@/components/ui/card';
 import { useOrganizationList } from '@clerk/nextjs';
 import { CreateAssistantDialog } from '@/components/create-assistant-dialog';
-import { DeleteAssistantDialog } from '@/components/delete-dialog-assistant';
-import { Bot, CircleDot, BadgeCheck, Info, MoreVertical, Pencil, Trash } from 'lucide-react';
+import {
+  Bot,
+  CircleDot,
+  BadgeCheck,
+  Info,
+  MoreVertical,
+  Pencil,
+  Trash,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,7 +68,6 @@ export default function Assistants() {
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchAssistants = async () => {
     if (!selectedOrganizationId) return;
@@ -96,13 +102,7 @@ export default function Assistants() {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: updatedAssistant.id,
-            name: updatedAssistant.name,
-            prompt: updatedAssistant.prompt || "",
-            assistant_id: updatedAssistant.assistant_id,
-            organization: updatedAssistant.organization
-          }),
+          body: JSON.stringify(updatedAssistant),
         }
       );
 
@@ -113,31 +113,23 @@ export default function Assistants() {
       fetchAssistants();
     } catch (error) {
       console.error('Error editing assistant:', error);
-      toast.error('There was a problem editing the assistant. Please try again.');
+      toast.error('You failed to edit the assistant. Please try again.');
     }
   };
 
-  const handleDeleteAssistant = async (assistant: Assistant) => {
+  const handleDeleteAssistant = async (id: string) => {
     try {
+      if (!confirm('Are you sure you want to delete this assistant?')) return;
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistant.id}/`,
-        {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: assistant.id,
-            name: assistant.name,
-            prompt: assistant.prompt || "",
-            assistant_id: assistant.assistant_id,
-            organization: assistant.organization
-          })
-        }
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${id}/`,
+        { method: 'DELETE' }
       );
+      console.log(response);
 
       if (!response.ok) throw new Error('Failed to delete assistant');
 
       toast.success('Assistant deleted successfully!');
-      setIsDeleteDialogOpen(false);
       fetchAssistants();
     } catch (error) {
       console.error('Error deleting assistant:', error);
@@ -233,10 +225,7 @@ export default function Assistants() {
                           Edit 
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedAssistant(assistant);
-                            setIsDeleteDialogOpen(true);
-                          }}
+                          onClick={() => handleDeleteAssistant(assistant.assistant_id)}
                           className="cursor-pointer text-red-500"
                         >
                           <Trash className="mr-2 h-4 w-4" />
@@ -329,14 +318,5 @@ export default function Assistants() {
           </DialogContent>
         </Dialog>
       )}
-      {selectedAssistant && (
-        <DeleteAssistantDialog
-          isOpen={isDeleteDialogOpen}
-          onClose={() => setIsDeleteDialogOpen(false)}
-          onConfirm={() => handleDeleteAssistant(selectedAssistant)}
-          assistantName={selectedAssistant.name}
-        />
-      )}
     </div>
   )}
-
