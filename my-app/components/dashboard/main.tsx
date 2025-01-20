@@ -9,11 +9,17 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { useNextStep } from "nextstepjs";
 import { useUser } from "@clerk/nextjs";
 import Link from 'next/link';
+// Onborda
+import { useOnborda } from "onborda";
 import Channels from './channels';
 import WhatsappOnboarding from '@/components/WhatsappOnboarding';
 import Workground from '@/components/Workground';
 
 const Dashboard: React.FC = () => {
+    const { startOnborda } = useOnborda();
+    const handleStartOnborda = () => {
+        startOnborda('mainTour');
+    };
     const { startNextStep } = useNextStep();
     const [isBannerVisible, setIsBannerVisible] = useState(true);
     const { isLoaded, isSignedIn, user } = useUser();
@@ -34,34 +40,48 @@ const Dashboard: React.FC = () => {
         return null;
     }
 
-    // Unique card data
+    // Updated card data to match tour steps
     const cards = [
         {
-            id: "step2",
-            emoji: "🛠️",
+            id: "onborda-step2",
+            emoji: "🪄",
             title: "Create an Assistant",
-            description: "Choose a channel and start building",
+            description: "Your assistant works on any channel",
             href: "/dashboard/assistants"
         },
         {
-            id: "step3",
+            id: "onborda-step3",
+            emoji: "🌐",
+            title: "Create a Website Widget",
+            description: "Use your assistant to create a widget",
+            href: "/dashboard/playground"
+        },
+        {
+            id: "onborda-step4",
+            emoji: "📦",
+            title: "Create a Whatsapp Package",
+            description: "Connect your assistant to WhatsApp",
+            href: "/dashboard/channels/whatsapp"
+        },
+        {
+            id: "onborda-step5",
             emoji: "🔔",
             title: "View Notifications",
             description: "Receive time-sensitive messages",
             href: "/dashboard/notifications"
         },
         {
-            id: "step4",
-            emoji: "💭",
+            id: "onborda-step6",
+            emoji: "💬",
             title: "View Conversations",
-            description: "See your chats with customers",
+            description: "Your inbox for customer messages",
             href: "/dashboard/conversations"
         },
         {
-            id: "step5",
+            id: "onborda-step7",
             emoji: "📊",
-            title: "View your Analytics",
-            description: "Deep dive into your usage",
+            title: "View Your Analytics",
+            description: "Monitor your business metrics",
             href: "/dashboard/analytics"
         }
     ];
@@ -80,7 +100,7 @@ const Dashboard: React.FC = () => {
                             <Button
                                 variant="default"
                                 className="mr-2 bg-[#007fff] rounded-xl pt-2"
-                                onClick={() => onClickHandler('mainTour')}
+                                onClick={handleStartOnborda}
                             >
                                 <Sparkles size={16} className="mr-2" /> Click to Start Tour
                             </Button>
@@ -92,16 +112,14 @@ const Dashboard: React.FC = () => {
                 </TooltipProvider>
             </div>
 
-            <div className="min-h-200 bg-gray-400/10 rounded-t-lg rounded-b-2xl">
+            <div className="min-h-200 bg-gradient-to-t from-gray-500/10 to-background rounded-t-lg rounded-b-2xl">
                 {/* Top banner */}
-                <div className='w-full'>
-                    <div className="bg-[#007fff] text-white py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-lg">
+                <div className='w-full' id="onborda-step1">
+                    <div className=" bg-gradient-to-b from-[#007fff] to-background p-2 shadow-sm border rounded-t-lg rounded-b-xl border-indigo-200 bg-[#007fff] py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-lg shadow-sm">
                         <h1 className="text-3xl font-bold">Welcome, <span style={{ color: 'yellow' }}>{user.firstName}</span></h1>
                         <p className="text-lg">Overview of Intelli</p>
                     </div>
-                    <svg width="500" height="80" viewBox="0 0 500 100" preserveAspectRatio="none" className="w-full hidden sm:block">
-                        <path d="M0,0 L0,40 Q250,80 500,40 L500,0 Z" fill="#007fff"></path>
-                    </svg>
+                    
                 </div>
 
                 {/* Tabs for Overview and Channels */}
@@ -112,9 +130,9 @@ const Dashboard: React.FC = () => {
                     </TabsList>
                     <TabsContent value="overview">
                         {/* Dashboard grid */}
-                        <div className="max-w-6xl mx-auto mt-0 p-8">
+                        <div className="max-w-auto mx-auto mt-0 p-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Render standard cards */}
+                                {/* Render cards */}
                                 {cards.map((card) => (
                                     <Link href={card.href} key={card.id}>
                                         <div
@@ -164,4 +182,3 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-
