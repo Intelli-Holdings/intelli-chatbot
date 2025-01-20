@@ -84,20 +84,18 @@ const Dashboard: React.FC = () => {
                 </TooltipProvider>
             </div>
 
-            <div className="min-h-200 bg-gray-400/10 rounded-t-lg rounded-b-2xl">
+            <div className="min-h-200 bg-gradient-to-t from-blue-500/10 to-background rounded-t-lg rounded-b-2xl">
                 {/* Top banner */}
                 <div className='w-full'>
-                    <div className="bg-[#007fff] text-white py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-lg">
+                    <div className=" bg-gradient-to-b from-[#007fff] to-background p-2 shadow-sm border rounded-t-lg rounded-b-xl border-indigo-200 bg-[#007fff] py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-lg">
                         <h1 className="text-3xl font-bold">Welcome, <span style={{ color: 'yellow' }}>{user.firstName}</span></h1>
                         <p className="text-lg">Overview of Intelli</p>
                     </div>
-                    <svg width="500" height="80" viewBox="0 0 500 100" preserveAspectRatio="none" className="w-full hidden sm:block">
-                        <path d="M0,0 L0,40 Q250,80 500,40 L500,0 Z" fill="#007fff"></path>
-                    </svg>
+                    
                 </div>
 
                 {/* Dashboard grid */}
-                <div className="max-w-6xl mx-auto mt-0 p-8">
+                <div className="max-w-auto mx-auto mt-0 p-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* Render standard cards */}
                         {cards.map((card) => (
