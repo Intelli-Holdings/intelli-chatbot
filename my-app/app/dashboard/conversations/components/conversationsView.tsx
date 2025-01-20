@@ -10,7 +10,7 @@ import { formatMessage } from '@/utils/formatMessage'
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Download, Share } from 'lucide-react'
-import { exportToPDF, exportToCSV, exportContactsToPDF } from '@/utils/exportUtils'
+import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from '@/utils/exportUtils'
 import './message-bubble.css'
 
 interface ConversationViewProps {
@@ -94,8 +94,15 @@ const ConversationView: React.FC<ConversationViewProps> = ({
     }
   };
 
-  const handleExportContacts = () => {
-    exportContactsToPDF(conversations);
+  const handleExportContacts = (format: 'pdf' | 'csv') => {
+    switch (format) {
+      case 'pdf':
+        exportContactsToPDF(conversations);
+        break;
+      case 'csv':
+        exportContactsToCSV(conversations);
+        break;
+    }
   };
 
   return (
@@ -116,10 +123,22 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             <DropdownMenuItem onSelect={() => handleExport('csv')}>Share as CSV</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button onClick={handleExportContacts} variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          Export Contacts to PDF
-        </Button>
+        <DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="outline" size="sm">
+      <Download className="mr-2 h-4 w-4" />
+      Export Contacts
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent>
+    <DropdownMenuItem onSelect={() => handleExportContacts('pdf')}>
+      Export as PDF
+    </DropdownMenuItem>
+    <DropdownMenuItem onSelect={() => handleExportContacts('csv')}>
+      Export as CSV
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
       </div>
       
       <ScrollArea 
