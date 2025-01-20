@@ -84,7 +84,7 @@ const Dashboard: React.FC = () => {
                 </TooltipProvider>
             </div>
 
-            <div className="min-h-200 bg-gradient-to-t from-blue-500/10 to-background rounded-t-lg rounded-b-2xl">
+            <div className="min-h-200 bg-gradient-to-t from-gray-500/10 to-background rounded-t-lg rounded-b-2xl">
                 {/* Top banner */}
                 <div className='w-full'>
                     <div className=" bg-gradient-to-b from-[#007fff] to-background p-2 shadow-sm border rounded-t-lg rounded-b-xl border-indigo-200 bg-[#007fff] py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-lg">
