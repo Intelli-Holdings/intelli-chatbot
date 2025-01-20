@@ -1,11 +1,12 @@
 'use client'
 
-import {useState} from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
+  CardFooter,
 } from '@/components/ui/card';
 import { useOrganizationList } from '@clerk/nextjs';
 import { CreateAssistantDialog } from '@/components/create-assistant-dialog';
@@ -46,6 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DeleteAssistantDialog } from '@/components/delete-assistant-dialog';
 import { Textarea } from './ui/textarea';
 
 interface Assistant {
@@ -61,22 +63,12 @@ export default function Assistants() {
     userMemberships: { infinite: true },
   });
 
-  const {
-    assistants,
-    isLoading,
-    isEditDialogOpen,
-    setIsEditDialogOpen,
-    isDeleteDialogOpen,
-    setIsDeleteDialogOpen,
-    selectedAssistant,
-    setSelectedAssistant,
-    handleEditAssistant,
-    handleDeleteAssistant,
-  } = useAssistants();
-
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchAssistants = async () => {
     if (!selectedOrganizationId) return;
@@ -122,7 +114,7 @@ export default function Assistants() {
       fetchAssistants();
     } catch (error) {
       console.error('Error editing assistant:', error);
-      toast.error('You failed to edit the assistant. Please try again.');
+      toast.error('Failed to edit the assistant. Please try again.');
     }
   };
 
@@ -134,7 +126,6 @@ export default function Assistants() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${id}/`,
         { method: 'DELETE' }
       );
-      console.log(response);
 
       if (!response.ok) throw new Error('Failed to delete assistant');
 
@@ -158,11 +149,11 @@ export default function Assistants() {
 
   const selectedOrg = userMemberships?.data?.find(
     membership => membership.organization.id === selectedOrganizationId
-  )
-
+  );
 
   return (
     <div className="space-y-4">
+      {/* Organization Select */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-1">
           Organization
@@ -281,9 +272,9 @@ export default function Assistants() {
       <Card className="text-center py-12">
         <CardContent>
           <CardTitle className="mt-2">Select an Organization</CardTitle>
-          <CardDescription className="mt-1 font-medium">
+          <AlertDescription className="mt-1 font-medium">
             Please select an organization to view its assistants. If there is none; create one and go to playground to create widget using the assistant you created.
-          </CardDescription>
+          </AlertDescription>
         </CardContent>
       </Card>
     )}
@@ -330,7 +321,7 @@ export default function Assistants() {
       <DeleteAssistantDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={() => selectedAssistant && handleDeleteAssistant(selectedAssistant.id)}
+        onConfirm={() => selectedAssistant && handleDeleteAssistant(selectedAssistant.id.toString())}
         assistantName={selectedAssistant?.name || ''}
       />
     </div>
