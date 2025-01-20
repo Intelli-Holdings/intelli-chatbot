@@ -117,7 +117,7 @@ const Dashboard: React.FC = () => {
                 <div className='w-full' id="onborda-step1">
                     <div className=" bg-gradient-to-b from-[#007fff] to-background p-2 shadow-sm border rounded-t-lg rounded-b-xl border-indigo-200 bg-[#007fff] py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-lg shadow-sm">
                         <h1 className="text-3xl font-bold">Welcome, <span style={{ color: 'yellow' }}>{user.firstName}</span></h1>
-                        <p className="text-lg">Overview of Intelli</p>
+                        <p className="text-lg">Your Business Command Center</p>
                     </div>
                     
                 </div>
