@@ -43,27 +43,22 @@ export const exportToCSV = (conversation: Conversation) => {
   document.body.removeChild(link)
 }
 
-export const exportToXLS = (conversation: Conversation) => {
-  const ws = XLSX.utils.json_to_sheet(conversation.messages.map(message => ({
-    Timestamp: new Date(message.created_at).toLocaleString(),
-    Sender: message.content ? 'Customer' : (message.sender === 'ai' ? 'AI' : 'Human'),
-    Message: message.content || message.answer || ''
-  })))
 
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, "Conversation")
-  XLSX.writeFile(wb, `conversation_${conversation.customer_number}.xlsx`)
-}
+export const exportContactsToPDF = (conversations: Conversation[]) => {
+  const doc = new jsPDF()
+  const tableColumn = ["Phone Number", "Last Active"]
+  const tableRows = conversations.map(conversation => [
+    conversation.customer_number,
+    new Date(conversation.updated_at).toLocaleString()
+  ])
 
-export const exportContacts = (conversations: Conversation[]) => {
-  const contacts = conversations.map(conversation => ({
-    'Phone Number': conversation.customer_number,
-    'Last Active': new Date(conversation.updated_at).toLocaleString()
-  }))
+  doc.text("All Contacts", 14, 15)
+  autoTable(doc, {
+    head: [tableColumn],
+    body: tableRows,
+    startY: 20,
+  })
 
-  const ws = XLSX.utils.json_to_sheet(contacts)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, "Contacts")
-  XLSX.writeFile(wb, 'all_contacts.xlsx')
+  doc.save("all_contacts.pdf")
 }
 
