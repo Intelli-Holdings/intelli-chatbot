@@ -21,7 +21,7 @@ export function DashComponent() {
       shadowRgb="55,48,160"
       shadowOpacity="0.2"
       cardComponent={CustomCard}
-      cardTransition={{ duration: 2, type: "tween" }}
+      cardTransition={{ duration: 0.3, type: "tween" }}
       >
         <div className="space-y-8" id="onborda-step1">
           {/* Dashboard content */}
