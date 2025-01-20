@@ -1,24 +1,17 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { useOrganizationList } from "@clerk/nextjs";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus } from 'lucide-react';
-import { toast } from "sonner";
+import { useState, useEffect } from "react"
+import { useOrganizationList } from "@clerk/nextjs"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Plus } from "lucide-react"
+import { toast } from "sonner"
 
 interface CreateAssistantDialogProps {
-  onAssistantCreated: () => void;
+  onAssistantCreated: () => void
 }
 
 export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDialogProps) {
@@ -26,69 +19,71 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
     userMemberships: {
       infinite: true,
     },
-  });
+  })
 
-  const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
-    prompt: '',
-    organization_id: '',
-  });
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
+    name: "",
+    prompt: "",
+    organization_id: "",
+  })
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>("")
 
   useEffect(() => {
     if (isLoaded && userMemberships?.data?.length > 0 && !selectedOrganizationId) {
-      setSelectedOrganizationId(userMemberships.data[0].organization.id);
+      setSelectedOrganizationId(userMemberships.data[0].organization.id)
     }
-  }, [isLoaded, userMemberships, selectedOrganizationId]);
+  }, [isLoaded, userMemberships, selectedOrganizationId])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-  
+    e.preventDefault()
+
     if (!selectedOrganizationId) {
-      console.log("Submission blocked: No organization selected");
-      toast.error("Please select an organization");
-      return;
+      console.log("Submission blocked: No organization selected")
+      toast.error("Please select an organization")
+      return
     }
-  
-    setIsLoading(true);
+
+    setIsLoading(true)
     try {
       const data = {
         name: formData.name,
         prompt: formData.prompt,
         organization_id: selectedOrganizationId,
-      };
-  
-      console.log("Submitting data to backend:", data);
-  
+      }
+
+      console.log("Submitting data to backend:", data)
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      });
-  
+      })
+
       if (!response.ok) {
         console.error("Assistant creation failed:", {
           status: response.status,
           statusText: response.statusText,
-        });
-        throw new Error("Failed to create assistant");
+        })
+        throw new Error("Failed to create assistant")
       }
-  
-      toast.success("Assistant created successfully; Pleave visit the playground to create a widget with this assistant");
-      setOpen(false);
-      onAssistantCreated();
-      setFormData({ name: "", prompt: "", organization_id: "" });
+
+      toast.success(
+        "Assistant created successfully; Please visit the playground to create a widget with this assistant",
+      )
+      setOpen(false)
+      onAssistantCreated()
+      setFormData({ name: "", prompt: "", organization_id: "" })
     } catch (error) {
-      console.error("Error creating assistant:", error);
-      toast.error("Failed to create assistant");
+      console.error("Error creating assistant:", error)
+      toast.error("Failed to create assistant")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -105,20 +100,18 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Organization</label>
-            <Select
-              value={selectedOrganizationId}
-              onValueChange={(value) => setSelectedOrganizationId(value)}
-            >
+            <Select value={selectedOrganizationId} onValueChange={(value) => setSelectedOrganizationId(value)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select an organization" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  {isLoaded && userMemberships?.data?.map((membership) => (
-                    <SelectItem key={membership.organization.id} value={membership.organization.id}>
-                      {membership.organization.name}
-                    </SelectItem>
-                  ))}
+                  {isLoaded &&
+                    userMemberships?.data?.map((membership) => (
+                      <SelectItem key={membership.organization.id} value={membership.organization.id}>
+                        {membership.organization.name}
+                      </SelectItem>
+                    ))}
                 </SelectGroup>
               </SelectContent>
             </Select>
@@ -146,5 +139,6 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
+

@@ -38,7 +38,7 @@ export const steps: Tours = [
         title: "Connect to Whatsapp",
         content: "Link your assistant to WhatsApp to handle inquiries. Watch as it manages conversations and simplifies communication behind the scenes.",
         selector: "#onborda-step4",
-        side: "right",
+        side: "left",
         showControls: true,
         showSkip: true
       },
@@ -56,7 +56,7 @@ export const steps: Tours = [
         title: "Manage Conversations",
         content: "Take control whenever needed. Use your inbox to view and respond to customer messages in real time.",
         selector: "#onborda-step6",
-        side: "top",
+        side: "left",
         showControls: true,
         showSkip: true
       },

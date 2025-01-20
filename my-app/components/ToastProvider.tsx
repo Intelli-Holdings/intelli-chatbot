@@ -14,6 +14,7 @@ export default function ToastProvider() {
         },
       }}
       richColors
+      closeButton
     />
   );
 }
