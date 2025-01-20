@@ -98,17 +98,26 @@ export default function Assistants() {
 
   const handleEditAssistant = async (updatedAssistant: Assistant) => {
     try {
+      // Log assistant data to debug
+      console.log('Assistant being edited:', updatedAssistant);
+      
+      // Use assistant_id instead of id for the API endpoint
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.id}/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.assistant_id}/`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedAssistant),
+          body: JSON.stringify({
+            name: updatedAssistant.name,
+            prompt: updatedAssistant.prompt,
+            assistant_id: updatedAssistant.assistant_id,
+            organization: updatedAssistant.organization
+          }),
         }
       );
-
+  
       if (!response.ok) throw new Error('Failed to edit assistant');
-
+  
       toast.success('Assistant updated successfully!');
       setIsEditDialogOpen(false);
       fetchAssistants();
@@ -281,43 +290,70 @@ export default function Assistants() {
 
       {/* Edit Assistant Dialog */}
       {selectedAssistant && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="h-200">
+        <Dialog 
+          open={isEditDialogOpen} 
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open)
+            if (!open) setSelectedAssistant(null)
+          }}
+        >
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                Edit Assistant
-              </DialogTitle>
+              <DialogTitle>Edit Assistant</DialogTitle>
             </DialogHeader>
             <form
               onSubmit={(e) => {
-                e.preventDefault();
-                handleEditAssistant(selectedAssistant);
+                e.preventDefault()
+                if (selectedAssistant) {
+                  handleEditAssistant(selectedAssistant)
+                }
               }}
               className="space-y-4"
             >
               <Input
                 value={selectedAssistant.name}
-                onChange={(e) =>
-                  setSelectedAssistant((prev) => prev && { ...prev, name: e.target.value })
-                }
+                onChange={(e) => setSelectedAssistant((prev) => prev ? { ...prev, name: e.target.value } : null)}
                 placeholder="Assistant Name"
                 required
               />
               <Textarea
                 value={selectedAssistant.prompt}
-                onChange={(e) =>
-                  setSelectedAssistant((prev) => prev && { ...prev, prompt: e.target.value })
-                }
+                onChange={(e) => setSelectedAssistant((prev) => prev ? { ...prev, prompt: e.target.value } : null)}
                 placeholder="Prompt"
                 required
+                className="min-h-[100px]"
               />
-              <Button type="submit">
-                Save Changes</Button>
+              <Input
+                value={selectedAssistant.assistant_id}
+                onChange={(e) => setSelectedAssistant((prev) => prev ? { ...prev, assistant_id: e.target.value } : null)}
+                placeholder="Assistant ID"
+                required
+              />
+              <Select
+                value={selectedAssistant.organization}
+                onValueChange={(value) => setSelectedAssistant((prev) => prev ? { ...prev, organization_id: value } : null)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select an organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {isLoaded &&
+                      userMemberships?.data?.map((membership) => (
+                        <SelectItem key={membership.organization.id} value={membership.organization.id}>
+                          {membership.organization.name}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Button type="submit">Save Changes</Button>
             </form>
           </DialogContent>
         </Dialog>
       )}
-
+      
+      {/* Delete Assistant Dialog */}
       <DeleteAssistantDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
