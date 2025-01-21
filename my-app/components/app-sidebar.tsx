@@ -12,6 +12,7 @@ import {
   MessageSquareDot,
   BellDot,
   PaintRoller,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -64,6 +65,11 @@ const data = {
       title: "Channels",
       url: "/dashboard/channels",
       icon: Layout,
+    },
+    {
+      title: "Escalation Events",
+      url: "/dashboard/escalation-events",
+      icon: Calendar,
     },
     {
       title: "Analytics",
