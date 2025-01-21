@@ -107,27 +107,36 @@ export default function Assistants() {
 
   const handleEditAssistant = async (updatedAssistant: Assistant) => {
     setIsEditing(true);
+    
+   // Backend Payload
+    const payload = {
+      id: updatedAssistant.id,
+      name: updatedAssistant.name,
+      prompt: updatedAssistant.prompt,
+      assistant_id: updatedAssistant.assistant_id,
+      organization: updatedAssistant.organization 
+    };
+  
+  
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.id}/`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: updatedAssistant.id,
-            name: updatedAssistant.name,
-            prompt: updatedAssistant.prompt,
-            assistant_id: updatedAssistant.assistant_id,
-            organization: updatedAssistant.organization_id, // Use organization_id directly
-          }),
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify(payload),
         }
       );
-
+  
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to edit assistant");
+        console.error('Error response:', errorData);
+        throw new Error(errorData.detail || "Failed to edit assistant");
       }
-
+  
       const updatedData = await response.json();
       setAssistants(
         assistants.map((a) => (a.id === updatedData.id ? updatedData : a))
@@ -136,7 +145,7 @@ export default function Assistants() {
       setIsEditDialogOpen(false);
     } catch (error) {
       console.error("Error editing assistant:", error);
-      toast.error("Failed to edit the assistant. Please try again.");
+      toast.error("Failed to edit assistant. Please try again.");
     } finally {
       setIsEditing(false);
     }
