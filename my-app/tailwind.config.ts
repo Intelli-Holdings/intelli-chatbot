@@ -13,7 +13,7 @@ const config: Config = {
   ],
   theme: {
   	container: {
-		center: true,
+  		center: true,
   		padding: '2rem',
   		screens: {
   			'2xl': '1400px'
@@ -63,7 +63,12 @@ const config: Config = {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			}
+  			},
+  			'color-1': 'hsl(var(--color-1))',
+  			'color-2': 'hsl(var(--color-2))',
+  			'color-3': 'hsl(var(--color-3))',
+  			'color-4': 'hsl(var(--color-4))',
+  			'color-5': 'hsl(var(--color-5))'
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
@@ -176,6 +181,14 @@ const config: Config = {
   				'100%': {
   					transform: 'translateY(0)'
   				}
+  			},
+  			rainbow: {
+  				'0%': {
+  					'background-position': '0%'
+  				},
+  				'100%': {
+  					'background-position': '200%'
+  				}
   			}
   		},
   		animation: {
@@ -190,7 +203,8 @@ const config: Config = {
   			shimmer: 'shimmer 8s infinite',
   			pulse: 'pulse 2s infinite',
   			orbit: 'orbit calc(var(--duration)*1s) linear infinite',
-  			grid: 'grid 15s linear infinite'
+  			grid: 'grid 15s linear infinite',
+  			rainbow: 'rainbow var(--speed, 2s) infinite linear'
   		}
   	}
   },
