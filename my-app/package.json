@@ -13,6 +13,7 @@
     "@ai-sdk/openai": "^0.0.66",
     "@aptabase/react": "^0.3.5",
     "@azure/openai": "^1.0.0-beta.11",
+    "@calcom/embed-react": "^1.5.2",
     "@clerk/nextjs": "^5.1.5",
     "@hookform/resolvers": "^3.3.4",
     "@mdx-js/loader": "^3.1.0",
