@@ -19,6 +19,7 @@ import {
   MoreVertical,
   Pencil,
   Trash,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ export default function Assistants() {
     null
   );
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
@@ -104,6 +106,7 @@ export default function Assistants() {
   };
 
   const handleEditAssistant = async (updatedAssistant: Assistant) => {
+    setIsEditing(true);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.id}/`,
@@ -111,13 +114,19 @@ export default function Assistants() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...updatedAssistant,
-            organization: updatedAssistant.organization_id,
+            id: updatedAssistant.id,
+            name: updatedAssistant.name,
+            prompt: updatedAssistant.prompt,
+            assistant_id: updatedAssistant.assistant_id,
+            organization: updatedAssistant.organization_id, // Use organization_id directly
           }),
         }
       );
 
-      if (!response.ok) throw new Error("Failed to edit assistant");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to edit assistant");
+      }
 
       const updatedData = await response.json();
       setAssistants(
@@ -128,6 +137,8 @@ export default function Assistants() {
     } catch (error) {
       console.error("Error editing assistant:", error);
       toast.error("Failed to edit the assistant. Please try again.");
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -380,7 +391,16 @@ export default function Assistants() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isEditing}>
+                {isEditing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Editing...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
