@@ -1,7 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { RainbowButton } from "@/components/ui/rainbow-button";
+import EnterpriseBookingModal from '@/components/EnterpriseBooking';
 
 interface PricingCardProps {
   title: string;
@@ -24,7 +25,16 @@ const PricingCard: React.FC<PricingCardProps> = ({
   isRecommended = false,
   link,
 }) => {
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const isEnterprise = title === 'Enterprise';
+
+  const handleButtonClick = () => {
+    if (isEnterprise) {
+      setIsBookingModalOpen(true);
+    } else {
+      window.location.href = link;
+    }
+  };
 
   return (
     <div
@@ -61,15 +71,19 @@ const PricingCard: React.FC<PricingCardProps> = ({
       </ul>
       
       {isEnterprise ? (
-        // Rainbow Button for Enterprise plan
-        <RainbowButton
-          onClick={() => window.location.href = link}
-          className="w-full flex justify-center items-center"
-        >
-          {buttonText}
-        </RainbowButton>
+        <>
+          <RainbowButton
+            onClick={handleButtonClick}
+            className="w-full flex justify-center items-center"
+          >
+            {buttonText}
+          </RainbowButton>
+          <EnterpriseBookingModal 
+            isOpen={isBookingModalOpen} 
+            onClose={() => setIsBookingModalOpen(false)} 
+          />
+        </>
       ) : (
-        // Regular button for other plans
         <a
           href={link}
           className={`w-full block text-center py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
