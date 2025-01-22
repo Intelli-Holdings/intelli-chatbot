@@ -3,7 +3,7 @@
   position: relative;
   padding: 0.75rem 1rem;
   margin: 0.5rem 0;
-  max-width: 80%;
+  max-width: 65%; /* Whatsapp-like width */
   border-radius: 1rem;
   overflow-wrap: break-word;
 }
@@ -57,6 +57,32 @@
   border-color: #10b981 transparent transparent transparent;
   right: -8px;
   top: 0;
+}
+
+/* Typography and spacing */
+.message-bubble p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 5; /* Show first 5 lines */
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
+}
+
+/* Reset when expanded */
+.message-bubble.expanded p {
+  -webkit-line-clamp: unset;
+}
+
+.message-bubble h1, 
+.message-bubble h2, 
+.message-bubble h3, 
+.message-bubble h4, 
+.message-bubble h5, 
+.message-bubble h6 {
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
 }
 
 /* Typography and spacing */

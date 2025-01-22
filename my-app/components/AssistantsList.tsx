@@ -1,87 +1,81 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useOrganizationList } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from 'react';
+import { Trash, Bot } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Assistant } from '@/types/assistant';
+import { DeleteAssistantDialog } from '@/components/delete-dialog-assistant';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
-interface Assistant {
-  id: number;
-  name: string;
-  prompt: string;
-  assistant_id: string;
-  organization: string | null;
+interface AssistantsListProps {
+  assistants: Assistant[];
+  fetchAssistants: () => Promise<void>;
 }
 
-export function AssistantsList() {
-  const { userMemberships, isLoaded } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-    },
-  });
-  const [assistants, setAssistants] = useState<Assistant[]>([]);
-  const [filteredAssistants, setFilteredAssistants] = useState<Assistant[]>([]);
-  const [loading, setLoading] = useState(true);
+export const AssistantsList = ({ assistants, fetchAssistants }: AssistantsListProps) => {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [assistantToDelete, setAssistantToDelete] = useState<Assistant | null>(null);
 
-  useEffect(() => {
-    // Fetch assistants from backend
-    const fetchAssistants = async () => {
+  const handleDeleteAssistant = (assistant: Assistant) => {
+    setAssistantToDelete(assistant);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteAssistant = async () => {
+    if (assistantToDelete) {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch assistants");
-        }
-        const data: Assistant[] = await response.json();
-        setAssistants(data);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantToDelete.id}/`,
+          { method: 'DELETE' }
+        );
+
+        if (!response.ok) throw new Error('Failed to delete assistant');
+
+        toast.success('Assistant deleted successfully!');
+        fetchAssistants();
       } catch (error) {
-        console.error("Error fetching assistants:", error);
+        console.error('Error deleting assistant:', error);
+        toast.error('Failed to delete assistant. Please try again.');
       } finally {
-        setLoading(false);
+        setIsDeleteDialogOpen(false);
+        setAssistantToDelete(null);
       }
-    };
-
-    fetchAssistants();
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded && userMemberships?.data) {
-      // Get organizations where the user is admin or owner
-      const adminOrganizations = userMemberships.data
-        .filter((membership) => ["admin", "owner"].includes(membership.role))
-        .map((membership) => membership.organization.id);
-
-      // Filter assistants by organization
-      const filtered = assistants.filter((assistant) =>
-        assistant.organization && adminOrganizations.includes(assistant.organization)
-      );
-
-      setFilteredAssistants(filtered);
     }
-  }, [isLoaded, userMemberships, assistants]);
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-      </div>
-    );
-  }
-
-  if (!filteredAssistants.length) {
-    return <p>No assistants available for your organizations.</p>;
-  }
+  };
 
   return (
     <div className="space-y-4">
-      {filteredAssistants.map((assistant) => (
-        <div key={assistant.id} className="p-4 border rounded-md shadow">
-          <h2 className="text-lg font-semibold">{assistant.name}</h2>
-          <p className="text-sm text-muted-foreground">{assistant.prompt}</p>
-          <p className="text-xs text-muted-foreground">ID: {assistant.assistant_id}</p>
-        </div>
+      {assistants.map((assistant) => (
+        <Card key={assistant.id}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-primary" />
+                </div>
+                <span>{assistant.name}</span>
+              </div>
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteAssistant(assistant)}
+              className="text-red-500 hover:text-red-700"
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+        </Card>
       ))}
+      <DeleteAssistantDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={confirmDeleteAssistant}
+        assistantName={assistantToDelete?.name || ''}
+      />
     </div>
   );
-}
+};
+
