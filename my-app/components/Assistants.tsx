@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
@@ -48,6 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DeleteAssistantDialog } from '@/components/delete-assistant-dialog';
 import { Textarea } from './ui/textarea';
 
 interface Assistant {
@@ -68,6 +68,7 @@ export default function Assistants() {
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchAssistants = async () => {
     if (!selectedOrganizationId) return;
@@ -97,23 +98,32 @@ export default function Assistants() {
 
   const handleEditAssistant = async (updatedAssistant: Assistant) => {
     try {
+      // Log assistant data to debug
+      console.log('Assistant being edited:', updatedAssistant);
+      
+      // Use assistant_id instead of id for the API endpoint
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.id}/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${updatedAssistant.assistant_id}/`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedAssistant),
+          body: JSON.stringify({
+            name: updatedAssistant.name,
+            prompt: updatedAssistant.prompt,
+            assistant_id: updatedAssistant.assistant_id,
+            organization: updatedAssistant.organization
+          }),
         }
       );
-
+  
       if (!response.ok) throw new Error('Failed to edit assistant');
-
+  
       toast.success('Assistant updated successfully!');
       setIsEditDialogOpen(false);
       fetchAssistants();
     } catch (error) {
       console.error('Error editing assistant:', error);
-      toast.error('You failed to edit the assistant. Please try again.');
+      toast.error('Failed to edit the assistant. Please try again.');
     }
   };
 
@@ -125,7 +135,6 @@ export default function Assistants() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${id}/`,
         { method: 'DELETE' }
       );
-      console.log(response);
 
       if (!response.ok) throw new Error('Failed to delete assistant');
 
@@ -139,7 +148,6 @@ export default function Assistants() {
 
   const handleOrganizationChange = (orgId: string) => {
     setSelectedOrganizationId(orgId);
-    fetchAssistants();
   };
 
   useEffect(() => {
@@ -150,11 +158,11 @@ export default function Assistants() {
 
   const selectedOrg = userMemberships?.data?.find(
     membership => membership.organization.id === selectedOrganizationId
-  )
-
+  );
 
   return (
     <div className="space-y-4">
+      {/* Organization Select */}
       <div>
         <label className="block text-sm font-medium text-foreground mb-1">
           Organization
@@ -273,50 +281,84 @@ export default function Assistants() {
       <Card className="text-center py-12">
         <CardContent>
           <CardTitle className="mt-2">Select an Organization</CardTitle>
-          <CardDescription className="mt-1 font-medium">
+          <AlertDescription className="mt-1 font-medium">
             Please select an organization to view its assistants. If there is none; create one and go to playground to create widget using the assistant you created.
-          </CardDescription>
+          </AlertDescription>
         </CardContent>
       </Card>
     )}
 
       {/* Edit Assistant Dialog */}
       {selectedAssistant && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog 
+          open={isEditDialogOpen} 
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open)
+            if (!open) setSelectedAssistant(null)
+          }}
+        >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                Edit Assistant
-              </DialogTitle>
+              <DialogTitle>Edit Assistant</DialogTitle>
             </DialogHeader>
             <form
               onSubmit={(e) => {
-                e.preventDefault();
-                handleEditAssistant(selectedAssistant);
+                e.preventDefault()
+                if (selectedAssistant) {
+                  handleEditAssistant(selectedAssistant)
+                }
               }}
               className="space-y-4"
             >
               <Input
                 value={selectedAssistant.name}
-                onChange={(e) =>
-                  setSelectedAssistant((prev) => prev && { ...prev, name: e.target.value })
-                }
+                onChange={(e) => setSelectedAssistant((prev) => prev ? { ...prev, name: e.target.value } : null)}
                 placeholder="Assistant Name"
                 required
               />
               <Textarea
                 value={selectedAssistant.prompt}
-                onChange={(e) =>
-                  setSelectedAssistant((prev) => prev && { ...prev, prompt: e.target.value })
-                }
+                onChange={(e) => setSelectedAssistant((prev) => prev ? { ...prev, prompt: e.target.value } : null)}
                 placeholder="Prompt"
                 required
+                className="min-h-[100px]"
               />
-              <Button type="submit">
-                Save Changes</Button>
+              <Input
+                value={selectedAssistant.assistant_id}
+                onChange={(e) => setSelectedAssistant((prev) => prev ? { ...prev, assistant_id: e.target.value } : null)}
+                placeholder="Assistant ID"
+                required
+              />
+              <Select
+                value={selectedAssistant.organization}
+                onValueChange={(value) => setSelectedAssistant((prev) => prev ? { ...prev, organization_id: value } : null)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select an organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {isLoaded &&
+                      userMemberships?.data?.map((membership) => (
+                        <SelectItem key={membership.organization.id} value={membership.organization.id}>
+                          {membership.organization.name}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Button type="submit">Save Changes</Button>
             </form>
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* Delete Assistant Dialog */}
+      <DeleteAssistantDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={() => selectedAssistant && handleDeleteAssistant(selectedAssistant.id.toString())}
+        assistantName={selectedAssistant?.name || ''}
+      />
     </div>
   )}

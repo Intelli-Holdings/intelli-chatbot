@@ -35,6 +35,12 @@ const nextConfig = {
         port: '',
         pathname: '/v1/create-qr-code/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+        port: '',
+        pathname: '/*',
+      }
     ],
   },
   experimental: {
