@@ -12,7 +12,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MembersTable } from "./components/members-table"
 import { DeleteOrgDialog } from "./components/delete-org-dialog"
-import { InviteMemberDialog } from "./components/invite-member-dialog"
 import { InviteModal } from "../components/invite-modal"
 
 export default function OrganizationDetails({ params }: { params: { id: string } }) {
