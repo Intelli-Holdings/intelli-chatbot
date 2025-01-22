@@ -9,44 +9,62 @@ export const steps: Tours = [
       {
         icon: "👋",
         title: "Welcome to Intelli",
-        content: "This is your Command Center. You can get started with Intelli from here; Let's explore the main features.",
-        selector: "#step1",
+        content: "Command center is the heart of all your business interactions. Let’s get started!",
+        selector: "#onborda-step1",
         side: "left",
         showControls: true,
         showSkip: true
       },
       {
-        icon: "🔧",
-        title: "Create an Assistant",
-        content: "Once you create an organization/team you can create assistants; Assistants belong to organizations; start building your first assistant by clicking the arrow on this card.",
-        selector: "#step2",
+        icon: "🪄",
+        title: "Set Up Your Assistant",
+        content: "Upload information about your business, to enable the assistant to match your brand’s voice, and update details whenever you need.",
+        selector: "#onborda-step2",
         side: "right",
         showControls: true,
         showSkip: true
       },
       {
+        icon: "🌐",
+        title: "Add a Website Widget",
+        content: "Bring your assistant to life on your website! Customize its color, name, and greeting to reflect your brand and connect with your audience.",
+        selector: "#onborda-step3",
+        side: "right",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "📦",
+        title: "Connect to Whatsapp",
+        content: "Link your assistant to WhatsApp to handle inquiries. Watch as it manages conversations and simplifies communication behind the scenes.",
+        selector: "#onborda-step4",
+        side: "left",
+        showControls: true,
+        showSkip: true
+      },
+      {
         icon: "🔔",
-        title: "View Notifications",
-        content: "When customers send time sensitive messages; we route them to you via our webhook so you get them instantly without delay.This is where you resolve escalations.",
-        selector: "#step3",
+        title: "Stay Notified",
+        content: "Stay on top of time-sensitive messages with instant notifications. Resolve your customers’ concerns quickly and efficiently to keep them satisfied.",
+        selector: "#onborda-step5",
         side: "top",
         showControls: true,
         showSkip: true
       },
       {
         icon: "💬",
-        title: "View Conversations",
-        content: "This is pretty much your inbox; you can view messages between your customers and the assistant here. And access our features like takeover.",
-        selector: "#step4",
-        side: "top",
+        title: "Manage Conversations",
+        content: "Take control whenever needed. Use your inbox to view and respond to customer messages in real time.",
+        selector: "#onborda-step6",
+        side: "left",
         showControls: true,
         showSkip: true
       },
       {
         icon: "📊",
-        title: "View Your Analytics",
-        content: "Dive deep into how your organization uses Intelli with analytics; monitor messages, resolution times, engagement rates and sentiments.",
-        selector: "#step5",
+        title: "Track Your Analytics",
+        content: "Monitor essential metrics like response times, engagement rates, and customer satisfaction to improve your business performance.",
+        selector: "#onborda-step7",
         side: "top",
         showControls: true,
         showSkip: true

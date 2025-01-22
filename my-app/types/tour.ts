@@ -1,4 +1,5 @@
 // types/tour.ts
+import { ReactNode } from 'react';
 
 export type SidePosition = 
   | "bottom" 
@@ -14,15 +15,17 @@ export type SidePosition =
   | "right-top" 
   | "right-bottom";
 
-export interface Step {
-  icon: string;
-  title: string;
-  content: string;
-  selector: string;
-  side: SidePosition;
-  showControls: boolean;
-  showSkip: boolean;
-}
+
+  interface Step {
+    icon: ReactNode;  // Changed to ComponentType
+    title: string;  
+    content: string;  
+    selector: string;  
+    side: SidePosition;  
+    showControls: boolean;  
+    showSkip: boolean;  
+  }
+  
 
 export interface Tour {
   tour: string;

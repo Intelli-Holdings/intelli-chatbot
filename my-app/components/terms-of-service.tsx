@@ -6,7 +6,7 @@ export default function TermsOfService() {
 
   const termsHtml = `
     <h1 class="text-2xl font-bold mb-4">Terms of Service</h1>
-    <p><strong>Effective Date: November 01, 2024</strong></p>
+    <p><strong>Effective Date: January 14, 2025</strong></p>
     <p>Welcome to Intelli Holdings Inc, ("Intelli", "Intelli Concierge", "we", "our", "us"). These Terms of Service ("Terms") govern your use of our services...</p>
     
     <h2 class="text-xl font-semibold mt-6 mb-2">1. Definitions</h2>
@@ -31,13 +31,13 @@ export default function TermsOfService() {
           <tr>
             <td class="border-t border-gray-200 px-4 py-2">Web Widget</td>
             <td class="border-t border-gray-200 px-4 py-2">
-              Customizable widget, 1 inbox, 1 agent, Email support, 750,000 words limit, $8 per month...
+              Customizable AI website widget, 1 inbox, 1 human agent, Email support, 750,000 words limit, $15 per month...
             </td>
           </tr>
           <tr>
             <td class="border-t border-gray-200 px-4 py-2">WhatsApp</td>
             <td class="border-t border-gray-200 px-4 py-2">
-              Intelligent chatbot, 1 inbox, 5 agents, 1000 free chats, $20 per month, 250 new conversations/day...
+              AI Whatsapp assistant, 1 inbox, 5 human agents, 1000 free chats, $35 per month, 250 new conversations per day...
             </td>
           </tr>
         </tbody>
@@ -84,7 +84,8 @@ export default function TermsOfService() {
 
     <h2 class="text-xl font-semibold mt-6 mb-2">12. Contact Us</h2>
     <p>If you have any questions about these Terms, please contact us at:</p>
-     <p>Intelli Holdings Inc with a registered address at 3500 South Dupont Highway, City of Dover, County of Kent, Delaware 19901 (United States)</p> 
+     <p>Intelli Holdings Inc with a registered address in the State of Delaware at
+251 little Falls Drive, city of Wilmington, County of Newcastle, Delaware 19808</p> 
     <ul class="list-disc list-inside pl-6">
         
       <li>Email: support@intelliconcierge.com</li>
@@ -100,7 +101,7 @@ export default function TermsOfService() {
   `;
 
   const previousTermsHtml = `
-    <h1 class="text-2xl font-bold mb-4">Previous Terms of Service</h1>
+    <h1 class="text-2xl font-bold mb-4 ">Previous Terms of Service</h1>
     <p><strong>Effective Date: June 20, 2024</strong></p>
     <p>Welcome to Intelli Holdings Inc, ("Intelli", "Intelli Concierge", "we", "our", "us"). These Terms of Service ("Terms") govern your use of our services, including subscriptions to our Basic Web Widget and WhatsApp offerings. By using our services, you agree to these Terms. If you do not agree, please do not use our services.</p>
     

@@ -1,26 +1,40 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useUser, useOrganizationList, CreateOrganization } from "@clerk/nextjs";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useOrganizationList } from '@clerk/nextjs';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { CreateOrganization } from '@clerk/nextjs';
 
 const CreateOrganizationPopup = () => {
-  const { user } = useUser();
-  const { isLoaded, userMemberships } = useOrganizationList(); // Access the userMemberships field
+  const { userMemberships, isLoaded } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
   const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     if (isLoaded) {
       const hasOrganizations = userMemberships?.data?.length > 0;
-      const popupShown = localStorage.getItem('popupShown');
-
-      if (!hasOrganizations && !popupShown) {
+      
+      if (!hasOrganizations) {
+        // Only show popup if user has no organizations
         setTimeout(() => {
           setShowPopup(true);
-          localStorage.setItem('popupShown', 'true');
-        }, 10000); // Delay showing the popup by 10 seconds
+        }, 7000); // 7 second delay
       }
     }
   }, [isLoaded, userMemberships]);
+
+  // Don't render anything if user has organizations
+  if (userMemberships && userMemberships.data && userMemberships.data.length > 0) {
+    return null;
+  }
 
   return (
     <Dialog open={showPopup} onOpenChange={setShowPopup}>

@@ -1,27 +1,17 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Conversation } from "./types";
-import { format, parseISO, isToday, isYesterday } from "date-fns";
-import ConversationHeader from "./conversationsHeader";
-import MessageInput from "./messageInput";
-import { formatMessage } from "@/utils/formatMessage";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Download, MoreVertical, Share } from 'lucide-react';
-import {
-  exportToPDF,
-  exportToCSV,
-  exportToXLS,
-  exportContacts,
-} from "@/utils/exportUtils";
-import "./message-bubble.css";
+import React, { useState, useRef, useEffect } from 'react'
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Conversation } from './types'
+import { format, parseISO, isToday, isYesterday } from 'date-fns'
+import ConversationHeader from './conversationsHeader'
+import MessageInput from './messageInput'
+import { formatMessage } from '@/utils/formatMessage'
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Download, Share } from 'lucide-react'
+import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from '@/utils/exportUtils'
+import './message-bubble.css'
 
 interface ConversationViewProps {
   conversation: Conversation | null;
@@ -119,7 +109,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 
   const groupedMessages = groupMessagesByDate(conversation.messages);
 
-  const handleExport = (format: "pdf" | "csv" | "xls") => {
+  const handleExport = (format: 'pdf' | 'csv') => {
     switch (format) {
       case "pdf":
         exportToPDF(conversation);
@@ -127,14 +117,18 @@ const ConversationView: React.FC<ConversationViewProps> = ({
       case "csv":
         exportToCSV(conversation);
         break;
-      case "xls":
-        exportToXLS(conversation);
-        break;
     }
   };
 
-  const handleExportContacts = () => {
-    exportContacts(conversations);
+  const handleExportContacts = (format: 'pdf' | 'csv') => {
+    switch (format) {
+      case 'pdf':
+        exportContactsToPDF(conversations);
+        break;
+      case 'csv':
+        exportContactsToCSV(conversations);
+        break;
+    }
   };
 
   return (
@@ -153,21 +147,26 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onSelect={() => handleExport("pdf")}>
-              Share as PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handleExport("csv")}>
-              Share as CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => handleExport("xls")}>
-              Share as XLS
-            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleExport('pdf')}>Share as PDF</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleExport('csv')}>Share as CSV</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button onClick={handleExportContacts} variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
-          Download Contacts
-        </Button>
+        <DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="outline" size="sm">
+      <Download className="mr-2 h-4 w-4" />
+      Export Contacts
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent>
+    <DropdownMenuItem onSelect={() => handleExportContacts('pdf')}>
+      Export as PDF
+    </DropdownMenuItem>
+    <DropdownMenuItem onSelect={() => handleExportContacts('csv')}>
+      Export as CSV
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
       </div>
 
       <ScrollArea

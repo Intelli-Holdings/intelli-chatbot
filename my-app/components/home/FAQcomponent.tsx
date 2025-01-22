@@ -49,7 +49,7 @@ const FAQComponent: React.FC = () => {
           Frequently Asked Questions
         </h2>
 
-        <div className="mt-8 rounded-xl h-auto overflow-hidden shadow-md px-8 py-16">
+        <div className="mt-8 rounded-xl h-auto overflow-hidden border gray-100 px-8 py-16">
           <Accordion type="single" collapsible className="w-full">
             {faqData.map((item, index) => (
               <AccordionItem key={`item-${index + 1}`} value={`item-${index + 1}`}>

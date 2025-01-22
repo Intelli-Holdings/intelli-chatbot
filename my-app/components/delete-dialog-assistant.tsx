@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import React from 'react';
+import React from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,36 +10,32 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
 
 interface DeleteAssistantDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  assistantName: string;
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  assistantName: string
 }
 
-export function DeleteAssistantDialog({
-  isOpen,
-  onClose,
-  onConfirm,
-  assistantName,
-}: DeleteAssistantDialogProps) {
+export function DeleteAssistantDialog({ isOpen, onClose, onConfirm, assistantName }: DeleteAssistantDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the assistant
-            &quot;{assistantName}&quot; and remove its data from our servers.
+            This action cannot be undone. This will permanently delete the assistant &quot;{assistantName}&quot; and
+            remove its data from our servers.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Delete</AlertDialogAction>
+          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={onConfirm}>Proceed to Delete</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }
+
