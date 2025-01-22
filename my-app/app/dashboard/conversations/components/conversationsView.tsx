@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import React, { useState, useRef, useEffect } from 'react'
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -19,18 +19,27 @@ interface ConversationViewProps {
   phoneNumber: string;
 }
 
-const ConversationView: React.FC<ConversationViewProps> = ({ 
-  conversation, 
+const ConversationView: React.FC<ConversationViewProps> = ({
+  conversation,
   conversations,
-  phoneNumber 
+  phoneNumber,
 }) => {
+  const [expandedMessages, setExpandedMessages] = useState<number[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const dummyRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
+  const toggleMessage = (messageId: number) => {
+    setExpandedMessages((prev) =>
+      prev.includes(messageId)
+        ? prev.filter((id) => id !== messageId)
+        : [...prev, messageId]
+    );
+  };
+
   useEffect(() => {
     if (shouldAutoScroll && dummyRef.current) {
-      dummyRef.current.scrollIntoView({ behavior: 'smooth' });
+      dummyRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [conversation, shouldAutoScroll]);
 
@@ -42,18 +51,35 @@ const ConversationView: React.FC<ConversationViewProps> = ({
     }
   };
 
+  const handleDeleteMessage = (messageId: number) => {
+    // Implement delete logic here
+    console.log(`Delete message ${messageId}`);
+  };
+
+  const handleEditMessage = (messageId: number) => {
+    // Implement edit logic here
+    console.log(`Edit message ${messageId}`);
+  };
+
+  const handleCopyMessage = (messageId: number) => {
+    // Implement copy logic here
+    console.log(`Copy message ${messageId}`);
+  };
+
   if (!conversation) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 ">
-        <p className="text-muted-foreground">Select a conversation to view messages.</p>
+        <p className="text-muted-foreground">
+          Select a conversation to view messages.
+        </p>
       </div>
     );
   }
 
-  const groupMessagesByDate = (messages: Conversation['messages']) => {
-    const groups: { [key: string]: Conversation['messages'] } = {};
-    messages.forEach(message => {
-      const date = format(parseISO(message.created_at), 'yyyy-MM-dd');
+  const groupMessagesByDate = (messages: Conversation["messages"]) => {
+    const groups: { [key: string]: Conversation["messages"] } = {};
+    messages.forEach((message) => {
+      const date = format(parseISO(message.created_at), "yyyy-MM-dd");
       if (!groups[date]) {
         groups[date] = [];
       }
@@ -66,11 +92,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({
     const messageDate = parseISO(date);
     let dateString;
     if (isToday(messageDate)) {
-      dateString = 'Today';
+      dateString = "Today";
     } else if (isYesterday(messageDate)) {
-      dateString = 'Yesterday';
+      dateString = "Yesterday";
     } else {
-      dateString = format(messageDate, 'MMMM d, yyyy');
+      dateString = format(messageDate, "MMMM d, yyyy");
     }
     return (
       <div className="flex justify-center my-4">
@@ -85,10 +111,10 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 
   const handleExport = (format: 'pdf' | 'csv') => {
     switch (format) {
-      case 'pdf':
+      case "pdf":
         exportToPDF(conversation);
         break;
-      case 'csv':
+      case "csv":
         exportToCSV(conversation);
         break;
     }
@@ -107,9 +133,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 
   return (
     <div className="flex flex-col h-screen mx-auto py-4 border-l">
-      <ConversationHeader conversation={conversation} 
-        phoneNumber={phoneNumber} />
-      
+      <ConversationHeader
+        conversation={conversation}
+        phoneNumber={phoneNumber}
+      />
+
       <div className="flex justify-end space-x-1 px-1 py-1 bg-white border-b border-gray-100">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -140,37 +168,67 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   </DropdownMenuContent>
 </DropdownMenu>
       </div>
-      
-      <ScrollArea 
-        className="flex-1 p-4 overflow-y-auto bg-gray-50" 
+
+      <ScrollArea
+        className="flex-1 p-4 overflow-y-auto bg-gray-50"
         onScrollCapture={handleScroll}
         ref={scrollAreaRef}
       >
-        <div className="space-y-4 ">
+        <div className="space-y-4">
           {Object.entries(groupedMessages).map(([date, messages]) => (
             <div className="" key={date}>
               {renderDateSeparator(date)}
               {messages.map((message) => (
                 <div key={message.id} className="flex flex-col">
                   {message.content && (
-                    <div className="message-bubble message-customer">
+                    <div
+                      className={`message-bubble message-customer ${
+                        !expandedMessages.includes(message.id)
+                          ? "collapsed"
+                          : ""
+                      }`}
+                    >
                       <div className="message-tail message-tail-left" />
-                      <div className=" text-sm">
-                        {formatMessage(message.content)}
+                      <div className="text-sm">
+                        {formatMessage(
+                          message.content
+                        )}
                       </div>
                       <span className="text-[10px] text-white/80 mt-1 block">
-                        {format(parseISO(message.created_at), 'h:mm a')}
+                        {format(parseISO(message.created_at), "h:mm a")}
                       </span>
                     </div>
                   )}
+
                   {message.answer && (
-                    <div className={`message-bubble ${message.sender === 'ai' ? 'message-assistant' : 'message-human'}`}>
-                      <div className={`message-tail ${message.sender === 'ai' ? 'message-tail-right-assistant' : 'message-tail-right-human'}`} />
+                    <div
+                      className={`message-bubble ${
+                        message.sender === "ai"
+                          ? "message-assistant"
+                          : "message-human"
+                      }`}
+                    >
+                      <div
+                        className={`message-tail ${
+                          message.sender === "ai"
+                            ? "message-tail-right-assistant"
+                            : "message-tail-right-human"
+                        }`}
+                      />
                       <div className="text-sm">
-                        {formatMessage(message.answer)}
+                        {formatMessage(
+                          message.answer
+                        )}
                       </div>
-                      <span className={`text-[10px] ${message.sender === 'ai' ? 'text-black/60' : 'text-white/80'} mt-1 block`}>
-                        {format(parseISO(message.created_at), 'h:mm a')} - {message.sender === 'ai' ? 'AI' : 'Human'}
+                      <span
+                        className={`text-[10px] ${
+                          message.sender === "ai"
+                            ? "text-black/60"
+                            : "text-white/80"
+                        } mt-1 block`}
+                      >
+                        {format(parseISO(message.created_at), "h:mm a")} -{" "}
+                        {message.sender === "ai" ? "AI" : "Human"}
                       </span>
                     </div>
                   )}
@@ -180,12 +238,16 @@ const ConversationView: React.FC<ConversationViewProps> = ({
           ))}
         </div>
         <div ref={dummyRef} />
-      </ScrollArea>     
-      
-      <MessageInput customerNumber={conversation.customer_number || conversation.recipient_id} phoneNumber={phoneNumber} />
+      </ScrollArea>
+
+      <MessageInput
+        customerNumber={
+          conversation.customer_number || conversation.recipient_id
+        }
+        phoneNumber={phoneNumber}
+      />
     </div>
   );
-}
+};
 
 export default ConversationView;
-
