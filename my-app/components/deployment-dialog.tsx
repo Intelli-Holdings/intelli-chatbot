@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Loader2 } from 'lucide-react';
+import { Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface DeploymentDialogProps {
@@ -16,7 +16,11 @@ interface DeploymentDialogProps {
   websiteUrl: string;
 }
 
-export function DeploymentDialog({ onClose, widgetKey, websiteUrl }: DeploymentDialogProps) {
+export function DeploymentDialog({
+  onClose,
+  widgetKey,
+  websiteUrl,
+}: DeploymentDialogProps) {
   const [copied, setCopied] = useState<string>("");
   const [embeddingCode, setEmbeddingCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +68,9 @@ export function DeploymentDialog({ onClose, widgetKey, websiteUrl }: DeploymentD
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] sm:max-w-2xl mx-4 sm:mx-auto h-[90vh] sm:h-auto overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">Website Chat Widget</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">
+            Website Chat Widget
+          </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground mb-4 px-1">
           This will allow you to receive and respond to messages via your
@@ -72,9 +78,15 @@ export function DeploymentDialog({ onClose, widgetKey, websiteUrl }: DeploymentD
         </p>
         <Tabs defaultValue="html" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="html" className="text-xs sm:text-sm">HTML</TabsTrigger>
-            <TabsTrigger value="wordpress" className="text-xs sm:text-sm">WordPress</TabsTrigger>
-            <TabsTrigger value="nextjs" className="text-xs sm:text-sm">Next.js & React</TabsTrigger>
+            <TabsTrigger value="html" className="text-xs sm:text-sm">
+              HTML
+            </TabsTrigger>
+            <TabsTrigger value="wordpress" className="text-xs sm:text-sm">
+              WordPress
+            </TabsTrigger>
+            <TabsTrigger value="nextjs" className="text-xs sm:text-sm">
+              React
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="html">
@@ -134,23 +146,36 @@ export function DeploymentDialog({ onClose, widgetKey, websiteUrl }: DeploymentD
           </TabsContent>
 
           <TabsContent value="nextjs">
-            <div className="space-y-4">
-              <p className="text-sm px-1">
-                Install the package and add the widget to your Next.js or React
-                app:
+            <div className="space-y-6">
+              <h3 className="text-sm font-medium mb-2">
+                1. Install the package
+              </h3>
+              <pre className="bg-muted p-3 rounded-lg overflow-x-auto text-xs sm:text-sm font-mono">
+                npm install @intelli-inc/chat-widget
+              </pre>
+              <p className="text-xs text-muted-foreground mt-2">
+                Or using yarn:
               </p>
+              <pre className="bg-muted p-3 rounded-lg overflow-x-auto text-xs sm:text-sm font-mono">
+                yarn add @intelli-inc/chat-widget
+              </pre>
+              <h3 className="text-sm font-medium mb-2">
+                2. Add the widget to your app
+              </h3>
+
               <div className="relative">
                 <pre className="bg-muted p-3 sm:p-4 rounded-lg overflow-x-auto text-xs sm:text-sm font-mono whitespace-pre-wrap">
-                  {`npm install @intelli/chat-widget
+                  {`import { IntelliWidget } from '@intelli-inc/chat-widget'
 
-// In your layout.tsx or page where you want the widget
-import { IntelliWidget } from '@intelli/chat-widget'
-
-export default function Layout({ children }) {
+// Add this to your layout or page component
+export default function App() {
   return (
     <>
-      {children}
-      <IntelliWidget assistantId="${widgetKey}" />
+      <main>
+        {/* Your app content */}
+      </main>
+      <IntelliWidget 
+        assistantId="${widgetKey}"
     </>
   )
 }`}
@@ -160,16 +185,17 @@ export default function Layout({ children }) {
                   className="absolute top-2 right-2"
                   onClick={() =>
                     handleCopy(
-                      `npm install @intelli/chat-widget
+                      `import { IntelliWidget } from '@intelli-inc/chat-widget'
 
-// In your layout.tsx or page where you want the widget
-import { IntelliWidget } from '@intelli/chat-widget'
-
-export default function Layout({ children }) {
+// Add this to your layout or page component
+export default function App() {
   return (
     <>
-      {children}
-      <IntelliWidget assistantId="${widgetKey}" />
+      <main>
+        {/* Your app content */}
+      </main>
+      <IntelliWidget 
+        assistantId="${widgetKey}"
     </>
   )
 }`,
@@ -192,4 +218,3 @@ export default function Layout({ children }) {
     </Dialog>
   );
 }
-
