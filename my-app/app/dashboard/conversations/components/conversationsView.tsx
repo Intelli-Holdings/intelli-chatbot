@@ -9,7 +9,7 @@ import MessageInput from './messageInput'
 import { formatMessage } from '@/utils/formatMessage'
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Download, Share } from 'lucide-react'
+import { Download, Share, FileDown, FolderDown, Forward } from 'lucide-react'
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from '@/utils/exportUtils'
 import './message-bubble.css'
 
@@ -142,8 +142,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
-              <Share className="mr-2 h-4 w-4" />
-              Share Conversation
+              <Forward className="mr-2 h-4 w-4" />
+              Export Conversation
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
