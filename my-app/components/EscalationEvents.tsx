@@ -21,6 +21,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+
 import { toast } from "sonner";
 import { useOrganizationList } from "@clerk/nextjs";
 import { MoreVertical, Pencil, Trash, Loader2 } from "lucide-react";
@@ -180,10 +181,10 @@ export default function EscalationEvents() {
   };
 
   return (
-    <div className="space-y-8">     
+    <div className="space-y-8 pt-4">     
       <Card>
         <CardHeader className="flex justify-between mb-4">
-          <CardTitle>Select organization to view events</CardTitle>
+          <CardTitle>Select organization to view escalation events</CardTitle>
       
             <div className="flex items-center gap-4">
             <Select
@@ -205,13 +206,13 @@ export default function EscalationEvents() {
               </SelectContent>
             </Select>
             <Button
-              className="w-[140px]"
+              className="w-auto"
               onClick={() => {
               setEditingEvent(null);
               setIsDialogOpen(true);
               }}
             >
-              Create Event
+              Create Escalation Event
             </Button>
             </div>
         </CardHeader>
@@ -236,7 +237,7 @@ export default function EscalationEvents() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingEvent ? "Edit Event" : "Create Event"}
+              {editingEvent ? "Edit Escalation Event" : "Create Escalation Event"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -302,15 +303,15 @@ export default function EscalationEvents() {
                     {editingEvent ? "Updating..." : "Creating..."}
                   </>
                 ) : editingEvent ? (
-                  "Update Event"
+                  "Update "
                 ) : (
-                  "Create Event"
+                  "Create"
                 )}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
   );
 }
