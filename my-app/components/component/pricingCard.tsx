@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { RainbowButton } from "@/components/ui/rainbow-button";
+import { GradientButton } from "@/components/ui/gradient-button";
 import EnterpriseBookingModal from '@/components/EnterpriseBooking';
 
 interface PricingCardProps {
@@ -72,12 +72,12 @@ const PricingCard: React.FC<PricingCardProps> = ({
       
       {isEnterprise ? (
         <>
-          <RainbowButton
+          <GradientButton
             onClick={handleButtonClick}
             className="w-full flex justify-center items-center"
           >
             {buttonText}
-          </RainbowButton>
+          </GradientButton>
           <EnterpriseBookingModal 
             isOpen={isBookingModalOpen} 
             onClose={() => setIsBookingModalOpen(false)} 
@@ -86,7 +86,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
       ) : (
         <a
           href={link}
-          className={`w-full block text-center py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
+          className={`w-full block text-center py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.05] active:scale-[0.98] ${
             isRecommended
               ? 'bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-green-600 hover:to-green-700'
               : 'bg-gradient-to-r from-gray-800 to-gray-900 text-white font-semibold shadow-md hover:shadow-lg hover:from-gray-900 hover:to-black'
