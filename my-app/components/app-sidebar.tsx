@@ -12,6 +12,8 @@ import {
   MessageSquareDot,
   BellDot,
   PaintRoller,
+  Globe,
+  Globe2,
   ShieldQuestion,
   CalendarClock,
 } from "lucide-react";
@@ -50,6 +52,11 @@ const data = {
       title: "Playground",
       url: "/dashboard/playground",
       icon: PaintRoller,
+    },
+    {
+      title: "Widgets",
+      url: "/dashboard/widgets",
+      icon: Globe,
     },
     {
       title: "Conversations",
