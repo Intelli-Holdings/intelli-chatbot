@@ -12,6 +12,8 @@ import {
   MessageSquareDot,
   BellDot,
   PaintRoller,
+  Globe,
+  Globe2,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -48,6 +50,11 @@ const data = {
       title: "Playground",
       url: "/dashboard/playground",
       icon: PaintRoller,
+    },
+    {
+      title: "Widgets",
+      url: "/dashboard/widgets",
+      icon: Globe,
     },
     {
       title: "Conversations",
