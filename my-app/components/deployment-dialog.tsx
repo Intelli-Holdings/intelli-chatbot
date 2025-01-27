@@ -21,6 +21,8 @@ export function DeploymentDialog({ onClose, widgetKey, websiteUrl }: DeploymentD
   const [embeddingCode, setEmbeddingCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
+  
+
   useEffect(() => {
     const fetchEmbeddingCode = async () => {
       try {
@@ -64,7 +66,7 @@ export function DeploymentDialog({ onClose, widgetKey, websiteUrl }: DeploymentD
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] sm:max-w-2xl mx-4 sm:mx-auto h-[90vh] sm:h-auto overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">Website Chat Widget</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">Deployment Instructions</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground mb-4 px-1">
           This will allow you to receive and respond to messages via your
@@ -106,7 +108,7 @@ export function DeploymentDialog({ onClose, widgetKey, websiteUrl }: DeploymentD
           <TabsContent value="wordpress">
             <div className="space-y-4">
               <p className="text-sm px-1">
-                Copy the AI Assistant ID to Install On a WordPress Website using
+                Copy the Widget Key to configure your Website Widget using
                 the Intelli WordPress plugin.
               </p>
               <div className="relative">
