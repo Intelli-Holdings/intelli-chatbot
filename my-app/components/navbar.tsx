@@ -12,7 +12,6 @@ const navItems = [
     href: "#",
     subItems: [
       { label: "Whatsapp Assistant", href: "/whatsapp-assistant" },
-      { label: "Website Assistant", href: "/chat" }
     ],
   },
   {
