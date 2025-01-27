@@ -10,8 +10,8 @@ export function FooterComponent() {
   };
 
   return (
-    <footer className="relative flex flex-col bg-white text-black py-8 px-4 border rounded-3xl border-gray-200 shadow-md">
-       
+    <footer className="relative flex flex-col bg-white backdrop-blur-lg text-black py-8 px-4 border border-gray-200  rounded-3xl overflow-hidden shadow-md">
+       <Meteors number={30} />
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Contact Section */}
         <div className="space-y-4 text-center sm:text-left">

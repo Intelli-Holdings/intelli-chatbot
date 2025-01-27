@@ -14,6 +14,8 @@ import {
   PaintRoller,
   Globe,
   Globe2,
+  ShieldQuestion,
+  CalendarClock,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -81,6 +83,11 @@ const data = {
       title: "Organization",
       url: "/dashboard/organization",
       icon: Building2,
+    },
+    {
+      title: "Escalation Events",
+      url: "/dashboard/escalation-events",
+      icon: ShieldQuestion,
     },
   ],
 };

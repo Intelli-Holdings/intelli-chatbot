@@ -51,9 +51,9 @@ const PricingCard: React.FC<PricingCardProps> = ({
       )}
       <h3 className="text-xl font-bold mb-3">{title}</h3>
       <div className="flex items-baseline mb-2">
-        <span className="text-5xl font-bold">{price}</span>
+        <span className="text-4xl font-bold">{price}</span>
         {originalPrice && (
-          <span className="ml-2 text-sm line-through text-gray-500">{originalPrice}</span>
+          <span className="ml-2 text-xs line-through text-gray-500">{originalPrice}</span>
         )}
       </div>
       <p className="text-gray-600 mb-6">{description}</p>
