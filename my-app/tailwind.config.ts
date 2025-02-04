@@ -150,14 +150,14 @@ const config: Config = {
   					transform: 'rotatex(20deg) rotateZ(-20deg) skewX(20deg) translateZ(0) translateY(-100%)'
   				}
   			},
-  			shimmer: {
-  				'0%, 90%, 100%': {
-  					'background-position': 'calc(-100% - var(--shimmer-width)) 0'
-  				},
-  				'30%, 60%': {
-  					'background-position': 'calc(100% + var(--shimmer-width)) 0'
-  				}
-  			},
+			shimmer: {
+				'0%, 90%, 100%': {
+					'background-position': 'calc(-200% - var(--shimmer-width)) 0'
+				},
+				'30%, 60%': {
+					'background-position': 'calc(100% + var(--shimmer-width)) 0'
+				}
+			},
   			pulse: {
   				'0%, 100%': {
   					boxShadow: '0 0 10px 2px rgba(56, 189, 248, 0.6)'
