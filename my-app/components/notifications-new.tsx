@@ -1,30 +1,15 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell } from "lucide-react";
 import NotificationCard from '@/components/notification-card';
-import { NotificationMessage } from '@/types/notifications';
 import { useOrganization, useOrganizationList } from "@clerk/nextjs";
+import {toast} from 'sonner';
+import { NotificationMessage, TeamMember, ClerkMember } from '@/types/notification';
+import { number } from "zod";
 
-interface ClerkMember {
-  id: string;
-  publicUserData: {
-    firstName?: string | null;
-    lastName?: string | null;
-    imageUrl?: string | null;
-    identifier?: string | null;
-    userId?: string | null;
-  };
-  role: string;
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-  initials: React.ReactNode;
-  imageUrl: string;
-}
 
 interface NotificationContainerProps {
   notifications: NotificationMessage[];
@@ -62,7 +47,6 @@ const NotificationContainer: React.FC<NotificationContainerProps> = ({
 }: NotificationContainerProps) => {
   const { organization } = useOrganization();
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -86,34 +70,6 @@ const NotificationContainer: React.FC<NotificationContainerProps> = ({
     loadMembers();
   }, [organization]);
 
-  useEffect(() => {
-    if (organization?.id) {
-      const ws = new WebSocket(`ws://intelli-dev.onrender.com/ws/events/${organization.id}`);
-      
-      ws.onopen = () => {
-        console.log('WebSocket Connected');
-      };
-
-      ws.onmessage = (event) => {
-        const newNotification = JSON.parse(event.data);
-        // Handle incoming notifications
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket Error:', error);
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket Disconnected');
-      };
-
-      setSocket(ws);
-
-      return () => {
-        ws.close();
-      };
-    }
-  }, [organization?.id]);
 
   return (
     <Card className="w-full">
@@ -155,8 +111,50 @@ export default function Notifications() {
   });
   const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
+  useEffect(() => {
+    if (organization?.id) {
+      const ws = new WebSocket(`wss://intelli-dev.onrender.com/ws/events/${organization.id}`);
+      console.log(`WebSocket connecting to: wss://intelli-dev.onrender.com/ws/events/${organization.id}`);
+      
+
+      ws.onopen = () => {
+        console.log('WebSocket Connected');
+        toast.success('WebSocket Connected');
+      };
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log('WebSocket Message:', message);
+
+        // Handle only notification messages
+        if (message.type === 'notification') {
+          setNotifications(prev => [...prev, message]);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+        toast.error('WebSocket Error');
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket Disconnected');
+        toast.error('WebSocket Disconnected');
+      };
+
+      setSocket(ws);
+
+      return () => {
+        ws.close();
+        console.log('WebSocket Closed');
+        toast.info('WebSocket Closed');
+      };
+    }
+  }, [organization?.id]);
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -251,18 +249,7 @@ export default function Notifications() {
     }
   };
 
-  const loadAssignedNotifications = async (email: string) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/notifications/assigned/to/${email}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch assigned notifications');
-      }
-      const data = await response.json();
-      setNotifications(data);
-    } catch (error) {
-      console.error('Error loading assigned notifications:', error);
-    }
-  };
+  
 
   return (
     <div className="p-4">
