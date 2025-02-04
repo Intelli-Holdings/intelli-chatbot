@@ -10,6 +10,19 @@ export default function OnboardingFlow() {
     return (
         <div className="max-w-4xl mx-auto py-8 px-4">
             <h1 className="text-4xl font-bold mb-6">Intelli Customer Onboarding Process</h1>
+
+            <section className="mb-12">
+            <h2 className="text-2xl font-semibold mb-4">A visual representation of our onboarding process</h2>
+            <div className="mt-4 border-2 border-dashed border-gray-300 rounded-md p-4 text-center">
+                        <Image 
+                            src="/images/onboarding-flow.png"
+                            alt="Phone number setup process"
+                            width={800}
+                            height={400}
+                            className="mt-4 rounded-lg"
+                        />
+                        </div>
+                        </section>
             
             <section className="mb-12">
                 <h2 className="text-2xl font-semibold mb-4">1. Initial Setup</h2>
@@ -17,16 +30,8 @@ export default function OnboardingFlow() {
                     <div className="bg-muted p-6 rounded-lg">
                         <h3 className="text-xl font-medium mb-2">Request Dedicated Phone Number</h3>
                         <p>Request a dedicated phone number from the customer to be assigned to their Intelli WhatsApp assistant.</p>
-                        <Image 
-                            src="/images/onboarding-flow.png"
-                            alt="Phone number setup process"
-                            width={600}
-                            height={400}
-                            className="mt-4 rounded-lg"
-                        />
-                        <div className="mt-4 border-2 border-dashed border-gray-300 rounded-md p-4 text-center">
-                            Add phone number setup image
-                        </div>
+                        
+                       
                     </div>
 
                     <div className="bg-muted p-6 rounded-lg">
