@@ -71,10 +71,6 @@ export function UserNav() {
                   Profile
                   <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
                 </DropdownMenuItem>
-                <DropdownMenuItem >
-                  <Building2 className="mr-2 size-4" />
-                  Organizations
-                </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => signOut()}>
