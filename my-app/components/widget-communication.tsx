@@ -10,6 +10,7 @@ import { Send, X } from 'lucide-react';
 import { toast } from "sonner";
 
 interface WidgetCommunicationProps {
+  widgetKey: string;
   widgetName: string;
   avatarUrl: string;
   brandColor: string;
