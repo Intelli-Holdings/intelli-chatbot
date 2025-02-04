@@ -27,52 +27,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AssigneeSelector } from "@/components/notification-assign-selector";
 import { useOrganization, useOrganizationList } from "@clerk/nextjs";
-import {
-  OrganizationMembershipResource,
-  ClerkPaginatedResponse,
-} from "@clerk/types";
+import { NotificationMessage } from "@/types/notifications";
+import { ClerkMember } from "@/types/notification"; 
 
-type Customer = {
-  id: number;
-  customer_number?: string;
-  customer_name?: string;
-  visitor_id?: string;
-  visitor_email?: string;
-  visitor_name?: string;
-  visitor_phone?: string;
-};
-
-type Escalation = {
-  id: number;
-  name: string;
-  description: string;
-  system_name: string;
-};
-
-type NotificationMessage = {
-  type: string;
-  escalation: Escalation;
-  status: "pending" | "assigned" | "resolved";
-  channel: string;
-  message: string;
-  id: string;
-  resolved: boolean;
-  comment: string;
-  assignee: string;
-  customer: Customer;
-  created_at: string;
-};
-
-interface ClerkMember {
-  id: string;
-  publicUserData: {
-    firstName?: string | null;
-    lastName?: string | null;
-    imageUrl?: string | null;
-    identifier?: string | null;
-  };
-  role: string;
-}
 interface NotificationCardProps {
   message: NotificationMessage;
   onAssign: (userId: string) => Promise<void>;
@@ -124,7 +81,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     const loadMembers = async () => {
       if (organization) {
         const membersList = await organization.getMemberships({
-          pageSize: 20, // Adjust based on your needs
+          pageSize: 10, 
           initialPage: 1,
         });
 
@@ -151,8 +108,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       : [...selectedAssignees, assigneeId];
 
     setSelectedAssignees(newSelection);
-
-    // Update the parent state and backend
     await onAssign(assigneeId);
   };
 
