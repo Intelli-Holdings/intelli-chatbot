@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export default function WebsiteWidgetPage() {
     return (
         <main className="max-w-3xl mx-auto">
-            <h1 className="text-4xl font-bold mb-6">🌐 Creating a Website Widget</h1>
+            <h1 className="mb-6 text-4xl font-bold text-[#007fff]">🌐 Creating a Website Widget</h1>
             <p className="text-xl mb-4">
                 Follow these steps to create and deploy a website widget for your assistant.
             </p>
