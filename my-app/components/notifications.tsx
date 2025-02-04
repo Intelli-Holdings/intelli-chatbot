@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell } from 'lucide-react';
 import { NotificationItem } from "@/components/notification-item";
+import { toast } from "sonner";
 
 interface Notification {
   id: string;
@@ -75,11 +76,13 @@ export default function NotificationsComponent() {
 
     socket.onopen = () => {
       console.log("WebSocket connection established");
+      toast.success("WebSocket connection established");
     };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       console.log("Message from server:", data);
+
 
       const newNotification: Notification = {
         id: Date.now().toString(),
@@ -103,10 +106,12 @@ export default function NotificationsComponent() {
 
     socket.onerror = (error) => {
       console.error("WebSocket error:", error);
+      toast.error("WebSocket error");
     };
 
     socket.onclose = () => {
       console.log("WebSocket connection closed");
+      toast.info("WebSocket connection closed");
     };
 
     return () => {

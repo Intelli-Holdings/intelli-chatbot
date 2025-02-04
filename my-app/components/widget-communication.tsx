@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useOrganizationList } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,7 +23,6 @@ interface Message {
 }
 
 export function WidgetCommunication({
-  widgetKey,
   widgetName,
   avatarUrl,
   brandColor,
@@ -33,24 +33,14 @@ export function WidgetCommunication({
   const [showWelcomeDialog, setShowWelcomeDialog] = useState<boolean>(true);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const socketRef = useRef<WebSocket | null>(null);
+  const { isLoaded, userMemberships } = useOrganizationList();
 
-  useEffect(() => {
-    if (widgetKey) {
-      connectToWidget();
-    }
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-    };
-  }, [widgetKey]);
-
-  const connectToWidget = () => {
-    const socket = new WebSocket(`wss://your-websocket-url.com/widget/${widgetKey}`);
+  const connectToWidget = useCallback((organizationId: string) => {
+    const socket = new WebSocket(`ws://intelli-python-backend-lxui.onrender.com/ws/business/chat/${organizationId}/`);
 
     socket.onopen = () => {
       setIsConnected(true);
-      toast.success("You are successfully connected to widget. You can now chat.");
+      toast.success("You are successfully connected to the widget. You can now chat.");
     };
 
     socket.onmessage = (event) => {
@@ -60,11 +50,11 @@ export function WidgetCommunication({
 
     socket.onclose = () => {
       setIsConnected(false);
-      toast.error("Disconnected from widget");
+      toast.error("Disconnected from the widget");
     };
 
     socketRef.current = socket;
-  };
+  }, []);
 
   const handleSendMessage = () => {
     if (newMessage && isConnected) {
@@ -76,6 +66,22 @@ export function WidgetCommunication({
       toast.info("You are not yet connected to the widget. Please try again.");
     }
   };
+
+  useEffect(() => {
+    if (isLoaded && userMemberships.data.length > 0) {
+      // Select the first organization ID as an example
+      const organizationId = userMemberships.data[0].organization.id;
+      connectToWidget(organizationId);
+    } else {
+      toast.error("No organizations found for the user.");
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
+  }, [isLoaded, useOrganizationList, connectToWidget]);
 
   return (
     <div className="flex flex-col w-full max-w-[400px] mx-auto bg-white rounded-xl overflow-hidden shadow-md">
@@ -174,4 +180,3 @@ export function WidgetCommunication({
     </div>
   );
 }
-

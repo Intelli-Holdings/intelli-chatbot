@@ -1,13 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { useOrganizationList, useUser } from "@clerk/nextjs"
-import { Search, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useOrganizationList, } from "@clerk/nextjs"
+import { Search, } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +30,7 @@ export default function ManageOrganizations() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const isAdmin = useIsOrgAdmin()
 
-  const { isLoaded, userMemberships } = useOrganizationList({
+  const { isLoaded, userMemberships, setActive } = useOrganizationList({
     userMemberships: {
       infinite: true,
     },
@@ -107,10 +105,13 @@ export default function ManageOrganizations() {
         <TableBody>
           {filteredOrganizations?.map((mem) => (
             <TableRow
-              key={mem.organization.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => router.push(`/dashboard/organization/${mem.organization.id}`)}
-            >
+            key={mem.organization.id}
+            className="cursor-pointer hover:bg-muted/50"
+            onClick={async () => {
+              await setActive({ organization: mem.organization.id });
+              router.push(`/dashboard/organization/${mem.organization.id}`);
+            }}
+          >
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
                   {mem.organization.imageUrl ? (

@@ -2,17 +2,21 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // Define routes that should be protected
 const isProtectedRoute = createRouteMatcher([
-  // '/demo',
-  // '/chat',
+   '/demo',
+   '/chat',
   '/dashboard',
 
-  '/dashboard/reservations',
+  '/dashboard/assistants',
+  '/dashboard/playground',
+  '/dashboard/widgets',
+  '/dashboard/channels',
+
   '/dashboard/analytics',
   '/dashboard/assistants',
-  '/dashboard/billing',
+  '/dashboard/escalation-events',
 
    '/dashboard/conversations',
-   '/dashboard/conversations/elli',  
+   '/dashboard/conversations/website',  
    '/dashboard/conversations/email',
    '/dashboard/conversations/voice-assistant',
    '/dashboard/conversations/whatsapp',
@@ -27,6 +31,8 @@ const isProtectedRoute = createRouteMatcher([
    '/dashboard/get-started',
 
    '/dashboard/notifications',
+   
+   '/dashboard/employees',
   '/dashboard/organization',
   '/dashboard/settings',
   '/dashboard/employees',
