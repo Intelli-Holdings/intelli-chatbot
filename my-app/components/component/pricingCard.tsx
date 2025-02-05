@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { RainbowButton } from "@/components/ui/rainbow-button";
+import { GradientButton } from "@/components/ui/gradient-button";
 import EnterpriseBookingModal from '@/components/EnterpriseBooking';
 
 interface PricingCardProps {
@@ -72,12 +72,12 @@ const PricingCard: React.FC<PricingCardProps> = ({
       
       {isEnterprise ? (
         <>
-          <RainbowButton
+          <GradientButton
             onClick={handleButtonClick}
             className="w-full flex justify-center items-center"
           >
             {buttonText}
-          </RainbowButton>
+          </GradientButton>
           <EnterpriseBookingModal 
             isOpen={isBookingModalOpen} 
             onClose={() => setIsBookingModalOpen(false)} 

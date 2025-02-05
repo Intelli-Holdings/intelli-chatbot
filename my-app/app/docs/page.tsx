@@ -1,141 +1,57 @@
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
-import { MDXRemote } from 'next-mdx-remote/rsc';
-import { mdxComponents } from './mdx-components';
-import Link from 'next/link';
+import type { Metadata } from "next"
 
-interface DocFile {
-  slug: string;
-  frontMatter: {
-    title: string;
-    description?: string;
-    order?: number;
-  };
-  content: string;
+export const metadata: Metadata = {
+  title: "Welcome to Intelli | Documentation",
+  description: "Get started with Intelli, your AI-powered business assistant",
 }
 
-function getAllMdxFiles(dirPath: string): DocFile[] {
-  const files = fs.readdirSync(dirPath);
-  const mdxFiles: DocFile[] = [];
-
-  files.forEach((file) => {
-    const filePath = path.join(dirPath, file);
-    const stat = fs.statSync(filePath);
-
-    if (stat.isDirectory()) {
-      // Recursively search subdirectories
-      const subDirFiles = getAllMdxFiles(filePath);
-      mdxFiles.push(...subDirFiles);
-    } else if (file.endsWith('.mdx')) {
-      const fileContents = fs.readFileSync(filePath, 'utf8');
-      const { data, content } = matter(fileContents);
-
-      mdxFiles.push({
-        slug: file.replace('.mdx', ''),
-        frontMatter: {
-          title: data.title || file.replace('.mdx', ''),
-          description: data.description || '',
-          order: data.order || 0,
-        },
-        content,
-      });
-    }
-  });
-
-  // Sort files by order
-  return mdxFiles.sort((a, b) => (a.frontMatter.order || 0) - (b.frontMatter.order || 0));
-}
-
-export default async function DocsPage({
-  searchParams,
-}: {
-  searchParams: { page?: string };
-}) {
-  const docsDirectory = path.join(process.cwd(), 'app', 'docs');
-  const mdxFiles = getAllMdxFiles(docsDirectory);
-
-  // Start with introduction.mdx or first page
-  const currentPage = searchParams.page || 'introduction';
-  const currentDoc = mdxFiles.find(doc => doc.slug.toLowerCase() === currentPage.toLowerCase());
-
-  // Get next and previous docs
-  const currentIndex = mdxFiles.findIndex(doc => doc.slug.toLowerCase() === currentPage.toLowerCase());
-  const prevDoc = currentIndex > 0 ? mdxFiles[currentIndex - 1] : null;
-  const nextDoc = currentIndex < mdxFiles.length - 1 ? mdxFiles[currentIndex + 1] : null;
-
-  if (!currentDoc) {
-    return <div>Document not found</div>;
-  }
-
+export default function Home() {
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-4xl mx-auto px-6 py-8">
-        <article className="mb-16 bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-          {/* Page Header */}
-          <header className="bg-gray-100 dark:bg-gray-700 p-6 border-b border-gray-200 dark:border-gray-600">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {currentDoc.frontMatter.title}
-            </h1>
-            {currentDoc.frontMatter.description && (
-              <p className="text-gray-600 dark:text-gray-300">
-                {currentDoc.frontMatter.description}
-              </p>
-            )}
-          </header>
-
-          {/* MDX Content */}
-          <div className="prose prose-lg prose-blue dark:prose-invert p-6">
-            <MDXRemote source={currentDoc.content} components={mdxComponents} />
-          </div>
-
-          {/* Pagination */}
-          <div className="flex justify-between p-6 border-t border-gray-200 dark:border-gray-700">
-            {prevDoc && (
-              <Link 
-                href={`/docs?page=${prevDoc.slug}`} 
-                className="flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600"
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-5 w-5 mr-2" 
-                  viewBox="0 0 20 20" 
-                  fill="currentColor"
-                >
-                  <path 
-                    fillRule="evenodd" 
-                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" 
-                    clipRule="evenodd" 
-                  />
-                </svg>
-                {prevDoc.frontMatter.title}
-              </Link>
-            )}
-            
-            {nextDoc && (
-              <Link 
-                href={`/docs?page=${nextDoc.slug}`} 
-                className="ml-auto flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-600"
-              >
-                {nextDoc.frontMatter.title}
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  className="h-5 w-5 ml-2" 
-                  viewBox="0 0 20 20" 
-                  fill="currentColor"
-                >
-                  <path 
-                    fillRule="evenodd" 
-                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" 
-                    clipRule="evenodd" 
-                  />
-                </svg>
-              </Link>
-            )}
-          </div>
-        </article>
-      </main>
-    </div>
-  );
+    <main className="mx-auto max-w-3xl">
+      <h1 className="mb-6 text-4xl font-bold text-[#007fff]">👋 Welcome to Intelli</h1>
+      <p className="mb-4">
+        Welcome to your Command Center—the heart of all your business interactions. From here, you&apos;ll manage everything
+        to create a seamless experience for your customers. Let&apos;s get started!
+      </p>
+      <h2 className="mb-4 mt-8 text-2xl font-semibold">Key Features</h2>
+      <ul className="mb-4 list-inside list-disc space-y-2">
+        <li>
+          <strong>Set Up Your Assistant:</strong> Upload information about your business, customize the assistant&apos;s
+          prompts to match your brand&apos;s voice, and update details easily whenever your needs change.
+        </li>
+        <li>
+          <strong>Add a Website Widget:</strong> Bring your assistant to life on your website! Customize its color,
+          name, and greeting to reflect your brand and connect with your audience.
+        </li>
+        <li>
+          <strong>Connect to WhatsApp:</strong> Link your assistant to WhatsApp to handle inquiries effortlessly. Watch
+          as it manages conversations and simplifies communication behind the scenes.
+        </li>
+        <li>
+          <strong>Stay Notified:</strong> Stay on top of time-sensitive messages with instant notifications. Resolve
+          your customers&apos; concerns quickly and efficiently to keep them satisfied.
+        </li>
+        <li>
+          <strong>Manage Conversations:</strong> Take control whenever needed. Use your inbox to view and respond to
+          customer messages in real time, stepping in to guide the conversation when necessary.
+        </li>
+        <li>
+          <strong>Track Your Analytics:</strong> Monitor essential metrics like response times, engagement rates, and
+          customer satisfaction. Use this data to continuously improve your business performance.
+        </li>
+      </ul>
+      <h2 className="mb-4 mt-8 text-2xl font-semibold">Getting Started</h2>
+      <p className="mb-4">
+        To get started with Intelli, navigate through the sections using the sidebar on the left. Each section provides
+        detailed information on how to set up and use the various features of Intelli.
+      </p>
+      <h2 className="mb-4 mt-8 text-2xl font-semibold">For Developers</h2>
+      <p className="mb-4">
+        If you&apos;re a developer looking to integrate Intelli into your applications, check out our Developer Documentation
+        section in the sidebar. You&apos;ll find detailed information about our API, assistant creation workflow, and
+        onboarding flow.
+      </p>
+    </main>
+  )
 }
+
