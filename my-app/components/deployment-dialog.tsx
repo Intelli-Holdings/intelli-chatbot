@@ -31,7 +31,7 @@ export function DeploymentDialog({
     const fetchEmbeddingCode = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/${widgetKey}/embedding-code/`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/widget/${widgetKey}/embedding-code/`
         );
         if (!response.ok) throw new Error("Failed to fetch embedding code");
         const data = await response.json();
