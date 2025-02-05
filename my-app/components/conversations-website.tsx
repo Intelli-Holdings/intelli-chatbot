@@ -73,12 +73,13 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
                         onMouseEnter={() => setShowDropdown(true)}
                         onMouseLeave={() => setShowDropdown(false)}
                     >
-                        <Card className="hover:bg-accent transition-colors duration-200 cursor-pointer">
+                         <Link href="/dashboard/conversations/website">
+                         <Card className="hover:bg-accent transition-colors duration-200 cursor-pointer">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">
                                     Website Widget Conversations
                                 </CardTitle>
-                                <div className="w-4 h-4 rounded-lg flex items-center justify-center bg-white shadow-md">
+                                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-md">
                                     <Globe className="h-4 w-4 text-muted-foreground" />                                    
                                 </div>
                             </CardHeader>
@@ -90,8 +91,12 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
                                 </p>
                             </CardContent>
                         </Card>
+                         </Link>
+                        
                         {showDropdown && (
-                            <div className="absolute top-full left-0 w-full bg-white shadow-md rounded-md z-20">
+                            <div 
+                            onClick={(e) => e.stopPropagation()} 
+                            className="absolute top-full left-0 w-full bg-white shadow-md rounded-md z-20">
                             {Array.isArray(widgets) && widgets.map((widget) => (
                                 <div
                                     key={widget.id}
@@ -108,7 +113,7 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
                     </div>
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>Click to switch widgets</p>
+                    <p>Hover to see widgets; Click card to visit conversations</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
