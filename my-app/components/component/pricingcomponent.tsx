@@ -95,7 +95,7 @@ const PricingComponent = () => {
             >
               Annual
               {isAnnual && (
-                <span className="ml-4 text-xs font-medium text-blue-500">8% discount</span>
+                <span className="ml-4 text-xs font-medium text-blue-500">-2months</span>
               )}
             </button>
           </div>
