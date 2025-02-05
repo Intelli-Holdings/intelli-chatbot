@@ -38,28 +38,40 @@ const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
 
 const inter = Inter ({ subsets: ["latin"] });
 const manrope = Manrope ({ subsets: ["latin"] });
-<link
+<><link
   rel="icon"
   href="/icon.ico"
   type="image/ico"
-  sizes="16x16"
-/>
-export const metadata: Metadata = {
-  title: "Intelli - Effortless Customer Support ",
-  description: "Intelli is a Customer Support Platform that streamlines conversations and interactions between businesses and their customers across multiple channels using AI. Our AI SDK can be integrated into your website, whatsapp, Instagram and other social media platforms to handle inquiries and help your business to never miss a customer message.",
-  
-  icons: {
-    icon: '/icon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png'
-  },
+  sizes="16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024" /><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /><link rel="icon" type="image/svg+xml" href="/icon.svg" /></>
+
+export const metadata = {
+  title: 'Intelli - Effortless Customer Support',
+  description: 'Intelli is a Customer Support Platform that streamlines conversations and interactions between businesses and their customers across multiple channels using AI.',
   openGraph: {
     title: 'Intelli',
     description: 'Effortless intelligent customer support for your business.',
-    images: '/Intelli.svg', 
+    images: [
+      {
+        url: 'https://www.intelliconcierge.com/api/og', // URL to your dynamically generated OG image
+        width: 1200,    // Specify the width of your image
+        height: 630,    // Specify the height of your image
+        alt: 'An alternative text for the image',
+      },
+    ],
   },
-  keywords: ["Increase Lead Conversions", "Intelligent Chatbot", "Global Leader", "Omichannel ", "Automate your sales and customer support", "Put Customer Inquiries on Autopilot", "RPA", "Automation", "Customer Support", "Customer Service", "Customer Experience", "CX", "Customer Success", "Customer Satisfaction", "Customer Feedback", "Customer Journey", "Customer Relationship", "Customer Loyalty", "Customer Retention", "Customer Acquisition", "Customer Engagement", "Customer Advocacy", "Customer Lifetime Value", "Customer Churn", "Customer Segmentation", "Customer Persona", "Customer Data", "Customer Analytics", "Customer Insights", "Customer Intelligence", "Customer Feedback", "Customer Survey", "Customer Review", "Customer Testimonial", "Customer Complaint", "Customer Query", "Customer Request", "Customer Ticket", "Customer Case", "Customer Issue", "Customer Problem", "Customer Solution", "Customer Satisfaction Score", "Customer Effort Score", "Net Promoter Score", "Customer Journey Map", "Customer Persona", "Customer Data Platform", "Customer Relationship Management", "Customer Experience Management", "Customer Success Management", "Customer Support Management", "Customer Service Management", "Customer Feedback Management", "Customer Survey Management", "Customer Review Management", "Customer Testimonial Management", "Customer Complaint Management", "Customer Query Management", "Customer Request Management", "Customer Ticket Management", "Customer Case Management"]
-
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Intelli',
+    description: 'Effortless intelligent customer support for your business.',
+    images: [
+      {
+        url: 'https://www.intelliconcierge.com/api/og', // URL to your dynamically generated OG image
+        width: 1200,
+        height: 630,
+        alt: 'An alternative text for the image',
+      },
+    ],
+  },
 };
 
 
