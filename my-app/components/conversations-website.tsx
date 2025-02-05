@@ -45,10 +45,12 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
         if (!orgId) return;
         fetch(`${apiBaseUrl}/widgets/organization/${orgId}/all/`)
             .then((res) => res.json())
-            .then((data) => {
-                setWidgets(data);
-                if (data.length > 0) {
-                    setSelectedWidget(data[0]);
+            .then((data: Widget[]) => {
+                // Ensure data is array or default to empty array
+                const widgetArray = Array.isArray(data) ? data : [];
+                setWidgets(widgetArray);
+                if (widgetArray.length > 0) {
+                    setSelectedWidget(widgetArray[0]);
                 }
             })
             .catch((error) => console.error("Error fetching widgets:", error));
@@ -90,18 +92,18 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
                         </Card>
                         {showDropdown && (
                             <div className="absolute top-full left-0 w-full bg-white shadow-md rounded-md z-20">
-                                {widgets.map((widget) => (
-                                    <div
-                                        key={widget.id}
-                                        className={`p-2 text-sm hover:bg-gray-100 cursor-pointer ${
-                                            selectedWidget?.id === widget.id ? "font-bold" : ""
-                                        }`}
-                                        onClick={() => setSelectedWidget(widget)}
-                                    >
-                                        {widget.widget_name}
-                                    </div>
-                                ))}
-                            </div>
+                            {Array.isArray(widgets) && widgets.map((widget) => (
+                                <div
+                                    key={widget.id}
+                                    className={`p-2 text-sm hover:bg-gray-100 cursor-pointer ${
+                                        selectedWidget?.id === widget.id ? "font-bold" : ""
+                                    }`}
+                                    onClick={() => setSelectedWidget(widget)}
+                                >
+                                    {widget.widget_name}
+                                </div>
+                            ))}
+                        </div>
                         )}
                     </div>
                 </TooltipTrigger>
