@@ -54,12 +54,6 @@ export const useNotifications = () => {
         const timeoutDuration = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
         reconnectAttempts.current += 1;
         
-        // Show reconnecting toast
-        toastIdRef.current = toast.loading(
-          `Reconnecting to notification service... (${reconnectAttempts.current}/${maxReconnectAttempts})`, {
-          duration: timeoutDuration + 1000, // Add 1 second to ensure toast stays visible
-        });
-        
         reconnectTimeoutRef.current = setTimeout(() => {
           connect();
         }, timeoutDuration);
