@@ -112,7 +112,7 @@ export default function WebsiteConvosPage() {
   const fetchWidgets = async (orgId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/widgets/${orgId}/all/`);
+      const response = await fetch(`${API_BASE_URL}/widgets/organization/${orgId}/all/`);
       if (!response.ok) {
         throw new Error(`Failed to fetch widgets: ${response.statusText}`);
         
@@ -144,7 +144,7 @@ export default function WebsiteConvosPage() {
       setError(null);
       try {
         const response = await fetch(
-          `${API_BASE_URL}/widgets/${selectedWidgetKey}/visitors/`
+          `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/visitors/`
         );
         if (!response.ok) {
           throw new Error(
@@ -229,7 +229,7 @@ export default function WebsiteConvosPage() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/widgets/${selectedWidgetKey}/visitors/${selectedVisitor.visitor_id}/reply`,
+        `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/visitors/${selectedVisitor.visitor_id}/reply`,
         {
           method: "POST",
           headers: {
