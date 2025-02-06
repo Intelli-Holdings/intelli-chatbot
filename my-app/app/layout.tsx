@@ -50,11 +50,13 @@ export const metadata = {
   openGraph: {
     title: 'Intelli',
     description: 'Effortless intelligent customer support for your business.',
+    type: 'website',
+    author: 'Intelli',
     images: [
       {
-        url: 'https://www.intelliconcierge.com/api/og', // URL to your dynamically generated OG image
-        width: 1200,    // Specify the width of your image
-        height: 630,    // Specify the height of your image
+        url: 'https://www.intelliconcierge.com/api/og', 
+        width: 1200,  
+        height: 630,   
         alt: 'An alternative text for the image',
       },
     ],
@@ -63,9 +65,10 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Intelli',
     description: 'Effortless intelligent customer support for your business.',
+    author: 'Intelli',
     images: [
       {
-        url: 'https://www.intelliconcierge.com/api/og', // URL to your dynamically generated OG image
+        url: 'https://www.intelliconcierge.com/api/og', 
         width: 1200,
         height: 630,
         alt: 'An alternative text for the image',
