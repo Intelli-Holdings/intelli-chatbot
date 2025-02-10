@@ -53,7 +53,6 @@ const Widgets = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState<string>("");
-
   const activeOrganizationId = useActiveOrganizationId();
 
   useEffect(() => {

@@ -72,42 +72,64 @@ interface Message {
   timestamp: string;
 }
 
-async function fetchAppServices(userEmail: string): Promise<AppService[]> {
+async function fetchChatSessions(phoneNumber: string): Promise<ChatSession[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/list/${userEmail}/`);
+    const res = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
     return await res.json();
+  } catch (error) {
+    console.error("Failed to fetch chat sessions:", error);
+    return [];
+  }
+}
+
+async function fetchAppServices(orgId: string): Promise<AppService[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/appservice/org/${orgId}/appservices/`);
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    const appServices = await res.json();
+
+    // Fetch chat sessions for each phone number
+    for (const service of appServices) {
+      if (service.phone_number) {
+        service.chatsessions = await fetchChatSessions(service.phone_number);
+      }
+    }
+
+    return appServices;
   } catch (error) {
     console.error("Failed to fetch app services:", error);
     return [];
   }
 }
 
-function StatsCards({ userEmail }: { userEmail: string }) {
+function StatsCards() {
   const [appServices, setAppServices] = useState<AppService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const orgId = useActiveOrganizationId();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!orgId) return; 
       try {
-        const appServicesData = await fetchAppServices(userEmail);
+        const appServicesData = await fetchAppServices(orgId);
         setAppServices(appServicesData);
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
-        setAppServices([]);
-      } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [userEmail, orgId]);
+  }, [orgId]);
 
   const totalWhatsAppConversations = appServices.reduce(
-    (total, service) => total + service.chatsessions.length,
+    (total, service) => total + (service.chatsessions?.length || 0),
     0
   );
 
@@ -163,7 +185,7 @@ export default function ConversationsPage() {
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <Suspense fallback={<p>Loading...</p>}>
-            <StatsCards userEmail={userEmail} />
+            <StatsCards/>
           </Suspense>
         </div>
       </main>
