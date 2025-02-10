@@ -7,8 +7,7 @@ export const useNotifications = () => {
   const { organization } = useOrganization();
   const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  
+  const [isConnected, setIsConnected] = useState(false);  
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 50;
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
