@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { formatDistanceToNow, format } from "date-fns";
-import { useOrganizationList } from '@clerk/nextjs';
 import { CountryInfo } from "@/components/country-info";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,9 +26,10 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Search, Settings, MoreVertical, ArrowUp } from 'lucide-react';
-import { toast } from 'sonner';
-import {marked} from 'marked';
+import { Search, Settings, MoreVertical, ArrowUp } from "lucide-react";
+import { toast } from "sonner";
+import { marked } from "marked";
+import useActiveOrganizationId from "@/hooks/use-organization-id";
 
 const markdownStyles = `
   .markdown-content {
@@ -52,7 +52,7 @@ const markdownStyles = `
   }
 `;
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_DEV_API_BASE_URL;
 
 interface Visitor {
   id: number;
@@ -102,22 +102,22 @@ export default function WebsiteConvosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
+  const [selectedOrganizationId, setSelectedOrganizationId] =
+    useState<string>("");
   const [markedLoaded, setMarkedLoaded] = useState(false);
+  const activeOrganizationId = useActiveOrganizationId();
 
-  const { userMemberships, isLoaded } = useOrganizationList({
-    userMemberships: { infinite: true },
-  });
+  const [isHumanSupport, setIsHumanSupport] = useState(false);
 
   const fetchWidgets = async (orgId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/widgets/organization/${orgId}/all/`);
+      const response = await fetch(
+        `${API_BASE_URL}/widgets/organization/${orgId}/all/`
+      );
       if (!response.ok) {
         throw new Error(`Failed to fetch widgets: ${response.statusText}`);
-        
       }
-      toast.error("Failed to load widgets.");
 
       const data = await response.json();
       setWidgets(data);
@@ -131,10 +131,11 @@ export default function WebsiteConvosPage() {
     }
   };
 
-  const handleOrganizationChange = (orgId: string) => {
-    setSelectedOrganizationId(orgId);
-    fetchWidgets(orgId);
-  };
+  useEffect(() => {
+    if (activeOrganizationId) {
+      fetchWidgets(activeOrganizationId);
+    }
+  }, [activeOrganizationId]);
 
   useEffect(() => {
     if (!selectedWidgetKey) return;
@@ -185,12 +186,12 @@ export default function WebsiteConvosPage() {
 
   useEffect(() => {
     // Add markdown styles
-    const styleElement = document.createElement('style');
+    const styleElement = document.createElement("style");
     styleElement.textContent = markdownStyles;
     document.head.appendChild(styleElement);
-    
+
     loadDependencies();
-    
+
     return () => {
       styleElement.remove();
     };
@@ -198,15 +199,15 @@ export default function WebsiteConvosPage() {
 
   const loadDependencies = () => {
     return new Promise<void>((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
       script.onload = () => {
         // Configure marked options for proper Markdown rendering
         marked.setOptions({
-         // sanitize: false, // Allow HTML to enable proper list rendering
+          // sanitize: false, // Allow HTML to enable proper list rendering
           breaks: true,
           gfm: true, // Enable GitHub Flavored Markdown
-         // headerIds: false, // Disable header IDs to keep it simple
+          // headerIds: false, // Disable header IDs to keep it simple
           //mangle: false // Disable mangling to preserve text
         });
         setMarkedLoaded(true);
@@ -228,14 +229,25 @@ export default function WebsiteConvosPage() {
     if (!selectedVisitor || !replyMessage.trim()) return;
 
     try {
+      // Get the last customer message (content) if available
+      const lastMessageContent =
+        selectedVisitor.messages[selectedVisitor.messages.length - 1]
+          ?.content || "";
+
+      const payload = {
+        action: "reply",
+        widget_key: selectedWidgetKey,
+        visitor_id: selectedVisitor.visitor_id,
+        message: lastMessageContent,
+        answer: replyMessage,
+      };
+
       const response = await fetch(
         `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/visitors/${selectedVisitor.visitor_id}/reply`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: replyMessage }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         }
       );
 
@@ -251,7 +263,7 @@ export default function WebsiteConvosPage() {
             ...prev.messages,
             {
               id: Date.now(),
-              content: "",
+              content: lastMessageContent,
               answer: replyMessage,
               timestamp: new Date().toISOString(),
             },
@@ -262,13 +274,44 @@ export default function WebsiteConvosPage() {
       setReplyMessage("");
     } catch (error) {
       console.error("Error sending reply:", error);
-      setError("Failed to send reply. Please try again.");
+      toast.error("Failed to send reply. Please try again.");
     }
   };
 
   const filteredVisitors = visitors.filter((visitor) =>
     visitor.visitor_id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleHandover = async () => {
+    if (!selectedVisitor) return;
+    const action = isHumanSupport ? "handover" : "takeover";
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/handover`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action,
+            widget_key: selectedWidgetKey,
+            visitor_id: selectedVisitor.visitor_id,
+          }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("There was a problem during takeover of AI support");
+      }
+      setIsHumanSupport(!isHumanSupport);
+      toast.success(
+        `Successfully ${
+          action === "takeover" ? "taken over" : "handed over"
+        } AI support`
+      );
+    } catch (e) {
+      console.error(e);
+      toast.error("Please try again to takeover support from AI");
+    }
+  };
 
   return (
     <div className="flex h-screen bg-white">
@@ -278,45 +321,25 @@ export default function WebsiteConvosPage() {
             <h2 className="text-xl font-bold">Website Widget Conversations</h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-60">
-              <Select value={selectedOrganizationId} onValueChange={handleOrganizationChange}>
-                <SelectTrigger className="p-2 border rounded">
-                  <SelectValue placeholder="Select an organization" />
-                </SelectTrigger>
-                <SelectContent>
-                  <ScrollArea className="h-60 rounded-md shadow-sm">
-                    <SelectGroup>
-                      {userMemberships?.data?.map((membership) => (
-                        <SelectItem
-                          key={membership.organization.id}
-                          value={membership.organization.id}
-                        >
-                          {membership.organization.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </ScrollArea>
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="w-60"></div>
             <div className="w-60">
               <Select
                 value={selectedWidgetKey}
                 onValueChange={setSelectedWidgetKey}
-                disabled={isLoading || !selectedOrganizationId}
+                disabled={isLoading || !useActiveOrganizationId}
               >
                 <SelectTrigger className="p-2 border rounded">
                   <SelectValue placeholder="Select a widget" />
                 </SelectTrigger>
                 <SelectContent>
                   <ScrollArea className="h-60 rounded-md shadow-sm">
-                  <SelectGroup>
-                    {widgets.map((widget) => (
-                      <SelectItem key={widget.id} value={widget.widget_key}>
-                        {widget.widget_name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
+                    <SelectGroup>
+                      {widgets.map((widget) => (
+                        <SelectItem key={widget.id} value={widget.widget_key}>
+                          {widget.widget_name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </ScrollArea>
                 </SelectContent>
               </Select>
@@ -384,7 +407,7 @@ export default function WebsiteConvosPage() {
           </aside>
 
           {/* Desktop Chat View - Hidden on mobile */}
-          <main className="flex-1 flex-col hidden sm:flex flex flex-col overflow-hidden">
+          <main className="flex-1 hidden sm:flex flex-col overflow-hidden">
             {selectedVisitor ? (
               <>
                 <div className="p-4 border-b flex justify-between items-center">
@@ -416,7 +439,11 @@ export default function WebsiteConvosPage() {
                             <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-green-200">
                               {/* eslint-disable-next-line react/no-danger */}
                               {markedLoaded ? (
-                                <div dangerouslySetInnerHTML={{ __html: marked(message.content) as string }} />
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html: marked(message.content) as string,
+                                  }}
+                                />
                               ) : (
                                 <p className="break-words">{message.content}</p>
                               )}
@@ -431,7 +458,11 @@ export default function WebsiteConvosPage() {
                             <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-blue-500 text-white">
                               {/* eslint-disable-next-line react/no-danger */}
                               {markedLoaded ? (
-                                <div dangerouslySetInnerHTML={{ __html: marked(message.answer) as string }} />
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html: marked(message.answer) as string,
+                                  }}
+                                />
                               ) : (
                                 <p className="break-words">{message.answer}</p>
                               )}
@@ -446,13 +477,31 @@ export default function WebsiteConvosPage() {
                   </div>
                 </ScrollArea>
                 <div className="p-4 border-t">
-                  <Card className="mx-2 border shadow-sm">
+                  <Card className="mx-2 border shadow-sm p-1">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="ml-1 border border-blue-200 rounded-lg shadow-md"
+                      onClick={handleHandover}
+                    >
+                      {isHumanSupport ? "Handover to AI" : "Takeover AI"}
+                    </Button>
+
+                    {isHumanSupport && (
+                      <div className="w-full bg-purple-100 text-red-700 p-3 text-center">
+                        <p>
+                          Remember to handover to AI when you&apos;re done
+                          sending messages.
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex items-center p-1">
                       <Input
                         placeholder="Reply to customer..."
                         value={replyMessage}
                         onChange={(e) => setReplyMessage(e.target.value)}
-                        className="w-full border-none"
+                        className="w-full"
                       />
                       <Button
                         type="submit"
@@ -501,9 +550,17 @@ export default function WebsiteConvosPage() {
                                 <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-gray-100">
                                   {/* eslint-disable-next-line react/no-danger */}
                                   {markedLoaded ? (
-                                    <div dangerouslySetInnerHTML={{ __html: marked(message.content) as string }} />
+                                    <div
+                                      dangerouslySetInnerHTML={{
+                                        __html: marked(
+                                          message.content
+                                        ) as string,
+                                      }}
+                                    />
                                   ) : (
-                                    <p className="break-words">{message.content}</p>
+                                    <p className="break-words">
+                                      {message.content}
+                                    </p>
                                   )}
                                   <p className="text-xs mt-1 text-gray-500">
                                     {formatDate(message.timestamp)}
@@ -516,9 +573,17 @@ export default function WebsiteConvosPage() {
                                 <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-blue-500 text-white">
                                   {/* eslint-disable-next-line react/no-danger */}
                                   {markedLoaded ? (
-                                    <div dangerouslySetInnerHTML={{ __html: marked(message.answer) as string }} />
+                                    <div
+                                      dangerouslySetInnerHTML={{
+                                        __html: marked(
+                                          message.answer
+                                        ) as string,
+                                      }}
+                                    />
                                   ) : (
-                                    <p className="break-words">{message.answer}</p>
+                                    <p className="break-words">
+                                      {message.answer}
+                                    </p>
                                   )}
                                   <p className="text-xs mt-1 text-blue-100">
                                     {formatDate(message.timestamp)}
@@ -532,6 +597,24 @@ export default function WebsiteConvosPage() {
                     </ScrollArea>
                     <div className="p-4 border-t bg-white">
                       <Card className="mx-2 border shadow-sm">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="ml-2 border border-blue-200 rounded-xl shadow-md"
+                          onClick={handleHandover}
+                        >
+                          {isHumanSupport ? "Handover to AI" : "Takeover AI"}
+                        </Button>
+
+                        {isHumanSupport && (
+                          <div className="w-full bg-purple-100 text-red-700 p-3 text-center">
+                            <p>
+                              Remember to handover to AI when you&apos;re done
+                              sending messages.
+                            </p>
+                          </div>
+                        )}
+
                         <div className="flex items-center p-1">
                           <Input
                             placeholder="Reply to customer..."
