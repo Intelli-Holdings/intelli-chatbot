@@ -102,8 +102,6 @@ export default function WebsiteConvosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
-  const [selectedOrganizationId, setSelectedOrganizationId] =
-    useState<string>("");
   const [markedLoaded, setMarkedLoaded] = useState(false);
   const activeOrganizationId = useActiveOrganizationId();
 
@@ -235,15 +233,15 @@ export default function WebsiteConvosPage() {
           ?.content || "";
 
       const payload = {
-        action: "reply",
+        action: "send_message",
         widget_key: selectedWidgetKey,
         visitor_id: selectedVisitor.visitor_id,
-        message: lastMessageContent,
         answer: replyMessage,
+        message: lastMessageContent,
       };
 
       const response = await fetch(
-        `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/visitors/${selectedVisitor.visitor_id}/reply`,
+        `ws://intelli-dev.onrender.com/ws/business/chat/${activeOrganizationId}/`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -287,13 +285,12 @@ export default function WebsiteConvosPage() {
     const action = isHumanSupport ? "handover" : "takeover";
     try {
       const response = await fetch(
-        `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/handover`,
+        `ws://intelli-dev.onrender.com/ws/business/chat/${activeOrganizationId}/`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action,
-            widget_key: selectedWidgetKey,
+            action: "handover",
             visitor_id: selectedVisitor.visitor_id,
           }),
         }
