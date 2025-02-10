@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Play, XIcon } from "lucide-react";
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,6 @@ interface HeroVideoProps {
   className?: string;
 }
 
-const defaultVideoSrc = 'https://drive.google.com/file/d/1jyNPnX4JuJZb5Cnll__fByGvxbisNKfh/preview?autoplay=1&loop=1&controls=0&mute=1';
 
 const animationVariants = {
   "from-bottom": {
@@ -70,10 +70,10 @@ const animationVariants = {
 };
 
 export default function HeroVideo({
-  animationStyle = "from-center",
-  videoSrc = defaultVideoSrc, // Use defaultVideoSrc here
+  animationStyle = "top-in-bottom-out",
+  videoSrc = "https://www.youtube.com/embed/AJFvlkWfF7Y?si=X2eN-Vey6o9Ocf7Z",
   thumbnailSrc,
-  thumbnailAlt = "Video thumbnail",
+  thumbnailAlt = "A screenshot of Intelli Dashboard",
   className,
 }: HeroVideoProps) {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
@@ -85,7 +85,7 @@ export default function HeroVideo({
         className="relative cursor-pointer group"
         onClick={() => setIsVideoOpen(true)}
       >
-        <img
+        <Image
           src={thumbnailSrc}
           alt={thumbnailAlt}
           width={1920}
@@ -95,7 +95,7 @@ export default function HeroVideo({
         <div className="absolute inset-0 flex items-center justify-center group-hover:scale-100 scale-[0.9] transition-all duration-200 ease-out rounded-2xl">
           <div className="bg-gray-900/10 flex items-center justify-center rounded-full backdrop-blur-md size-28 dark:bg-gray-50/10">
             <div
-              className={`flex items-center justify-center bg-gradient-to-b from-[#007fff]/30 to-teal-500 shadow-md rounded-full size-20 transition-all ease-out duration-200 relative group-hover:scale-[1.2] scale-100`}
+              className={`flex items-center justify-center bg-gradient-to-b from-[#007fff]/50 to-teal-500/30 shadow-md rounded-full size-20 transition-all ease-out duration-200 relative group-hover:scale-[1.2] scale-100`}
             >
               <Play
                 className="size-8 text-white fill-white group-hover:scale-105 scale-100 transition-transform duration-200 ease-out"

@@ -1,5 +1,3 @@
-// hooks/useActiveOrganizationId.ts
-
 import { useEffect, useState } from 'react';
 import { useOrganizationList } from '@clerk/nextjs';
 
