@@ -15,6 +15,7 @@ import {
   Globe,
   Globe2,
   ShieldQuestion,
+  InboxIcon,
   CalendarClock,
 } from "lucide-react";
 import Link from "next/link";
