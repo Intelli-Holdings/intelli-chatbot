@@ -26,7 +26,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Search, Settings, MoreVertical, ArrowUp } from "lucide-react";
+import { Search, Settings, MoreVertical, ArrowUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { marked } from "marked";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
@@ -52,7 +52,7 @@ const markdownStyles = `
   }
 `;
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_DEV_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Visitor {
   id: number;
@@ -106,6 +106,8 @@ export default function WebsiteConvosPage() {
   const activeOrganizationId = useActiveOrganizationId();
 
   const [isHumanSupport, setIsHumanSupport] = useState(false);
+  const [isSupportActionLoading, setIsSupportActionLoading] = useState(false);
+  const [supportAction, setSupportAction] = useState<"takeover" | "handover" | null>(null);
 
   const fetchWidgets = async (orgId: string) => {
     setIsLoading(true);
@@ -223,91 +225,91 @@ export default function WebsiteConvosPage() {
     }
   };
 
-  const handleSendReply = async () => {
-    if (!selectedVisitor || !replyMessage.trim()) return;
+  const handleSendReply = () => {
+    if (!selectedVisitor || !replyMessage.trim() || !activeOrganizationId) return;
 
-    try {
-      // Get the last customer message (content) if available
-      const lastMessageContent =
-        selectedVisitor.messages[selectedVisitor.messages.length - 1]
-          ?.content || "";
+    const lastMessageContent =
+      selectedVisitor.messages[selectedVisitor.messages.length - 1]?.content || "";
 
-      const payload = {
-        action: "send_message",
-        widget_key: selectedWidgetKey,
-        visitor_id: selectedVisitor.visitor_id,
-        answer: replyMessage,
-        message: lastMessageContent,
+    const payload = {
+      action: "send_message",
+      widget_key: selectedWidgetKey,
+      visitor_id: selectedVisitor.visitor_id,
+      answer: replyMessage,
+      message: lastMessageContent,
+    };
+
+
+  const ws = new WebSocket(
+    `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
+  );
+console.log("ws", ws);
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify(payload));
+    ws.close();
+    setSelectedVisitor((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        messages: [
+          ...prev.messages,
+          {
+            id: Date.now(),
+            content: lastMessageContent,
+            answer: replyMessage,
+            timestamp: new Date().toISOString(),
+          },
+        ],
       };
-
-      const response = await fetch(
-        `ws://intelli-dev.onrender.com/ws/business/chat/${activeOrganizationId}/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to send reply");
-      }
-
-      setSelectedVisitor((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          messages: [
-            ...prev.messages,
-            {
-              id: Date.now(),
-              content: lastMessageContent,
-              answer: replyMessage,
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        };
-      });
-
-      setReplyMessage("");
-    } catch (error) {
-      console.error("Error sending reply:", error);
-      toast.error("Failed to send reply. Please try again.");
-    }
+    });
+    setReplyMessage("");
   };
 
+  ws.onerror = (error) => {
+    console.error("WebSocket error (send reply):", error);
+    toast.error("Failed to send reply. Please try again.");
+  };
+};
   const filteredVisitors = visitors.filter((visitor) =>
     visitor.visitor_id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleHandover = async () => {
-    if (!selectedVisitor) return;
+  const handleHandover = () => {
+    if (!selectedVisitor || !activeOrganizationId) return;
+    // Toggle action based on the current support state.
     const action = isHumanSupport ? "handover" : "takeover";
-    try {
-      const response = await fetch(
-        `ws://intelli-dev.onrender.com/ws/business/chat/${activeOrganizationId}/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "handover",
-            visitor_id: selectedVisitor.visitor_id,
-          }),
-        }
-      );
-      if (!response.ok) {
-        throw new Error("There was a problem during takeover of AI support");
-      }
+    setSupportAction(action);
+    setIsSupportActionLoading(true);
+
+    const payload = {
+      action,
+      widget_key: selectedWidgetKey,
+      visitor_id: selectedVisitor.visitor_id,
+    };
+
+    const ws = new WebSocket(
+      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
+    );
+    console.log("ws", ws);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify(payload));
+      ws.close();
       setIsHumanSupport(!isHumanSupport);
+      setIsSupportActionLoading(false);
+      setSupportAction(null);
       toast.success(
-        `Successfully ${
-          action === "takeover" ? "taken over" : "handed over"
-        } AI support`
+        `Successfully ${action === "takeover" ? "taken over" : "handed over"} AI support`
       );
-    } catch (e) {
-      console.error(e);
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error (handover):", error);
+      setIsSupportActionLoading(false);
+      setSupportAction(null);
       toast.error("Please try again to takeover support from AI");
-    }
+    };
   };
 
   return (
@@ -475,17 +477,25 @@ export default function WebsiteConvosPage() {
                 </ScrollArea>
                 <div className="p-4 border-t">
                   <Card className="mx-2 border shadow-sm p-1">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="ml-1 border border-blue-200 rounded-lg shadow-md"
-                      onClick={handleHandover}
-                    >
-                      {isHumanSupport ? "Handover to AI" : "Takeover AI"}
-                    </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="ml-1 border border-blue-200 rounded-lg shadow-md"
+                    onClick={handleHandover}
+                    disabled={isSupportActionLoading || isLoading}
+                  >
+                    {isSupportActionLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {supportAction === "takeover" ? "Taking over..." : "Handing over..."}
+                    </>
+                    ) : (
+                    isHumanSupport ? "Handover to AI" : "Takeover AI"
+                    )}
+                  </Button>
 
                     {isHumanSupport && (
-                      <div className="w-full bg-purple-100 text-red-700 p-3 text-center">
+                      <div className="m-2 bg-purple-100 text-red-700 p-2 text-center border rounded-lg">
                         <p>
                           Remember to handover to AI when you&apos;re done
                           sending messages.
