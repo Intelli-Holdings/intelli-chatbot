@@ -95,7 +95,7 @@
     "nextstepjs": "^1.1.0",
     "onborda": "^1.2.4",
     "openai": "^4.29.2",
-    "papaparse": "^5.5.1",
+    "papaparse": "^5.5.2",
     "posthog-js": "^1.160.1",
     "react": "^18",
     "react-day-picker": "^8.10.0",
