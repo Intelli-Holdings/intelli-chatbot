@@ -26,10 +26,15 @@ const HowItWorksSection = () => {
   return (
     <section className="py-12">
       <div className="container mx-auto text-center">
+      <div className="text-center mb-12">
         <h2 className="text-5xl font-bold mb-10">How to get started</h2>
+        <p className="text-gray-600">
+        Convert your website visitors into customers with these <strong>4 steps </strong> 
+        </p>
+        </div>
 
         {/* Steps */}
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-12">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-12 mb-8">
           {/* Step 1 */}
           <div className="flex flex-col items-center">
             <div className="bg-white p-4 rounded-3xl shadow-sm border relative">
@@ -38,20 +43,31 @@ const HowItWorksSection = () => {
                 1
               </span>
             </div>
-            <p className="mt-4 text-lg font-medium">Create an account/Signup</p>
+            <p className="mt-4 text-lg font-medium">Create an account</p>
           </div>
 
           {/* Step 2 */}
           <div className="flex flex-col items-center">
             <div className="bg-white p-4 rounded-3xl shadow-sm border relative">
-              <MousePointerClick className="text-teal-500" size={48} />
+              <SparklesIcon className="text-yellow-400" size={48} />
               <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
                 2
               </span>
             </div>
             <p className="mt-4 text-lg font-medium">
-              Visit the Playground
+              Create an AI assistant
             </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="flex flex-col items-center">
+            <div className="bg-white p-4 rounded-3xl shadow-sm border relative">
+              <ClipboardEdit  className="text-teal-500" size={48} />
+              <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
+                3
+              </span>
+            </div>
+            <p className="mt-4 text-lg font-medium">Create a widget</p>
           </div>
 
           {/* Step 3 */}
@@ -59,10 +75,10 @@ const HowItWorksSection = () => {
             <div className="bg-white p-4 rounded-3xl shadow-sm border relative">
               <PlaneTakeoff  className="text-green-500" size={48} />
               <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
-                3
+                4
               </span>
             </div>
-            <p className="mt-4 text-lg font-medium">Launch your own Assistant</p>
+            <p className="mt-4 text-lg font-medium">Add widget to your website</p>
           </div>
         </div>
         <div className="flex justify-center mt-10 mb-10 space-x-4">
