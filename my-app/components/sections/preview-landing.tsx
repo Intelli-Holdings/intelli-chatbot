@@ -10,16 +10,16 @@ export function PreviewLanding() {
       <div className="">
      
             <div className="relative aspect-video rounded-xl overflow-hidden border-8 border-white-50 shadow-sm">
-            <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-sm">
+           <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-sm">
             <iframe
               className="w-full h-full"
-              src={`https://drive.google.com/file/d/1jyNPnX4JuJZb5Cnll__fByGvxbisNKfh/preview?autoplay=&loop=1&controls=0&mute=`}
+              src={`https://drive.google.com/file/d/1uD5qMxCeBDqwLJqDZCxE2JW7qU8Sq1VL/preview?autoplay=&loop=1&controls=0&mute=`}
               title="Video Player"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               referrerPolicy="strict-origin-when-cross-origin"
               frameBorder="0"
             ></iframe>
-          </AspectRatio>           
+            </AspectRatio>
             </div>
       </div>      
     </div>
