@@ -8,24 +8,16 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { useOrganizationList } from "@clerk/nextjs";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader, ExternalLink, Pen, Eye, EyeOff, ScanBarcodeIcon, Loader2 } from "lucide-react";
+import { Loader, ExternalLink, Pen, Eye, EyeOff, Loader2 } from "lucide-react";
 import { DeploymentDialog } from "@/components/deployment-dialog";
 import { formatDate } from "@/utils/date";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import useActiveOrganizationId from "@/hooks/use-organization-id";
 
 interface Widget {
   showKey: any;
@@ -52,7 +44,6 @@ interface Widget {
 const Widgets = () => {
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
   const [selectedWidget, setSelectedWidget] = useState<{
     key: string;
     url: string;
@@ -63,27 +54,19 @@ const Widgets = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState<string>("");
 
-  const { userMemberships, isLoaded } = useOrganizationList({
-    userMemberships: { infinite: true },
-  });
+  const activeOrganizationId = useActiveOrganizationId();
 
   useEffect(() => {
-    if (isLoaded && userMemberships.data.length > 0) {
-      setSelectedOrganizationId(userMemberships.data[0].organization.id);
+    if (activeOrganizationId) {
+      fetchWidgets(activeOrganizationId);
     }
-  }, [isLoaded, userMemberships.data]);
-
-  useEffect(() => {
-    if (selectedOrganizationId) {
-      fetchWidgets(selectedOrganizationId);
-    }
-  }, [selectedOrganizationId]);
+  }, [activeOrganizationId]);
 
   const fetchWidgets = async (orgId: string) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/organization/${orgId}/all/`
+        `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/widgets/organization/${orgId}/all/`
       );
       if (!response.ok) throw new Error("Failed to fetch widgets");
       const data = await response.json();
@@ -133,7 +116,7 @@ const Widgets = () => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/widget/${editWidget.widget_key}`,
+        `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/widgets/widget/${editWidget.widget_key}`,
         {
           method: "PUT",
           body: formData,
@@ -143,7 +126,9 @@ const Widgets = () => {
       if (!response.ok) throw new Error("Failed to update widget");
 
       toast.success("Widget updated successfully!");
-      fetchWidgets(selectedOrganizationId); // Refresh the widget list
+      if (activeOrganizationId) {
+        fetchWidgets(activeOrganizationId); // Refresh the widget list
+      }
       setIsEditDialogOpen(false);
     } catch (error) {
       console.error("Error updating widget:", error);
@@ -155,38 +140,6 @@ const Widgets = () => {
 
   return (
     <div className="space-y-4">
-      <div className="">
-        <label className="block text-sm font-medium text-foreground mb-1">
-          Organization
-        </label>
-        {userMemberships &&
-          userMemberships.data &&
-          userMemberships.data.length > 1 && (
-            <div className="w-64">
-              <Select
-                value={selectedOrganizationId}
-                onValueChange={setSelectedOrganizationId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an organization" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {userMemberships?.data?.map((membership) => (
-                      <SelectItem
-                        key={membership.organization.id}
-                        value={membership.organization.id}
-                      >
-                        {membership.organization.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-      </div>
-
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <Loader className="w-8 h-8 animate-spin" />
@@ -223,30 +176,24 @@ const Widgets = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        setWidgets(widgets.map(w => 
-                          w.id === widget.id ? { ...w, showKey: !w.showKey } : w
-                        ))
+                        setWidgets(
+                          widgets.map((w) =>
+                            w.id === widget.id ? { ...w, showKey: !w.showKey } : w
+                          )
+                        );
                       }}
                     >
-                      {widget.showKey ? (
-                        <Eye className="h-4 w-4" />
-                      ) : (
-                        <EyeOff className="h-4 w-4" />
-                      )}
+                      {widget.showKey ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Created At</p>
-                  <p className="text-sm">
-                  {formatDate(widget.created_at)}
-                  </p>
+                  <p className="text-sm">{formatDate(widget.created_at)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Updated At</p>
-                  <p className="text-sm">
-                  {formatDate(widget.updated_at)}
-                  </p>
+                  <p className="text-sm">{formatDate(widget.updated_at)}</p>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
@@ -254,27 +201,27 @@ const Widgets = () => {
                   className="bg-blue-600 hover:bg-blue-700 text-white w-full"
                   variant="default"
                   size="sm"
-                  onClick={() => setSelectedWidget({
-                    key: widget.widget_key,
-                    url: widget.website_url
-                  })}
+                  onClick={() =>
+                    setSelectedWidget({
+                      key: widget.widget_key,
+                      url: widget.website_url,
+                    })
+                  }
                 >
                   See How To Deploy
                 </Button>
-                {/* <Tooltip>
+                {/*
+                <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditWidget(widget)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => handleEditWidget(widget)}>
                       <Pen className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Edit Widget</p>
                   </TooltipContent>
-                </Tooltip> */}
+                </Tooltip>
+                */}
               </CardFooter>
             </Card>
           ))}
@@ -284,12 +231,12 @@ const Widgets = () => {
           <p className="text-lg text-muted-foreground">
             No widgets found for this organization.
           </p>
-            <Button
+          <Button
             className="mt-4"
-            onClick={() => window.location.href = "/dashboard/playground"}
-            >
+            onClick={() => (window.location.href = "/dashboard/playground")}
+          >
             Create Your First Widget
-            </Button>
+          </Button>
         </div>
       )}
 
@@ -303,72 +250,74 @@ const Widgets = () => {
 
       {editWidget && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Widget</DialogTitle>
-            <DialogDescription>
-              Update the details of the widget.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateWidget} style={{ maxWidth: "24rem"}} className="space-y-4">
-            <div>
-              <Label htmlFor="widget_name">Widget Name</Label>
-              <Input
-                id="widget_name"
-                value={editWidget.widget_name}
-                onChange={(e) =>
-                  setEditWidget({ ...editWidget, widget_name: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="website_url">Website URL</Label>
-              <Input
-                id="website_url"
-                value={editWidget.website_url}
-                onChange={(e) =>
-                  setEditWidget({ ...editWidget, website_url: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="brand_color">Brand Color</Label>
-              <Input
-                id="brand_color"
-                type="color"
-                value={brandColor}
-                onChange={(e) => setBrandColor(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="avatar_url">Avatar</Label>
-              <Input
-                id="avatar_url"
-                type="file"
-                accept="image/jpeg, image/png"
-                onChange={handleAvatarUpload}
-              />
-              {avatarUrl && (
-                <img
-                  src={avatarUrl}
-                  alt="Avatar Preview"
-                  className="mt-2 w-16 h-16 rounded-full"
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Widget</DialogTitle>
+              <DialogDescription>Update the details of the widget.</DialogDescription>
+            </DialogHeader>
+            <form
+              onSubmit={handleUpdateWidget}
+              style={{ maxWidth: "24rem" }}
+              className="space-y-4"
+            >
+              <div>
+                <Label htmlFor="widget_name">Widget Name</Label>
+                <Input
+                  id="widget_name"
+                  value={editWidget.widget_name}
+                  onChange={(e) =>
+                    setEditWidget({ ...editWidget, widget_name: e.target.value })
+                  }
                 />
-              )}
-            </div>
-            <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Editing...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+              </div>
+              <div>
+                <Label htmlFor="website_url">Website URL</Label>
+                <Input
+                  id="website_url"
+                  value={editWidget.website_url}
+                  onChange={(e) =>
+                    setEditWidget({ ...editWidget, website_url: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="brand_color">Brand Color</Label>
+                <Input
+                  id="brand_color"
+                  type="color"
+                  value={brandColor}
+                  onChange={(e) => setBrandColor(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="avatar_url">Avatar</Label>
+                <Input
+                  id="avatar_url"
+                  type="file"
+                  accept="image/jpeg, image/png"
+                  onChange={handleAvatarUpload}
+                />
+                {avatarUrl && (
+                  <img
+                    src={avatarUrl}
+                    alt="Avatar Preview"
+                    className="mt-2 w-16 h-16 rounded-full"
+                  />
+                )}
+              </div>
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Editing...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
