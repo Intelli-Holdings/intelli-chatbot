@@ -6,7 +6,7 @@ import { NotificationContainer } from '@/app/dashboard/notifications/Notificatio
 import { NotificationService } from '@/services/notifications';
 import { memberUtils } from '@/utils/members';
 import { useNotifications } from '@/hooks/use-notification';
-import { ClerkMember, TeamMember } from '@/types/notification';
+import { ClerkMember, TeamMember, NotificationMessage } from '@/types/notification';
 
 export default function NotificationPage() {
   const { organization } = useOrganization();
@@ -17,42 +17,47 @@ export default function NotificationPage() {
   useEffect(() => {
     const loadMembers = async () => {
       if (organization) {
-        const membersList = await organization.getMemberships({ 
-          pageSize: 20,
-          initialPage: 1
-        });
-        
-        const transformedMembers = membersList.data.map((member: ClerkMember) => 
-          memberUtils.transform(member)
-        );
-        
-        setMembers(transformedMembers);
+        try {
+          const membersList = await organization.getMemberships();
+          const transformedMembers = membersList.data.map((member: ClerkMember) => 
+            memberUtils.transform(member)
+          );
+          setMembers(transformedMembers);
+        } catch (error) {
+          console.error("Failed to fetch members:", error);
+        }
       }
     };
     loadMembers();
   }, [organization]);
 
-  const handleAssign = async (notificationId: string, userId: string) => {
-    await NotificationService.assign(userId);
-    setNotifications(prev =>
-      prev.map(notif =>
-        notif.id === notificationId ? { ...notif, assignee: userId, status: 'assigned' } : notif
-      )
-    );
+  const handleAssign = async (notificationId: string, userEmail: string) => {
+    if (userEmail) {
+      await NotificationService.assign(userEmail, notificationId);
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif.id === notificationId ? { ...notif, assignee: userEmail, status: 'assigned' } : notif
+        ) as NotificationMessage[]
+      );
+    }
   };
 
   const handleResolve = async (notificationId: string) => {
-    await NotificationService.resolve();
+    await NotificationService.resolve(notificationId);
     setNotifications(prev =>
       prev.map(notif =>
         notif.id === notificationId ? { ...notif, resolved: true, status: 'resolved' } : notif
-      )
+      ) as NotificationMessage[]
     );
   };
 
   const handleDelete = async (notificationId: string) => {
-    await NotificationService.delete();
-    setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+    await NotificationService.delete(notificationId);
+    setNotifications(prev =>
+      prev.map(notif =>
+        notif.id === notificationId ? { ...notif, status: 'deleted' } : notif
+      ) as NotificationMessage[]
+    );
   };
 
   return (
