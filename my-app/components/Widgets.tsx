@@ -83,7 +83,7 @@ const Widgets = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/widgets/organization/${orgId}/all/`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/organization/${orgId}/all/`
       );
       if (!response.ok) throw new Error("Failed to fetch widgets");
       const data = await response.json();
