@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { NotificationMessage } from '@/types/notification';
-import { useOrganization } from '@clerk/nextjs';
+import useActiveOrganizationId from './use-organization-id'; // Import the hook
+
+const LOCAL_STORAGE_KEY = 'persistedNotifications';
 
 export const useNotifications = () => {
-  const { organization } = useOrganization();
-  const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
+  const activeOrganizationId = useActiveOrganizationId(); // Use the hook
+  const [notifications, setNotifications] = useState<NotificationMessage[]>(() => {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  });
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);  
   const reconnectAttempts = useRef(0);
@@ -14,10 +19,22 @@ export const useNotifications = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const toastIdRef = useRef<string | number>('');
 
-  const connect = useCallback(() => {
-    if (!organization?.id) return;
+  const persistNotifications = (newNotifications: NotificationMessage[]) => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newNotifications));
+  };
 
-    const ws = new WebSocket(`wss://intelli-dev.onrender.com/ws/events/${organization.id}/`);
+  const updateNotifications = (updater: (prev: NotificationMessage[]) => NotificationMessage[]) => {
+    setNotifications(prev => {
+      const updated = updater(prev);
+      persistNotifications(updated);
+      return updated;
+    });
+  };
+
+  const connect = useCallback(() => {
+    if (!activeOrganizationId) return;
+
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}events/${activeOrganizationId}/`);
     wsRef.current = ws;
     
     ws.onopen = () => {
@@ -40,7 +57,11 @@ export const useNotifications = () => {
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
       if (message.type === 'notification') {
-        setNotifications(prev => [...prev, message]);
+        updateNotifications(prev => [...prev, message]);
+      } else if (message.type === 'connection_established') {
+        toast.success(`Successfully connected to Notifications stream`, {
+          duration: 3000,
+        });
       }
     };
 
@@ -78,7 +99,7 @@ export const useNotifications = () => {
     };
 
     return ws;
-  }, [organization?.id]);
+  }, [activeOrganizationId]);
 
   useEffect(() => {
     const ws = connect();
@@ -115,7 +136,7 @@ export const useNotifications = () => {
 
   return { 
     notifications, 
-    setNotifications, 
+    setNotifications: updateNotifications, 
     isConnected,
     reconnect 
   };
