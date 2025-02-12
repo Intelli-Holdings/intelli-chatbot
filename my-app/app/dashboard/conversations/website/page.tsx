@@ -289,7 +289,7 @@ console.log("ws", ws);
     };
 
     const ws = new WebSocket(
-      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
+      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}business/chat/${activeOrganizationId}/`
     );
     console.log("ws", ws);
 
