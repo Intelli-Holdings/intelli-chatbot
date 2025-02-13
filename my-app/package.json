@@ -68,6 +68,7 @@
     "dotenv": "^16.4.5",
     "email-validator": "^2.0.4",
     "embla-carousel-react": "^8.0.0",
+    "exceljs": "^4.4.0",
     "framer-motion": "^11.11.9",
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.10.0",
