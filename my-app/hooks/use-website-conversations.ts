@@ -95,7 +95,7 @@ export function useTakeoverToggle({ onMessage, selectedWidgetKey }: HandleTakeov
         useEffect(() => {
                 if (!activeOrganizationId) return;
 
-                const socketUrl = `ws://intelli-dev.onrender.com/ws/business/chat/${activeOrganizationId}/`;
+                const socketUrl = `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}business/chat/${activeOrganizationId}/`;
                 const ws = new WebSocket(socketUrl);
 
                 ws.onopen = () => {
