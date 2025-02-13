@@ -1,7 +1,7 @@
 'use server';
 
 import { Contact, CRMProvider } from '@/types/contact'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'exceljs'
 import Papa from 'papaparse'
 import { revalidatePath } from 'next/cache'
 import toast from 'sonner'
@@ -118,10 +118,18 @@ export async function importContacts(formData: FormData) {
       contacts = result.data.map(formatContactData)
     } else if (fileType === 'xlsx' || fileType === 'xls') {
       const buffer = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer)
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-      const data = XLSX.utils.sheet_to_json(worksheet)
-      contacts = data.map(formatContactData)
+      const workbook = new XLSX.Workbook()
+      await workbook.xlsx.load(buffer)
+      const worksheet = workbook.worksheets[0]
+      const data = worksheet.getSheetValues()
+      contacts = data.slice(1).map(row => formatContactData(row ? {
+        name: (row as any[])[1]?.toString() || '',
+        email: (row as any[])[2]?.toString() || '',
+        phone: (row as any[])[3]?.toString() || '',
+        title: (row as any[])[4]?.toString() || '',
+        company: (row as any[])[5]?.toString() || '',
+        source: (row as any[])[6]?.toString() || ''
+      } : {}))
     }
 
     // Here you would typically save to your database
