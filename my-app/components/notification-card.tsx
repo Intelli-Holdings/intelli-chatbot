@@ -70,33 +70,17 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  const { organization } = useOrganization({
-    memberships: {
-      infinite: true,
-      keepPreviousData: true,
-    },
-  });
+  const { organization } = useOrganization();
 
   useEffect(() => {
     const loadMembers = async () => {
       if (organization) {
-        const membersList = await organization.getMemberships({
-          pageSize: 10, 
-          initialPage: 1,
-        });
-
-        setMembers(
-          membersList.data.map((member) => ({
-            id: member.id,
-            publicUserData: {
-              firstName: member.publicUserData.firstName,
-              lastName: member.publicUserData.lastName,
-              imageUrl: member.publicUserData.imageUrl,
-              identifier: member.publicUserData.identifier,
-            },
-            role: member.role,
-          }))
-        );
+        try {
+          const membersList = await organization.getMemberships();
+          setMembers(membersList.data);
+        } catch (error) {
+          console.error("Failed to fetch members:", error);
+        }
       }
     };
     loadMembers();
@@ -108,7 +92,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       : [...selectedAssignees, assigneeId];
 
     setSelectedAssignees(newSelection);
-    await onAssign(assigneeId);
+    const selectedMember = members.find(member => member.id === assigneeId);
+    if (selectedMember && selectedMember.publicUserData.identifier) {
+      await onAssign(selectedMember.publicUserData.identifier);
+    }
   };
 
   const selectedAssigneesData = teamMembers.filter((member) =>

@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/azure": "^0.0.48",
-    "@ai-sdk/openai": "^0.0.66",
+    "@ai-sdk/azure": "^1.1.9",
+    "@ai-sdk/openai": "^1.1.9",
     "@aptabase/react": "^0.3.5",
     "@azure/openai": "^1.0.0-beta.11",
     "@calcom/embed-react": "^1.5.2",
@@ -55,6 +55,7 @@
     "@tanstack/react-table": "^8.13.2",
     "@uploadthing/react": "^6.4.1",
     "@vercel/analytics": "^1.2.2",
+    "@vercel/blob": "^0.27.1",
     "@vercel/og": "^0.6.5",
     "@vercel/speed-insights": "^1.0.12",
     "ai": "^3.0.8",
@@ -70,6 +71,7 @@
     "dotenv": "^16.4.5",
     "email-validator": "^2.0.4",
     "embla-carousel-react": "^8.0.0",
+    "exceljs": "^4.4.0",
     "framer-motion": "^11.11.9",
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.10.0",
@@ -86,7 +88,7 @@
     "mdx-bundler": "^10.0.3",
     "mixpanel-browser": "^2.49.0",
     "mongodb": "^6.5.0",
-    "mongoose": "^8.2.4",
+    "mongoose": "^8.10.0",
     "next": "^14.1.4",
     "next-auth": "^4.24.7",
     "next-env": "^1.1.1",
@@ -97,7 +99,7 @@
     "nextstepjs": "^1.1.0",
     "onborda": "^1.2.4",
     "openai": "^4.29.2",
-    "posthog-js": "^1.160.1",
+    "posthog-js": "^1.217.0",
     "react": "^18",
     "react-day-picker": "^8.10.0",
     "react-dom": "^18",
@@ -134,7 +136,6 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
     "vaul": "^0.9.0",
-    "xlsx": "^0.18.5",
     "zod": "^3.22.4"
   },
   "devDependencies": {
