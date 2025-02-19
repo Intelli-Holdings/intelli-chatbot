@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { NotificationMessage, TeamMember } from "@/types/notification"
 import { useOrganization } from "@clerk/nextjs"
 import { toast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
 
 interface NotificationsProps {
   notifications?: NotificationMessage[]
@@ -18,79 +19,55 @@ interface NotificationsProps {
 }
 
 const Notifications: React.FC<NotificationsProps> = ({ notifications = [], members = [], onRefresh }) => {
+  const router = useRouter()
   const [showAssigneeSelect, setShowAssigneeSelect] = useState<string | null>(null)
-  const [organizationUsers, setOrganizationUsers] = useState<Array<{ id: string; name: string; email: string }>>([])
+  const [organizationUsers, setOrganizationUsers] = useState<Array<{ id: string; name: string; email: string; image: string }>>([])
   const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({})
-  const [localAssignees, setLocalAssignees] = useState<{ [key: string]: { id: string; name: string } }>({})
   const { organization, membership } = useOrganization()
 
   useEffect(() => {
-    // Fetch organization members when the component mounts
     const fetchOrganizationMembers = async () => {
       if (organization) {
         try {
-          const memberList = await organization.getMemberships();
-          
-          // Map the clerk membership data to our expected format
+          const memberList = await organization.getMemberships()
           const formattedMembers = memberList.data.map((member) => ({
             id: member.publicUserData?.userId || "",
+            image: member.publicUserData?.imageUrl || '',
             name: `${member.publicUserData?.firstName || ''} ${member.publicUserData?.lastName || ''}`.trim(),
             email: member.publicUserData?.identifier || '',
-          }));
-          
-          setOrganizationUsers(formattedMembers);
-          
-          // Initialize local assignees from the notifications
-          const initialAssignees: { [key: string]: { id: string; name: string } } = {};
-          notifications.forEach(notification => {
-            if (notification.assignee) {
-              const user = formattedMembers.find(m => m.id === notification.assignee);
-              if (user) {
-                initialAssignees[notification.id] = { id: user.id, name: user.name };
-              }
-            }
-          });
-          setLocalAssignees(initialAssignees);
+          }))
+          setOrganizationUsers(formattedMembers)
         } catch (error) {
-          console.error("Error fetching organization members:", error);
+          console.error("Error fetching organization members:", error)
           toast({
             title: "Error",
             description: "Failed to fetch team members",
             variant: "destructive"
-          });
+          })
         }
       }
-    };
-
-    fetchOrganizationMembers();
-  }, [organization, notifications]);
-
-  const getAssigneeName = (notificationId: string, assigneeId: string) => {
-    // First check if we have a local override
-    if (localAssignees[notificationId]) {
-      return localAssignees[notificationId].name;
     }
-    
-    // Then check in organization users from Clerk
-    const orgUser = organizationUsers.find(user => user.id === assigneeId);
-    if (orgUser) return orgUser.name;
-    
-    // Fallback to members prop
-    const member = members.find((m) => m.id === assigneeId);
-    return member ? member.name : "Unassigned";
+    fetchOrganizationMembers()
+  }, [organization])
+
+  const getAssignee = (notification: NotificationMessage) => {
+    if (notification.assignee) {
+      const user = organizationUsers.find(u => u.id === notification.assignee)
+      if (user) return user
+      const member = members.find(m => m.id === notification.assignee)
+      if (member) return { ...member, image: (member as any).image || "" }
+    }
+    return { name: "Unassigned", image: "" }
   }
 
   const handleAssigneeChange = async (notificationId: string, assigneeId: string) => {
-    setIsLoading(prev => ({ ...prev, [notificationId]: true }));
+    setIsLoading(prev => ({ ...prev, [notificationId]: true }))
     
     try {
-      // Find user email from the selected assignee ID
-      const selectedUser = organizationUsers.find(user => user.id === assigneeId);
-      
+      const selectedUser = organizationUsers.find(user => user.id === assigneeId)
       if (!selectedUser) {
-        throw new Error("Selected user not found");
+        throw new Error("Selected user not found")
       }
-      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assign/notification/`, {
         method: 'POST',
         headers: {
@@ -100,42 +77,32 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications = [], membe
           user_email: selectedUser.email,
           notification_id: notificationId
         }),
-      });
-      
+      })
       if (!response.ok) {
-        throw new Error(`Failed to assign: ${response.statusText}`);
+        throw new Error(`Failed to assign: ${response.statusText}`)
       }
-      
-      // Update local state to reflect the change immediately
-      setLocalAssignees(prev => ({
-        ...prev,
-        [notificationId]: { id: selectedUser.id, name: selectedUser.name }
-      }));
-      
       toast({
         title: "Success",
         description: `Assigned to ${selectedUser.name}`,
-      });
-      
-      // Refresh notification list if callback provided
+      })
       if (onRefresh) {
-        onRefresh();
+        onRefresh()
       }
     } catch (error) {
-      console.error("Error assigning notification:", error);
+      console.error("Error assigning notification:", error)
       toast({
         title: "Assignment Failed",
         description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsLoading(prev => ({ ...prev, [notificationId]: false }));
-      setShowAssigneeSelect(null);
+      setIsLoading(prev => ({ ...prev, [notificationId]: false }))
+      setShowAssigneeSelect(null)
     }
   }
   
   const handleResolveNotification = async (notificationId: string) => {
-    setIsLoading(prev => ({ ...prev, [`resolve-${notificationId}`]: true }));
+    setIsLoading(prev => ({ ...prev, [`resolve-${notificationId}`]: true }))
     
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/resolve/notification/`, {
@@ -146,7 +113,7 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications = [], membe
         body: JSON.stringify({
           notification_id: notificationId
         }),
-      });
+      })
       
       if (!response.ok) {
         throw new Error(`Failed to resolve: ${response.statusText}`);
@@ -157,7 +124,6 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications = [], membe
         description: "Notification resolved successfully",
       });
       
-      // Refresh notification list if callback provided
       if (onRefresh) {
         onRefresh();
       }
@@ -207,6 +173,10 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications = [], membe
     }).format(date)
   }
 
+  const handleNavigateToConversation = () => {
+    router.push('/dashboard/conversations/whatsapp')
+  }
+
   return (
     <Card className="w-full mx-auto">
       <CardHeader className="border-b border-gray-200 pb-4">
@@ -221,126 +191,137 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications = [], membe
             <p className="text-center text-gray-500">No notifications to display.</p>
           ) : (
             <div className="space-y-6">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        {(() => {
-                          const channelIcon = getChannelIcon(notification.channel);
-                          return typeof channelIcon === "string" ? (
-                            <AvatarImage src={channelIcon} alt={notification.channel} />
-                          ) : (
-                            channelIcon || <AvatarFallback>{notification.channel[0].toUpperCase()}</AvatarFallback>
-                          );
-                        })()}
-                        <AvatarFallback>{notification.channel[0].toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                        <div className="flex items-center space-x-2">
-                        <span>From:</span>
-                        <h3 className="text-lg font-semibold m-0">{notification.customer.customer_name}</h3>
-                        <h2 className="text-sm text-gray-500">{notification.customer.customer_number}</h2>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={notification.status === "pending" ? "destructive" : "default"} className="text-xs">
-                        {notification.status}
-                      </Badge>
-                      {notification.status !== "resolved" && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="flex items-center space-x-1 h-8"
-                          onClick={() => handleResolveNotification(notification.id)}
-                          disabled={isLoading[`resolve-${notification.id}`]}
-                        >
-                          {isLoading[`resolve-${notification.id}`] ? (
-                            <span className="animate-spin mr-1">⏳</span>
-                          ) : (
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                          )}
-                          <span>Resolve</span>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <span><strong>Customer&apos;s Message</strong></span>
-                  <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-700 mb-4">
-                    {notification.message}
-                  </blockquote>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {/* Assignment UI */}
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      {showAssigneeSelect === notification.id ? (
-                        <div className="relative flex items-center w-full">
-                          <Select
-                            value={localAssignees[notification.id]?.id || notification.assignee}
-                            onValueChange={(value) => handleAssigneeChange(notification.id, value)}
-                            disabled={isLoading[notification.id]}
+              {notifications.map((notification) => {
+                const assigneeInfo = getAssignee(notification)
+                return (
+                  <div
+                    key={notification.id}
+                    className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-10 w-10">
+                          {(() => {
+                            const channelIcon = getChannelIcon(notification.channel);
+                            return typeof channelIcon === "string" ? (
+                              <AvatarImage src={channelIcon} alt={notification.channel} />
+                            ) : (
+                              channelIcon || <AvatarFallback>{notification.channel[0].toUpperCase()}</AvatarFallback>
+                            );
+                          })()}
+                          <AvatarFallback>{notification.channel[0].toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                          <div className="flex items-center space-x-2">
+                          <span>From:</span>
+                          <h3 
+                            className="text-lg font-semibold m-0 hover:text-blue-500 cursor-pointer"
+                            onClick={handleNavigateToConversation}
                           >
-                            <SelectTrigger className="w-[200px]">
-                              <SelectValue placeholder="Assign to..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {organizationUsers.map((user) => (
-                                <SelectItem key={user.id} value={user.id}>
-                                  {user.name} ({user.email})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {isLoading[notification.id] && (
-                            <div className="absolute right-2 top-0 h-full flex items-center">
-                              <span className="animate-spin">⏳</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <>
-                          <UserPlus className="h-4 w-4" />
-                          <Button
-                            variant="ghost"
+                            {notification.customer.customer_name}
+                          </h3>
+                          <h2 className="text-sm text-gray-500">{notification.customer.customer_number}</h2>
+                          </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={notification.status === "pending" ? "destructive" : "default"} className="text-xs">
+                          {notification.status}
+                        </Badge>
+                        {notification.status !== "resolved" && (
+                          <Button 
+                            variant="outline" 
                             size="sm"
-                            className="p-0 h-auto font-normal"
-                            onClick={() => setShowAssigneeSelect(notification.id)}
+                            className="flex items-center space-x-1 h-8"
+                            onClick={() => handleResolveNotification(notification.id)}
+                            disabled={isLoading[`resolve-${notification.id}`]}
                           >
-                            Assign
+                            {isLoading[`resolve-${notification.id}`] ? (
+                              <span className="animate-spin mr-1">⏳</span>
+                            ) : (
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                            )}
+                            <span>Resolve</span>
                           </Button>
-                        </>
-                      )}
+                        )}
+                      </div>
                     </div>
+                    <span><strong>Customer&apos;s Message</strong></span>
+                    <blockquote 
+                      className="border-l-4 border-gray-300 pl-4 italic text-gray-700 mb-4 hover:text-blue-500 cursor-pointer"
+                      onClick={handleNavigateToConversation}
+                    >
+                      {notification.message}
+                    </blockquote>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        {showAssigneeSelect === notification.id ? (
+                          <div className="relative flex items-center w-full">
+                            <Select
+                              value={notification.assignee || ""}
+                              onValueChange={(value) => handleAssigneeChange(notification.id, value)}
+                              disabled={isLoading[notification.id]}
+                            >
+                              <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Assign to..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {organizationUsers.map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.name} ({user.email})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {isLoading[notification.id] && (
+                              <div className="absolute right-2 top-0 h-full flex items-center">
+                                <span className="animate-spin">⏳</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="p-0 h-auto font-normal"
+                              onClick={() => setShowAssigneeSelect(notification.id)}
+                            >
+                              Assign
+                            </Button>
+                          </>
+                        )}
+                      </div>
 
-                    {/* Channel Info */}
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <MessageCircle className="h-4 w-4" />
-                      <span>{notification.channel}</span>
-                    </div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{notification.channel}</span>
+                      </div>
 
-                    {/* Assignee Info */}
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <User className="h-4 w-4" />
-                      <span className="font-medium">
-                        {getAssigneeName(notification.id, notification.assignee) || "Unassigned"}
-                      </span>
-                    </div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Avatar className="h-8 w-8 rounded-lg">
+                          <AvatarImage src={assigneeInfo.image || ""} />
+                          <AvatarFallback>
+                            {assigneeInfo.name?.charAt(0) || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">
+                          {assigneeInfo.name || "Unassigned"}
+                        </span>
+                      </div>
 
-                    {/* Creation Date */}
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>{formatDate(notification.created_at)}</span>
-                    </div>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <Calendar className="h-4 w-4" />
+                        <span>{formatDate(notification.created_at)}</span>
+                      </div>
 
-                    {/* Escalation Info */}
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>{notification.escalation.name}</span>
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{notification.escalation.name}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </ScrollArea>
