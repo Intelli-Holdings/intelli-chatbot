@@ -1,10 +1,10 @@
 const SkewedInfiniteScroll = () => {
     const items = [
     { id: '1', text: 'Intelli is Mind-blowing! Our Hotel Revenue has increased by a margin of 20% since we switched to using them.' },
-    { id: '2', text: 'Check out Intelli Concierge, the next big thing in customer support ? 🤔' },
+    { id: '2', text: 'Check out Intelli, the next big thing in customer support ? 🤔' },
     { id: '3', text: 'Intelli is already leaving their mark everywhere in the world' },
-    { id: '4', text: 'The service we are delivering to our customers at Mendiata is exceptional, and when we added Intelli Concierge to this; the ratings and reviews we are getting are very heartwarming' },
-    { id: '5', text: 'I believe in the power of automating service delivery with a human touch, Intelli concierge gives us the ability to do just that with their solution' },
+    { id: '4', text: 'The service we are delivering to our customers at Mendiata is exceptional, and when we added Intelli to this; the ratings and reviews we are getting are very heartwarming' },
+    { id: '5', text: 'I believe in the power of automating service delivery with a human touch, Intelli gives us the ability to do just that with their solution' },
     { id: '6', text: 'This is customer support but on steroids; I love to see the application of AI responsibly' },
     {
     id: '7',

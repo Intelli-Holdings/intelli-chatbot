@@ -113,7 +113,7 @@ export function Navbar() {
       <div className="container mx-auto flex items-center justify-between p-4">
         <div className="flex items-center">
           <a className="flex items-center" href="/">
-            <Image alt="Intelli Concierge" className="h-8 w-8" src="/Intelli.svg" height={32} width={32} />
+            <Image alt="Intelli" className="h-8 w-8" src="/Intelli.svg" height={32} width={32} />
             <span className="ml-2 text-2xl font-bold text-gray-900">Intelli</span>
           </a>
         </div>

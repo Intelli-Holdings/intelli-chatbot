@@ -11,7 +11,7 @@ export function Products() {
           Building AI tools that help businesses grow.
         </h1>
         <p className="mt-6 text-base md:text-lg text-gray-700 max-w-2xl mx-auto">
-          Our first product, Intelli Concierge, is a smart, fun, and professional AI that helps with customer support.
+          Our first product, Intelli , is a smart, fun, and professional AI that helps with customer support.
           <br />
           We&apos;re working on even more tools to make businesses like yours smarter and more efficient.
         </p>

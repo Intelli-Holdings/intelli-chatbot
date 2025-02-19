@@ -39,7 +39,7 @@ export default function Header() {
       <nav className="h-14 flex items-center justify-between px-4">
         <Link href="/dashboard" className="flex items-center gap-2">
         <h2 className="text-lg font-semibold">Intelli</h2>
-          <Image alt="Intelli Concierge" className="h-16" src="/Intelli.svg" height={25} width={25} />
+          <Image alt="Intelli " className="h-16" src="/Intelli.svg" height={25} width={25} />
         </Link>
         <div>
           <h5 className="text font-semibold">{getGreeting()} <span style={{ color: '#007fff' }}> {user.firstName} </span></h5>

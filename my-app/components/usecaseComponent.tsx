@@ -185,7 +185,7 @@ const UsecaseComponent = () => {
                 {/* Left Section: Text Block */}
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
-                    <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">
+                    <span className="bg-slate-500 text-white px-3 py-1 rounded-full text-sm">
                       Government
                     </span>
                   </div>

@@ -51,7 +51,7 @@ export default function Reviews() {
               <CardContent className="p-6 pt-6  space-y-2">
                 <div>
                   <p className="text-sm font-medium">
-                    The service we are delivering to our customers at Mendiata is exceptional, and when we added Intelli Concierge to this; the ratings and reviews we are getting are very heartwarming
+                    The service we are delivering to our customers at Mendiata is exceptional, and when we added Intelli to this; the ratings and reviews we are getting are very heartwarming
                   
                   </p>
                 </div>
@@ -86,7 +86,7 @@ export default function Reviews() {
               <CardContent className="p-6 pt-6 space-y-2">
                 <div>
                   <p className="text-sm font-medium">
-                    I believe in the power of automating service delivery with a human touch, Intelli concierge gives us the ability to do just that with their solution 
+                    I believe in the power of automating service delivery with a human touch, Intelli gives us the ability to do just that with their solution 
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">

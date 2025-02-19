@@ -5,7 +5,7 @@ const testimonials = [
   {
     name: 'Bernard Addey Sackey',
     description:
-      "Check out Intelli Concierge, the next big thing in customer support ? 🤔.",
+      "Check out Intelli, the next big thing in customer support ? 🤔.",
     profession: 'Software Developer at Agriguard',
     image: '/bern.jpeg',
   },
@@ -21,7 +21,7 @@ const testimonials = [
     name: 'Andrews Ankomahene',
     profession: 'CTO at Radii',
     description:
-      "I believe in the power of automating service delivery with a human touch, Intelli concierge gives us the ability to do just that with their solution.",
+      "I believe in the power of automating service delivery with a human touch, Intelli  gives us the ability to do just that with their solution.",
     image: '/andre.jpeg',
   },
   
