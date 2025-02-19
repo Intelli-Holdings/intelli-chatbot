@@ -320,7 +320,6 @@ console.log("ws", ws);
             <h2 className="text-xl font-bold">Website Widget Conversations</h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-60"></div>
             <div className="w-60">
               <Select
                 value={selectedWidgetKey}
@@ -331,7 +330,7 @@ console.log("ws", ws);
                   <SelectValue placeholder="Select a widget" />
                 </SelectTrigger>
                 <SelectContent>
-                  <ScrollArea className="h-60 rounded-md shadow-sm">
+                  <ScrollArea className=" rounded-md shadow-sm">
                     <SelectGroup>
                       {widgets.map((widget) => (
                         <SelectItem key={widget.id} value={widget.widget_key}>

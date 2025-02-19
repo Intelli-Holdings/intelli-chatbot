@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useOrganization, useOrganizationList } from "@clerk/nextjs";
+import { useOrganization } from "@clerk/nextjs";
 import { NotificationContainer } from '@/app/dashboard/notifications/NotificationContainer';
 import { NotificationService } from '@/services/notifications';
 import { memberUtils } from '@/utils/members';
@@ -10,7 +10,6 @@ import { ClerkMember, TeamMember, NotificationMessage } from '@/types/notificati
 
 export default function NotificationPage() {
   const { organization } = useOrganization();
-  const { userMemberships } = useOrganizationList({ userMemberships: { infinite: true } });
   const { notifications, setNotifications, isConnected } = useNotifications();
   const [members, setMembers] = useState<TeamMember[]>([]);
 
