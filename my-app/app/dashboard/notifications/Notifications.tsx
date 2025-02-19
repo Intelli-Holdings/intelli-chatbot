@@ -91,7 +91,7 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications = [], membe
         throw new Error("Selected user not found");
       }
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/notifications/assign/notification/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assign/notification/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications = [], membe
     setIsLoading(prev => ({ ...prev, [`resolve-${notificationId}`]: true }));
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/notifications/resolve/notification/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/resolve/notification/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
