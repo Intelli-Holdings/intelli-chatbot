@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AssigneeSelector } from "@/components/notification-assign-selector";
 import { useOrganization, useOrganizationList } from "@clerk/nextjs";
-import { NotificationMessage } from "@/types/notifications";
+import { NotificationMessage } from "@/types/notification";
 import { ClerkMember } from "@/types/notification"; 
 
 interface NotificationCardProps {

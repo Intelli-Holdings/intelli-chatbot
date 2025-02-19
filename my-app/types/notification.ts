@@ -1,43 +1,36 @@
-export interface Notification {
-    id: string;
-    event_type: string;
-    message: string;
-    timestamp: string;
-    customerNumber?: string;
-    customerName?: string;
-    read: boolean;
-  }
 
-  export type Customer = {
-    id: number;
-    customer_number?: string;
-    customer_name?: string;
-    visitor_id?: string;
-    visitor_email?: string;
-    visitor_name?: string;
-    visitor_phone?: string;
-  };
-  
-  export type Escalation = {
+// Interface for the Escalation object
+export interface Escalation {
     id: number;
     name: string;
     description: string;
     system_name: string;
-  };
+    created_at: string;
+    updated_at: string;
+  }
   
-  export type NotificationMessage = {
+  // Interface for the Customer object
+  export interface Customer {
+    id: number;
+    customer_number: string;
+    customer_name: string;
+    updated_at: string;
+  }
+  
+  // Interface for the main NotificationMessage object
+  export interface NotificationMessage {
+    id: string;
     type: string;
     escalation: Escalation;
-    status: "pending" | "assigned" | "resolved";
+    status: string;
     channel: string;
     message: string;
-    id: string;
     resolved: boolean;
-    comment: string;
+    comment: string | null;
     assignee: string;
     customer: Customer;
     created_at: string;
-  };
+  }
   
   export type TeamMember = {
     id: string;
@@ -56,4 +49,3 @@ export interface Notification {
     };
     role: string;
   };
-  
