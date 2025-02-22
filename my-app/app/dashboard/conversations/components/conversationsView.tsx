@@ -613,66 +613,63 @@ const ConversationView: React.FC<ConversationViewProps> = ({
               {renderDateSeparator(date)}
               {messages.map((message) => (
                 <div key={message.id} className="flex flex-col mb-4">
-                  {/* Render media content if present */}
-                  {message.media && (
-                    <div className={`flex ${message.sender === 'customer' ? 'justify-start' : 'justify-end'} mb-2`}>
-                      {renderMediaContent(message)}
-                    </div>
-                  )}
-                  
-                  {/* Regular text content */}
+                  {/* Customer content */}
                   {message.content && (
-                    <div
-                      className={`message-bubble message-customer ${
-                        !expandedMessages.includes(message.id)
-                          ? "collapsed"
-                          : ""
-                      }`}
-                    >
-                      <div className="message-tail message-tail-left" />
-                      <div className="text-sm">
-                        {formatMessage(
-                          message.content
-                        )}
+                    <>
+                      {message.media && (
+                        <div className="flex justify-start mb-2">
+                          {renderMediaContent(message)}
+                        </div>
+                      )}
+                      <div
+                        className={`message-bubble message-customer ${
+                          !expandedMessages.includes(message.id) ? "collapsed" : ""
+                        }`}
+                      >
+                        <div className="message-tail message-tail-left" />
+                        <div className="text-sm">
+                          {formatMessage(message.content)}
+                        </div>
+                        <span className="text-[10px] text-white/80 mt-1 block">
+                          {format(parseISO(message.created_at), "h:mm a")}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-white/80 mt-1 block">
-                        {format(parseISO(message.created_at), "h:mm a")}
-                      </span>
-                    </div>
+                    </>
                   )}
 
-                  {/* AI or human response */}
+                  {/* Business/AI response */}
                   {message.answer && (
-                    <div
-                      className={`message-bubble ${
-                        message.sender === "ai"
-                          ? "message-assistant"
-                          : "message-human"
-                      }`}
-                    >
+                    <>
+                      {message.media && (
+                        <div className="flex justify-end mb-2">
+                          {renderMediaContent({ ...message, sender: 'business' })}
+                        </div>
+                      )}
                       <div
-                        className={`message-tail ${
-                          message.sender === "ai"
-                            ? "message-tail-right-assistant"
-                            : "message-tail-right-human"
+                        className={`message-bubble ${
+                          message.sender === "ai" ? "message-assistant" : "message-human"
                         }`}
-                      />
-                      <div className="text-sm">
-                        {formatMessage(
-                          message.answer
-                        )}
-                      </div>
-                      <span
-                        className={`text-[10px] ${
-                          message.sender === "ai"
-                            ? "text-black/60"
-                            : "text-white/80"
-                        } mt-1 block`}
                       >
-                        {format(parseISO(message.created_at), "h:mm a")} -{" "}
-                        {message.sender === "ai" ? "AI" : "Human"}
-                      </span>
-                    </div>
+                        <div
+                          className={`message-tail ${
+                            message.sender === "ai"
+                              ? "message-tail-right-assistant"
+                              : "message-tail-right-human"
+                          }`}
+                        />
+                        <div className="text-sm">
+                          {formatMessage(message.answer)}
+                        </div>
+                        <span
+                          className={`text-[10px] ${
+                            message.sender === "ai" ? "text-black/60" : "text-white/80"
+                          } mt-1 block`}
+                        >
+                          {format(parseISO(message.created_at), "h:mm a")} -{" "}
+                          {message.sender === "ai" ? "AI" : "Human"}
+                        </span>
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
