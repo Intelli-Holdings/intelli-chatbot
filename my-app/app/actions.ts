@@ -1,5 +1,7 @@
 'use server';
 
+import { toast } from "sonner";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface ConversationPayload {
@@ -76,25 +78,43 @@ export async function handoverConversation(formData: FormData) {
 }
 
 export async function sendMessage(formData: FormData) {
-  const payload = {
-    customer_number: formData.get('customer_number'),
-    customer_name: formData.get('customer_name'),
-    phone_number: formData.get('phone_number'),
-    content: formData.get('content'),
-    answer: formData.get('answer'),
-  };
+  // For text-only messages
+  if (!formData.has('file')) {
+    const payload = {
+      customer_number: formData.get('customer_number'),
+      phone_number: formData.get('phone_number'),
+      answer: formData.get('answer'),
+    };
 
-  const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/send_message/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+    const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/send_message/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  } 
+  // For messages with media files
+  else {
+    // FormData will be sent directly for file uploads
+    const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/send_message/`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('API error response:', errorData);
+      toast.error('Failed to send message');
+      
+    }
+
+    return response.json();
   }
-
-  return response.json();
 }

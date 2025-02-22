@@ -37,3 +37,12 @@ export interface SentimentAnalysis {
   };
   created_at: string;
 }
+
+export interface MediaType {
+  type: 'image' | 'audio' | 'video' | 'document' | 'file';
+  url: string;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  thumbnailUrl?: string;
+}
