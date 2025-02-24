@@ -93,7 +93,7 @@ const ValueProposition = () => {
   }
 
   return (
-    <section className=" mx-auto px-4 py-10">
+    <section className="">
       <div className="text-center mb-12">
         <h2 className="text-5xl font-bold mb-10">
           Effortless customer support
@@ -103,7 +103,7 @@ const ValueProposition = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-2 p-2 mb-8 ">
         {feedbackFeatures.map((feature) => (
           <button
             key={feature.id}

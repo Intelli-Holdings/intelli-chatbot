@@ -58,12 +58,14 @@ export function Home() {
           </div>
         </section>
 
-        <section className="container mt-20">
+        <section className=" mx-auto mt-20">
         <HowItWorksSection />
         </section>
 
-        <section className="container mt-20">
-        <ValueProposition />      
+        <section className=" mx-auto mt-20">
+        <div className="container mx-auto sm:px-6 lg:px-8">
+        <ValueProposition />    
+        </div>  
         </section>
 
         <section className="">
@@ -108,7 +110,7 @@ export function Home() {
           <div className="flex justify-center mb-4">
             <Badge>Testimonials</Badge>
           </div>
-          <div className="container mx-auto sm:px-6 lg:px-8">
+          <div className=" mx-auto sm:px-6 lg:px-8">
             <Testimonals />
           </div>
         </section>
