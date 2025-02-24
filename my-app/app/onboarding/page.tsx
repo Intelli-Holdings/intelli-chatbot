@@ -52,7 +52,7 @@ export default function OnboardingPage() {
   }
 
   useEffect(() => {
-    if (completedTasks.length === 13) {
+    if (completedTasks.length === 9) {
       setIsOnboardingComplete(true)
     }
   }, [completedTasks, setIsOnboardingComplete])
