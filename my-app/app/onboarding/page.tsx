@@ -61,7 +61,7 @@ export default function OnboardingPage() {
     <div className="container mx-auto py-10">
       <Card className="w-full max-w-3xl mx-auto">
         <CardHeader>
-          <CardTitle>Complete these steps to get Intelli Onboarding</CardTitle>
+          <CardTitle>Complete these steps to get onboarded on Intelli</CardTitle>
         </CardHeader>
         <CardContent>    
             <OnboardingFlow onboardingData={onboardingData} updateOnboardingData={updateOnboardingData} />
