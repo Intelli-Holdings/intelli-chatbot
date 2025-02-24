@@ -1,7 +1,6 @@
 "use client";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
-import CreateOrganizationPopup from "@/components/CreateOrganizationPopup"; // Import the popup component
 import type { Metadata } from "next";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -47,7 +46,6 @@ export default function DashboardLayout({
           <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
             <main className="">
             <QueryClientProvider client={queryClient}>
-              <CreateOrganizationPopup />
               {children}
               <ToastProvider /> 
               </QueryClientProvider>
