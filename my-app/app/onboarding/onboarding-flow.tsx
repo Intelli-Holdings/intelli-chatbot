@@ -210,7 +210,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
             user: user.id
           };
 
-          const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/api/assistants/`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
