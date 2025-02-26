@@ -3,6 +3,9 @@ import { Inter, Manrope } from "next/font/google";
 import "@/app/globals.css";
 import { Toaster } from 'sonner';
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import OnboardingReminder from "@/components/OnboardingReminder"
+import { OnboardingProvider } from "@/context/onboarding-context";
+
 import Script from "next/script";
 
 
@@ -117,7 +120,9 @@ export default function RootLayout({
             <PostHogPageView />
             <AptabaseProvider appKey="A-US-3705920924">
             <NextStepProvider>
+            <OnboardingProvider>
               <NextStep steps={steps}>{children}</NextStep>
+            </OnboardingProvider>
             </NextStepProvider>
             </AptabaseProvider>
             <ToastProvider />
