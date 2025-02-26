@@ -199,35 +199,34 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
     if (currentStep === 7) {
       try {
         if (!user || !activeOrganizationId) {
-          throw new Error('Missing user or organization data');
+          console.warn('Missing user or organization data');
+          toast.warning('Proceeding without creating assistant');
+        } else {
+          const assistantData = {
+            name: formData.assistantName || 'Default Assistant',
+            prompt: formData.assistantPrompt || 'Default business context prompt',
+            organization_id: activeOrganizationId,
+            type: formData.organizationProfile.type || 'general',
+            user: user.id
+          };
+
+          const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/api/assistants/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(assistantData),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to create assistant');
+          }
+
+          toast.success('Assistant created successfully!');
         }
-
-        const assistantData = {
-          name: formData.assistantName || 'Default Assistant',
-          prompt: formData.assistantPrompt || 'Default business context prompt',
-          organization_id: activeOrganizationId,
-          type: formData.organizationProfile.type || 'general',
-          user: user.id
-        };
-
-        const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/api/assistants/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(assistantData),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create assistant');
-        }
-
-        toast.success('Assistant created successfully!');
       } catch (error) {
         console.error('Error creating assistant:', error);
-        toast.error('Failed to create assistant');
-        setLoading(false);
-        return;
+        toast.warning('Proceeding without creating assistant');
       }
     }
 
@@ -697,7 +696,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
             exit={{ opacity: 0, y: -20 }}
             className="space-y-6"
           >
-            <h3 className="text-2xl font-semibold">Where should we deploy your Assistant?</h3>
+            <h3 className="text-2xl font-semibold">Where should we deploy your Assistant first?</h3>
             <div className="grid gap-4">
               {[
                 { icon: Globe, name: 'website', label: 'Website Widget', desc: 'Embed on your website' },
@@ -711,12 +710,9 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
                     <p className="text-sm text-gray-500">{channel.desc}</p>
                   </div>
                   <Switch
-                    checked={(formData.channels ?? []).includes(channel.name)}
+                    checked={formData.channels?.[0] === channel.name}
                     onCheckedChange={(checked) => {
-                      const currentChannels = formData.channels ?? [];
-                      const channels = checked
-                        ? [...currentChannels, channel.name]
-                        : currentChannels.filter(c => c !== channel.name);
+                      const channels = checked ? [channel.name] : [];
 
                       // Save to localStorage
                       localStorage.setItem('selectedChannels', JSON.stringify(channels));
