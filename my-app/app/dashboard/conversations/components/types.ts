@@ -16,7 +16,15 @@ export interface Conversation {
   updated_at: string;
   phone_number: string;
   recipient_id: string;
-}
+  attachments: {
+    id: number;
+    media_name: string;
+    media_type: string;
+    media_url: string;
+    media_mime_type: string;
+    created_at: string;
+  }[];
+};
 
 
 export interface Sentiment {
