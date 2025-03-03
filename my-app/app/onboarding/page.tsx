@@ -6,6 +6,7 @@ import OnboardingChecklist from "./onboarding-checklist"
 import ConfettiEffect from "./confetti-effect"
 import { useOnboarding } from "@/context/onboarding-context"
 import OnboardingFlow from "./onboarding-flow"
+import CircuitBackground from "@/components/ui/circuit-background"
 
 interface OnboardingData {
   source: string
@@ -58,16 +59,12 @@ export default function OnboardingPage() {
   }, [completedTasks, setIsOnboardingComplete])
 
   return (
-    <div className="container mx-auto py-10">
-      <Card className="w-full max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle>Complete these steps to get onboarded on Intelli</CardTitle>
-        </CardHeader>
-        <CardContent>    
-            <OnboardingFlow onboardingData={onboardingData} updateOnboardingData={updateOnboardingData} />
-        </CardContent>
-      </Card>
-      {showConfetti && <ConfettiEffect />}
+    <div className="mx-auto py-10 min-h-screen relative">
+      <CircuitBackground />
+      <div className="container relative z-10">
+        <h2 className="text-2xl font-bold text-center mb-8 text-slate-800">Welcome to Intelli, complete these steps to get onboarded</h2>
+        <OnboardingFlow onboardingData={onboardingData} updateOnboardingData={updateOnboardingData} />
+      </div>
     </div>
   )
 }

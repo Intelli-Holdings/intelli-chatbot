@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "./ui/textarea";
 import { DeleteAssistantDialog } from "@/components/delete-dialog-assistant";
+import useActiveOrganizationId from "@/hooks/use-organization-id";
 
 interface Assistant {
   id: number;
@@ -58,14 +59,14 @@ interface Assistant {
 }
 
 export default function Assistants() {
-  const { userMemberships, isLoaded } = useOrganizationList({
+  const { userMemberships } = useOrganizationList({
     userMemberships: { infinite: true },
   });
+  
+  const activeOrganizationId = useActiveOrganizationId();
 
   const [assistants, setAssistants] = useState<Assistant[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedOrganizationId, setSelectedOrganizationId] =
-    useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(
     null
   );
@@ -78,12 +79,12 @@ export default function Assistants() {
   }>({ isOpen: false, assistant: null });
 
   const fetchAssistants = async () => {
-    if (!selectedOrganizationId) return;
+    if (!activeOrganizationId) return;
 
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${selectedOrganizationId}/`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${activeOrganizationId}/`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch assistants");
@@ -94,7 +95,7 @@ export default function Assistants() {
 
       if (data.length === 0) {
         toast.info(
-          "This organization does not have any assistants. Please create one."
+          "No assistants found. Create one to get started."
         );
       }
     } catch (error) {
@@ -116,7 +117,6 @@ export default function Assistants() {
       assistant_id: updatedAssistant.assistant_id,
       organization: updatedAssistant.organization 
     };
-  
   
     try {
       const response = await fetch(
@@ -171,60 +171,45 @@ export default function Assistants() {
     }
   };
 
-  const handleOrganizationChange = (orgId: string) => {
-    setSelectedOrganizationId(orgId);
-  };
-
   useEffect(() => {
-    if (selectedOrganizationId) {
+    if (activeOrganizationId) {
       fetchAssistants();
     }
-  }, [selectedOrganizationId]);
+  }, [activeOrganizationId]);
 
-  const selectedOrg = userMemberships?.data?.find(
-    (membership) => membership.organization.id === selectedOrganizationId
-  );
+  // Find organization name for display purposes
+  const selectedOrgName = userMemberships?.data?.find(
+    (membership) => membership.organization.id === activeOrganizationId
+  )?.organization.name;
 
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-1">
-          Organization
-        </label>
-        <Select
-          value={selectedOrganizationId}
-          onValueChange={handleOrganizationChange}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select an organization" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {userMemberships?.data?.map((membership) => (
-                <SelectItem
-                  key={membership.organization.id}
-                  value={membership.organization.id}
-                >
-                  {membership.organization.name}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {selectedOrganizationId ? (
-        isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i} className="h-[240px] animate-pulse bg-muted" />
-            ))}
-          </div>
-        ) : assistants.length > 0 ? (
+      {!activeOrganizationId ? (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>No Organization </AlertTitle>
+          <AlertDescription>
+            Please create or join an organization to manage assistants.
+          </AlertDescription>
+        </Alert>
+      ) : isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="h-[240px] animate-pulse bg-muted" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {selectedOrgName && (
+            <h2 className="text-xl font-semibold">
+              {selectedOrgName} assistants
+            </h2>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <CreateAssistantDialog onAssistantCreated={fetchAssistants} />
 
-            {assistants.map((assistant) => (
+            {assistants.length > 0 && assistants.map((assistant) => (
               <Card key={assistant.id} className="h-[240px] flex flex-col">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -282,11 +267,6 @@ export default function Assistants() {
                     <CircleDot className="w-3 h-3 fill-green-500 text-green-500" />
                     <span className="text-sm">Active</span>
                   </div>
-                  {selectedOrg && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Organization: {selectedOrg.organization.name}
-                    </p>
-                  )}
                   <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                     {assistant.prompt}
                   </p>
@@ -294,32 +274,7 @@ export default function Assistants() {
               </Card>
             ))}
           </div>
-        ) : (
-          <div className="space-y-4">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>No Assistants Found</AlertTitle>
-              <AlertDescription>
-                This organization doesn&apos;t have any assistants yet. Create
-                your first assistant to get started!
-              </AlertDescription>
-            </Alert>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <CreateAssistantDialog onAssistantCreated={fetchAssistants} />
-            </div>
-          </div>
-        )
-      ) : (
-        <Card className="text-center py-12">
-          <CardContent>
-            <CardTitle className="mt-2">Select an Organization</CardTitle>
-            <CardDescription className="mt-1 font-medium">
-              Please select an organization to view its assistants. If there is
-              none; create one and go to playground to create widget using the
-              assistant you created.
-            </CardDescription>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {/* Edit Assistant Dialog */}
@@ -375,31 +330,6 @@ export default function Assistants() {
                 placeholder="Assistant ID"
                 required
               />
-              <Select
-                value={selectedAssistant.organization_id}
-                onValueChange={(value) =>
-                  setSelectedAssistant((prev) =>
-                    prev ? { ...prev, organization_id: value } : null
-                  )
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Organization this assistant belongs to" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {isLoaded &&
-                      userMemberships?.data?.map((membership) => (
-                        <SelectItem
-                          key={membership.organization.id}
-                          value={membership.organization.id}
-                        >
-                          {membership.organization.name}
-                        </SelectItem>
-                      ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
               <Button type="submit" disabled={isEditing}>
                 {isEditing ? (
                   <>

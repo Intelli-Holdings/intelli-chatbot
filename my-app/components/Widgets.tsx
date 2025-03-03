@@ -19,13 +19,14 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader, ExternalLink, Pen, Eye, EyeOff, ScanBarcodeIcon, Loader2 } from "lucide-react";
+import { Loader, ExternalLink, Pen, Eye, EyeOff, ScanBarcodeIcon, Loader2, Bot, PlusCircle } from "lucide-react";
 import { DeploymentDialog } from "@/components/deployment-dialog";
 import { formatDate } from "@/utils/date";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 
 interface Widget {
   showKey: any;
@@ -62,6 +63,8 @@ const Widgets = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState<string>("");
+
+  const router = useRouter();
 
   const { userMemberships, isLoaded } = useOrganizationList({
     userMemberships: { infinite: true },
@@ -153,6 +156,10 @@ const Widgets = () => {
     }
   };
 
+  const handleCreateWidget = () => {
+    router.push("/dashboard/playground");
+  };
+
   return (
     <div className="space-y-4">
       <div className="">
@@ -191,30 +198,47 @@ const Widgets = () => {
         <div className="flex items-center justify-center h-64">
           <Loader className="w-8 h-8 animate-spin" />
         </div>
-      ) : widgets.length > 0 ? (
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Create Widget Card */}
+          <Card 
+            className="h-[240px] border-dashed border-2 bg-muted hover:bg-accent/50 cursor-pointer flex items-center justify-center"
+            onClick={handleCreateWidget}
+          >
+            <div className="flex flex-col items-center justify-center text-muted-foreground">
+              <PlusCircle className="h-8 w-8 mb-2" />
+              <p className="font-medium">Create Widget</p>
+            </div>
+          </Card>
+
+          {/* Existing Widgets */}
           {widgets?.map((widget) => (
-            <Card key={widget.id} className="bg-white shadow-sm">
+            <Card key={widget.id} className="h-[240px] flex flex-col">
               <CardHeader>
-                <div className="flex flex-col space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Bot className="h-4 w-4 text-primary" />
+                  </div>
                   <CardTitle>{widget.widget_name}</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Website URL</p>
+              <CardContent className="flex-grow space-y-2">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-muted-foreground">Website:</p>
                   <a
                     href={widget.website_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline flex items-center gap-1"
                   >
-                    {widget.website_url}
+                    {widget.website_url.length > 25 
+                      ? widget.website_url.substring(0, 25) + '...' 
+                      : widget.website_url}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground ">Widget Key</p>
+                  <p className="text-sm font-medium text-muted-foreground">Widget Key:</p>
                   <div className="flex items-center gap-2">
                     <code className="text-xs bg-gray-100 p-1 rounded break-all">
                       {widget.showKey ? widget.widget_key : widget.widget_key.slice(0, 10) + "..."}
@@ -222,7 +246,8 @@ const Widgets = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setWidgets(widgets.map(w => 
                           w.id === widget.id ? { ...w, showKey: !w.showKey } : w
                         ))
@@ -236,60 +261,36 @@ const Widgets = () => {
                     </Button>
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Created At</p>
-                  <p className="text-sm">
-                  {formatDate(widget.created_at)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Updated At</p>
-                  <p className="text-sm">
-                  {formatDate(widget.updated_at)}
-                  </p>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Created: {formatDate(widget.created_at)}
+                </p>
               </CardContent>
-              <CardFooter className="flex justify-between">
+              <CardFooter>
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white w-full"
-                  variant="default"
+                  className="w-full"
+                  variant="outline"
                   size="sm"
                   onClick={() => setSelectedWidget({
                     key: widget.widget_key,
                     url: widget.website_url
                   })}
                 >
-                  See How To Deploy
+                  Deploy Instructions
                 </Button>
-                {/* <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditWidget(widget)}
-                    >
-                      <Pen className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit Widget</p>
-                  </TooltipContent>
-                </Tooltip> */}
               </CardFooter>
             </Card>
           ))}
         </div>
-      ) : (
-        <div className="text-center py-12">
+      )}
+
+      {widgets.length === 0 && !loading && (
+        <div className="text-center py-8">
           <p className="text-lg text-muted-foreground">
             No widgets found for this organization.
           </p>
-            <Button
-            className="mt-4"
-            onClick={() => window.location.href = "/dashboard/playground"}
-            >
-            Create Your First Widget
-            </Button>
+          <p className="text-sm text-muted-foreground mt-2">
+            Create a widget to get started.
+          </p>
         </div>
       )}
 

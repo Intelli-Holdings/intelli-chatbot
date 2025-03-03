@@ -16,8 +16,36 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CreateAssistantDialog } from "@/components/create-assistant-dialog";
 import { Info } from 'lucide-react';
 import { toast } from 'sonner';
-import { WorkgroundDialog } from '@/components/workground-dialog';
-import dynamic from 'next/dynamic';
+
+interface FormData {
+  organization_id: string;
+  source: string;
+  otherSource?: string;
+  goals: string[];
+  customGoal?: string;
+  organizationProfile: {
+    type: string;
+    customType?: string;
+    customTypeDescription?: string;
+    messageVolume: {
+      daily: number;
+      monthly?: number;
+    };
+    supportCost: number;
+    revenue: string;
+  };
+  businessType?: string; // Keep for backward compatibility
+  platforms?: any[]; // Keep for backward compatibility
+  employeeCount?: string; // Keep for backward compatibility
+  teamSize: number;
+  channels: string[];
+}
+
+interface AssistantData {
+  name: string;
+  prompt: string;
+  type: string;
+}
 
 
 import {
@@ -34,32 +62,6 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { createNewOrganization } from '@/services/organization';
 
-const DynamicWorkgroundDialog = dynamic(
-  () => import('@/components/workground-dialog').then(mod => mod.WorkgroundDialog),
-  { ssr: false }
-);
-
-
-const ConfettiExplosion = () => (
-  <div className="absolute inset-0 pointer-events-none">
-    {[...Array(50)].map((_, i) => (
-      <div
-        key={i}
-        className={`
-            absolute w-2 h-2 rounded-full
-            animate-[confetti_1s_ease-out_forwards]
-            ${['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-pink-500'][i % 4]}
-          `}
-        style={{
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%) rotate(${Math.random() * 360}deg)`,
-          animationDelay: `${Math.random() * 0.2}s`
-        }}
-      />
-    ))}
-  </div>
-);
 
 interface GoalCardProps {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
@@ -139,94 +141,104 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
       toast.error("Failed to create business");
     }
   };
-
-  interface FormData {
-    source: string;
-    goals: string[];
-    businessType: string;
-    otherSource?: string;
-    platforms: any[];
-    employeeCount: string;
-    assistantName: string;
-    logo: any;
-    personality: string;
-    customGoal?: string;
-    teamSize?: number;
-    channels?: string[];
-    aiPersonality?: { [key: string]: boolean };
-    organizationProfile: OrganizationProfile;
-    assistantPrompt: string;
-  }
+ 
 
   const [formData, setFormData] = useState<FormData>({
+    organization_id: activeOrganizationId || "",
     source: '',
+    otherSource: "",
     goals: [],
-    businessType: '',
-    platforms: [],
-    employeeCount: '',
-    assistantName: '',
-    logo: null,
-    personality: '',
-    teamSize: 1,
-    channels: [],
-    aiPersonality: {
-      friendly: false,
-      professional: false,
-      casual: false,
-      formal: false
-    },
+    customGoal: '',
     organizationProfile: {
-      revenue: '',
-      teamSize: 4,
-      messageVolume: {
-        daily: 100,
-        monthly: 3000
-      },
-      supportCost: 500,
       type: '',
       customType: '',
-      customTypeDescription: ''
+      customTypeDescription: '',
+      messageVolume: {
+        daily: 100
+      },
+      supportCost: 500,
+      revenue: ''
     },
-    assistantPrompt: ''
+    teamSize: 1,
+    channels: [],
+    
+    businessType: '',
+    platforms: [],
+    employeeCount: ''
   });
 
-  const totalSteps = 10;
+  const [assistantData, setAssistantData] = useState<AssistantData>({
+    name: '',
+    prompt: '',
+    type: 'general'
+  });
+
+  const totalSteps = 9;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
   const handleNext = async () => {
     setLoading(true);
 
+    // Submit form data when moving from step 7 to step 8
     if (currentStep === 7) {
       try {
         if (!user || !activeOrganizationId) {
           console.warn('Missing user or organization data');
-          toast.warning('Proceeding without creating assistant');
+          toast.warning('Proceeding with limited functionality');
         } else {
-          const assistantData = {
-            name: formData.assistantName || 'Default Assistant',
-            prompt: formData.assistantPrompt || 'Default business context prompt',
+          // Update organization_id from the active organization
+          const updatedFormData = {
+            ...formData,
             organization_id: activeOrganizationId,
-            type: formData.organizationProfile.type || 'general',
-            user: user.id
+            user_id: user.id
           };
-
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
+          
+          console.log('Submitting onboarding data:', updatedFormData);
+          
+          let response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/onboarding/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(assistantData),
+            body: JSON.stringify(updatedFormData),
           });
 
-          if (!response.ok) {
-            throw new Error('Failed to create assistant');
+          // If we get a 400 with message about onboarding info already existing, try PUT instead
+          if (response.status === 400) {
+            const errorText = await response.text();
+            console.error('API error response:', errorText);
+            
+            if (errorText.includes("Onboarding information already exists")) {
+              toast.info('Updating existing onboarding information...');
+              
+              // Try again with PUT method to update
+              response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/onboarding/`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedFormData),
+              });
+            }
           }
 
-          toast.success('Assistant created successfully!');
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API error response:', errorText);
+            throw new Error(`Failed to submit onboarding data: ${response.statusText}`);
+          }
+
+          toast.success('Onboarding data submitted successfully!');
+          
+          // Update the form data with the active organization ID
+          setFormData(prev => ({
+            ...prev,
+            organization_id: activeOrganizationId
+          }));
         }
       } catch (error) {
-        console.error('Error creating assistant:', error);
-        toast.warning('Proceeding without creating assistant');
+        console.error('Error submitting onboarding data:', error);
+        toast.error('Failed to submit onboarding data, but you can still proceed');
       }
     }
 
@@ -234,7 +246,6 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
     setLoading(false);
     setCurrentStep(prev => prev + 1);
   };
-
 
 
   const renderStep = () => {
@@ -282,10 +293,10 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
                 <SelectValue placeholder="Select an option" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="google">Google Search</SelectItem>
-                <SelectItem value="social">Social Media Ads</SelectItem>
+                <SelectItem value="googlesearch">Google Search</SelectItem>
+                <SelectItem value="socialmediaads">Social Media Ads</SelectItem>
                 <SelectItem value="referral">Referral</SelectItem>
-                <SelectItem value="appstore">Instagram</SelectItem>
+                <SelectItem value="instagram">Instagram</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
@@ -378,19 +389,19 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
             exit={{ opacity: 0, y: -20 }}
             className="space-y-6"
           >
-            <h3 className="text-2xl font-semibold">Tell us about your Business</h3>
-            <div className="rounded-lg border p-4 justify items-center">
+            <h3 className="text-2xl font-semibold">Tell us about your organization</h3>
+            <div className="rounded-lg border p-4 justify items-center">              
               <form onSubmit={handleCreateBusiness} className="w-full">
                 <div className="mb-4">
-                  <Label htmlFor="businessName">Business Name</Label>
+                  <Label htmlFor="businessName">Organization Name</Label>
                   <Input
                     id="businessName"
-                    placeholder="Your legal business name"
+                    placeholder="Your organization name"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                   />
                 </div>
-                <Button type="submit">Create Business</Button>
+                <Button type="submit">Create Organization</Button>
               </form>
             </div>
           </motion.div>
@@ -648,41 +659,9 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
             <h3 className="text-2xl font-semibold">Create Your AI Assistant</h3>
             <p className="text-gray-500">This AI assistant will help handle customer inquiries based on your business context</p>
             <div className="space-y-4">
-              <div>
-                <Label>Assistant Name</Label>
-                <Input
-                  placeholder="e.g., Support Assistant, Sales Helper"
-                  value={formData.assistantName}
-                  onChange={(e) => {
-                    // Validate and format assistant name
-                    const name = e.target.value.trim();
-                    if (name.length > 0) {
-                      setFormData({
-                        ...formData,
-                        assistantName: name
-                      });
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <Label>Business Context & Knowledge Base</Label>
-                <p className="text-sm text-gray-500 mb-2">
-                  Provide detailed information about your business, products, services, and common customer inquiries
-                </p>
-                <Textarea
-                  placeholder="Describe your business, products, services, pricing, policies, and any other information your assistant should know..."
-                  value={formData.assistantPrompt}
-                  onChange={(e) => {
-                    const prompt = e.target.value.trim();
-                    setFormData({
-                      ...formData,
-                      assistantPrompt: prompt
-                    });
-                  }}
-                  className="min-h-[200px]"
-                />
-              </div>
+              <CreateAssistantDialog onAssistantCreated={function (): void {
+                throw new Error('Function not implemented.');
+              } } />
             </div>
           </motion.div>
         );
@@ -723,11 +702,8 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
                       if (checked) {
                         switch (channel.name) {
                           case 'website':
-                            // Show Workground dialog
-                            const workgroundDialog = document.createElement('div');
-                            workgroundDialog.innerHTML = '<div id="workground-root"></div>';
-                            document.body.appendChild(workgroundDialog);
-                            // You'll need to implement the actual dialog rendering logic
+                            // Redirect to Website Widget page
+                            window.location.href = '/dashboard/playground';
                             break;
                           case 'whatsapp':
                             // Redirect to WhatsApp page
@@ -743,34 +719,16 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </motion.div>
         );
 
-
-
-
-      case 9:
-        return (
-          <div className="space-y-6">
-            <div className="relative h-64 w-full overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700">
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-4">
-                <Trophy className="w-16 h-16" />
-                <h2 className="text-3xl font-bold text-center">You&apos;re All Set! 🎉</h2>
-                <p className="text-lg text-center max-w-md">
-                  Your AI assistant is ready to help your customers. Let&apos;s take you to the dashboard!
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-
       default:
         return null;
     }
   };
 
   return (
-    <div className="bg-gradient-to-b from-blue-50 to-teal-50 p-6">
-      <Card className="mx-auto w-full">
+    <div className="max-w-3xl mx-auto rounded-xl ">
+      <Card className="w-full border rounded-2xl shadow-lg">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">
+          <CardTitle className="text-center text-lg font-semi-bold">
             {currentStep === 0 ? "Let's Get You Started" : `Step ${currentStep} of ${totalSteps - 1}`}
           </CardTitle>
         </CardHeader>
@@ -813,9 +771,13 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
                 }}
                 disabled={loading}
                 style={{ backgroundColor: '#007fff' }}
-                className="hover:bg-blue-600"
+                className="hover:bg-blue-600 relative overflow-hidden shadow-lg
+                  before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/30 before:to-transparent before:opacity-50
+                  after:absolute after:bottom-0 after:h-1/3 after:w-full after:bg-gradient-to-t after:from-black/20 after:to-transparent
+                  border-t border-white/30 border-b border-blue-900/30"
               >
-                Go to Dashboard
+                <span className="relative z-10 font-medium">Go to Dashboard</span>
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/10 to-white/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               </Button>
             )}
           </div>

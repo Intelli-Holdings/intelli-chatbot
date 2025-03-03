@@ -80,12 +80,12 @@ export default function WhatsappConvosPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex-1 flex overflow-hidden h-screen border border-gray-100">
+      <div className="flex-1 flex h-screen border rounded-lg border-gray-100">
         <div className={`${isMobile ? "w-full" : "w-1/3"} `}>
           <ConversationList conversations={conversations} onSelectConversation={handleSelectConversation} />
         </div>
         {!isMobile && (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 ">
            <ConversationView 
               conversation={selectedConversation} 
               conversations={conversations}

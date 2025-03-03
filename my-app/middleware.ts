@@ -4,6 +4,8 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 const isProtectedRoute = createRouteMatcher([
    '/demo(.*)',
    '/chat(.*)',
+   '/onboarding(.*)',
+   '/feedback(.*)',
    '/dashboard(.*)', // This will protect all dashboard routes
    '/organization/(.*)', // This will protect all organization routes
 ]);
