@@ -737,7 +737,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
                 <Label htmlFor="assistant-prompt">Assistant Instructions</Label>
                 <Textarea
                   id="assistant-prompt"
-                  placeholder="Describe what your assistant should know and how it should respond to customers..."
+                  placeholder="Describe what your assistant should know and how it should respond to customers/Alternatively use and modify the example instructions; we've provided.."
                   value={assistantFormData.prompt}
                   onChange={(e) => setAssistantFormData(prev => ({ ...prev, prompt: e.target.value }))}
                   required
@@ -755,11 +755,11 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
                       if (exampleText) {
                         const isHidden = exampleText.classList.toggle('hidden');
                         // Update button text based on visibility state
-                        button.textContent = isHidden ? 'Show Example Prompt' : 'Hide Example Prompt';
+                        button.textContent = isHidden ? 'Show Example Instructions' : 'Hide Example Instructions';
                       }
                       }}
                     >
-                      Show Example Prompt
+                      Show Example Instructions
                     </Button>
                     
                     {/* Hidden Example Text */}
