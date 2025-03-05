@@ -9,7 +9,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { useOrganizationList } from "@clerk/nextjs";
+
 import { CreateAssistantDialog } from "@/components/create-assistant-dialog";
 import {
   Bot,
@@ -59,12 +59,7 @@ interface Assistant {
 }
 
 export default function Assistants() {
-  const { userMemberships } = useOrganizationList({
-    userMemberships: { infinite: true },
-  });
-  
-  const activeOrganizationId = useActiveOrganizationId();
-
+  const organizationId = useActiveOrganizationId();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(
@@ -79,15 +74,16 @@ export default function Assistants() {
   }>({ isOpen: false, assistant: null });
 
   const fetchAssistants = async () => {
-    if (!activeOrganizationId) return;
+    if (!organizationId) return;
 
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${activeOrganizationId}/`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`
       );
       if (!response.ok) {
-        throw new Error("Failed to fetch assistants");
+        toast.info("No assistants found. Create one to get started.");
+        return;
       }
 
       const data: Assistant[] = await response.json();
@@ -100,6 +96,7 @@ export default function Assistants() {
       }
     } catch (error) {
       console.error("Error fetching assistants:", error);
+      
       toast.error("Failed to fetch assistants. Please try again.");
     } finally {
       setIsLoading(false);
@@ -172,19 +169,14 @@ export default function Assistants() {
   };
 
   useEffect(() => {
-    if (activeOrganizationId) {
+    if (organizationId) {
       fetchAssistants();
     }
-  }, [activeOrganizationId]);
-
-  // Find organization name for display purposes
-  const selectedOrgName = userMemberships?.data?.find(
-    (membership) => membership.organization.id === activeOrganizationId
-  )?.organization.name;
+  }, [organizationId]);
 
   return (
     <div className="space-y-4">
-      {!activeOrganizationId ? (
+      {!organizationId ? (
         <Alert>
           <Info className="h-4 w-4" />
           <AlertTitle>No Organization </AlertTitle>
@@ -200,11 +192,7 @@ export default function Assistants() {
         </div>
       ) : (
         <div className="space-y-4">
-          {selectedOrgName && (
-            <h2 className="text-xl font-semibold">
-              {selectedOrgName} assistants
-            </h2>
-          )}
+          <h2 className="text-xl font-semibold">My Assistants</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <CreateAssistantDialog onAssistantCreated={fetchAssistants} />
