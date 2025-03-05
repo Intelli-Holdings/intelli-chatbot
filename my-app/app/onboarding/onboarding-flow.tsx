@@ -4,17 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, Clipboard, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useUser } from '@clerk/nextjs';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CreateAssistantDialog } from "@/components/create-assistant-dialog";
-import { Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FormData {
@@ -57,7 +53,11 @@ import {
   Building2,
   MessageSquare,
   Globe,
-  Mail
+  Mail,
+  Loader2, 
+  Clipboard, 
+  ClipboardCheck, 
+  Info,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { createNewOrganization } from '@/services/organization';
@@ -149,21 +149,25 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
 
     setIsCreatingAssistant(true);
     try {
+      // According to API schema, it needs 'organization' not 'organization_id'
       const data = {
         name: assistantFormData.name,
         prompt: assistantFormData.prompt,
-        organization_id: activeOrganizationId, // Use activeOrganizationId directly
+        organization: assistantFormData.organization_id,
+        type: "USER" // Adding required type field from API schema
       };
-
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
         throw new Error("Failed to create assistant");
       }
 
@@ -183,25 +187,6 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
   };
 
   const { user } = useUser();
-  const [businessName, setBusinessName] = useState("");
-
-  const handleCreateBusiness = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!businessName.trim()) {
-      toast.error("Please enter a business name");
-      return;
-    }
-    try {
-      if (!user?.id) {
-        throw new Error("User not authenticated");
-      }
-      await createNewOrganization(businessName, user.id);
-      toast.success("Business created successfully!");
-    } catch (error) {
-      console.error("Failed to create business:", error);
-      toast.error("Failed to create business");
-    }
-  };
  
 
   const [formData, setFormData] = useState<FormData>({
@@ -234,13 +219,13 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
     type: 'general'
   });
 
-  const totalSteps = 9;
+  const totalSteps = 8;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
   const handleNext = async () => {
     setLoading(true);
 
-    // Submit form data when moving from step 7 to step 8
+    // Submit form data when moving from step 7 
     if (currentStep === 7) {
       try {
         if (!user || !activeOrganizationId) {
@@ -442,34 +427,8 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </div>
         );
 
+
       case 3:
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
-          >
-            <h3 className="text-2xl font-semibold">Tell us about your organization</h3>
-            <div className="rounded-lg border p-4 justify items-center">              
-              <form onSubmit={handleCreateBusiness} className="w-full">
-                <div className="mb-4">
-                  <Label htmlFor="businessName">Organization Name</Label>
-                  <Input
-                    id="businessName"
-                    placeholder="Your organization name"
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                  />
-                </div>
-                <Button type="submit">Create Organization</Button>
-              </form>
-            </div>
-          </motion.div>
-        );
-
-
-      case 4:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -576,7 +535,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </motion.div>
         );
 
-      case 5:
+      case 4:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -685,7 +644,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </motion.div>
         );
 
-      case 6:
+      case 5:
         return (
           <div className="space-y-6">
             <h3 className="text-2xl font-semibold">How many employees will be using Intelli?</h3>
@@ -709,7 +668,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </div>
         );
 
-      case 7:
+      case 6:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -849,24 +808,25 @@ Response Rules
                 </div>
               </div>
               
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isCreatingAssistant}
-                style={{ backgroundColor: '#007fff' }}
-              >
-                {isCreatingAssistant ? (
+              
+                <Button 
+                  onClick={handleCreateAssistant}
+                  className="w-full" 
+                  disabled={isCreatingAssistant}
+                  style={{ backgroundColor: '#007fff' }}
+                >
+                  {isCreatingAssistant ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating Assistant...
                   </>
-                ) : "Create Assistant"}
-              </Button>
+                  ) : "Create Assistant"}
+                </Button>
             </form>
           </motion.div>
         );
 
-      case 8:
+      case 7:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -928,7 +888,7 @@ Response Rules
       <Card className="w-full border rounded-2xl shadow-lg">
         <CardHeader>
           <CardTitle className="text-center text-lg font-semi-bold">
-            {currentStep === 0 ? "Let's Get You Started" : `Step ${currentStep} of ${totalSteps - 1}`}
+            {currentStep === 0 ? "What is Intelli?" : `Step ${currentStep} of ${totalSteps - 1}`}
           </CardTitle>
         </CardHeader>
         <CardContent>
