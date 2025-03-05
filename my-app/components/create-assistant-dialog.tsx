@@ -9,17 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus } from "lucide-react"
 import { toast } from "sonner"
+import useActiveOrganizationId from "@/hooks/use-organization-id"
 
 interface CreateAssistantDialogProps {
   onAssistantCreated: () => void
 }
 
 export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDialogProps) {
-  const { userMemberships, isLoaded } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-    },
-  })
+
 
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -28,32 +25,22 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
     prompt: "",
     organization_id: "",
   })
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>("")
 
-  useEffect(() => {
-    if (isLoaded && userMemberships?.data?.length > 0 && !selectedOrganizationId) {
-      setSelectedOrganizationId(userMemberships.data[0].organization.id)
-    }
-  }, [isLoaded, userMemberships, selectedOrganizationId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedOrganizationId) {
-      console.log("Submission blocked: No organization selected")
-      toast.error("Please select an organization")
-      return
-    }
+
 
     setIsLoading(true)
     try {
       const data = {
         name: formData.name,
         prompt: formData.prompt,
-        organization_id: selectedOrganizationId,
+        organization_id: useActiveOrganizationId,
       }
 
-      console.log("Submitting data to backend:", data)
+      console.log('Assistant creation data:', data);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
         method: "POST",
@@ -61,7 +48,13 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        
       })
+
+      // Optionally, also log the response
+  console.log('Response status:', response.status);
+  const responseData = await response.json();
+  console.log('Response data:', responseData);
 
       if (!response.ok) {
         console.error("Assistant creation failed:", {
@@ -98,24 +91,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
           <DialogTitle>Create New Assistant</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">Organization</label>
-            <Select value={selectedOrganizationId} onValueChange={(value) => setSelectedOrganizationId(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select an organization" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {isLoaded &&
-                    userMemberships?.data?.map((membership) => (
-                      <SelectItem key={membership.organization.id} value={membership.organization.id}>
-                        {membership.organization.name}
-                      </SelectItem>
-                    ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+
           <div>
             <Input
               placeholder="Assistant name"

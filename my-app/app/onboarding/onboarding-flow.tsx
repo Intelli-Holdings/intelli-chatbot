@@ -4,17 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useUser } from '@clerk/nextjs';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CreateAssistantDialog } from "@/components/create-assistant-dialog";
-import { Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FormData {
@@ -57,7 +53,11 @@ import {
   Building2,
   MessageSquare,
   Globe,
-  Mail
+  Mail,
+  Loader2, 
+  Clipboard, 
+  ClipboardCheck, 
+  Info,
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { createNewOrganization } from '@/services/organization';
@@ -121,26 +121,72 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
   const [loading, setLoading] = useState(false);
   const activeOrganizationId = useActiveOrganizationId();
 
-  const { user } = useUser();
-  const [businessName, setBusinessName] = useState("");
+  const [isCreatingAssistant, setIsCreatingAssistant] = useState(false);
+  const [assistantFormData, setAssistantFormData] = useState({
+    name: "",
+    prompt: "",
+    organization_id: activeOrganizationId || "", 
+  });
+  
+  // Update assistantFormData when activeOrganizationId changes
+  React.useEffect(() => {
+    if (activeOrganizationId) {
+      setAssistantFormData(prev => ({
+        ...prev,
+        organization_id: activeOrganizationId
+      }));
+    }
+  }, [activeOrganizationId]);
 
-  const handleCreateBusiness = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Function to handle assistant creation - removed organization selection validation
+  const handleCreateAssistant = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName.trim()) {
-      toast.error("Please enter a business name");
+
+    if (!activeOrganizationId) {
+      toast.error("No active organization found. Please create an organization first.");
       return;
     }
+
+    setIsCreatingAssistant(true);
     try {
-      if (!user?.id) {
-        throw new Error("User not authenticated");
+      // According to API schema, it needs 'organization' not 'organization_id'
+      const data = {
+        name: assistantFormData.name,
+        prompt: assistantFormData.prompt,
+        organization: assistantFormData.organization_id,
+        type: "USER" // Adding required type field from API schema
+      };
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error("Failed to create assistant");
       }
-      await createNewOrganization(businessName, user.id);
-      toast.success("Business created successfully!");
+
+      toast.success(
+        "Assistant created successfully; Your assistant will help handle customer inquiries"
+      );
+      setAssistantFormData({ name: "", prompt: "", organization_id: activeOrganizationId || "" });
+      
+      // Automatically proceed to next step after successful creation
+      handleNext();
     } catch (error) {
-      console.error("Failed to create business:", error);
-      toast.error("Failed to create business");
+      console.error("Error creating assistant:", error);
+      toast.error("Failed to create assistant");
+    } finally {
+      setIsCreatingAssistant(false);
     }
   };
+
+  const { user } = useUser();
  
 
   const [formData, setFormData] = useState<FormData>({
@@ -173,13 +219,13 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
     type: 'general'
   });
 
-  const totalSteps = 9;
+  const totalSteps = 8;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
   const handleNext = async () => {
     setLoading(true);
 
-    // Submit form data when moving from step 7 to step 8
+    // Submit form data when moving from step 7 
     if (currentStep === 7) {
       try {
         if (!user || !activeOrganizationId) {
@@ -228,7 +274,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
             throw new Error(`Failed to submit onboarding data: ${response.statusText}`);
           }
 
-          toast.success('Onboarding data submitted successfully!');
+          toast.success('Your onboarding is completed successfully!');
           
           // Update the form data with the active organization ID
           setFormData(prev => ({
@@ -238,7 +284,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
         }
       } catch (error) {
         console.error('Error submitting onboarding data:', error);
-        toast.error('Failed to submit onboarding data, but you can still proceed');
+        toast.info('Failed to complete onboarding, but you can still proceed');
       }
     }
 
@@ -381,34 +427,8 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </div>
         );
 
+
       case 3:
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
-          >
-            <h3 className="text-2xl font-semibold">Tell us about your organization</h3>
-            <div className="rounded-lg border p-4 justify items-center">              
-              <form onSubmit={handleCreateBusiness} className="w-full">
-                <div className="mb-4">
-                  <Label htmlFor="businessName">Organization Name</Label>
-                  <Input
-                    id="businessName"
-                    placeholder="Your organization name"
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                  />
-                </div>
-                <Button type="submit">Create Organization</Button>
-              </form>
-            </div>
-          </motion.div>
-        );
-
-
-      case 4:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -515,7 +535,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </motion.div>
         );
 
-      case 5:
+      case 4:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -624,7 +644,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </motion.div>
         );
 
-      case 6:
+      case 5:
         return (
           <div className="space-y-6">
             <h3 className="text-2xl font-semibold">How many employees will be using Intelli?</h3>
@@ -648,7 +668,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           </div>
         );
 
-      case 7:
+      case 6:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -658,16 +678,155 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
           >
             <h3 className="text-2xl font-semibold">Create Your AI Assistant</h3>
             <p className="text-gray-500">This AI assistant will help handle customer inquiries based on your business context</p>
-            <div className="space-y-4">
-              <CreateAssistantDialog onAssistantCreated={function (): void {
-                throw new Error('Function not implemented.');
-              } } />
-            </div>
+            
+            <form onSubmit={handleCreateAssistant} className="space-y-4">
+              <div>
+                <Label htmlFor="assistant-name">Assistant Name</Label>
+                <Input
+                  id="assistant-name"
+                  placeholder="Give your assistant a name (e.g., SupportBot)"
+                  value={assistantFormData.name}
+                  onChange={(e) => setAssistantFormData(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="assistant-prompt">Assistant Instructions</Label>
+                <Textarea
+                  id="assistant-prompt"
+                  placeholder="Describe what your assistant should know and how it should respond to customers/Alternatively use and modify the example instructions; we've provided.."
+                  value={assistantFormData.prompt}
+                  onChange={(e) => setAssistantFormData(prev => ({ ...prev, prompt: e.target.value }))}
+                  required
+                  className="min-h-[150px] mt-1"
+                />
+                <div className="flex items-center justify-between mt-1">
+                  <div>
+                    {/* Show Example Button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                      const exampleText = document.getElementById('example-prompt-text');
+                      const button = e.currentTarget;
+                      if (exampleText) {
+                        const isHidden = exampleText.classList.toggle('hidden');
+                        // Update button text based on visibility state
+                        button.textContent = isHidden ? 'Show Example Instructions' : 'Hide Example Instructions';
+                      }
+                      }}
+                    >
+                      Show Example Instructions
+                    </Button>
+                    
+                    {/* Hidden Example Text */}
+                    <div id="example-prompt-text" className="hidden text-xs text-gray-500 mt-2 p-3 border rounded-md bg-gray-50 max-w-[600px]">
+                      Example: &quot;You are a customer support assistant for [Your Company Name], a  [briefly describe your business, e.g., &quot;subscription-based meal kit service&quot;]. Your role is to help customers with [key services, e.g., &quot;order changes, recipe questions, and account issues&quot;] while being [tone, e.g., &quot;approachable, professional, or upbeat&quot;]. Always align with our brand voice below.&quot; 
+
+                      <p className="font-medium mt-1">Brand Voice & Style</p>
+                      - Tone: [e.g., &quot;Friendly but concise. Use simple language and occasional emojis like &quot;]
+                      - Avoid/Never: [e.g., &quot;Technical jargon. Never say &quot;That is not my job.&quot;]  
+                      - Key phrases: [e.g., &quot;We&quot;ve got your back!&quot;, &quot;Let me help you with that.&quot;]  
+
+                      <p className="font-medium mt-1">Services & Solutions</p>
+                      - What we offer: [e.g., &quot;Weekly meal kits with pre-portioned ingredients and step-by-step recipes. Customizable plans for dietary needs.&quot;] 
+
+                      <p className="font-medium mt-1">Resources</p>
+                      - Use these resources: Answer questions using the attached [knowledge base/FAQs, e.g., &quot;Recipe_Guide_2024.pdf&quot; or &quot;Delivery_Schedule.csv&quot;]. If unsure, say: [fallback message, e.g., &quot;I&quot;ll need to check with the team! For faster help, visit [Help Page Link]  
+
+                      <p className="font-medium mt-1">Example Interactions</p>
+                      - Good response:  
+                      User: &quot;How do I skip a delivery?&quot;*  
+                      Assistant: *&quot;No problem! Go to &quot;Manage Deliveries&quot; in your account settings and select the week you&quot;d like to skip. Need a hand? I can guide you step by step! &quot;
+                      -Avoid: [e.g., &quot;You have to do it yourself in the app.&quot;] 
+
+                      <p className="font-medium mt-1">Response Rules</p>
+                      - Keep answers under [length, e.g., &quot;2–3 sentences or bullet points&quot;].  
+                      - For [specific scenarios, e.g., &quot;recipe substitutions&quot;], follow this script: [e.g., &quot;1. Ask about dietary needs. 2. Suggest alternatives (e.g., almond milk for dairy). 3. Link to our substitution guide.&quot;] 
+                      &quot;
+                    </div>
+                  </div>
+                  
+                  {/* Copy Button with Icon - updated to copy full example text */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      const button = e.currentTarget;
+                      const fullExampleText = `You are a customer support assistant for [Your Company Name], a [briefly describe your business, e.g., "subscription-based meal kit service"]. Your role is to help customers with [key services, e.g., "order changes, recipe questions, and account issues"] while being [tone, e.g., "approachable, professional, or upbeat"]. Always align with our brand voice below.
+
+Brand Voice & Style
+- Tone: [e.g., "Friendly but concise. Use simple language and occasional emojis like "]
+- Avoid/Never: [e.g., "Technical jargon. Never say "That is not my job."]
+- Key phrases: [e.g., "We've got your back!", "Let me help you with that."]
+
+Services & Solutions
+- What we offer: [e.g., "Weekly meal kits with pre-portioned ingredients and step-by-step recipes. Customizable plans for dietary needs."]
+
+Resources
+- Use these resources: Answer questions using the attached [knowledge base/FAQs, e.g., "Recipe_Guide_2024.pdf" or "Delivery_Schedule.csv"]. If unsure, say: [fallback message, e.g., "I'll need to check with the team! For faster help, visit [Help Page Link]
+
+Example Interactions
+- Good response:
+User: "How do I skip a delivery?"
+Assistant: "No problem! Go to "Manage Deliveries" in your account settings and select the week you'd like to skip. Need a hand? I can guide you step by step!"
+-Avoid: [e.g., "You have to do it yourself in the app."]
+
+Response Rules
+- Keep answers under [length, e.g., "2–3 sentences or bullet points"].
+- For [specific scenarios, e.g., "recipe substitutions"], follow this script: [e.g., "1. Ask about dietary needs. 2. Suggest alternatives (e.g., almond milk for dairy). 3. Link to our substitution guide."]`;
+                      
+                      navigator.clipboard.writeText(fullExampleText)
+                        .then(() => {
+                          // Change icon to check mark
+                          const icon = button.querySelector('svg');
+                          if (icon) {
+                            icon.innerHTML = '<path d="M20 6L9 17l-5-5"/>';
+                            icon.setAttribute('stroke', 'currentColor');
+                            icon.setAttribute('fill', 'none');
+                            icon.setAttribute('stroke-width', '2');
+                            icon.setAttribute('stroke-linecap', 'round');
+                            icon.setAttribute('stroke-linejoin', 'round');
+                          }
+                          
+                          toast.success("Example prompt copied to clipboard");
+                          
+                          // Reset after 2 seconds
+                          setTimeout(() => {
+                            if (icon) {
+                              icon.innerHTML = '<path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M8 10h8"/><path d="M8 14h8"/><path d="M8 18h8"/>';
+                            }
+                          }, 2000);
+                        });
+                    }}
+                    title="Copy example prompt"
+                  >
+                    <Clipboard className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              
+                <Button 
+                  onClick={handleCreateAssistant}
+                  className="w-full" 
+                  disabled={isCreatingAssistant}
+                  style={{ backgroundColor: '#007fff' }}
+                >
+                  {isCreatingAssistant ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Assistant...
+                  </>
+                  ) : "Create Assistant"}
+                </Button>
+            </form>
           </motion.div>
         );
 
-
-      case 8:
+      case 7:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -729,7 +888,7 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
       <Card className="w-full border rounded-2xl shadow-lg">
         <CardHeader>
           <CardTitle className="text-center text-lg font-semi-bold">
-            {currentStep === 0 ? "Let's Get You Started" : `Step ${currentStep} of ${totalSteps - 1}`}
+            {currentStep === 0 ? "What is Intelli?" : `Step ${currentStep} of ${totalSteps - 1}`}
           </CardTitle>
         </CardHeader>
         <CardContent>
