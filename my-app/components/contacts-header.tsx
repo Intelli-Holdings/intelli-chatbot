@@ -46,7 +46,9 @@ export function ContactsHeader({ onSearchChange }: ContactsHeaderProps) {
       <div className="flex items-center gap-2">
         <Dialog>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-[#007fff] text-white hover:bg-[#007fff]/100 hover:text-white"
+                size={"sm"}
+                variant="outline">
               <Import className="mr-2 h-4 w-4" />
               Import
             </Button>
