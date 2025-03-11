@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { RainbowButton } from "@/components/ui/rainbow-button";
+import { GradientButton } from "@/components/ui/gradient-button";
 import EnterpriseBookingModal from '@/components/EnterpriseBooking';
 
 interface PricingCardProps {
@@ -51,9 +51,9 @@ const PricingCard: React.FC<PricingCardProps> = ({
       )}
       <h3 className="text-xl font-bold mb-3">{title}</h3>
       <div className="flex items-baseline mb-2">
-        <span className="text-5xl font-bold">{price}</span>
+        <span className="text-4xl font-bold">{price}</span>
         {originalPrice && (
-          <span className="ml-2 text-sm line-through text-gray-500">{originalPrice}</span>
+          <span className="ml-2 text-xs line-through text-gray-500">{originalPrice}</span>
         )}
       </div>
       <p className="text-gray-600 mb-6">{description}</p>
@@ -72,12 +72,12 @@ const PricingCard: React.FC<PricingCardProps> = ({
       
       {isEnterprise ? (
         <>
-          <RainbowButton
+          <GradientButton
             onClick={handleButtonClick}
             className="w-full flex justify-center items-center"
           >
             {buttonText}
-          </RainbowButton>
+          </GradientButton>
           <EnterpriseBookingModal 
             isOpen={isBookingModalOpen} 
             onClose={() => setIsBookingModalOpen(false)} 

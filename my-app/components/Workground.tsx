@@ -92,7 +92,7 @@ export default function Workground() {
     } catch (error) {
       console.error("Error fetching assistants:", error);
       setAssistants([]);
-      toast.info("Selected organisation does not have any assistants. Please create one to get started.");
+      toast.info("Selected organisation does not have any assistants. Please create assistant to get started.");
     }
   };
 
@@ -272,7 +272,7 @@ export default function Workground() {
             onChange={setGreetingMessage}
           />
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full bg-blue-600 bg-blue-600 hover:bg-blue-700" disabled={loading}>
             {loading ? (
               <div className="flex items-center justify-center space-x-2">
                 <Loader className="animate-spin h-5 w-5" />

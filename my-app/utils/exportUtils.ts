@@ -1,7 +1,7 @@
 import { Conversation } from '@/app/dashboard/conversations/components/types';
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'exceljs'
 
 export const exportToPDF = (conversation: Conversation) => {
   const doc = new jsPDF()

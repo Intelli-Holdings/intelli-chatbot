@@ -58,10 +58,10 @@ const EmbeddedSignup: React.FC = () => {
     
     window.fbAsyncInit = function() {
       window.FB?.init({
-        appId: '1643276069938705',
+        appId: '920133846840301',
         autoLogAppEvents: true,
         xfbml: true,
-        version: 'v21.0'
+        version: 'v22.0'
       });
     };
 
@@ -88,7 +88,7 @@ const EmbeddedSignup: React.FC = () => {
 
   const launchWhatsAppSignup = useCallback(() => {
     window.FB?.login(handleFBLogin, {
-      config_id: '435858835887075',
+      config_id: '1370437434289587',
       response_type: 'code',
       override_default_response_type: true,
       extras: {

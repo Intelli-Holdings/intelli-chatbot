@@ -10,15 +10,15 @@ const PricingComponent = () => {
     {
       name: 'Website Widget',
       monthlyPrice: 15,
-      annualPrice: 144,
+      annualPrice: 150,
       originalMonthlyPrice: 19,
       originalAnnualPrice: 180,
       features: [
         'AI-powered website chat widget',
-        'Real-time visitor insights dashboard',
+        'Live Chat',
         'Basic technical support (Email)',
-        '3 team member seats included',
-        'Customizable chat widget appearance',
+        'Customizable chat widget appearance',    
+        '1 team member seat included (additional seats are $5 per month per member)',
       ],
       description: 'Perfect for small businesses looking to automate customer support.',
       buttonText: 'Start Free Trial',
@@ -27,16 +27,15 @@ const PricingComponent = () => {
     {
       name: 'WhatsApp AI Assistant',
       monthlyPrice: 35,
-      annualPrice: 336,
+      annualPrice: 350,
       originalMonthlyPrice: 45,
       originalAnnualPrice: 420,
       features: [
         'WhatsApp Business API integration',
-        'Advanced analytics dashboard',
-        'Priority email & chat support',
-        '5 team member seats included',
-        'Human agent takeover capabilities',
-        
+        'Live Chat',
+        'Basic technical support (Email)',
+        'Advanced analytics dashboard',       
+        '1 team member seat included (additional seats are $5 per month per member)',        
       ],
       description: 'Ideal for growing businesses needing multi-channel support.',
       buttonText: 'Start Free Trial',
@@ -51,11 +50,11 @@ const PricingComponent = () => {
       features: [
         'Custom AI solution development',
         'Dedicated account manager',
-        'Premium 24/7 support',
-        'Unlimited team members',
+        'Premium support',
         'Custom API integration',
         'Advanced security features',
         'Custom AI training capabilities',
+        'Multichannel package',
       ],
       description: 'Tailored solutions for large-scale organizations.',
       buttonText: 'Contact Sales',
@@ -96,7 +95,7 @@ const PricingComponent = () => {
             >
               Annual
               {isAnnual && (
-                <span className="ml-2 text-xs font-medium text-green-500">-20%</span>
+                <span className="ml-4 text-xs font-medium text-blue-500">-2months</span>
               )}
             </button>
           </div>

@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Clock, RefreshCw } from "lucide-react";
 import { Event } from "@/types/events";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
   interface EventCardProps {
     event: Event;
@@ -24,22 +25,41 @@ export function EventCard({ event, onEdit, onDelete }: EventCardProps) {
               </span>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(event)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(event.id)}
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
-          </div>
+            <div className="flex gap-2">
+            <TooltipProvider>
+              <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(event)}
+                >
+                <Edit className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Edit event</p>
+              </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(event.id)}
+                >
+                <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete event</p>
+              </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            </div>
+
         </div>
         <div className="flex items-center gap-4 mt-4 text-xs text-gray-500">
           <div className="flex items-center gap-1">

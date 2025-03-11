@@ -14,40 +14,34 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { useOrganizationList } from "@clerk/nextjs";
-import { MoreVertical, Pencil, Trash, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import useActiveOrganizationId from "@/hooks/use-organization-id";
 
 export default function EscalationEvents() {
-  const { userMemberships } = useOrganizationList({
-    userMemberships: { infinite: true },
-  });
-  const [events, setEvents] = useState<Event[]>([]);
+  const activeOrganizationId = useActiveOrganizationId();
+  const [organizationEvents, setOrganizationEvents] = useState<Event[]>([]);
+
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedOrganizationId, setSelectedOrganizationId] =
-    useState<string>("");
-  const [organizationEvents, setOrganizationEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (selectedOrganizationId) {
+    if (activeOrganizationId) {
       fetchOrganizationEvents();
     }
-  }, [selectedOrganizationId]);
+  }, [activeOrganizationId]);
 
   const fetchOrganizationEvents = async () => {
+    if (!activeOrganizationId) return;
+    
+    setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/events/${selectedOrganizationId}/`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/events/${activeOrganizationId}/`
+
       );
       if (!response.ok) throw new Error("Failed to fetch events");
       const data = await response.json();
@@ -55,16 +49,22 @@ export default function EscalationEvents() {
     } catch (error) {
       console.error("Error fetching events:", error);
       toast.error("Failed to fetch events");
+
+    } finally {
+      setIsLoading(false);
+
     }
   };
 
   const handleCreateEvent = async (formData: EscalationEvent) => {
+    if (!activeOrganizationId) return;
+    
     setIsSubmitting(true);
     try {
       const payload = {
         name: formData.name,
         description: formData.description,
-        organization_id: selectedOrganizationId,
+        organization_id: activeOrganizationId,
       };
 
       const response = await fetch(
@@ -100,7 +100,9 @@ export default function EscalationEvents() {
   };
 
   const handleEditEvent = async (formData: EscalationEvent) => {
-    if (!editingEvent?.id) return;
+    if (!editingEvent?.id || !activeOrganizationId) return;
+    
+
     setIsSubmitting(true);
     try {
       const response = await fetch(
@@ -111,7 +113,8 @@ export default function EscalationEvents() {
           body: JSON.stringify({
             name: formData.name,
             description: formData.description,
-            organization_id: selectedOrganizationId,
+            organization_id: activeOrganizationId,
+
           }),
         }
       );
@@ -120,7 +123,7 @@ export default function EscalationEvents() {
 
       const updatedEvent = await response.json();
       setOrganizationEvents(
-        events.map((event) =>
+        organizationEvents.map((event) =>
           event.id === updatedEvent.id ? updatedEvent : event
         )
       );
@@ -168,7 +171,7 @@ export default function EscalationEvents() {
     const eventData: EscalationEvent = {
       name: formData.get("name") as string,
       description: formData.get("description") as string,
-      organization_id: selectedOrganizationId,
+      organization_id: activeOrganizationId || "",
       ...(editingEvent?.id ? { id: editingEvent.id } : {}),
     };
 
@@ -178,65 +181,61 @@ export default function EscalationEvents() {
       await handleCreateEvent(eventData);
     }
   };
+  if (!activeOrganizationId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">No organization selected</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">     
+    <div className="space-y-8 pt-4">     
       <Card>
-        <CardHeader className="flex justify-between mb-4">
-          <CardTitle>Select organization to view events</CardTitle>
-      
-            <div className="flex items-center gap-4">
-            <Select
-              value={selectedOrganizationId}
-              onValueChange={setSelectedOrganizationId}
-            >
-              <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Select an organization" />
-              </SelectTrigger>
-              <SelectContent>
-              {userMemberships?.data?.map((membership) => (
-                <SelectItem
-                key={membership.organization.id}
-                value={membership.organization.id}
-                >
-                {membership.organization.name}
-                </SelectItem>
-              ))}
-              </SelectContent>
-            </Select>
-            <Button
-              className="w-[140px]"
-              onClick={() => {
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Escalation Events</CardTitle>
+          <Button
+            onClick={() => {
               setEditingEvent(null);
               setIsDialogOpen(true);
-              }}
-            >
-              Create Event
-            </Button>
-            </div>
+            }}
+          >
+            Create Escalation Event
+          </Button>
         </CardHeader>
         <CardContent>
-          
-          <div className="space-y-4">
-            {organizationEvents.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                onEdit={() => {
-                  setEditingEvent(event);
-                  setIsDialogOpen(true);
-                }}
-                onDelete={handleDeleteEvent}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center p-6">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : organizationEvents.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-muted-foreground">No escalation events found</p>
+              <p className="text-sm text-muted-foreground">Create your first event to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {organizationEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onEdit={() => {
+                    setEditingEvent(event);
+                    setIsDialogOpen(true);
+                  }}
+                  onDelete={handleDeleteEvent}
+                />
+              ))}
+            </div>
+          )}
+
         </CardContent>
       </Card>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingEvent ? "Edit Event" : "Create Event"}
+              {editingEvent ? "Edit Escalation Event" : "Create Escalation Event"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -266,35 +265,9 @@ export default function EscalationEvents() {
                   required
                 />
               </div>
-              <div>
-                <label
-                  htmlFor="organization"
-                  className="block text-sm font-medium"
-                >
-                  Organization
-                </label>
-                <Select
-                  value={selectedOrganizationId}
-                  onValueChange={setSelectedOrganizationId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userMemberships?.data?.map((membership) => (
-                      <SelectItem
-                        key={membership.organization.id}
-                        value={membership.organization.id}
-                      >
-                        {membership.organization.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <Button
                 type="submit"
-                disabled={isSubmitting || !selectedOrganizationId}
+                disabled={isSubmitting || !activeOrganizationId}
               >
                 {isSubmitting ? (
                   <>
@@ -302,9 +275,9 @@ export default function EscalationEvents() {
                     {editingEvent ? "Updating..." : "Creating..."}
                   </>
                 ) : editingEvent ? (
-                  "Update Event"
+                  "Update"
                 ) : (
-                  "Create Event"
+                  "Create"
                 )}
               </Button>
             </div>
