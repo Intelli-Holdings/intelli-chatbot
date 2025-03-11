@@ -65,10 +65,10 @@ export function Contacts({ conversations = [], phoneNumber, searchTerm = '' }: C
   }, [contacts, searchTerm]);
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-      <Table className="min-w-full bg-white">
+    <div className="overflow-x-auto rounded-xl border border-blue-300 shadow-sm">
+      <Table className="min-w-full bg-white-100">
         <TableHeader>
-          <TableRow className='bg-gray-200'>
+          <TableRow className='bg-blue-50 border-b'>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
