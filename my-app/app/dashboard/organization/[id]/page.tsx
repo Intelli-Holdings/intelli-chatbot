@@ -26,6 +26,7 @@ import { MembersTable } from "./components/members-table";
 import { DeleteOrgDialog } from "./components/delete-org-dialog";
 import { InviteModal } from "../components/invite-modal";
 import { PhoneNumberForm } from "@/components/PhoneNumberForm";
+import { AssistantFiles } from "@/components/assistant-files";
 
 export default function OrganizationDetails({
   params,
@@ -111,6 +112,8 @@ export default function OrganizationDetails({
         <TabsList>
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
+          
         </TabsList>
         <TabsContent value="members" className="space-y-4">
           <div className="flex items-center justify-between">
@@ -170,6 +173,17 @@ export default function OrganizationDetails({
             </CardHeader>
             <CardContent>
               <PhoneNumberForm />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="files">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add files for your assistant</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AssistantFiles />
             </CardContent>
           </Card>
         </TabsContent>
