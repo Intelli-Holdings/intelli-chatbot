@@ -59,6 +59,7 @@ export function EventCard({ event, onEdit, onDelete }: EventCardProps) {
               </Tooltip>
             </TooltipProvider>
             </div>
+
         </div>
         <div className="flex items-center gap-4 mt-4 text-xs text-gray-500">
           <div className="flex items-center gap-1">

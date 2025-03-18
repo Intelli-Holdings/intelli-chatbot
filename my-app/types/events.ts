@@ -14,3 +14,4 @@ export interface Event extends BaseEvent {
   created_at: string;
   updated_at: string;
 }
+

@@ -1,13 +1,19 @@
-import React from 'react';
-import { useState, useEffect } from "react";
-import { Sparkles } from "lucide-react";
+"use client"
+
+import React, { useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { useNextStep } from "nextstepjs";
 import { useUser } from "@clerk/nextjs";
 import Link from 'next/link';
 // Onborda
 import { useOnborda } from "onborda";
+import Channels from './channels';
+import WhatsappOnboarding from '@/components/WhatsappOnboarding';
+import Workground from '@/components/Workground';
 
 const Dashboard: React.FC = () => {
     const { startOnborda } = useOnborda();
@@ -18,8 +24,10 @@ const Dashboard: React.FC = () => {
     const [isBannerVisible, setIsBannerVisible] = useState(true);
     const { isLoaded, isSignedIn, user } = useUser();
     const [mounted, setMounted] = useState(false);
+    const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+    const [websiteDialogOpen, setWebsiteDialogOpen] = useState(false);
 
-    useEffect(() => {
+    React.useEffect(() => {
         setMounted(true);
     }, []);
 
@@ -59,7 +67,7 @@ const Dashboard: React.FC = () => {
             id: "onborda-step5",
             emoji: "🔔",
             title: "View Notifications",
-            description: "Never miss time-sensitive messages",
+            description: "Receive time-sensitive messages",
             href: "/dashboard/notifications"
         },
         {
@@ -109,37 +117,66 @@ const Dashboard: React.FC = () => {
                 <div className='w-full' id="onborda-step1">
                     <div className=" bg-gradient-to-b from-[#007fff] to-background p-2 shadow-sm border rounded-t-lg rounded-b-xl border-indigo-200 bg-[#007fff] py-12 px-10 pt-6 sm:pt-12 sm:bg-blue sm:rounded-t-lg shadow-sm">
                         <h1 className="text-3xl font-bold">Welcome, <span style={{ color: 'yellow' }}>{user.firstName}</span></h1>
-                        <p className="text-lg">Overview of Intelli</p>
+                        <p className="text-lg">Your Business Command Center</p>
                     </div>
                     
                 </div>
 
-                {/* Dashboard grid */}
-                <div className="max-w-auto mx-auto mt-0 p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* Render cards */}
-                        {cards.map((card) => (
-                            <Link href={card.href} key={card.id}>
-                                <div
-                                    id={card.id}
-                                    className="bg-white shadow-sm p-6 rounded-lg flex flex-col justify-between 
-                                            hover:shadow-md transition-none cursor-pointer transform hover:scale-105
-                                            transition-all duration-100 ease-in-out"
-                                >
-                                    <div>
-                                        <div className="text-2xl mb-4">{card.emoji}</div>
-                                        <h2 className="text-xl font-semibold">{card.title}</h2>
-                                        <p className="text-gray-600 mt-1">{card.description}</p>
-                                    </div>
-                                    <div className="text-right mt-4">
-                                        <span className="text-black hover:text-blue-600">↗</span>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                </div>
+                {/* Tabs for Overview and Channels */}
+                <Tabs defaultValue="overview" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="channels">Channels</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="overview">
+                        {/* Dashboard grid */}
+                        <div className="max-w-auto mx-auto mt-0 p-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* Render cards */}
+                                {cards.map((card) => (
+                                    <Link href={card.href} key={card.id}>
+                                        <div
+                                            id={card.id}
+                                            className="bg-white shadow-sm p-6 rounded-lg flex flex-col justify-between 
+                                                    hover:shadow-md transition-none cursor-pointer transform hover:scale-105
+                                                    transition-all duration-100 ease-in-out"
+                                        >
+                                            <div>
+                                                <div className="text-2xl mb-4">{card.emoji}</div>
+                                                <h2 className="text-xl font-semibold">{card.title}</h2>
+                                                <p className="text-gray-600 mt-1">{card.description}</p>
+                                            </div>
+                                            <div className="text-right mt-4">
+                                                <span className="text-black hover:text-blue-600">↗</span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="channels">
+                        <Channels 
+                            onWhatsAppCreate={() => setWhatsappDialogOpen(true)}
+                            onWebsiteCreate={() => setWebsiteDialogOpen(true)}
+                        />
+                    </TabsContent>
+                </Tabs>
             </div>
+
+            {/* WhatsApp Dialog */}
+            <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
+                <DialogContent className="max-w-4xl">
+                    <WhatsappOnboarding />
+                </DialogContent>
+            </Dialog>
+
+            {/* Website Widget Dialog */}
+            <Dialog open={websiteDialogOpen} onOpenChange={setWebsiteDialogOpen}>
+                <DialogContent className="max-w-4xl">
+                    <Workground />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
