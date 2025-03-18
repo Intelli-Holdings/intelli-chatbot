@@ -6,6 +6,7 @@ export interface ChatMessage {
   answer: string | null;
   created_at: string;
   sender: string;
+  imageUrl?: string;
 }
 
 export interface Conversation {
