@@ -12,11 +12,13 @@ import {
   MessageSquareDot,
   BellDot,
   PaintRoller,
+  Calendar,
   Globe,
   Globe2,
   ShieldQuestion,
   InboxIcon,
   CalendarClock,
+  Contact,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -69,11 +71,11 @@ const data = {
       url: "/dashboard/notifications",
       icon: BellDot,
       showBadge: true,
-    },
+    },   
     {
-      title: "Channels",
-      url: "/dashboard/channels",
-      icon: Layout,
+      title: "Contacts",
+      url: "/dashboard/contacts",
+      icon: Contact,
     },
     {
       title: "Analytics",

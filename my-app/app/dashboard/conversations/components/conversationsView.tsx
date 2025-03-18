@@ -17,6 +17,7 @@ import {
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from '@/utils/exportUtils'
 import './message-bubble.css'
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { ImagePreview } from "@/app/dashboard/conversations/components/image-preview"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
@@ -328,193 +329,32 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   };
 
   // Function to render media content based on media type
-  const renderMediaContent = (message: any) => {
+  const renderMediaContent = (message: Conversation["messages"][0]) => {
     if (!message.media) return null;
-    
-    const mimeType = message.media.mimeType || 
-                     (message.media.type === 'image' ? 'image/jpeg' :
-                      message.media.type === 'video' ? 'video/mp4' :
-                      message.media.type === 'audio' ? 'audio/mpeg' : 
-                      'application/octet-stream');
-    
-    const isCustomer = message.sender === 'customer';
-    const justifyClass = isCustomer ? 'justify-start' : 'justify-end';
-    const bgClass = isCustomer ? 'bg-[#dcf8c6]' : 'bg-background';
-
-    switch (message.media.type) {
-      case 'image':
-        return (
-          <div className={`flex ${justifyClass} mb-2`}>
-            <div className={`${bgClass} p-2 rounded-lg shadow-sm max-w-[280px] transition-all hover:shadow-md group`}>
-              <div className="relative">
-                <img
-                  src={message.media.url || "/placeholder.svg"}
-                  alt={message.media.fileName || "Image attachment"}
-                  className="rounded max-w-[280px] max-h-[280px] object-cover cursor-pointer transition-transform hover:brightness-90"
-                  onClick={() => openMediaPreview(message.media.url, mimeType, message.media.fileName)}
-                />
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white shadow-md rounded-full"
-                    onClick={() => openMediaPreview(message.media.url, mimeType, message.media.fileName)}
-                  >
-                    <Maximize className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              {message.media.fileName && (
-                <p className="text-sm mt-1 truncate max-w-[280px]">{message.media.fileName}</p>
-              )}
-              <span className="text-xs text-muted-foreground block mt-1">
-                {format(parseISO(message.created_at), "h:mm a")}
-              </span>
-            </div>
-          </div>
-        );
-
-      case 'document':
-      case 'file':
-        return (
-          <div className={`flex ${justifyClass} mb-2`}>
-            <div className={`${bgClass} p-3 rounded-lg shadow-sm max-w-[280px] hover:shadow-md transition-all`}>
-              <div className="flex items-start space-x-3">
-                <FileIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{message.media.fileName || "Document"}</p>
-                  {message.media.fileSize && (
-                    <p className="text-xs text-muted-foreground">{formatFileSize(message.media.fileSize)}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-between items-center mt-3">
-                <span className="text-xs text-muted-foreground">
-                  {format(parseISO(message.created_at), "h:mm a")}
-                </span>
-                <div className="flex space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={() => openMediaPreview(message.media.url, mimeType, message.media.fileName)}
-                  >
-                    <Eye className="h-3 w-3 mr-1" />
-                    Preview
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={() => window.open(message.media.url, "_blank")}
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'audio':
-        return (
-          <div className={`${bgClass} p-2 rounded-lg shadow-sm max-w-[80%]`}>
-            <div className="flex items-center space-x-2 mb-2">
-              <Music className="h-5 w-5 flex-shrink-0 text-blue-500" />
-              <p className="text-sm font-medium truncate">{message.media.fileName || "Audio message"}</p>
-            </div>
-            <audio className="w-full" controls>
-              <source src={message.media.url} type="audio/mpeg" />
-              Your browser does not support the audio element.
-            </audio>
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-muted-foreground">
-                {format(parseISO(message.created_at), "h:mm a")}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-6 px-2"
-                onClick={() => window.open(message.media.url, '_blank')}
-              >
-                <Download className="h-3 w-3 mr-1" />
-                Download
-              </Button>
-            </div>
-          </div>
-        );
-      case 'video':
-        return (
-          <div className={`${bgClass} p-2 rounded-lg shadow-sm max-w-[80%] group transition-all hover:shadow-md`}>
-            <div className="relative">
-              <video 
-                className="rounded max-w-[280px] cursor-pointer hover:brightness-90" 
-                preload="metadata"
-                onClick={() => openMediaPreview(message.media.url, mimeType, message.media.fileName)}
-              >
-                <source src={message.media.url} type={mimeType} />
-                Your browser does not support the video element.
-              </video>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-50 group-hover:opacity-100 transition-opacity">
-                <Button 
-                  variant="secondary" 
-                  size="icon" 
-                  className="h-10 w-10 bg-black/30 hover:bg-black/50 text-white shadow-md rounded-full"
-                  onClick={() => openMediaPreview(message.media.url, mimeType, message.media.fileName)}
-                >
-                  <Eye className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-            {message.media.fileName && (
-              <p className="text-sm mt-1 truncate max-w-[280px]">{message.media.fileName}</p>
-            )}
-            <div className="flex justify-between items-center mt-1">
-              <span className="text-xs text-muted-foreground">
-                {format(parseISO(message.created_at), "h:mm a")}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-6 px-2"
-                onClick={() => window.open(message.media.url, '_blank')}
-              >
-                <Download className="h-3 w-3 mr-1" />
-                Download
-              </Button>
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className={`${bgClass} p-3 rounded-lg shadow-sm max-w-[80%]`}>
-            <div className="flex items-center space-x-2">
-              <File className="h-5 w-5 text-gray-500" />
-              <p className="text-sm">Received attachment</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 text-xs"
-              onClick={() => window.open(message.media.url, '_blank')}
-            >
-              <Download className="mr-1 h-3 w-3" />
-              Download
-            </Button>
-            <span className="text-xs text-muted-foreground block mt-1">
-              {format(parseISO(message.created_at), "h:mm a")}
-            </span>
-          </div>
-        );
-    }
-  };
-
-  // Helper function to format file size
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' bytes';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
+  
+    // Check if media is an image
+    const isImage = /\.(jpeg|jpg|png|gif|webp)$/i.test(message.media);
+  
+    return (
+      <div className="max-w-xs rounded-lg overflow-hidden shadow">
+        {isImage ? (
+          <img
+            src={message.media}
+            alt="Uploaded content"
+            className="w-full h-auto rounded-lg"
+          />
+        ) : (
+          <a
+            href={message.media}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 underline"
+          >
+            View file
+          </a>
+        )}
+      </div>
+    );
   };
 
   const groupedMessages = groupMessagesByDate(currentMessages);
@@ -622,14 +462,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             <div className="" key={date}>
               {renderDateSeparator(date)}
               {messages.map((message) => (
-                <div key={message.id} className="flex flex-col mb-4">
-                  {/* Render media content if present */}
-                  {message.media && (
-                    <div className={`flex ${message.sender === 'customer' ? 'justify-start' : 'justify-end'} mb-2`}>
-                      {renderMediaContent(message)}
-                    </div>
-                  )}
-                  
+                <div key={message.id} className="flex flex-col mb-4">                  
                   {/* Regular text content */}
                   {message.content && (
                     <div
@@ -644,6 +477,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
                         {formatMessage(
                           message.content
                         )}
+                       
                       </div>
                       <span className="text-[10px] text-white/80 mt-1 block">
                         {format(parseISO(message.created_at), "h:mm a")}
@@ -689,6 +523,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             </div>
           ))}
         </div>
+        
         {currentMessages.length === 0 && (
           <div className="flex items-center justify-center h-40">
             <p className="text-muted-foreground">No messages yet.</p>

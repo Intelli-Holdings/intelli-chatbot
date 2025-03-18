@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Event, EscalationEvent } from "@/types/events";
 import { EventCard } from "./EscalationEventCard";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +21,7 @@ import useActiveOrganizationId from "@/hooks/use-organization-id";
 export default function EscalationEvents() {
   const activeOrganizationId = useActiveOrganizationId();
   const [organizationEvents, setOrganizationEvents] = useState<Event[]>([]);
+
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -39,6 +41,7 @@ export default function EscalationEvents() {
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/events/${activeOrganizationId}/`
+
       );
       if (!response.ok) throw new Error("Failed to fetch events");
       const data = await response.json();
@@ -46,8 +49,10 @@ export default function EscalationEvents() {
     } catch (error) {
       console.error("Error fetching events:", error);
       toast.error("Failed to fetch events");
+
     } finally {
       setIsLoading(false);
+
     }
   };
 
@@ -97,6 +102,7 @@ export default function EscalationEvents() {
   const handleEditEvent = async (formData: EscalationEvent) => {
     if (!editingEvent?.id || !activeOrganizationId) return;
     
+
     setIsSubmitting(true);
     try {
       const response = await fetch(
@@ -108,6 +114,7 @@ export default function EscalationEvents() {
             name: formData.name,
             description: formData.description,
             organization_id: activeOrganizationId,
+
           }),
         }
       );
@@ -174,7 +181,6 @@ export default function EscalationEvents() {
       await handleCreateEvent(eventData);
     }
   };
-
   if (!activeOrganizationId) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -222,6 +228,7 @@ export default function EscalationEvents() {
               ))}
             </div>
           )}
+
         </CardContent>
       </Card>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
