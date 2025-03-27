@@ -8,14 +8,15 @@ interface CountryInfo {
 }
 
 const fetchCountryInfo = async (ip: string): Promise<CountryInfo> => {
-  const response = await fetch(`http://ip-api.com/json/${ip}`)
+  // Using ipinfo.io API instead of ip-api.com
+  const response = await fetch(`https://ipinfo.io/${ip}/json?token=2b53dbafc8d062`)
   if (!response.ok) {
     throw new Error('Failed to fetch country info')
   }
   const data = await response.json()
   return {
-    country: data.country,
-    countryCode: data.countryCode.toLowerCase()
+    country: data.country_name || data.country, // ipinfo returns country as the ISO code
+    countryCode: data.country.toLowerCase() // ipinfo returns country as the ISO code
   }
 }
 
