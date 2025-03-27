@@ -18,6 +18,7 @@ import { FooterComponent} from "@/components/home/Footer";
 import ValueProposition from "@/components/ValueProposition";
 import PlatformCards from "@/components/platform-cards";
 import UsecaseComponent from "@/components/usecaseComponent";
+import Banner from "../signup-banner";
 
 export function Home() {
   return (
@@ -120,11 +121,13 @@ export function Home() {
           <div className="container mx-auto sm:px-6 lg:px-8">
             <UsecaseComponent />
           </div>
+          <div className="container mx-auto sm:px-6 lg:px-8 p-2">
+          <Banner />
+          </div>
         </section>
 
         <section className="mb-10 mt-10">
         <div className="">
-       <FAQcomponent />
        </div>
         </section>    
         <FooterComponent />
