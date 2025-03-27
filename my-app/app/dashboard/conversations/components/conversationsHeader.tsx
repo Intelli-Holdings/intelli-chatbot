@@ -65,7 +65,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
 
   return (
     <div className="flex flex-col w-full">
-      <div className="flex items-center justify-between p-4 border-b bg-white">
+      <div className="flex items-center justify-between p-2 bg-white">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-3 px-2 -ml-2 hover:bg-gray-100">

@@ -79,7 +79,7 @@ const Testimonals = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-5 py-12">
       <h2 className="text-center text-5xl font-bold mb-10">
-        What People Are Saying
+        Join 100+ Businesses on Intelli
       </h2>
       <p className="max-w-2xl text-center text-sm font-semibold md:text-base ">
         Intelli is loved and used by many companies. It is

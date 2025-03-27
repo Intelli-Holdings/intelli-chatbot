@@ -1,60 +1,62 @@
-import type { Config } from "tailwindcss";
+import type { Config } from "tailwindcss"
 
-const config: Config = {
-    darkMode: ["class"],
-    content: [
+const config = {
+  darkMode: ["class"],
+  content: [
     "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./constants/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
-    './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}',
+    "*.{js,ts,jsx,tsx,mdx}",
+     './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}',
     './node_modules/nextstepjs/dist/**/*.{js,ts,jsx,tsx}'
   ],
+  prefix: "",
   theme: {
-  	container: {
-  		center: true,
-  		padding: '2rem',
-  		screens: {
-  			'2xl': '1400px'
-  		}
-  	},
-  	extend: {
-  		colors: {
-  			border: 'hsl(var(--border))',
-  			input: 'hsl(var(--input))',
-  			ring: 'hsl(var(--ring))',
-  			background: 'hsl(var(--background))',
-  			foreground: 'hsl(var(--foreground))',
-  			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
-  			},
-  			secondary: {
-  				DEFAULT: 'hsl(var(--secondary))',
-  				foreground: 'hsl(var(--secondary-foreground))'
-  			},
-  			destructive: {
-  				DEFAULT: 'hsl(var(--destructive))',
-  				foreground: 'hsl(var(--destructive-foreground))'
-  			},
-  			muted: {
-  				DEFAULT: 'hsl(var(--muted))',
-  				foreground: 'hsl(var(--muted-foreground))'
-  			},
-  			accent: {
-  				DEFAULT: 'hsl(var(--accent))',
-  				foreground: 'hsl(var(--accent-foreground))'
-  			},
-  			popover: {
-  				DEFAULT: 'hsl(var(--popover))',
-  				foreground: 'hsl(var(--popover-foreground))'
-  			},
-  			card: {
-  				DEFAULT: 'hsl(var(--card))',
-  				foreground: 'hsl(var(--card-foreground))'
-  			},
-  			sidebar: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        dreamBlue: "#007fff",
+        sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
   				primary: 'hsl(var(--sidebar-primary))',
@@ -68,15 +70,16 @@ const config: Config = {
   			'color-2': 'hsl(var(--color-2))',
   			'color-3': 'hsl(var(--color-3))',
   			'color-4': 'hsl(var(--color-4))',
-  			'color-5': 'hsl(var(--color-5))'
-  		},
-  		borderRadius: {
-  			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
-  		},
-  		keyframes: {
-  			meteor: {
+  			'color-5': 'hsl(var(--color-5))',
+  			'color-6': 'hsl(var(--color-6))',
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        meteor: {
   				'0%': {
   					transform: 'rotate(215deg) translateX(0)',
   					opacity: '1'
@@ -118,23 +121,23 @@ const config: Config = {
   					opacity: '0'
   				}
   			},
-  			'accordion-down': {
-  				from: {
-  					height: '0'
-  				},
-  				to: {
-  					height: 'var(--radix-accordion-content-height)'
-  				}
-  			},
-  			'accordion-up': {
-  				from: {
-  					height: 'var(--radix-accordion-content-height)'
-  				},
-  				to: {
-  					height: '0'
-  				}
-  			},
-  			'logo-cloud': {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "pulse-light": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" },
+        },
+        'logo-cloud': {
   				from: {
   					transform: 'translateX(0)'
   				},
@@ -190,26 +193,28 @@ const config: Config = {
   					'background-position': '200%'
   				}
   			}
-  		},
-  		animation: {
-  			meteor: 'meteor 5s linear infinite',
-  			marquee: 'marquee var(--duration) linear infinite',
-  			'marquee-vertical': 'marquee-vertical var(--duration) linear infinite',
-  			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out',
-  			'logo-cloud': 'logo-cloud 30s linear infinite',
-  			'skew-scroll': 'skew-scroll 20s linear infinite',
-  			'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
-  			shimmer: 'shimmer 8s infinite',
-  			pulse: 'pulse 2s infinite',
-  			orbit: 'orbit calc(var(--duration)*1s) linear infinite',
-  			grid: 'grid 15s linear infinite',
-  			rainbow: 'rainbow var(--speed, 2s) infinite linear'
-  		}
-  	}
+      },
+	  animation: {
+		meteor: 'meteor 5s linear infinite',
+			marquee: 'marquee var(--duration) linear infinite',
+			'marquee-vertical': 'marquee-vertical var(--duration) linear infinite',
+			'accordion-down': 'accordion-down 0.2s ease-out',
+			'accordion-up': 'accordion-up 0.2s ease-out',
+			'logo-cloud': 'logo-cloud 30s linear infinite',
+			'skew-scroll': 'skew-scroll 20s linear infinite',
+			'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
+			shimmer: 'shimmer 8s infinite',
+			pulse: 'pulse 2s infinite',
+			orbit: 'orbit calc(var(--duration)*1s) linear infinite',
+			grid: 'grid 15s linear infinite',
+			rainbow: 'rainbow var(--speed, 2s) infinite linear',
+		float: "float 6s ease-in-out infinite",
+		"pulse-light": "pulse-light 4s ease-in-out infinite",
+	  },
+    },
   },
-  plugins: [
-	require("tailwindcss-animate"),
-  ],
-};
-export default config;
+  plugins: [require("tailwindcss-animate")],
+} satisfies Config
+
+export default config
+
