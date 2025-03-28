@@ -10,6 +10,7 @@ import { formatMessage } from "@/utils/formatMessage";
 import type { Conversation } from "./types";
 import { format, parseISO, isToday, isYesterday } from "date-fns";
 import ConversationHeader from "./conversationsHeader";
+import { ScrollToBottomButton } from "@/app/dashboard/conversations/components/scroll-to-bottom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -538,6 +539,11 @@ export default function ChatArea({
             </div>
           )}
           <div className="h-4" ref={dummyRef} />
+          {/* Scroll to Bottom Button - */}
+          <ScrollToBottomButton
+            targetRef={dummyRef}
+            threshold={150}
+          />
         </div>
       </div>
 
