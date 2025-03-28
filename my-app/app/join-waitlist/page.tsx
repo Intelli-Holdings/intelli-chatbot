@@ -1,23 +1,23 @@
-"use client";
-import Waitlist from "@/components/component/waitlist";
-import { Navbar } from "@/components/navbar";
-import React from "react";
-import WhatsAppSignup from "@/components/component/whatsappSignup";
+"use client"
+import Waitlist from "@/components/component/waitlist"
+import { Navbar } from "@/components/navbar"
 
 export default function JoinWaitlist() {
   return (
-    <div className="relative">
+    <div className="relative min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Navbar />
-      <main className="pt-16">
-        <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
-          <h1 className="text-5xl font-bold text-center text-left text-blue-600 mb-10">
-          Join Our Waitlist & Become An Early-adopter
-          </h1>
-          
-          <Waitlist />
-        </section>
 
+      <main className="container mx-auto px-4 pt-20 pb-16 flex justify-center items-center min-h-[calc(100vh-80px)]">
+        <div className="w-full max-w-md">
+          <Waitlist />
+        </div>
       </main>
+
+      {/* Background decoration - optional */}
+      <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-[#007fff]/5 rounded-full blur-3xl"></div>
+      </div>
     </div>
-  );
+  )
 }
+

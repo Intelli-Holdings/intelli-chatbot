@@ -43,7 +43,7 @@ const inter = Inter ({ subsets: ["latin"] });
 const manrope = Manrope ({ subsets: ["latin"] });
 <><link
   rel="icon"
-  href="/icon.ico"
+  href="favicon.ico"
   type="image/ico"
   sizes="16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024" /><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /><link rel="icon" type="image/svg+xml" href="/icon.svg" /></>
 
