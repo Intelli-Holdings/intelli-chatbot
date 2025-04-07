@@ -5,8 +5,11 @@ import * as XLSX from 'exceljs';
 import Papa from 'papaparse';
 import { revalidatePath } from 'next/cache';
 import { toast } from 'sonner';
+import { useWebSocket, type WebSocketMessage } from "@/hooks/use-websocket"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+;
+const WEBSOCKET_BASE_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://dev-intelliconcierge.onrender.com/ws/";
 
 interface ConversationPayload {
   customer_number: string;
@@ -75,6 +78,7 @@ export async function handoverConversation(formData: FormData) {
   const responseData = await response.json();
   console.log('Conversation handover successful:', responseData);
 
+
   return {
     success: true,
     message: 'Conversation handover initiated',
@@ -120,6 +124,65 @@ export async function sendMessage(formData: FormData) {
 
     return response.json();
   }
+}
+
+export async function humanSupportMessages(customerNumber: string, phoneNumber: string) {
+  const WEBSOCKET_URL = `${WEBSOCKET_BASE_URL}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`;
+  console.log('Connecting to WebSocket for human support:', WEBSOCKET_URL);
+
+  const ws = new WebSocket(WEBSOCKET_URL);
+
+  ws.onopen = () => {
+    console.log('WebSocket connection established for human support.');
+  };
+
+  ws.onmessage = (event) => {
+    const message: WebSocketMessage = JSON.parse(event.data);
+
+    // Generate a unique id for the message
+    const newId = Date.now();
+
+    // Extract media URL if applicable
+    let mediaUrl = null;
+    if (message.type === "image" || message.type === "audio" || message.type === "video") {
+      const mediaMatch = message.content.match(/Media - (https:\/\/[^\s]+)/);
+      if (mediaMatch && mediaMatch[1]) {
+        mediaUrl = mediaMatch[1];
+      }
+    }
+
+    // Use the timestamp from the payload if available; otherwise fallback to current time
+    const messageTimestamp = message.timestamp || new Date().toISOString();
+
+    // Create the new message object
+    const newMessage = {
+      id: newId,
+      content: message.type === "text" ? message.content : null,
+      sender: message.sender,
+      created_at: messageTimestamp,
+      read: false,
+      answer: null,
+      media: mediaUrl,
+      type: message.type,
+    };
+
+    // Dispatch a custom event to update the chat area with the new message
+    window.dispatchEvent(
+      new CustomEvent("newMessageReceived", {
+        detail: { message: newMessage },
+      })
+    );
+  };
+
+  ws.onclose = () => {
+    console.log('WebSocket connection closed for human support.');
+  };
+
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
+
+  return ws; // Return the WebSocket instance for further control if needed
 }
 
 export async function importContacts(formData: FormData) {
