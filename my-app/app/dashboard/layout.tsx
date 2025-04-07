@@ -1,7 +1,4 @@
 "use client";
-import Header from "@/components/layout/header";
-import Sidebar from "@/components/layout/sidebar";
-import type { Metadata } from "next";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
   SidebarInset,
