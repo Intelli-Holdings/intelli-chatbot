@@ -176,7 +176,22 @@ export default function ChatSidebar({
             )
           })
         ) : (
-          <div className="p-4 text-sm text-gray-500 text-center">Fetching conversations.</div>
+            <div className="space-y-4 p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_linear]"></div>
+              <div className="flex-1">
+              <div className="h-4 w-24 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] rounded mb-2 animate-[shimmer_1.5s_infinite_linear]"></div>
+              <div className="h-3 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] rounded animate-[shimmer_1.5s_infinite_linear]"></div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_linear]"></div>
+              <div className="flex-1">
+              <div className="h-4 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] rounded mb-2 animate-[shimmer_1.5s_infinite_linear]"></div>
+              <div className="h-3 w-40 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] rounded animate-[shimmer_1.5s_infinite_linear]"></div>
+              </div>
+            </div>
+            </div>
         )}
       </div>
     </div>

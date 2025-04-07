@@ -8,14 +8,15 @@ import { sendMessage } from "@/app/actions"
 import { useUser } from "@clerk/nextjs"
 import { toast } from "sonner"
 import EmojiPicker from "emoji-picker-react"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 
 interface MessageInputProps {
   customerNumber: string
   phoneNumber: string
-  onMessageSent?: () => void
+  onMessageSent?: (newMessageContent: string) => void
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber, onMessageSent }) => {
@@ -71,6 +72,12 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
         formData.append("answer", answer)
       }
 
+      // Only proceed if there's content to send (text, files, or audio)
+      if (answer.trim() === "" && files.length === 0 && !audioBlob) {
+        setIsLoading(false)
+        return
+      }
+
       files.forEach((file) => {
         formData.append("file", file)
         formData.append("type", getMediaType(file))
@@ -94,7 +101,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
         URL.revokeObjectURL(audioUrl)
         setAudioUrl(null)
       }
-      if (onMessageSent) onMessageSent()
+      if (onMessageSent) onMessageSent(answer)
     } catch (e) {
       setError((e as Error).message)
       toast.error("Failed to send message")
@@ -104,10 +111,9 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
     }
   }
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e)
     }
   }
 
@@ -121,8 +127,9 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
     setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index))
   }
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setAnswer(e.target.value)
+    adjustTextareaHeight()
   }
 
   const adjustTextareaHeight = () => {
@@ -139,14 +146,13 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
     const dataArray = new Uint8Array(bufferLength)
     analyserRef.current.getByteTimeDomainData(dataArray)
 
-    // Reduce the number of data points for a smoother waveform
     const downSampledData = []
-    const sampleSize = Math.floor(bufferLength / 50) // Reduce to 50 points
+    const sampleSize = Math.floor(bufferLength / 50)
     for (let i = 0; i < 50; i++) {
       const start = i * sampleSize
       const slice = dataArray.slice(start, start + sampleSize)
       const averageAmplitude = slice.reduce((sum, val) => sum + Math.abs(val - 128), 0) / slice.length
-      downSampledData.push(averageAmplitude / 128) // Normalize to 0-1 range
+      downSampledData.push(averageAmplitude / 128)
     }
 
     setAudioWaveform(downSampledData)
@@ -160,7 +166,6 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mediaRecorder = new MediaRecorder(stream)
 
-      // Setup audio context for visualization
       const audioContext = new AudioContext()
       const analyser = audioContext.createAnalyser()
       const source = audioContext.createMediaStreamSource(stream)
@@ -170,7 +175,6 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
       audioContextRef.current = audioContext
       analyserRef.current = analyser
 
-      // Start audio visualization
       animationFrameRef.current = requestAnimationFrame(visualizeAudio)
 
       mediaRecorder.ondataavailable = (event) => {
@@ -180,12 +184,9 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
       }
 
       mediaRecorder.onstop = () => {
-        // Stop visualization
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current)
         }
-
-        // Clean up audio context
         if (audioContextRef.current) {
           audioContextRef.current.close()
           audioContextRef.current = null
@@ -199,7 +200,6 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
         setIsRecording(false)
         setAudioWaveform([])
 
-        // Stop all tracks from the stream
         stream.getTracks().forEach((track) => track.stop())
       }
 
@@ -299,8 +299,10 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
   }
 
   return (
-    <div>
-      <form onSubmit={handleSubmit} className="rounded-xl">
+    <div className="border rounded-xl shadow-sm overflow-hidden">
+      {error && <p className="text-red-500 px-4 py-2 text-sm">{error}</p>}
+
+      <form onSubmit={handleSubmit} className="flex flex-col">
         <input
           type="file"
           ref={fileInputRef}
@@ -309,6 +311,24 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
           accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           className="hidden"
         />
+
+        {showEmojiPicker && (
+          <div className="p-2 border-b">
+            <div className="relative">
+              <EmojiPicker onEmojiClick={handleEmojiClick} />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-6 w-6 bg-white rounded-full"
+                onClick={() => setShowEmojiPicker(false)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {isRecording && renderAudioWaveform()}
 
         {files.length > 0 && (
@@ -326,61 +346,65 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
           </div>
         )}
 
-        <div className="p-2 bg-white flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            disabled={isLoading || isRecording}
-          >
-            <Smile className="h-5 w-5 text-[#54656f]" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading || isRecording}
-          >
-            <Paperclip className="h-5 w-5 text-[#54656f]" />
-          </Button>
-          <Input
+        <div className="relative shadow-sm">
+          <Textarea
             placeholder="Respond to customer..."
-            className="bg-white border border-gray-100 flex-grow"
+            className="min-h-[60px] max-h-[200px] resize-none p-4 pb-12 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             value={answer}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             disabled={isLoading || isRecording}
+            ref={textareaRef}
+            rows={1}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isLoading}
-          >
-            <Mic className="h-5 w-5 text-[#54656f]" />
-          </Button>
-          <Button className="rounded-full" type="submit" size="icon" variant="ghost" disabled={isSubmitDisabled}>
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 text-[#54656f] animate-spin" />
-            ) : (
-              <ArrowUp className="h-5 w-5 text-[#54656f]" />
-            )}
-          </Button>
-        </div>
 
-        {showEmojiPicker && (
-          <div className="absolute bottom-16 left-0 z-10">
-            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          <div className="absolute bottom-0 right-0 p-3 flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              disabled={isLoading || isRecording}
+            >
+              <Smile className="h-4 w-4 text-gray-500" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || isRecording}
+            >
+              <Paperclip className="h-4 w-4 text-gray-500" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8"
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isLoading}
+            >
+              <Mic className="h-4 w-4 text-gray-500" />
+            </Button>
+            <Button
+              className="rounded-xl h-8 w-8"
+              type="submit"
+              size="icon"
+              variant="outline"
+              disabled={isSubmitDisabled}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
+              ) : (
+                <ArrowUp className="h-4 w-4 text-gray-500" />
+              )}
+            </Button>
           </div>
-        )}
+        </div>
       </form>
-      {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
     </div>
   )
 }

@@ -1,34 +1,35 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Conversation } from './types';
-import { takeoverConversation, handoverConversation } from '@/app/actions';
-import { useUser } from '@clerk/nextjs';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { format, parseISO } from 'date-fns';
-import { ChevronDown, Phone, Video } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Conversation } from "./types";
+import { takeoverConversation, handoverConversation } from "@/app/actions";
+import { useUser } from "@clerk/nextjs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { format, parseISO } from "date-fns";
+import { ChevronDown, Phone, Video } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Card, CardContent } from "@/components/ui/card"
-import { useCall } from '@/hooks/use-call';
-import { CallUI } from '@/components/call-ui';
+} from "@/components/ui/dropdown-menu";
+import { Card, CardContent } from "@/components/ui/card";
+import { useCall } from "@/hooks/use-call";
+import { CallUI } from "@/components/call-ui";
 
 interface ConversationHeaderProps {
   conversation: Conversation | null;
   phoneNumber: string;
+  onAiSupportChange?: (isActive: boolean) => void;
 }
 
-const ConversationHeader: React.FC<ConversationHeaderProps> = ({ 
+const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   conversation,
-  phoneNumber 
+  phoneNumber,
+  onAiSupportChange,
 }) => {
   const [error, setError] = useState<string | null>(null);
-  const { user } = useUser();
-  const [isAiSupport, setIsAiSupport] = useState<boolean>(false);
+  const [isAiSupport, setIsAiSupport] = useState<boolean>(true);
   const { callState, initiateCall, answerCall, endCall } = useCall();
 
   const handleToggleAISupport = async () => {
@@ -36,28 +37,62 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
 
     try {
       const formData = new FormData();
-      formData.append('phoneNumber', phoneNumber);
-      formData.append('customerNumber', conversation.customer_number || conversation.recipient_id);
+      formData.append("phoneNumber", phoneNumber);
+      formData.append("customerNumber", conversation.customer_number || conversation.recipient_id);
 
       if (isAiSupport) {
-        const result = await handoverConversation(formData);
-        console.log('Handover result:', result);
-      } else {
         const result = await takeoverConversation(formData);
-        console.log('Takeover result:', result);
+        console.log("Takeover result:", result);
+        
+        // Dispatch WebSocket control event here on client-side
+        window.dispatchEvent(
+          new CustomEvent("websocketControl", {
+            detail: { 
+              action: "start", 
+              customerNumber: conversation.customer_number || conversation.recipient_id,
+              phoneNumber: phoneNumber 
+            },
+          })
+        );
+      } else {
+        const result = await handoverConversation(formData);
+        console.log("Handover result:", result);
+        
+        // Optionally trigger WebSocket disconnect
+        window.dispatchEvent(
+          new CustomEvent("websocketControl", {
+            detail: { action: "stop" },
+          })
+        );
       }
 
-      setIsAiSupport(!isAiSupport);
+      const newIsAiSupport = !isAiSupport;
+      setIsAiSupport(newIsAiSupport);
+
+      if (onAiSupportChange) {
+        onAiSupportChange(newIsAiSupport);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("aiSupportChanged", {
+          detail: {
+            isAiSupport: newIsAiSupport,
+            customerNumber: conversation.customer_number || conversation.recipient_id,
+            phoneNumber: phoneNumber,
+          },
+        })
+      );
     } catch (e) {
       setError((e as Error).message);
     }
   };
 
-  const handleCallInitiate = (type: 'audio' | 'video') => {
+  const handleCallInitiate = (type: "audio" | "video") => {
     initiateCall({
       type,
-      recipientId: conversation?.customer_number || conversation?.recipient_id || '',
-      recipientName: conversation?.customer_name || 'Unknown',
+      recipientId:
+        conversation?.customer_number || conversation?.recipient_id || "",
+      recipientName: conversation?.customer_name || "Unknown",
     });
   };
 
@@ -68,10 +103,21 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
       <div className="flex items-center justify-between p-2 bg-white">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-3 px-2 -ml-2 hover:bg-gray-100">
+            <Button
+              variant="ghost"
+              className="flex items-center gap-3 px-2 -ml-2 hover:bg-gray-100"
+            >
               <Avatar className="h-10 w-10">
-                <AvatarImage src={`https://avatar.vercel.sh/${conversation.customer_name || conversation.customer_number}.png`} />
-                <AvatarFallback>{(conversation.customer_name || conversation.phone_number).slice(0, 2)}</AvatarFallback>
+                <AvatarImage
+                  src={`https://avatar.vercel.sh/${
+                    conversation.customer_name || conversation.customer_number
+                  }.png`}
+                />
+                <AvatarFallback>
+                  {(
+                    conversation.customer_name || conversation.phone_number
+                  ).slice(0, 2)}
+                </AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start">
                 <div className="flex items-center gap-2">
@@ -91,21 +137,37 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
               <CardContent className="p-0">
                 <div className="flex flex-col items-center pt-8 pb-6 bg-gray-50">
                   <Avatar className="h-24 w-24 mb-4">
-                    <AvatarImage src={`https://avatar.vercel.sh/${conversation.customer_name || conversation.customer_number}.png`} />
-                    <AvatarFallback>{(conversation.customer_name || conversation.phone_number).slice(0, 2)}</AvatarFallback>
+                    <AvatarImage
+                      src={`https://avatar.vercel.sh/${
+                        conversation.customer_name ||
+                        conversation.customer_number
+                      }.png`}
+                    />
+                    <AvatarFallback>
+                      {(
+                        conversation.customer_name || conversation.phone_number
+                      ).slice(0, 2)}
+                    </AvatarFallback>
                   </Avatar>
                   <h3 className="text-xl font-semibold mb-1">
                     {conversation.customer_name || conversation.recipient_id}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Last active {format(parseISO(conversation.updated_at), 'MMM d, h:mm a')}
+                    Last active{" "}
+                    {format(parseISO(conversation.updated_at), "MMM d, h:mm a")}
                   </p>
                 </div>
                 <div className="p-4 border-t">
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs text-muted-foreground">Phone number</label>
-                      <p className="text-sm font-medium">+{conversation.customer_number || conversation.recipient_id}</p>
+                      <label className="text-xs text-muted-foreground">
+                        Phone number
+                      </label>
+                      <p className="text-sm font-medium">
+                        +
+                        {conversation.customer_number ||
+                          conversation.recipient_id}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -115,20 +177,21 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
         </DropdownMenu>
 
         <div className="flex items-center gap-2">
-          
-          <Button 
-            className='border border-blue-200 rounded-xl shadow-md ml-2' 
-            variant="default" 
-            onClick={handleToggleAISupport} 
+          <Button
+            className="border border-blue-200 rounded-xl shadow-md ml-2"
+            variant="default"
+            onClick={handleToggleAISupport}
             size="sm"
           >
-            {isAiSupport ? 'Handover to AI' : 'Takeover AI'}
-          </Button>     
+            {isAiSupport ? "Takeover AI" : "Handover to AI"}
+          </Button>
         </div>
       </div>
-      {isAiSupport && (
-        <div className="w-full bg-purple-100 text-red-700 p-3 text-center">
-          <p>Remember to handover to AI when you&apos;re done sending messages.</p>
+      {!isAiSupport && (
+        <div className="w-full rounded-xl bg-purple-100 text-red-700 p-3 text-center">
+          <p>
+            Remember to handover to AI when you&apos;re done sending messages.
+          </p>
         </div>
       )}
       {error && (
@@ -136,14 +199,9 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
           <p>{error}</p>
         </div>
       )}
-      <CallUI 
-        callState={callState}
-        onAnswer={answerCall}
-        onEnd={endCall}
-      />
+      <CallUI callState={callState} onAnswer={answerCall} onEnd={endCall} />
     </div>
   );
 };
 
 export default ConversationHeader;
-
