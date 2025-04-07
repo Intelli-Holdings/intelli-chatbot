@@ -9,7 +9,7 @@ export const AnnouncementBanner = () => {
                 <Badge variant="default" className="bg-white text-black text-xs flex items-center gap-1">
                 New<Sparkles className="h-3 w-3" /> 
                 </Badge>
-                <span className="text-white text-xs">Export all your contacts in pdf & csv</span>
+                <span className="text-white text-xs">See the all-new whatsapp chats UI</span>
             </div>
         </Link></>
     );
