@@ -72,7 +72,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
 
     const WEBSOCKET_URL =
       url ||
-      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://dev-intelliconcierge.onrender.com/ws/"}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`
+      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://dev-intelliconcierge.onrender.com/ws"}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`
 
     console.log("Connecting to WebSocket for human support:", WEBSOCKET_URL)
 
