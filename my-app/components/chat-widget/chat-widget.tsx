@@ -2,7 +2,17 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, XIcon } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Link from "next/link";
 
 // Configure marked to be synchronous
 marked.setOptions({ async: false });
@@ -25,6 +35,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
   const chatBoxRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const [sessionId, setSessionId] = useState<string>('');
+  const displayName = widgetKey || "Unknown";
+  const [isAlertVisible, setIsAlertVisible] = useState(true);
+  
+    const handleCloseAlert = () => {
+      setIsAlertVisible(false);
+    };
 
   useEffect(() => {
     // Generate or retrieve the session ID
@@ -56,7 +72,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
     localStorage.setItem('unique_visitor_id', visitorId);
 
     const websocketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'wss:';
-    const websocketUrl = `${websocketProtocol}//intelli-python-backend-lxui.onrender.com/ws/chat/${widgetKey}/${visitorId}/`;
+    const websocketUrl = `${websocketProtocol}//backend.intelliconcierge.com/ws/chat/${widgetKey}/${visitorId}/`;
 
     const connectWebSocket = () => {
       if (socketRef.current?.readyState === WebSocket.OPEN) return;
@@ -148,10 +164,36 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
       {isOpen && (
         <div id="chat-container">
           <div id="chat-header">
-            <span id="header-spacer"></span>
-            <span id="chat-header-text">MEST Recruitment Assistant</span>
+            <span id="header-spacer"><Avatar className="h-10 w-10">
+                <AvatarImage
+                  src={`/Ellis.png`}
+                />
+                 <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
+              </Avatar></span>
+            <span id="chat-header-text">{`$assistantName`}</span>
             <span id="close-chat" onClick={() => setIsOpen(false)}>&times;</span>
           </div>
+          {isAlertVisible && (
+                  <Alert className="relative px-1 py-2 shadow-sm border-blue-200">
+                    <button
+                      onClick={handleCloseAlert}
+                      className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                      aria-label="Close alert"
+                    >
+                      <XIcon className="h-5 w-5" />
+                    </button>
+                    <AlertDescription>
+                      <CardHeader>
+                        <AlertTitle>Welcome to {`$assistantName`}</AlertTitle>
+                        <CardDescription>
+                        {`$assistantName`} is an AI assistant that has been trained to
+                          answer questions about Intelli.
+                          Please review the {`$companyName`}<Link href="/privacy" text-color="green">Privacy Statement</Link> to understand how we process your information.
+                        </CardDescription>
+                      </CardHeader>
+                    </AlertDescription>
+                  </Alert>
+                )}
           <div id="chat-box" ref={chatBoxRef}>
             {messages.map((message, index) => (
               <div key={index} className={`message ${message.type}-message`}>
@@ -173,8 +215,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
               </div>
             </div>
           )}
-          <div id="message-input-container">
+          <div id="message-input-container" className='shadow-sm bg-white border rounded-lg border-gray-200'>
             <input
+            className="border rounded-md"
               type="text"
               id="message-input"
               value={inputValue}
