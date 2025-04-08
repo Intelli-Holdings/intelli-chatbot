@@ -52,6 +52,14 @@ const nextConfig = {
   experimental: {
     mdxRs: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/.well-known/microsoft-identity-association.json',
+        destination: '/api/.well-known/microsoft-identity-association.json',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
