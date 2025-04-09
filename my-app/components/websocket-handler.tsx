@@ -81,7 +81,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
 
     ws.onopen = () => {
       console.log("WebSocket connection established for human support.")
-      toast.success("Connected to conversation")
+      
 
       // Dispatch connection status event
       window.dispatchEvent(
@@ -135,7 +135,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
 
     ws.onclose = () => {
       console.log("WebSocket connection closed for human support.")
-      toast.info("Disconnected from conversation")
+     
 
       // Dispatch connection status event
       window.dispatchEvent(
@@ -147,7 +147,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
 
     ws.onerror = (error) => {
       console.error("WebSocket error:", error)
-      toast.error("WebSocket connection error")
+     
     }
   }
 
