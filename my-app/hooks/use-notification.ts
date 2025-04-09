@@ -42,7 +42,7 @@ export const useNotifications = () => {
   const connect = useCallback(() => {
     if (!activeOrganizationId) return;
 
-    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}events/${activeOrganizationId}/`);
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/events/${activeOrganizationId}/`);
     wsRef.current = ws;
 
     ws.onopen = () => {
