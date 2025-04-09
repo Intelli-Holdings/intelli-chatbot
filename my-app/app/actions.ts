@@ -9,7 +9,7 @@ import { useWebSocket, type WebSocketMessage } from "@/hooks/use-websocket"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 ;
-const WEBSOCKET_BASE_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://dev-intelliconcierge.onrender.com/ws/";
+const WEBSOCKET_BASE_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://backend.intelliconcierge.com/ws";
 
 interface ConversationPayload {
   customer_number: string;
