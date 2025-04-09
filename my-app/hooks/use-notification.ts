@@ -42,7 +42,7 @@ export const useNotifications = () => {
   const connect = useCallback(() => {
     if (!activeOrganizationId) return;
 
-    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}events/${activeOrganizationId}/`);
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/events/${activeOrganizationId}/`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -82,15 +82,11 @@ export const useNotifications = () => {
       console.log('WebSocket disconnected');
       setIsConnected(false);
 
-      toastIdRef.current = toast.error('Disconnected from notification service. Reconnecting...', {
-        duration: Infinity,
-      });
-
       if (reconnectAttempts.current < maxReconnectAttempts) {
         reconnectAttempts.current += 1;
         reconnectTimeoutRef.current = setTimeout(connect, 2000);
       } else {
-        toast.error('Failed to reconnect to notification service after multiple attempts.');
+       console.log('Max reconnect attempts reached. Not reconnecting.');
       }
     };
 

@@ -14,9 +14,6 @@ const NotificationPage: React.FC = () => {
   const [members, setMembers] = useState<TeamMember[]>([]);
 
   useEffect(() => {
-    console.log('Notifications:', notifications);
-    console.log('Members:', members);
-    console.log('Is Connected:', isConnected);
     
     const loadMembers = async () => {
       if (organization) {
