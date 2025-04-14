@@ -5,7 +5,7 @@ import { Toaster } from 'sonner';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import OnboardingReminder from "@/components/OnboardingReminder"
 import { OnboardingProvider } from "@/context/onboarding-context";
-
+import AttentionBadge from "@/components/AttentionBadge";
 import Script from "next/script";
 
 
@@ -43,8 +43,8 @@ const inter = Inter ({ subsets: ["latin"] });
 const manrope = Manrope ({ subsets: ["latin"] });
 <><link
   rel="icon"
-  href="favicon.ico"
-  type="image/ico"
+  href="/Intelli.svg"
+  type="image/svg"
   sizes="16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024" /><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /><link rel="icon" type="image/svg+xml" href="/icon.svg" /></>
 
 export const metadata = {
@@ -117,6 +117,7 @@ export default function RootLayout({
           <SignedOut></SignedOut>
           <SignedIn></SignedIn>
           <body className={inter.className}>
+          <AttentionBadge />
             <PostHogPageView />
             <AptabaseProvider appKey="A-US-3705920924">
             <NextStepProvider>
