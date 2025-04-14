@@ -53,10 +53,6 @@ export const useNotifications = () => {
       if (toastIdRef.current) {
         toast.dismiss(toastIdRef.current);
       }
-
-      toast.success('Connected to notification service', {
-        duration: 3000,
-      });
     };
 
     ws.onmessage = (event) => {
@@ -66,9 +62,8 @@ export const useNotifications = () => {
       const payload = data.message || data; // Extract actual notification
 
       if (payload.type === 'connection_established') {
-        toast.success('Successfully connected to Notifications stream', {
-          duration: 3000,
-        });
+        console.log('Connection established:', payload);
+        
       } else if (payload.type === 'notification') {
         updateNotifications(prev => {
           const updated = [payload, ...prev];
