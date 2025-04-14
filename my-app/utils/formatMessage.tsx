@@ -335,6 +335,10 @@ const processTextWithLinks = (text: string): React.ReactNode[] => {
   // Audio URL regex pattern - detects [AUDIO] Media - URL format
   const audioRegex = /\[AUDIO\]\s+Media\s+-\s+(https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)(\?[^\s]*)?)/gi
 
+  // Document regex pattern to detect document links
+  const documentRegex =
+    /\[DOCUMENT\]\s+(.*?)(?:\s+-\s+|\s+)(https?:\/\/[^\s]+\.(pdf|xls|xlsx|csv|doc|docx)(\?[^\s]*)?)/gi
+
   // Regular URL regex
   const urlRegex = /(https?:\/\/[^\s\]]+|\[([^\]]+)\]$$([^\s$$]+)\))/g
 
@@ -575,6 +579,173 @@ const processTextWithLinks = (text: string): React.ReactNode[] => {
     })
   }
 
+  // Document regex pattern to detect document links
+  const documentMatches = text.match(documentRegex)
+  if (documentMatches) {
+    // Create a version of the text where document patterns are replaced with placeholders
+    let processedText = text
+    const documentAttachments = documentMatches
+      .map((docPattern, index) => {
+        // Extract the filename and URL from the document pattern
+        const match = docPattern.match(
+          /\[DOCUMENT\]\s+(.*?)(?:\s+-\s+|\s+)(https?:\/\/[^\s]+\.(pdf|xls|xlsx|csv|doc|docx)(\?[^\s]*)?)/i,
+        )
+        if (match && match[1] && match[2]) {
+          const filename = match[1].trim()
+          const url = match[2]
+          const fileExtension = url.split(".").pop()?.split("?")[0] || ""
+
+          // Replace the document pattern with a unique placeholder
+          const placeholder = `__DOCUMENT_PLACEHOLDER_${index}__`
+          processedText = processedText.replace(docPattern, placeholder)
+
+          // Create a document attachment component
+          return React.createElement(DocumentAttachment, {
+            key: `doc-${index}`,
+            url: url,
+            filename: filename,
+            fileType: fileExtension,
+          })
+        }
+        return null
+      })
+      .filter(Boolean)
+
+    // Split by the placeholders
+    const parts = processedText.split(/(__DOCUMENT_PLACEHOLDER_\d+__)/)
+    const result: (string | React.ReactNode)[] = []
+
+    parts.forEach((part) => {
+      // Check if this part is a placeholder
+      const placeholderMatch = part.match(/__DOCUMENT_PLACEHOLDER_(\d+)__/)
+      if (placeholderMatch) {
+        const docIndex = Number.parseInt(placeholderMatch[1], 10)
+        // Replace placeholder with document component
+        result.push(documentAttachments[docIndex])
+      } else if (part) {
+        // Process the remaining text for images and links
+        result.push(part)
+      }
+    })
+
+    // Process remaining text parts for images and regular links
+    return result.flatMap((item) => {
+      if (typeof item === "string") {
+        // Check for image URLs
+        const imageMatches = item.match(imageUrlRegex)
+        if (imageMatches) {
+          // Create a version of the text where image URLs are replaced with placeholders
+          let imgProcessedText = item
+          const imagePreviews: React.ReactNode[] = []
+
+          imageMatches.forEach((imageUrl, imgIndex) => {
+            // Replace the image URL with a unique placeholder
+            const placeholder = `__IMAGE_PLACEHOLDER_${imgIndex}__`
+            imgProcessedText = imgProcessedText.replace(imageUrl, placeholder)
+
+            // Create an image preview component
+            imagePreviews.push(
+              React.createElement(ImagePreview, { key: `img-${imgIndex}`, src: imageUrl || "/placeholder.svg" }),
+            )
+          })
+
+          // Split by the placeholders
+          const imgParts = imgProcessedText.split(/(__IMAGE_PLACEHOLDER_\d+__)/)
+          const imgResult: (string | React.ReactNode)[] = []
+
+          imgParts.forEach((imgPart) => {
+            // Check if this part is a placeholder
+            const imgPlaceholderMatch = imgPart.match(/__IMAGE_PLACEHOLDER_(\d+)__/)
+            if (imgPlaceholderMatch) {
+              const imageIndex = Number.parseInt(imgPlaceholderMatch[1], 10)
+              // Replace placeholder with image component
+              imgResult.push(imagePreviews[imageIndex])
+            } else if (imgPart) {
+              // Process regular links
+              const linkParts = imgPart.split(urlRegex)
+              imgResult.push(
+                ...linkParts.map((part, idx) => {
+                  if (urlRegex.test(part) && !imageUrlRegex.test(part)) {
+                    const match = part.match(/\[([^\]]+)\]$$([^\s$$]+)\)/)
+                    if (match) {
+                      const [, linkText, url] = match
+                      return React.createElement(
+                        "a",
+                        {
+                          key: idx,
+                          href: url,
+                          target: "_blank",
+                          rel: "noopener noreferrer",
+                          className: "text-blue-500 hover:underline",
+                          title: url,
+                        },
+                        linkText,
+                      )
+                    } else {
+                      return React.createElement(
+                        "a",
+                        {
+                          key: idx,
+                          href: part,
+                          target: "_blank",
+                          rel: "noopener noreferrer",
+                          className: "text-blue-500 hover:underline",
+                          title: part,
+                        },
+                        part,
+                      )
+                    }
+                  }
+                  return part
+                }),
+              )
+            }
+          })
+
+          return imgResult
+        }
+
+        // Process regular links
+        const linkParts = item.split(urlRegex)
+        return linkParts.map((part, idx) => {
+          if (urlRegex.test(part) && !imageUrlRegex.test(part)) {
+            const match = part.match(/\[([^\]]+)\]$$([^\s$$]+)\)/)
+            if (match) {
+              const [, linkText, url] = match
+              return React.createElement(
+                "a",
+                {
+                  key: idx,
+                  href: url,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  className: "text-blue-500 hover:underline",
+                  title: url,
+                },
+                linkText,
+              )
+            } else {
+              return React.createElement(
+                "a",
+                {
+                  key: idx,
+                  href: part,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  className: "text-blue-500 hover:underline",
+                  title: part,
+                },
+                part,
+              )
+            }
+          }
+          return part
+        })
+      }
+      return item
+    })
+  }
+
   // If no image URLs or audio patterns, process as before
   const parts = text.split(urlRegex)
 
@@ -612,6 +783,86 @@ const processTextWithLinks = (text: string): React.ReactNode[] => {
     }
     return part
   })
+}
+
+// Document attachment interface
+interface DocumentAttachmentProps {
+  url: string
+  filename: string
+  fileType: string
+}
+
+// Document attachment component
+const DocumentAttachment: React.FC<DocumentAttachmentProps> = ({ url, filename, fileType }) => {
+  // Determine file icon based on extension
+  const getFileIcon = () => {
+    const extension = fileType.toLowerCase()
+
+    if (extension === "pdf") {
+      return (
+        <div className="w-10 h-12 bg-red-500 rounded-md flex items-center justify-center text-black">
+          <span className="text-xs font-bold">PDF</span>
+        </div>
+      )
+    } else if (["xls", "xlsx", "csv"].includes(extension)) {
+      return (
+        <div className="w-10 h-12 bg-green-600 rounded-md flex items-center justify-center text-black">
+          <span className="text-xs font-bold">XLS</span>
+        </div>
+      )
+    } else if (["doc", "docx"].includes(extension)) {
+      return (
+        <div className="w-10 h-12 bg-blue-600 rounded-md flex items-center justify-center text-black">
+          <span className="text-xs font-bold">DOC</span>
+        </div>
+      )
+    } else {
+      return (
+        <div className="w-10 h-12 bg-gray-500 rounded-md flex items-center justify-center text-black">
+          <span className="text-xs font-bold">FILE</span>
+        </div>
+      )
+    }
+  }
+
+  // Extract file size from URL if available or use placeholder
+  const getFileSize = () => {
+    return "2 pages • " + fileType.toUpperCase() + " • 20 kB"
+  }
+
+  return (
+    <div className="flex items-center p-3 bg-white rounded-md border border-gray-200 my-2 hover:bg-gray-50 transition-colors">
+      {getFileIcon()}
+      <div className="ml-3 flex-1">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-medium text-gray-900 hover:underline"
+        >
+          {filename}
+        </a>
+        <p className="text-xs text-gray-500">{getFileSize()}</p>
+      </div>
+      <a href={url} download className="text-gray-400 hover:text-gray-600">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+      </a>
+    </div>
+  )
 }
 
 const processInlineStyles = (content: string | React.ReactNode[]): React.ReactNode[] => {
