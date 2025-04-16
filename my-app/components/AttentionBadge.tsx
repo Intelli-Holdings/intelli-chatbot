@@ -24,7 +24,7 @@ const AttentionBadge: React.FC = () => {
       if (!ctx) return;
 
       // Draw the Intelli logo
-      ctx.drawImage(img, 0, 0, 64, 64);
+      ctx.drawImage(img, 0, 0, 60, 60);
 
       // Draw red dot in top-right corner
       ctx.fillStyle = "red";
