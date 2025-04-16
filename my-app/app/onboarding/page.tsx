@@ -27,7 +27,6 @@ interface OnboardingData {
 const steps = ["welcome", "questions", "checklist"]
 
 export default function OnboardingPage() {
-  const [currentStep, setCurrentStep] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     source: "",
@@ -39,25 +38,13 @@ export default function OnboardingPage() {
 
   const { completedTasks, setIsOnboardingComplete } = useOnboarding()
 
-  const progress = ((currentStep + 1) / steps.length) * 100
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1)
-    } else {
-      setShowConfetti(true)
-      setIsOnboardingComplete(true)
-    }
-  }
-
-  const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
   const updateOnboardingData = (data: Partial<typeof onboardingData>) => {
     setOnboardingData({ ...onboardingData, ...data })
+  }
+
+  const handleOnboardingComplete = () => {
+    setShowConfetti(true)
+    setIsOnboardingComplete(true)
   }
 
   useEffect(() => {
@@ -92,7 +79,8 @@ export default function OnboardingPage() {
           </BreadcrumbList>
         </Breadcrumb>
         <h2 className="text-2xl font-bold text-center mb-8 text-slate-800">Welcome to Intelli, complete these steps to get onboarded</h2>
-        <OnboardingFlow onboardingData={onboardingData} updateOnboardingData={updateOnboardingData} />
+        <OnboardingFlow onboardingData={onboardingData} updateOnboardingData={updateOnboardingData}  onComplete={handleOnboardingComplete}  />
+        {showConfetti && <ConfettiEffect />}
       </div>
     </div>
   )

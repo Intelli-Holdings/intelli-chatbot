@@ -29,10 +29,10 @@ export default function Assistants() {
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
-  const [deleteDialog, setDeleteDialog] = useState<{
-    isOpen: boolean
-    assistant: Assistant | null
-  }>({ isOpen: false, assistant: null })
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; assistant: Assistant | null }>({
+    isOpen: false,
+    assistant: null,
+  })
 
   const fetchAssistants = async () => {
     if (!organizationId) return
@@ -71,6 +71,9 @@ export default function Assistants() {
       setAssistants(assistants.filter((a) => a.id !== assistant.id))
       setDeleteDialog({ isOpen: false, assistant: null })
       toast.success("Assistant deleted successfully!")
+
+      // Full page reload after successful deletion
+      window.location.reload()
     } catch (error) {
       console.error("Error deleting assistant:", error)
       toast.error("Failed to delete assistant. Please try again.")
@@ -102,7 +105,13 @@ export default function Assistants() {
           <h2 className="text-xl font-semibold">My Assistants</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <CreateAssistantDialog onAssistantCreated={fetchAssistants} />
+            <CreateAssistantDialog
+              onAssistantCreated={() => {
+                fetchAssistants()
+                // Full page reload after creating an assistant
+                window.location.reload()
+              }}
+            />
 
             {assistants.length > 0 &&
               assistants.map((assistant) => (
@@ -175,20 +184,34 @@ export default function Assistants() {
         onClose={() => {
           setIsEditDialogOpen(false)
           setSelectedAssistant(null)
+          // Full page reload after closing edit dialog
+          window.location.reload()
         }}
         assistant={selectedAssistant}
-        onAssistantUpdated={setAssistants}
+        onAssistantUpdated={(updatedAssistants) => {
+          setAssistants(updatedAssistants)
+          // Full page reload after updating assistants
+          window.location.reload()
+        }}
         assistants={assistants}
       />
 
       {/* Delete Assistant Dialog */}
       <DeleteAssistantDialog
         isOpen={deleteDialog.isOpen}
-        onClose={() => setDeleteDialog({ isOpen: false, assistant: null })}
-        onConfirm={() => deleteDialog.assistant && handleDeleteAssistant(deleteDialog.assistant)}
+        onClose={() => {
+          setDeleteDialog({ isOpen: false, assistant: null })
+          // Full page reload after closing delete dialog
+          window.location.reload()
+        }}
+        onConfirm={() => {
+          if (deleteDialog.assistant) {
+            handleDeleteAssistant(deleteDialog.assistant)
+            // window.location.reload() is already called in handleDeleteAssistant after successful deletion
+          }
+        }}
         assistantName={deleteDialog.assistant?.name || ""}
       />
     </div>
   )
 }
-

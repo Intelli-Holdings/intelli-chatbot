@@ -84,8 +84,10 @@ interface OnboardingData {
 }
 
 interface OnboardingFlowProps {
+  onNavigateToDashboard?: () => void  
   onboardingData: OnboardingData
   updateOnboardingData: (data: Partial<OnboardingData>) => void
+  onComplete: () => void  
 }
 
 interface OrganizationProfile {
@@ -101,7 +103,7 @@ interface OrganizationProfile {
   customTypeDescription?: string
 }
 
-export default function OnboardingFlow({ onboardingData, updateOnboardingData }: OnboardingFlowProps) {
+export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, updateOnboardingData, onComplete }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const activeOrganizationId = useActiveOrganizationId()
@@ -254,9 +256,9 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
       toast.error("Please fill in all required fields")
       return
     }
-
+  
     setLoading(true)
-
+  
     // Submit form data when moving from step 7
     if (currentStep === 7) {
       try {
@@ -270,9 +272,9 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
             organization_id: activeOrganizationId,
             user_id: user.id,
           }
-
+  
           console.log("Submitting onboarding data:", updatedFormData)
-
+  
           let response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/onboarding/`, {
             method: "POST",
             headers: {
@@ -280,15 +282,15 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
             },
             body: JSON.stringify(updatedFormData),
           })
-
+  
           // If we get a 400 with message about onboarding info already existing, try PUT instead
           if (response.status === 400) {
             const errorText = await response.text()
             console.error("API error response:", errorText)
-
+  
             if (errorText.includes("Onboarding information already exists")) {
               toast.info("Updating existing onboarding information...")
-
+  
               // Try again with PUT method to update
               response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/onboarding/`, {
                 method: "PUT",
@@ -299,27 +301,32 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
               })
             }
           }
-
+  
           if (!response.ok) {
             const errorText = await response.text()
             console.error("API error response:", errorText)
             throw new Error(`Failed to submit onboarding data: ${response.statusText}`)
           }
-
+  
           toast.success("Your onboarding is completed successfully!")
-
+  
           // Update the form data with the active organization ID
           setFormData((prev) => ({
             ...prev,
             organization_id: activeOrganizationId,
           }))
+          
+          // Notify parent component that onboarding is complete
+          if (onComplete) {
+            onComplete();
+          }
         }
       } catch (error) {
         console.error("Error submitting onboarding data:", error)
         toast.info("Failed to complete onboarding, but you can still proceed")
       }
     }
-
+  
     await new Promise((resolve) => setTimeout(resolve, 800))
     setLoading(false)
     setCurrentStep((prev) => prev + 1)
@@ -820,10 +827,9 @@ export default function OnboardingFlow({ onboardingData, updateOnboardingData }:
               </Button>
             ) : (
               <Button
-                onClick={() => {
-                  // Redirect to /dashboard after onboarding
-                  window.location.href = "/dashboard"
-                }}
+    onClick={onNavigateToDashboard || (() => {
+      window.location.href = "/dashboard"
+    })}
                 disabled={loading}
                 style={{ backgroundColor: "#007fff" }}
                 className="hover:bg-blue-600 relative overflow-hidden shadow-lg
