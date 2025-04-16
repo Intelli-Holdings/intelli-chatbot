@@ -145,7 +145,7 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
         type: "USER", // Adding required type field from API schema
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/api/assistants/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -292,7 +292,7 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
               toast.info("Updating existing onboarding information...")
   
               // Try again with PUT method to update
-              response = await fetch(`${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/auth/onboarding/`, {
+              response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/onboarding/`, {
                 method: "PUT",
                 headers: {
                   "Content-Type": "application/json",
