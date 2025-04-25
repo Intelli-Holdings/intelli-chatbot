@@ -69,7 +69,7 @@ export const PhoneNumberForm: React.FC = () => {
         try {
           setIsLoading(true);
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/auth/get/org/${organizationId}/phone-numbers/`
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/get/org/${organizationId}/phone-numbers/`
           )
           if (response.ok) {
             const data = await response.json();
@@ -128,7 +128,7 @@ export const PhoneNumberForm: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/auth/update/organization/phone-number/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/update/organization/phone-number/`,
         {
           method: "POST",
           headers: {
@@ -150,7 +150,7 @@ export const PhoneNumberForm: React.FC = () => {
       // Refresh the phone numbers list
       try {
         const updatedResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/auth/get/org/${organizationId}/phone-numbers/`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/get/org/${organizationId}/phone-numbers/`
         )
         if (updatedResponse.ok) {
           const data = await updatedResponse.json()
