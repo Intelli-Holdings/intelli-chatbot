@@ -206,7 +206,25 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 duration: 5000,
                 action: {
                   label: "View",
-                  onClick: () => (window.location.href = "/dashboard/notifications"),
+                  onClick: () => {
+                    // Determine the correct URL based on channel
+                    let path = "/dashboard/notifications";
+                    const channel = payload.channel?.toLowerCase() || "";
+                    
+                    if (channel === "whatsapp") {
+                      path = "/dashboard/conversations/whatsapp";
+                    } else if (channel === "website") {
+                      path = "/dashboard/conversations/website";
+                    } else if (channel === "facebook" || channel === "messenger") {
+                      path = "/dashboard/conversations/facebook";
+                    } else if (channel === "instagram") {
+                      path = "/dashboard/conversations/instagram";
+                    } else if (channel === "email") {
+                      path = "/dashboard/conversations/email";
+                    }
+                    
+                    window.location.href = path;
+                  },
                 },
               },
             )
