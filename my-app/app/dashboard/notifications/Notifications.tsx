@@ -179,8 +179,37 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
     }).format(date)
   }
 
-  const handleNavigateToConversation = () => {
-    router.push("/dashboard/conversations/whatsapp")
+  const handleNavigateToConversation = (channel: string = '') => {
+    // Default path for unknown channels
+    let path = '/dashboard/conversations';
+    
+    // Normalize channel name to lowercase for comparison
+    const normalizedChannel = channel.toLowerCase();
+    
+    switch (normalizedChannel) {
+      case 'whatsapp':
+        path = '/dashboard/conversations/whatsapp';
+        break;
+      case 'website':
+        path = '/dashboard/conversations/website';
+        break;
+      case 'facebook':
+      case 'messenger':
+        path = '/dashboard/conversations/facebook';
+        break;
+      case 'instagram':
+        path = '/dashboard/conversations/instagram';
+        break;
+      case 'email':
+        path = '/dashboard/conversations/email';
+        break;
+      default:
+        // If no specific channel is matched, use default path
+        console.log(`No specific path for channel: ${channel}`);
+        break;
+    }
+    
+    router.push(path);
   }
 
   return (
@@ -243,7 +272,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                             <span>From:</span>
                             <h3
                               className="text-lg font-semibold m-0 hover:text-blue-500 cursor-pointer"
-                              onClick={handleNavigateToConversation}
+                              onClick={() => handleNavigateToConversation(notification.channel)}
                             >
                               {notification.customer?.customer_name || "Unknown Customer"}
                             </h3>
@@ -280,7 +309,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                       </span>
                       <blockquote
                         className="border-l-4 border-gray-300 pl-4 italic text-gray-700 mb-4 hover:text-blue-500 cursor-pointer"
-                        onClick={handleNavigateToConversation}
+                        onClick={() => handleNavigateToConversation(notification.channel)}
                       >
                         {notification.message}
                       </blockquote>
