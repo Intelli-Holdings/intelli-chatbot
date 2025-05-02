@@ -48,11 +48,13 @@ const manrope = Manrope ({ subsets: ["latin"] });
   sizes="16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024" /><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /><link rel="icon" type="image/svg+xml" href="/icon.svg" /></>
 
 export const metadata = {
-  title: 'Intelli - Effortless Customer Support',
-  description: 'Intelli is a Customer Support Platform that streamlines conversations and interactions between businesses and their customers across multiple channels using AI.',
+  title: 'Intelli – Engage and support customers',
+  description: 'Intelli is a Customer Support Platform that streamlines customer conversations using AI across WhatsApp, website, and email.',
   openGraph: {
+    siteName: 'Intelli – Engage and support customers',
+    url: 'https://www.intelliconcierge.com',    
     title: 'Intelli',
-    description: 'Effortless intelligent customer support for your business.',
+    description: 'Streamline customer conversations using AI across WhatsApp, website, and email.',
     type: 'website',
     author: 'Intelli',
     images: [
@@ -67,7 +69,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Intelli',
-    description: 'Effortless intelligent customer support for your business.',
+    description: 'Streamline customer conversations using AI across WhatsApp, website, and email for your business.',
     author: 'Intelli',
     images: [
       {
