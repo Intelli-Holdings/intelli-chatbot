@@ -72,12 +72,6 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
         formData.append("answer", answer)
       }
 
-      // Only proceed if there's content to send (text, files, or audio)
-      if (answer.trim() === "" && files.length === 0 && !audioBlob) {
-        setIsLoading(false)
-        return
-      }
-
       files.forEach((file) => {
         formData.append("file", file)
         formData.append("type", getMediaType(file))
@@ -379,7 +373,8 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
             >
               <Paperclip className="h-4 w-4 text-gray-500" />
             </Button>
-            <Button
+            {/** 
+             * <Button
               type="button"
               variant="ghost"
               size="icon"
@@ -388,7 +383,10 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
               disabled={isLoading}
             >
               <Mic className="h-4 w-4 text-gray-500" />
-            </Button>
+            </Button>             * 
+             * 
+            */}
+            
             <Button
               className="rounded-xl h-8 w-8"
               type="submit"
