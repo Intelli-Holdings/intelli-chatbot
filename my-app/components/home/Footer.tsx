@@ -33,11 +33,14 @@ export function FooterComponent() {
 
           {/* Social Media Links */}
           <div className="flex justify-center sm:justify-start space-x-4">
-            <Link href="https://www.instagram.com/intelli_concierge/" target="_blank" className="hover:text-pink-300">
+            <Link href="https://www.instagram.com/intelli_concierge/" target="_blank" className="hover:text-pink-400">
               <Instagram size={20} />
             </Link>
-            <Link href="https://www.linkedin.com/company/intelli-concierge/" target="_blank" className="hover:text-blue-300">
+            <Link href="https://www.linkedin.com/company/intelli-concierge/" target="_blank" className="hover:text-blue-600">
               <Linkedin size={20} />
+            </Link>
+            <Link href="https://www.youtube.com/@Intelli-Concierge/" target="_blank" className="hover:text-red-700">
+            <Youtube size={20} /> 
             </Link>
           </div>
         </div>
