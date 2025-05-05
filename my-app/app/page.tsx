@@ -1,9 +1,7 @@
 "use client";
 import React from "react";
 import { useState } from "react";
-import { Home } from "@/components/component/home";
-import TwoColumnFooter from "@/components/sections/footer";
-import PopupModal from "@/components/component/popupModal";
+import { Home } from "@/components/component/home"
 import Head from "next/head";
 
 export default function Homepage() {
@@ -11,7 +9,6 @@ export default function Homepage() {
     <>
       <main className="min-h-screen p-2 bg-white">
       <Home />
-      <PopupModal />
     </main>
     </>
     
