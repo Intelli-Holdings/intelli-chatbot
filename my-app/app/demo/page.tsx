@@ -7,9 +7,10 @@ import { Loader2 } from "lucide-react";
 
 interface Props {}
 
-export default function demoPage() {
+export default function DemoPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [url, setUrl] = useState("");
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
@@ -20,10 +21,10 @@ export default function demoPage() {
     const renderWebsite = () => {
         setIsLoading(true);
         setError(null);
-        let url = (document.getElementById("url") as HTMLInputElement).value;
+        let currentUrl = url;
         
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            url = 'https://' + url;
+        if (!currentUrl.startsWith('http://') && !currentUrl.startsWith('https://')) {
+            currentUrl = 'https://' + currentUrl;
         }
 
         const iframe = document.getElementById("websiteFrame") as HTMLIFrameElement;
@@ -35,7 +36,7 @@ export default function demoPage() {
             setError("Unable to load the website. Please check the URL and try again.");
         };
         
-        iframe.src = url;
+        iframe.src = currentUrl;
     };
 
     return (
@@ -45,7 +46,8 @@ export default function demoPage() {
                     <Input 
                         className="m-2 border shadow-sm" 
                         type="text" 
-                        id="url" 
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
                         placeholder="enter your website url here https://yourwebsite.com"
                         onKeyDown={handleKeyDown}
                     /> 
