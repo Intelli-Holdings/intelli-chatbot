@@ -7,7 +7,7 @@ import OnboardingReminder from "@/components/OnboardingReminder"
 import { OnboardingProvider } from "@/context/onboarding-context";
 import AttentionBadge from "@/components/AttentionBadge";
 import Script from "next/script";
-import { ChatWidget } from "@/components/ChatWidget";
+
 
 
 // Onborda
@@ -129,9 +129,8 @@ export default function RootLayout({
             </OnboardingProvider>
             </NextStepProvider>
             </AptabaseProvider>
-            <ToastProvider />
-          </body>
-          <ChatWidget />
+            <ToastProvider />         
+          </body>          
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />
         </PHProvider>

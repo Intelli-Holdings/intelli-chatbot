@@ -130,6 +130,7 @@
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.0",
     "remark-html": "^16.0.1",
+    "resend": "^4.5.0",
     "rss-parser": "^3.13.0",
     "sass": "^1.78.0",
     "sharp": "^0.33.2",

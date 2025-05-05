@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/navbar";
 import React from "react";
+import { ChatWidget } from "@/components/ChatWidget";
 
 export default function Company() {
   return (
@@ -112,6 +113,7 @@ export default function Company() {
 
         
       </main>
+      <ChatWidget />
     </div>
   );
 }
