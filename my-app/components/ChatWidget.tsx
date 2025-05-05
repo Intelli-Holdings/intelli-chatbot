@@ -12,7 +12,7 @@ declare global {
 export const ChatWidget = () => {
   useEffect(() => {
     const initWidget = () => {
-      window.InitChatWidget('CwFgU3IquiUpnlfiAs7FLxs8Qumx8c0dy2Nr1ZXsMmh9WzdzfQ');
+      window.InitChatWidget('HHF5Zo9vwFuMdHMaBwL1BK7Yvjyfu6hbrNsK5fWwkhBKZM2Dvu');
     };
 
     if (typeof window.InitChatWidget === 'function') {
@@ -32,7 +32,7 @@ export const ChatWidget = () => {
         src="https://intelliholdings-backend.onrender.com/widgets/cdn/loader.js"
         strategy="lazyOnload"
         onLoad={() => {
-          window.InitChatWidget('CwFgU3IquiUpnlfiAs7FLxs8Qumx8c0dy2Nr1ZXsMmh9WzdzfQ');
+          window.InitChatWidget('HHF5Zo9vwFuMdHMaBwL1BK7Yvjyfu6hbrNsK5fWwkhBKZM2Dvu');
         }}
       />
     </>
