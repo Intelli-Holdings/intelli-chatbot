@@ -4,6 +4,7 @@ import settings from '@/content/_settings.json';
 import {Navbar} from '@/components/navbar';
 import Blog from '@/components/sections/blog/blog-layout';
 import BlogPage from '@/components/sections/blog/blog-page';
+import { ChatWidget } from "@/components/ChatWidget";
 
 interface Article {
   id: string;
@@ -38,6 +39,7 @@ export default async function Page() {
     <>
     <Navbar />  
       <BlogPage />
+      <ChatWidget />
     </>
   );
 }
