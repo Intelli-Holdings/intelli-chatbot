@@ -9,6 +9,7 @@ export const memberUtils = {
       name: `${firstName} ${lastName}`.trim() || member.publicUserData.identifier || 'Unknown User',
       initials: memberUtils.getInitials(firstName, lastName),
       imageUrl: member.publicUserData.imageUrl || '',
+      email: member.publicUserData.identifier || '',
     };
   },
 
