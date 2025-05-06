@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -19,7 +19,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { NotificationMessage, TeamMember } from "@/types/notification"
 import { useOrganization } from "@clerk/nextjs"
@@ -38,8 +37,30 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
     Array<{ id: string; name: string; email: string; image: string }>
   >([])
   const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({})
+  const [notificationFilter, setNotificationFilter] = useState<'all' | 'live' | 'assigned'>('all')
   const { organization } = useOrganization()
-  const { notifications, isLoading: notificationsLoading, error, markAllAsRead } = useNotificationContext()
+  const { 
+    notifications, 
+    historicalNotifications,
+    assignedNotifications,
+    isLoading: notificationsLoading, 
+    error, 
+    markAllAsRead,
+    fetchHistoricalNotifications,
+    fetchAssignedNotifications 
+  } = useNotificationContext()
+
+  // Get the appropriate notifications based on the filter
+  const filteredNotifications = useMemo(() => {
+    switch (notificationFilter) {
+      case 'live':
+        return notifications.filter(n => !historicalNotifications.some(hn => hn.id === n.id))
+      case 'assigned':
+        return assignedNotifications || []
+      default:
+        return historicalNotifications || []
+    }
+  }, [notificationFilter, notifications, historicalNotifications, assignedNotifications])
 
   useEffect(() => {
     const fetchOrganizationMembers = async () => {
@@ -70,12 +91,26 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
 
   const getAssignee = (notification: NotificationMessage) => {
     if (notification.assignee) {
+      // First try to find in organization users
       const user = organizationUsers.find((u) => u.id === notification.assignee)
-      if (user) return user
+      if (user) {
+        return {
+          name: user.name,
+          email: user.email,
+          image: user.image
+        }
+      }
+      // Then try to find in members prop
       const member = members.find((m) => m.id === notification.assignee)
-      if (member) return { ...member, image: (member as any).image || "" }
+      if (member) {
+        return {
+          name: member.name,
+          email: member.email || '',
+          image: (member as any).image || ""
+        }
+      }
     }
-    return { name: "Unassigned", image: "" }
+    return { name: "Unassigned", email: "", image: "" }
   }
 
   const handleAssigneeChange = async (notificationId: string, assigneeId: string) => {
@@ -221,6 +256,26 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
             <span>Notification Center</span>
           </CardTitle>
           <div className="flex items-center space-x-2">
+            <Select
+              value={notificationFilter}
+              onValueChange={(value: 'all' | 'live' | 'assigned') => {
+                setNotificationFilter(value)
+                if (value === 'assigned') {
+                  fetchAssignedNotifications()
+                } else if (value === 'all') {
+                  fetchHistoricalNotifications()
+                }
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter notifications" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Notifications</SelectItem>
+                <SelectItem value="live">Live Notifications</SelectItem>
+                <SelectItem value="assigned">Assigned to Me</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" onClick={markAllAsRead} className="flex items-center space-x-1">
               <CheckCircle className="h-4 w-4 mr-1" />
               <span>Mark all as read</span>
@@ -238,15 +293,14 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
           <div className="flex flex-col justify-center items-center h-[200px] text-center">
             <AlertCircle className="h-8 w-8 text-red-500 mb-2" />
             <p className="text-gray-700 mb-4">{error}</p>
-           
           </div>
         ) : (
           <ScrollArea className="h-[600px] pr-4 py-4">
-            {notifications.length === 0 ? (
+            {(!filteredNotifications || filteredNotifications.length === 0) ? (
               <p className="text-center text-gray-500">No notifications to display.</p>
             ) : (
               <div className="space-y-6">
-                {notifications.map((notification) => {
+                {filteredNotifications.map((notification) => {
                   const assigneeInfo = getAssignee(notification)
                   return (
                     <div
@@ -274,9 +328,9 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                               className="text-lg font-semibold m-0 hover:text-blue-500 cursor-pointer"
                               onClick={() => handleNavigateToConversation(notification.channel)}
                             >
-                              {notification.customer?.customer_name || "Unknown Customer"}
+                              {notification.chatsession?.customer_name || "Unknown Customer"}
                             </h3>
-                            <h2 className="text-sm text-gray-500">{notification.customer?.customer_number || ""}</h2>
+                            <h2 className="text-sm text-gray-500">{notification.chatsession?.customer_number || ""}</h2>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -291,7 +345,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                               variant="outline"
                               size="sm"
                               className="flex items-center space-x-1 h-8"
-                              onClick={() => handleResolveNotification(notification.id)}
+                              onClick={() => handleResolveNotification(notification.id.toString())}
                               disabled={isLoading[`resolve-${notification.id}`]}
                             >
                               {isLoading[`resolve-${notification.id}`] ? (
@@ -315,12 +369,12 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                       </blockquote>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center space-x-2 text-gray-600">
-                          {showAssigneeSelect === notification.id ? (
+                          {showAssigneeSelect === notification.id.toString() ? (
                             <div className="relative flex items-center w-full">
                               <Select
                                 value={notification.assignee || ""}
-                                onValueChange={(value) => handleAssigneeChange(notification.id, value)}
-                                disabled={isLoading[notification.id]}
+                                onValueChange={(value) => handleAssigneeChange(notification.id.toString(), value)}
+                                disabled={isLoading[notification.id.toString()]}
                               >
                                 <SelectTrigger className="w-[200px]">
                                   <SelectValue placeholder="Assign to..." />
@@ -333,7 +387,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                                   ))}
                                 </SelectContent>
                               </Select>
-                              {isLoading[notification.id] && (
+                              {isLoading[notification.id.toString()] && (
                                 <div className="absolute right-2 top-0 h-full flex items-center">
                                   <span className="animate-spin">⏳</span>
                                 </div>
@@ -346,7 +400,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                                 variant="ghost"
                                 size="sm"
                                 className="p-0 h-auto font-normal"
-                                onClick={() => setShowAssigneeSelect(notification.id)}
+                                onClick={() => setShowAssigneeSelect(notification.id.toString())}
                               >
                                 Assign
                               </Button>
@@ -364,7 +418,12 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                             <AvatarImage src={assigneeInfo.image || ""} />
                             <AvatarFallback>{assigneeInfo.name?.charAt(0) || "U"}</AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{assigneeInfo.name || "Unassigned"}</span>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{assigneeInfo.email || "Unassigned"}</span>
+                            {assigneeInfo.email && (
+                              <span className="text-xs text-gray-500">{assigneeInfo.email}</span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex items-center space-x-2 text-gray-600">
@@ -372,10 +431,10 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                           <span>{formatDate(notification.created_at)}</span>
                         </div>
 
-                        {notification.escalation && (
+                        {notification.escalation_event && (
                           <div className="flex items-center space-x-2 text-gray-600">
                             <AlertCircle className="h-4 w-4" />
-                            <span>{notification.escalation.name}</span>
+                            <span>{notification.escalation_event.name}</span>
                           </div>
                         )}
                       </div>
