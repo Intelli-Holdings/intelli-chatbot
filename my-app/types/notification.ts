@@ -1,6 +1,5 @@
-
 // Interface for the Escalation object
-export interface Escalation {
+export interface EscalationEvent {
   id: number
   name: string
   description: string
@@ -9,8 +8,7 @@ export interface Escalation {
   updated_at: string
 }
 
-// Interface for the Customer object
-export interface Customer {
+export interface ChatSession {
   id: number
   customer_number: string
   customer_name: string
@@ -19,16 +17,20 @@ export interface Customer {
 
 // Interface for the main NotificationMessage object
 export interface NotificationMessage {
-  id: string
-  type: string
-  escalation: Escalation
-  status: string
-  channel: string
+  id: number
+  escalation_event: EscalationEvent
+  assignee: string | null
+  chatsession: ChatSession
+  widget_visitor: any
   message: string
+  channel: string
+  status: string
   resolved: boolean
   comment: string | null
-  assignee: string
-  customer: Customer
+  escalated_events: string | null
+  resolved_at: string | null
+  duration: string | null
+  updated_at: string
   created_at: string
 }
 
@@ -46,6 +48,7 @@ export interface UserNotificationSettings {
 export type TeamMember = {
   id: string
   name: string
+  email: string
   initials: string
   imageUrl: string
 }
@@ -65,9 +68,13 @@ export type ClerkMember = {
 
 export interface NotificationContextType {
   notifications: NotificationMessage[]
+  historicalNotifications: NotificationMessage[]
+  assignedNotifications: NotificationMessage[]
   isConnected: boolean
   unreadCount: number
   markAllAsRead: () => void
   isLoading: boolean
   error: string | null
+  fetchHistoricalNotifications: () => Promise<void>
+  fetchAssignedNotifications: () => Promise<void>
 }
