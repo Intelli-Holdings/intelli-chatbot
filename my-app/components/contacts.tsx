@@ -121,9 +121,7 @@ export function Contacts({ conversations = [], phoneNumber, searchTerm = '' }: C
                   {contact.lastActive ? format(new Date(contact.lastActive), 'MMM d, h:mm a') : '-'}
                 </TableCell>
                 <TableCell>
-                  <Button size="sm">
-                    Place Call
-                  </Button>
+                  
                 </TableCell>
               </TableRow>
             ))

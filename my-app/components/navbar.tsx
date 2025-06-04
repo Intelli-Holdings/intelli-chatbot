@@ -12,6 +12,7 @@ const navItems = [
     href: "#",
     subItems: [
       { label: "Whatsapp Assistant", href: "/whatsapp-assistant" },
+      { label: "Broadcasts Platform", href: "https://intelli-app.com/register" },
     ],
   },
   {
