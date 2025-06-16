@@ -100,6 +100,69 @@ export default function WhatsAppBroadcastPage() {
         </div>
       </section>
 
+      {/* WhatsApp Broadcasts Overview */}
+      <section className="mb-16">
+        <div className="flex justify-center mb-4">
+          <Badge>Overview</Badge>
+        </div>
+        <h2 className="text-center text-5xl font-bold mb-10 text-gray-800">
+          WhatsApp Broadcasts Overview
+        </h2>
+        <Card className="p-8 bg-gradient-to-r from-green-50 to-blue-50">
+          <CardContent className="space-y-6">
+            <div className="text-center mb-8">
+              <p className="text-xl text-gray-700 leading-relaxed">
+                WhatsApp Broadcasts allow organizations like yours to send high-volume, media-rich, personalized messages to large groups of users efficiently. 
+                Perfect for reminders, announcements, updates, and program communications without messaging each person individually.
+              </p>
+              <div className="mt-6 p-4 bg-green-100 rounded-lg">
+                <p className="text-lg font-semibold text-green-800">
+                  📈 Up to 98% open rate compared to traditional channels like SMS and email
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-4">How It Works</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <p className="text-gray-700">Business-initiated conversations using approved templates</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <p className="text-gray-700">Messages appear as 1:1 conversations, keeping communication personal</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <p className="text-gray-700">Only sent to users who have opted in to receive your messages</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                    <p className="text-gray-700">Easy performance tracking and analytics</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-4">Tier Upgrade Support</h3>
+                <div className="bg-white p-4 rounded-lg">
+                  <p className="text-gray-700 mb-3">
+                    Each tier comes with specific criteria that must be met to unlock higher broadcast volumes, as determined by Meta.
+                  </p>
+                  <div className="bg-blue-50 p-3 rounded">
+                    <p className="font-semibold text-blue-800">
+                      🚀 Intelli provides dedicated support and guidance at every stage, helping your business reach the unlimited tier.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
       {/* Why Choose Us Section */}
       <section className="mb-16">
         <div className="flex justify-center mb-4">
@@ -335,6 +398,89 @@ export default function WhatsAppBroadcastPage() {
             <h3 className="text-2xl font-bold mb-2">Rich Analytics</h3>
             <p className="text-gray-600">Track every metric that matters for ROI</p>
           </div>
+        </div>
+      </section>
+
+      {/* Use Cases Section */}
+      <section className="mb-16">
+        <div className="flex justify-center mb-4">
+          <Badge>Use Cases</Badge>
+        </div>
+        <h2 className="text-center text-5xl font-bold mb-10 text-gray-800">
+          Ideal Use Cases by Business Type
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="p-6 hover:shadow-lg transition-all hover:scale-105">
+            <CardHeader className="pb-4">
+              <div className="text-4xl mb-3">🧳</div>
+              <CardTitle className="text-xl mb-2">Travel & Tours</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Travel packages offers (Lipa polepole)</li>
+                <li>• Holiday wishes</li>
+                <li>• Travel deal promos</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="p-6 hover:shadow-lg transition-all hover:scale-105">
+            <CardHeader className="pb-4">
+              <div className="text-4xl mb-3">🏫</div>
+              <CardTitle className="text-xl mb-2">Education</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Enrollment updates</li>
+                <li>• Application status</li>
+                <li>• Fee reminders</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="p-6 hover:shadow-lg transition-all hover:scale-105">
+            <CardHeader className="pb-4">
+              <div className="text-4xl mb-3">💳</div>
+              <CardTitle className="text-xl mb-2">Fintech & Lending</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Payment reminders</li>
+                <li>• Document requests</li>
+                <li>• Loan status notifications</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="p-6 hover:shadow-lg transition-all hover:scale-105">
+            <CardHeader className="pb-4">
+              <div className="text-4xl mb-3">🛍</div>
+              <CardTitle className="text-xl mb-2">E-Commerce & Retail</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• Abandoned cart follow-ups</li>
+                <li>• Product launches</li>
+                <li>• Order confirmations</li>
+                <li>• Flash sale alerts</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="text-center mt-8">
+          <p className="text-lg text-gray-600 mb-4">
+            Don&apos;t see your industry? WhatsApp Broadcasts work for any business that needs to communicate with customers at scale.
+          </p>
+          <Link href="https://calendly.com/intelli-demo/demo" target="_blank">
+            <Button 
+              size="lg"
+              className="text-lg font-bold py-4 px-8 bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-xl shadow-lg 
+              hover:bg-gradient-to-r hover:from-green-500 hover:to-blue-700 transition-all duration-500"
+            >
+              Talk to us and let&apos;s explore Your Use Case
+            </Button>
+          </Link>
         </div>
       </section>
 
