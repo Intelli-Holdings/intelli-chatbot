@@ -478,7 +478,7 @@ export default function WhatsAppBroadcastPage() {
               className="text-lg font-bold py-4 px-8 bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-xl shadow-lg 
               hover:bg-gradient-to-r hover:from-green-500 hover:to-blue-700 transition-all duration-500"
             >
-              Talk to us and let&apos;s explore Your Use Case
+              Explore Your Use Case
             </Button>
           </Link>
         </div>
@@ -488,7 +488,7 @@ export default function WhatsAppBroadcastPage() {
       <section className="text-center">
         <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-12">
           <h2 className="text-4xl font-bold mb-6 text-gray-800">
-            Ready to Transform Your Business Communication?
+            Ready to Run Successful Marketing Campaigns?
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Join businesses already using our Meta-verified WhatsApp solution.
