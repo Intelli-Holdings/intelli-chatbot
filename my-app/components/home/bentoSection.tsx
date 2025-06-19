@@ -152,12 +152,12 @@ const features = [
   {
     Icon: Icons.whatsapp,
     name: "WhatsApp Broadcast & API",
-    description: "Send personalized messages, promotions, order updates or alerts to 2M+ WhatsApp users.",
+    description: "Send personalized messages, promotions, order updates or alerts to 2B+ WhatsApp users.",
     className: "col-span-3 lg:col-span-1",
     href: "/whatsapp-broadcast",
     cta: "try now",
     background: (
-      <div className="absolute inset-0 flex flex-col items-center justify-center space-y-2 p-4 [mask-image:linear-gradient(to_top,transparent_40%,#000_100%)] group-hover:scale-105 transition-all duration-300">
+      <div className="absolute h-[300px] w-full border-none transition-all inset-0 flex flex-col items-center justify-center space-y-2 p-4 [mask-image:linear-gradient(to_top,transparent_40%,#000_100%)] group-hover:scale-105 transition-all duration-300">
         <div className="flex items-center space-x-2 text-green-600">
           <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
           <span className="text-xs font-medium">Sending Broadcast...</span>

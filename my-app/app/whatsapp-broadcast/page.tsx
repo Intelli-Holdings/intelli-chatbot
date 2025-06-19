@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Shield } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import Image from "next/image";
 
 export default function WhatsAppBroadcastPage() {
   const [messages, setMessages] = useState("");
@@ -65,10 +66,13 @@ export default function WhatsAppBroadcastPage() {
     <div className="container py-12 mx-auto px-4">
       {/* Meta Tech Provider Badge */}
       <div className="flex justify-center mb-8">
-        <Badge className="text-sm font-semibold">
-          <Shield className="w-4 h-4 mr-2" />
-          Meta Business Tech Provider
-        </Badge>
+        <Image 
+          src="/meta_techprovider_badge.webp" 
+          alt="Meta Business Tech Provider Badge" 
+          width={200}
+          height={50}
+          className="h-12 w-auto"
+        />
       </div>
 
       {/* Hero Section */}
