@@ -50,7 +50,7 @@ const manrope = Manrope ({ subsets: ["latin"] });
 
 export const metadata = {
   title: 'Intelli – Engage and support customers',
-  description: 'Intelli is a Customer Support Platform that streamlines customer conversations using AI across WhatsApp, website, and email.',
+  description: 'Intelli is a Customer Support and Engagement Platform that enables businesses to manage customer conversations using AI across WhatsApp, website, and email.',
   openGraph: {
     siteName: 'Intelli – Engage and support customers',
     url: 'https://www.intelliconcierge.com',    
