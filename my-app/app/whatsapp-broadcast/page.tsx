@@ -83,11 +83,11 @@ export default function WhatsAppBroadcastPage() {
           </span>
           <br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-green-500">
-            API & Broadcast
+            Broadcasts
           </span>
         </h1>
         <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mx-auto mb-8 max-w-4xl">
-          Transform your business communication with our Meta-verified WhatsApp Business API. 
+          Transform your business communication with our Meta-verified WhatsApp Broadcast.
           Reach millions, engage authentically, and drive conversions.
         </p>
         <div className="flex gap-4 justify-center">
@@ -365,7 +365,7 @@ export default function WhatsAppBroadcastPage() {
                   className="text-lg font-bold py-4 px-8 bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-xl shadow-lg 
                   hover:bg-gradient-to-r hover:from-green-500 hover:to-blue-700 transition-all duration-500"
                 >
-                  Start Your WhatsApp Journey
+                  Start Your Journey
                 </Button>
               </Link>
             </div>
