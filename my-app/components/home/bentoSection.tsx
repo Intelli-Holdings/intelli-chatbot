@@ -151,7 +151,7 @@ const features = [
   },
   {
     Icon: Icons.whatsapp,
-    name: "WhatsApp Broadcast & API",
+    name: "WhatsApp Business Broadcast",
     description: "Send personalized messages, promotions, order updates or alerts to 2B+ WhatsApp users.",
     className: "col-span-3 lg:col-span-1",
     href: "/whatsapp-broadcast",
@@ -172,6 +172,43 @@ const features = [
           </div>
         </div>
         <div className="text-[10px] text-green-600 font-semibold">2M+ users reached</div>
+      </div>
+    ),
+  },
+  {
+    Icon: MessageCircleCodeIcon,
+    name: "WhatsApp Business API",
+    description: "Unlock unlimited messaging, multiple devices, team collaboration, and integrate AI and advanced automation. Scale beyond the basic WhatsApp Business App.",
+    href: "/whatsapp-api",
+    cta: "Learn more",
+    className: "col-span-3 lg:col-span-3",
+    background: (
+      <div className="absolute inset-0 flex items-center justify-center [mask-image:linear-gradient(to_top,transparent_40%,#000_100%)] group-hover:scale-105 transition-all duration-300">
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 w-full max-w-md mx-4">
+          <div className="flex justify-center items-center mb-4">
+            <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-full">VS</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="text-center p-2 bg-gray-100 rounded-lg">
+              <h4 className="font-bold text-gray-800">Whatsapp Business App</h4>
+              <p className="text-gray-600 text-[10px]">1 user, 256 broadcasts</p>
+            </div>
+            <div className="text-center p-2 bg-green-100 rounded-lg">
+              <h4 className="font-bold text-green-800">Whatsapp Business API</h4>
+              <p className="text-green-700 text-[10px]">Unlimited users & broadcasts</p>
+            </div>
+          </div>
+          <div className="mt-3 space-y-1">
+            <div className="flex items-center gap-1">
+              <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+              <span className="text-[10px] text-gray-700">Advanced AI automation</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+              <span className="text-[10px] text-gray-700">Rich analytics & integrations</span>
+            </div>
+          </div>
+        </div>
       </div>
     ),
   },
