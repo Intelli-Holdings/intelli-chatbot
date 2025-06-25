@@ -14,11 +14,13 @@ import {
   PaintRoller,
   Calendar,
   Globe,
-  Globe2,
+  Eye,
+  EyeIcon,
   ShieldQuestion,
   InboxIcon,
   CalendarClock,
   Contact,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -37,7 +39,16 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const data = {
   navMain: [
@@ -52,14 +63,21 @@ const data = {
       icon: Bot,
     },
     {
-      title: "Playground",
-      url: "/dashboard/playground",
-      icon: PaintRoller,
-    },
-    {
-      title: "Widgets",
+      title: "Website Widgets",
       url: "/dashboard/widgets",
       icon: Globe,
+      items: [
+        {
+          title: "View Widgets",
+          url: "/dashboard/widgets",
+          icon: EyeIcon,
+        },
+        {
+          title: "Playground",
+          url: "/dashboard/playground",
+          icon: PaintRoller,
+        },
+      ],
     },
     {
       title: "Conversations",
@@ -122,34 +140,79 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
+      </SidebarHeader>      <SidebarContent>
         <SidebarGroup>
           <SidebarMenu className="gap-2">
             {data.navMain.map((item) => (
               <SidebarMenuItem key={item.title} className="w-full">
-                <SidebarMenuButton asChild className="w-full">
-                  <Link href={item.url} className="w-full">
-                    <span className="relative w-full">
-                      <span
-                        className={cn(
-                          "group flex w-full items-center rounded-lg px-2 py-2 text-sm font-medium hover:bg-blue-100 hover:text-blue-600",
-                          pathname === item.url
-                            ? "bg-blue-500 text-white"
-                            : "transparent"
-                        )}
-                      >
-                        {item.icon && <item.icon className="mr-2 size-4" />}
-                        <span>{item.title}</span>
-                      </span>
-                      {item.showBadge && notificationCount > 0 && (
-                        <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
-                          {notificationCount}
+                {item.items ? (
+                  <Collapsible defaultOpen className="group/collapsible">
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="w-full">
+                        <span className="relative w-full">
+                          <span
+                            className={cn(
+                              "group flex w-full items-center rounded-lg px-2 py-2 text-sm font-medium hover:bg-blue-100 hover:text-blue-600",
+                              pathname === item.url || item.items?.some(subItem => pathname === subItem.url)
+                                ? "bg-blue-500 text-white"
+                                : "transparent"
+                            )}
+                          >
+                            {item.icon && <item.icon className="mr-2 size-4" />}
+                            <span>{item.title}</span>
+                            <ChevronRight className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          </span>
                         </span>
-                      )}
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.items.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton asChild>
+                              <Link href={subItem.url}>
+                                <span
+                                  className={cn(
+                                    "group flex w-full items-center rounded-lg px-2 py-2 text-sm font-medium hover:bg-blue-100 hover:text-blue-600",
+                                    pathname === subItem.url
+                                      ? "bg-blue-500 text-white"
+                                      : "transparent"
+                                  )}
+                                >
+                                  {subItem.icon && <subItem.icon className="mr-2 size-4" />}
+                                  <span>{subItem.title}</span>
+                                </span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuButton asChild className="w-full">
+                    <Link href={item.url} className="w-full">
+                      <span className="relative w-full">
+                        <span
+                          className={cn(
+                            "group flex w-full items-center rounded-lg px-2 py-2 text-sm font-medium hover:bg-blue-100 hover:text-blue-600",
+                            pathname === item.url
+                              ? "bg-blue-500 text-white"
+                              : "transparent"
+                          )}
+                        >
+                          {item.icon && <item.icon className="mr-2 size-4" />}
+                          <span>{item.title}</span>
+                        </span>
+                        {item.showBadge && notificationCount > 0 && (
+                          <span className="absolute top-[-10px] right-[-10px] bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full font-bold">
+                            {notificationCount}
+                          </span>
+                        )}
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
