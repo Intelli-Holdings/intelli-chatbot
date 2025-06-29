@@ -95,10 +95,8 @@ const data = {
       icon: BookDashed,
       hasSubmenu: true,
       submenuItems: [
-        { title: "Overview", url: "/dashboard/templates/overview" },
         { title: "Templates Library", url: "/dashboard/templates" },
-        { title: "Manage Templates", url: "/dashboard/templates/library" },
-        { title: "Create Template", url: "/dashboard/templates/create" },
+        { title: "Test Templates", url: "/dashboard/templates/library" },
         { title: "Send Broadcasts", url: "/dashboard/templates/send" },
         
       ]
