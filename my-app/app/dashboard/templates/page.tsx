@@ -87,17 +87,7 @@ export default function TemplatesPage() {
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input placeholder="Search" className="pl-9" />
-              </div>
-
-              <Button variant="outline" className="gap-2">
-                Category <ChevronDown className="h-4 w-4" />
-              </Button>              
-
-              <Button variant="outline" className="gap-2">
-                <Settings className="h-4 w-4" /> Namespace
-              </Button>
-
-            
+              </div>            
 
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
