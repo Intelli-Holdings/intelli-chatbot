@@ -125,7 +125,7 @@ export default function TemplateDetailsPage({ params }: { params: { id: string }
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
-          <h1 className="text-2xl font-bold">Template Details</h1>
+          <h1 className="text-2xl font-bold">Test Templates</h1>
         </div>
 
         {isLoading ? (
