@@ -291,12 +291,11 @@ const MediumBlogComponent: React.FC = () => {
                 Latest Updates
               </Badge>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent leading-tight">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent leading-tight py-2">
               Our Blog
             </h1>
             <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-              Stay up-to-date with the latest news, insights, and updates from Intelli. Discover industry trends and
-              expert perspectives.
+              Stay up-to-date with the latest news, insights, and updates from Intelli.
             </p>
           </div>
 
