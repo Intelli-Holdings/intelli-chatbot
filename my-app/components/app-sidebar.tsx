@@ -77,6 +77,12 @@ const data = {
       title: "Conversations",
       url: "/dashboard/conversations",
       icon: MessageSquareDot,
+      hasSubmenu: true,
+      submenuItems: [
+        { title: "📊 Overview", url: "/dashboard/conversations" },
+        { title: "🌐 Website", url: "/dashboard/conversations/website" },
+        { title: "💬 WhatsApp", url: "/dashboard/conversations/whatsapp" },
+      ]
     },
     {
       title: "Notifications",
@@ -95,9 +101,9 @@ const data = {
       icon: BookDashed,
       hasSubmenu: true,
       submenuItems: [
-        { title: "Templates Library", url: "/dashboard/templates" },
-        { title: "Test Templates", url: "/dashboard/templates/library" },
-        { title: "Send Broadcasts", url: "/dashboard/templates/send" },
+        { title: "📚 Templates Library", url: "/dashboard/templates" },
+        { title: "🧪 Test Templates", url: "/dashboard/templates/library" },
+        { title: "📡 Send Broadcasts", url: "/dashboard/templates/send" },
         
       ]
     },
