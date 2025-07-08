@@ -4,8 +4,7 @@ import { ChatPreview } from "@/components/chat-preview";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-
-interface Props {}
+import { ChatWidget } from "@/components/ChatWidget";
 
 export default function DemoPage() {
     const [isLoading, setIsLoading] = useState(false);
@@ -40,20 +39,20 @@ export default function DemoPage() {
     };
 
     return (
+        <>
         <main>
-            <div className="fixed top-0 left-0 right-0 supports-backdrop-blur:bg-background/100 border-b bg-background/15 backdrop-blur z-20">   
+            <div className="fixed top-0 left-0 right-0 supports-backdrop-blur:bg-background/100 border-b bg-background/15 backdrop-blur z-20">
                 <div className="h-full flex items-center justify-between py-2 px-2">
-                    <Input 
-                        className="m-2 border shadow-sm" 
-                        type="text" 
+                    <Input
+                        className="m-2 border shadow-sm"
+                        type="text"
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
                         placeholder="enter your website url here https://yourwebsite.com"
-                        onKeyDown={handleKeyDown}
-                    /> 
+                        onKeyDown={handleKeyDown} />
 
-                    <Button 
-                        onClick={renderWebsite} 
+                    <Button
+                        onClick={renderWebsite}
                         className="bg-blue-600 text-white px-2 py-2 border border-blue-500 shadow-md"
                         disabled={isLoading}
                     >
@@ -71,6 +70,16 @@ export default function DemoPage() {
                     {error}
                 </div>
             )}
-        </main>      
+        </main><div className="mt-20">
+                <iframe
+                    id="websiteFrame"
+                    className="w-full h-[100vh] border border-gray-300 rounded-lg"
+                    src=""
+                    title="Website Preview"
+                ></iframe>
+
+                <ChatWidget />
+            </div>
+            </>
     );
 }

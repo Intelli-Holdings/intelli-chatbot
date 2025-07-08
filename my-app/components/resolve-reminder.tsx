@@ -19,17 +19,17 @@ const ResolveReminder: React.FC<ResolveReminderProps> = ({ className }) => {
       className={`w-full p-1 ${className}`}
     >
       <Alert variant="default" className="bg-amber-50 border-amber-200">
-        <AlertCircle className="h-4 w-4 text-amber-600" />
+        <AlertCircle className="h-4 w-4 text-red-600" />
         <div className="flex-1">
-          <AlertTitle className="text-amber-800 flex items-center gap-2">
+          <AlertTitle className="text-red-800 flex items-center gap-2">
             <Clock className="h-4 w-4" /> 24-Hour Response Window
           </AlertTitle>
-          <AlertDescription className="text-amber-700 text-sm">
+          <AlertDescription className="text-red-700 text-sm">
             Resolve escalations within 24 hours to maintain messaging privileges.
           </AlertDescription>
         </div>
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="text-amber-700 hover:text-amber-900 hover:bg-amber-100">
+          <Button variant="ghost" size="sm" className="text-red-700 hover:text-red-900 hover:bg-red-100">
             {isOpen ? 'Show Less' : 'Learn More'}
           </Button>
         </CollapsibleTrigger>

@@ -139,152 +139,59 @@ const WhatsappAssistant = () => {
 
   return (
     <div className="flex flex-col md:flex-row gap-6 p-6">
-      <Card className="md:w-1/2 bg-white shadow-md p-6 rounded-lg">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>WhatsApp Manual Onboarding</CardTitle>
-              <CardDescription>Configure your WhatsApp Business account integration</CardDescription>
-            </div>
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Info className="h-5 w-5" />
-                </Button>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-80">
-                <div className="space-y-4">
-                  <h3 className="font-medium">Setup Progress</h3>
-                  <div className="space-y-2">
-                    {steps.map((step) => (
-                      <div key={step.id} className="flex items-start gap-2">
-                        <div className={`mt-0.5 h-5 w-5 rounded-full flex items-center justify-center
-                          ${currentStep >= step.id ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                          {currentStep >= step.id ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <span className="text-xs">{step.id}</span>
-                          )}
-                        </div>
-                        <div>
-                          <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-gray-900' : 'text-gray-500'}`}>
-                            {step.title}
-                          </p>
-                          <p className="text-xs text-gray-500">{step.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
-          </div>
-        </CardHeader>
-        <form onSubmit={handleFormSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium">Account Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg shadow-sm"
-              placeholder="My WhatsApp Business Account"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="phoneNumber" className="block text-sm font-medium">Phone Number</label>
-            <input
-              type="text"
-              id="phoneNumber"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg shadow-sm"
-              placeholder="+1234567890"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="accessToken" className="block text-sm font-medium">Access Token</label>
-            <input
-              type="password"
-              id="accessToken"
-              name="accessToken"
-              value={formData.accessToken}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg shadow-sm"
-              placeholder="WhatsApp Cloud API access token"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="phoneNumberId" className="block text-sm font-medium">Phone Number ID</label>
-            <input
-              type="text"
-              id="phoneNumberId"
-              name="phoneNumberId"
-              value={formData.phoneNumberId}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg shadow-sm"
-              placeholder="WhatsApp Cloud Phone Number ID"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="businessAccountId" className="block text-sm font-medium">Business Account ID</label>
-            <input
-              type="text"
-              id="businessAccountId"
-              name="businessAccountId"
-              value={formData.businessAccountId}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg shadow-sm"
-              placeholder="WhatsApp Business Account ID"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="appSecret" className="block text-sm font-medium">App Secret</label>
-            <input
-              type="password"
-              id="appSecret"
-              name="appSecret"
-              value={formData.appSecret}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border rounded-lg shadow-sm"
-              placeholder="WhatsApp App Secret"
-              required
-            />
-          </div>
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={loading || !activeOrganizationId}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <Loader className="animate-spin h-5 w-5" />
-                <span>Creating WhatsApp Package...</span>
-              </div>
-            ) : !activeOrganizationId ? (
-              <div className="flex items-center justify-center space-x-2">
-                <Loader className="animate-spin h-5 w-5" />
-                <span>Waiting for organization data...</span>
-              </div>
-            ) : (
-              "Create WhatsApp Package"
-            )}
-          </Button>
-        </form>
+    
+      <Card className="md:w-1/2 shadow-md p-6 rounded-lg">
+        <EmbeddedSignup />
       </Card>
 
-      <div className="md:w-1/2 flex items-center justify-center">
-        <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-lg shadow-sm w-full h-full flex items-center justify-center">
-        <EmbeddedSignup />
-        </div>
+      <div className="md:w-1/2 flex flex-col gap-4">
+        {/* Prerequisites Card */}
+        <Card className="bg-white shadow-md p-6 rounded-lg">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-gray-800">Onboarding Requirements</CardTitle>
+            <CardDescription className="text-gray-600">
+              Essential prerequisites before connecting WhatsApp Business API
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="text-green-600 font-bold">✅</span>
+              <p className="text-sm text-gray-700">
+                <strong>Active Facebook Business Page</strong> - Your business must have an active Facebook page
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-green-600 font-bold">✅</span>
+              <p className="text-sm text-gray-700">
+                <strong>Full Administrative Access</strong> - Must have full admin access to Facebook Business Page and business.facebook.com Business Portfolio/Business Manager
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-green-600 font-bold">✅</span>
+              <p className="text-sm text-gray-700">
+                <strong>Dedicated Phone Number</strong> - Must NOT be currently used on WhatsApp (ready to receive OTP via SMS or Call)
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-green-600 font-bold">✅</span>
+              <p className="text-sm text-gray-700">
+                <strong>Business Website</strong> with functional contact information
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-green-600 font-bold">✅</span>
+              <p className="text-sm text-gray-700">
+                <strong>Privacy Policy and Terms of Service</strong> published on your website
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-green-600 font-bold">✅</span>
+              <p className="text-sm text-gray-700">
+                <strong>Business Knowledge Base</strong> (FAQs, documentation) for customer support
+              </p>
+            </div>
+          </CardContent>
+        </Card>     
       </div>
     </div>
   );

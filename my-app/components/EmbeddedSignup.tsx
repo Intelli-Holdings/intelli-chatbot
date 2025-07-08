@@ -806,7 +806,8 @@ const EmbeddedSignup = () => {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+            <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-lg shadow-sm w-full h-full flex items-center justify-center">          
+    <Card className="w-full max-w-lg mx-auto">
       <div className="p-6">
         <CardTitle>WhatsApp Business Setup</CardTitle>
         <CardDescription className="mt-1">Connect your WhatsApp Business account</CardDescription>
@@ -852,6 +853,7 @@ const EmbeddedSignup = () => {
         <pre id="sdk-response" />
       </div>
     </Card>
+     </div>
   )
 }
 
