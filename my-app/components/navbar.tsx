@@ -9,22 +9,23 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useUser, useClerk } from "@clerk/nextjs"
 
 const navItems = [
-  {
-    label: "Products",
-    href: "#",
-    subItems: [
-      { label: "Whatsapp Assistant", href: "/whatsapp-assistant" },
-      { label: "Broadcasts Platform", href: "https://intelli-app.com/register" },
-    ],
-  },
-  {
-    label: "Blog",
-    href: "/blog",
-  },
-  {
-    label: "Company",
-    href: "/company",
-  },
+	{
+		label: "Products",
+		href: "#",
+		subItems: [
+			{ label: "Whatsapp Assistant", href: "/whatsapp-assistant" },
+			{ label: "Whatsapp Broadcasts", href: "/whatsapp-broadcast" },
+			{ label: "WhatsApp API", href: "/whatsapp-api" },
+		],
+	},
+	{
+		label: "Blog",
+		href: "/blog",
+	},
+	{
+		label: "Company",
+		href: "/company",
+	},
 ]
 
 export function Navbar() {
@@ -142,15 +143,15 @@ export function Navbar() {
     </div>
   )
 
-  return (
-    <nav className="fixed top-0 left-0 right-0 z-10 bg-white/10 backdrop-blur-md">
-      <div className="container mx-auto flex items-center justify-between p-4">
-        <div className="flex items-center">
-          <a className="flex items-center" href="/">
-            <Image alt="Intelli Concierge" className="h-8 w-8" src="/Intelli.svg" height={32} width={32} />
-            <span className="ml-2 text-2xl font-bold text-gray-900">Intelli</span>
-          </a>
-        </div>
+	return (
+		<nav className="fixed top-0 left-0 right-0 z-10 bg-white/10 backdrop-blur-md">
+			<div className="container mx-auto flex items-center justify-between p-4">
+				<div className="flex items-center">
+					<a className="flex items-center" href="/">
+						<Image alt="Intelli Concierge" className="h-8 w-8" src="/Intelli.svg" height={32} width={32} />
+						<span className="ml-2 text-2xl font-bold text-gray-900">Intelli</span>
+					</a>
+				</div>
 
         {isMobile ? (
           <Sheet>
