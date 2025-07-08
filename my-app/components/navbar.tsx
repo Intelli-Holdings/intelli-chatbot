@@ -19,7 +19,7 @@ const navItems = [
   },
   {
     label: "Blog",
-    href: "/medium-blog",
+    href: "/blog",
   },
   {
     label: "Company",
