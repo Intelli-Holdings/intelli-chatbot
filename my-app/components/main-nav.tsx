@@ -8,6 +8,9 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <Link href="/dashboard/templates/overview" className="text-sm font-medium transition-colors hover:text-primary">
         Overview
       </Link>
+      <Link href="/dashboard/templates/create" className="text-sm font-medium transition-colors hover:text-primary">
+        Create Template
+      </Link>
       <Link
         href="/dashboard/templates"
         className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
