@@ -7,8 +7,19 @@ import { Card, CardContent } from "@/components/ui/card"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Progress } from "@/components/ui/progress"
 import DashboardHeader from "@/components/dashboard-header"
+import AppServiceCredentials from "@/components/app-service-credentials"
+import { useAppServices } from "@/hooks/use-app-services"
 
 export default function OverviewPage() {
+  const {
+    appServices,
+    loading,
+    error,
+    refetch,
+    selectedAppService,
+    setSelectedAppService,
+  } = useAppServices();
+
   return (
     <div className="flex h-screen">     
       <div className="">
@@ -28,10 +39,22 @@ export default function OverviewPage() {
               </div>
             </div>
 
+            {/* App Service Credentials Section */}
+            <AppServiceCredentials
+              appServices={appServices}
+              selectedAppService={selectedAppService}
+              onSelectAppService={setSelectedAppService}
+              loading={loading}
+              error={error}
+              onRefresh={refetch}
+            />
+
             <div className="grid grid-cols-1 gap-6 md:grid-cols-[2fr_1fr]">
               <Card className="overflow-hidden">
                 <div className="flex items-center justify-between border-b p-4">
-                  <h3 className="text-lg font-medium">Intelli</h3>
+                  <h3 className="text-lg font-medium">
+                    {selectedAppService?.name || 'Intelli'}
+                  </h3>
                   <div className="flex gap-2">
                     
                   </div>
