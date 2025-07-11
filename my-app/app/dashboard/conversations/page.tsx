@@ -72,13 +72,14 @@ interface Message {
   timestamp: string;
 }
 
-async function fetchChatSessions(phoneNumber: string): Promise<ChatSession[]> {
+async function fetchChatSessions(phoneNumber: string, orgId: string): Promise<ChatSession[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`);
+    const res = await fetch(`${API_BASE_URL}/appservice/paginated/conversations/whatsapp/chat_sessions/org/${orgId}/${phoneNumber}/`);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
-    return await res.json();
+    const data = await res.json();
+    return data.results || [];
   } catch (error) {
     console.error("Failed to fetch chat sessions:", error);
     return [];
@@ -87,7 +88,7 @@ async function fetchChatSessions(phoneNumber: string): Promise<ChatSession[]> {
 
 async function fetchAppServices(orgId: string): Promise<AppService[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/org/${orgId}/appservices/`);
+    const res = await fetch(`${API_BASE_URL}/appservice/paginated/org/${orgId}/appservices/`);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
@@ -96,7 +97,7 @@ async function fetchAppServices(orgId: string): Promise<AppService[]> {
     // Fetch chat sessions for each phone number
     for (const service of appServices) {
       if (service.phone_number) {
-        service.chatsessions = await fetchChatSessions(service.phone_number);
+        service.chatsessions = await fetchChatSessions(service.phone_number, orgId);
       }
     }
 

@@ -19,13 +19,14 @@ export default function ContactsPage() {
   
   const activeOrganizationId = useActiveOrganizationId();
 
-  async function fetchChatSessions(phoneNumber: string): Promise<Conversation[]> {
+  async function fetchChatSessions(phoneNumber: string, orgId: string): Promise<Conversation[]> {
     try {
-      const res = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`);
+      const res = await fetch(`${API_BASE_URL}/appservice/paginated/conversations/whatsapp/chat_sessions/org/${orgId}/${phoneNumber}/`);
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
-      return await res.json();
+      const data = await res.json();
+      return data.results || [];
     } catch (error) {
       console.error("Failed to fetch chat sessions:", error);
       return [];
@@ -34,7 +35,7 @@ export default function ContactsPage() {
 
   async function fetchPhoneNumber(orgId: string): Promise<string> {
     try {
-      const res = await fetch(`${API_BASE_URL}/appservice/org/${orgId}/appservices/`);
+      const res = await fetch(`${API_BASE_URL}/appservice/paginated/org/${orgId}/appservices/`);
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
@@ -59,7 +60,7 @@ export default function ContactsPage() {
     if (!phoneNumber) return;
     try {
       setIsLoading(true);
-      const data = await fetchChatSessions(phoneNumber);
+      const data = await fetchChatSessions(phoneNumber, orgId);
       setConversations(data || []); // Ensure data is an array
     } catch (error) {
       toast.error("Failed to fetch conversations");
