@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/clerk-react'; // Import useAuth hook from Clerk
 
 interface Reservation {
     id: number;
@@ -20,10 +21,18 @@ export const useFetchReservations = (): { reservations: Reservation[] | null; is
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<Error | null>(null);
 
+    const { getToken } = useAuth(); // Use the useAuth hook to get the getToken method
+
     useEffect(() => {
         const fetchReservations = async () => {
             try {
-                const response = await fetch('https://intelli-python-backend.onrender.com/dashboard/reservations/');
+                const token = await getToken(); // Retrieve the session token
+                const response = await fetch('https://intelli-python-backend.onrender.com/dashboard/reservations/', {
+                    headers: {
+                        // Include the token in the Authorization header
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 if (!response.ok) {
                     throw new Error('Failed to fetch reservations');
                 }
@@ -37,7 +46,7 @@ export const useFetchReservations = (): { reservations: Reservation[] | null; is
         };
 
         fetchReservations();
-    }, []);
+    }, [getToken]); // Add getToken as a dependency to useEffect
 
     return { reservations, isLoading, error }; // Return reservations, isLoading, and error state variables
 };

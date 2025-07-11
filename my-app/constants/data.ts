@@ -112,30 +112,62 @@ export type Employee = {
 
 export const navItems: NavItem[] = [
   {
-    title: "Command Center",
+    title: "Home",
     href: "/dashboard",
-    icon: "LayoutDashboardIcon",
+    icon: "Home",
     label: "Dashboard",
   },
+  
   {
-    title: "Reservations",
-    href: "/dashboard/reservations",
-    icon: "LogIn",
-    label: "reservations",
+    title: "Channels",
+    href: "/dashboard/channels",
+    icon: "Spanner",
+    label: "Channels",
   },
   {
-    title: "Employees",
-    href: "/dashboard/employees",
-    icon: "User",
-    label: "employees",
+    title: "Assistants",
+    href: "/dashboard/assistants",
+    icon: "Bot",
+    label: "Assistants",
+  },
+  {
+    title: "Playground",
+    href: "/dashboard/playground",
+    icon: "Paintbrush",
+    label: "Playground",
+  },
+  {
+    title: "Analytics",
+    href: "/dashboard/analytics",
+    icon: "BarChart",
+    label: "Analytics",
+  },
+  {
+    title: "Notifications",
+    href: "/dashboard/notifications",
+    icon: "BellDot",
+    label: "Notifications",
   },
   {
     title: "Conversations",
     href: "/dashboard/conversations",
-    icon: "Laptop",
+    icon: "MessageSquareDot",
     label: "Conversations",
   },
+
   {
+    title: "Organization",
+    href: "/dashboard/organization",
+    icon: "Building",
+    label: "Organization",
+  }, 
+
+];
+
+
+{/**
+  
+    {
     title: "Billing",
     href: "/dashboard/billing",
     icon: "CreditCard",
@@ -148,4 +180,6 @@ export const navItems: NavItem[] = [
     label: "Settings",
   },
   
-];
+  
+  
+  */}
