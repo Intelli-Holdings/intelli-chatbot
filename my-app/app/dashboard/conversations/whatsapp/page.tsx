@@ -47,18 +47,18 @@ export default function WhatsAppConvosPage() {
 
         // Fetch conversations
         useEffect(() => {
-          if (!phoneNumber) return;
+          if (!phoneNumber || !activeOrganizationId) return;
       
           async function fetchConversations() {
             try {
               const res = await fetch(
-                `${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`
+                `${API_BASE_URL}/appservice/paginated/conversations/whatsapp/chat_sessions/org/${activeOrganizationId}/${phoneNumber}/`
               );
               if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
               }
               const data = await res.json();
-              setConversations(Array.isArray(data) ? data : []);
+              setConversations(data.results || []);
             } catch (error) {
               console.error("Failed to fetch conversations:", error);
               toast.error("Failed to fetch conversations");
@@ -66,7 +66,7 @@ export default function WhatsAppConvosPage() {
           }
       
           fetchConversations();
-        }, [phoneNumber]);
+        }, [phoneNumber, activeOrganizationId]);
       
         const handleSelectConversation = (conversation: Conversation) => {
           setSelectedConversation(conversation);
