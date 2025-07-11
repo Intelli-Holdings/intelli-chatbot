@@ -56,6 +56,7 @@ interface FacebookLoginParams {
     setup: Record<string, unknown>
     featureType: string
     sessionInfoVersion: string
+    version: string
   }
 }
 
@@ -151,7 +152,7 @@ const EmbeddedSignup = () => {
       config_id: process.env.NEXT_PUBLIC_FACEBOOK_CONFIG_ID!,
       response_type: "code",
       override_default_response_type: true,
-      extras: { setup: {}, featureType: "", sessionInfoVersion: "2" },
+      extras: { setup: {}, version: "v3", featureType: "whatsapp_business_app_onboarding", sessionInfoVersion: "3" },
     })
   }, [handleFBLogin])
 
@@ -194,43 +195,6 @@ const EmbeddedSignup = () => {
       setIsLoading(false)
     }
   }, [sdkCode])
-
-  // Subscribe app to WhatsApp Business Account
-  const subscribeApp = useCallback(async () => {
-    if (!sessionInfo?.waba_id || !accessToken) return
-
-    setIsSubscribing(true)
-    setError(null)
-    setStatusMessage("Subscribing app to WhatsApp Business Account...")
-
-    try {
-      const url = `https://graph.facebook.com/v22.0/${sessionInfo.waba_id}/subscribed_apps`
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ access_token: accessToken }),
-      })
-
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error?.message || "Failed to subscribe app")
-      }
-
-      if (data.success) {
-        setStatusMessage("App subscribed successfully. Fetching phone numbers...")
-        fetchPhoneNumbers()
-      } else {
-        throw new Error("Failed to subscribe app")
-      }
-    } catch (err) {
-      console.error("Error subscribing app:", err)
-      setError(err instanceof Error ? err.message : "Error subscribing app")
-      setStatusMessage("Error subscribing app. Please try again.")
-    } finally {
-      setIsSubscribing(false)
-    }
-  }, [sessionInfo, accessToken])
 
   // Fetch phone numbers from Meta
   const fetchPhoneNumbers = useCallback(async () => {
@@ -275,6 +239,43 @@ const EmbeddedSignup = () => {
       setIsLoading(false)
     }
   }, [sessionInfo, accessToken])
+
+  // Subscribe app to WhatsApp Business Account
+  const subscribeApp = useCallback(async () => {
+    if (!sessionInfo?.waba_id || !accessToken) return
+
+    setIsSubscribing(true)
+    setError(null)
+    setStatusMessage("Subscribing app to WhatsApp Business Account...")
+
+    try {
+      const url = `https://graph.facebook.com/v22.0/${sessionInfo.waba_id}/subscribed_apps`
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: accessToken }),
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to subscribe app")
+      }
+
+      if (data.success) {
+        setStatusMessage("App subscribed successfully. Fetching phone numbers...")
+        fetchPhoneNumbers()
+      } else {
+        throw new Error("Failed to subscribe app")
+      }
+    } catch (err) {
+      console.error("Error subscribing app:", err)
+      setError(err instanceof Error ? err.message : "Error subscribing app")
+      setStatusMessage("Error subscribing app. Please try again.")
+    } finally {
+      setIsSubscribing(false)
+    }
+  }, [sessionInfo, accessToken, fetchPhoneNumbers])
 
   // Fetch assistants
   const fetchAssistants = useCallback(async () => {
