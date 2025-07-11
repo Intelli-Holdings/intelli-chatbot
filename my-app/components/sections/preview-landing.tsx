@@ -1,22 +1,29 @@
-import Image from "next/image";
-import demoImage from "@/public/Demo.svg";
+import React, { useState } from 'react';
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Button } from "@/components/ui/button";
 
 export function PreviewLanding() {
   return (
-    <div className="pb-6 sm:pb-16">
-      <div className="container max-w-7xl">
-        <div className="rounded-xl bg-muted/30 p-4 ring-1 ring-inset ring-border">
-          <div className="relative aspect-video overflow-hidden rounded-lg border">
-            <Image
-              className="size-full object-cover object-center"
-              
-              alt="preview of dashboard"
-              priority={true}
-              src={demoImage}
-            />
-          </div>
-        </div>
-      </div>
+    <div className="pb-6 sm:pb-16 relative">
+      
+      {/* Inner border */}
+      <div className="">
+     
+            <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-blue-500 shadow-xl">
+           <AspectRatio ratio={16 / 9} className="overflow-hidden rounded-sm">
+            <iframe
+              className="w-full h-full"
+              src={`https://www.youtube.com/embed/AJFvlkWfF7Y?si=X2eN-Vey6o9Ocf7Z/preview?autoplay=&loop=1&controls=0&mute=`}
+              title="Video Player"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              referrerPolicy="strict-origin-when-cross-origin"
+              frameBorder="0"
+            ></iframe>
+            </AspectRatio>
+            </div>
+      </div>      
     </div>
+
+    
   );
 }

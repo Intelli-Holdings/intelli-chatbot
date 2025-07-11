@@ -1,139 +1,195 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import Link from "next/link";
 
-interface Conversation {
+import React, { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
+import { MessageSquare, Globe } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import useActiveOrganizationId from "@/hooks/use-organization-id";
+import WebsiteWidgetCard from "@/components/conversations-website";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+// Interfaces
+interface ChatSession {
   id: number;
-  sender: string;
-  message: string;
+  customer_number: string;
+  updated_at: string;
+}
+
+interface AppService {
+  id: number;
+  business: {
+    id: number;
+    name: string;
+    slug: string;
+    owner: string;
+    org_id: string;
+    created_at: string;
+  };
+  phone_number_id: string;
+  phone_number: string;
+  app_secret: string;
+  created_at: string;
+  chatsessions: ChatSession[];
+  whatsapp_business_account_id: string;
+}
+
+interface Widget {
+  id: number;
+  widget_name: string;
+  widget_key: string;
+}
+
+interface Visitor {
+  id: number;
+  visitor_id: string;
+  visitor_email: string | null;
+  visitor_name: string | null;
+  visitor_phone: string | null;
+  ip_address: string;
+  created_at: string;
+  last_seen: string;
+  messages: Message[];
+}
+
+interface Message {
+  id: number;
+  content: string;
+  answer: string;
   timestamp: string;
 }
 
-enum Channel {
-  Website = "elli",
-  SocialMedia = "social",
-  Calls = "calls",
-  Email = "email",
+async function fetchChatSessions(phoneNumber: string, orgId: string): Promise<ChatSession[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/appservice/paginated/conversations/whatsapp/chat_sessions/org/${orgId}/${phoneNumber}/`);
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    const data = await res.json();
+    return data.results || [];
+  } catch (error) {
+    console.error("Failed to fetch chat sessions:", error);
+    return [];
+  }
 }
 
-export default function ConversationsPage() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+async function fetchAppServices(orgId: string): Promise<AppService[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/appservice/paginated/org/${orgId}/appservices/`);
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    const appServices = await res.json();
+
+    // Fetch chat sessions for each phone number
+    for (const service of appServices) {
+      if (service.phone_number) {
+        service.chatsessions = await fetchChatSessions(service.phone_number, orgId);
+      }
+    }
+
+    return appServices;
+  } catch (error) {
+    console.error("Failed to fetch app services:", error);
+    return [];
+  }
+}
+
+function StatsCards() {
+  const [appServices, setAppServices] = useState<AppService[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const orgId = useActiveOrganizationId();
 
   useEffect(() => {
-    const fetchConversations = async () => {
+    const fetchData = async () => {
+      if (!orgId) return; 
       try {
-        if (selectedChannel) {
-          const response = await fetch(
-            `https://intelli-python-backend.onrender.com/conversations/${selectedChannel}`
-          );
-          const data = await response.json();
-          setConversations(data);
-        }
+        const appServicesData = await fetchAppServices(orgId);
+        setAppServices(appServicesData);
+        setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching conversations:", error);
+        console.error("Error fetching data:", error);
+        setIsLoading(false);
       }
     };
 
-    fetchConversations();
-  }, [selectedChannel]);
+    fetchData();
+  }, [orgId]);
 
-  const handleChannelClick = (channel: Channel) => {
-    setSelectedChannel(channel);
-  };
+  const totalWhatsAppConversations = appServices.reduce(
+    (total, service) => total + (service.chatsessions?.length || 0),
+    0
+  );
+
+  if (isLoading) {
+    return <p>Loading...</p>;
+  }
 
   return (
-    <div className="grid min-h-screen w-full">
-      <div className="flex p-4">
-        <div className="bg-white border border-gray-100 rounded-md p-4">
-          <div className="flex flex-col">
-            <div className="border-b">
-              
-              <div className="flex h-16 items-center px-4">
-                <h1 className="text-2xl font-bold">Channels</h1>
-              </div>
-            </div>
-        <div className="bg-white border border-gray-50 rounded-md p-4 y-2">
-        <div className="flex flex-col">          
-          <button
-            className={`p-2 rounded-md ${
-              selectedChannel === Channel.Website
-                ? "bg-blue-500 text-white"
-                : "hover:bg-gray-700"
-            }`}
-            onClick={() => handleChannelClick(Channel.Website)}
-          >
-            Website (Elli)
-          </button>
-          <button
-            className={`p-2 rounded-md ${
-              selectedChannel === Channel.SocialMedia
-                ? "bg-blue-500 text-white"
-                : "hover:bg-gray-700"
-            }`}
-            onClick={() => handleChannelClick(Channel.SocialMedia)}
-          >
-            Social Media
-          </button>
-          <button
-            className={`p-2 rounded-md ${
-              selectedChannel === Channel.Calls
-                ? "bg-blue-500 text-white"
-                : "hover:bg-gray-700"
-            }`}
-            onClick={() => handleChannelClick(Channel.Calls)}
-          >
-            Calls
-          </button>
-          <button
-            className={`p-2 rounded-md ${
-              selectedChannel === Channel.Email
-                ? "bg-blue-500 text-white"
-                : "hover:bg-gray-700"
-            }`}
-            onClick={() => handleChannelClick(Channel.Email)}
-          >
-            Email
-          </button>
-        </div>
-      </div>
-            
+    <>
+     <Link href="/dashboard/conversations/whatsapp">
+     <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Whatsapp Conversations</CardTitle>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-md">
+            <Image
+              src="/whatsapp.png"
+              alt="WhatsApp"
+              width={20}
+              height={20}
+              className="object-contain"
+            />
           </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-xl font-bold">{`${totalWhatsAppConversations} chats`}</div>
+          <p className="text-xs text-muted-foreground">Monitor whatsapp conversations</p>
+        </CardContent>
+      </Card>
+
+     </Link>
+      
+
+      <WebsiteWidgetCard orgId={orgId} apiBaseUrl={API_BASE_URL} />
+    </>
+  );
+}
+
+export default function ConversationsPage() {
+  const { user } = useUser();
+
+  if (!user) {
+    return <div>Loading user...</div>;
+  }
+
+  const userEmail = user.emailAddresses[0].emailAddress;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">
+        Conversations
+      </h1>
+
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+          <Suspense fallback={<p>Loading...</p>}>
+            <StatsCards/>
+          </Suspense>
         </div>
-        <div className="ml-4 bg-white border border-gray-300 rounded-md p-4 flex-1">
-        {selectedChannel && (
-          <div className="p-4 border rounded-lg shadow-md">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-500">{selectedChannel}</span>
-            </div>
-            {conversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className="p-4 border rounded-lg shadow-md"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-500">
-                    {conversation.sender}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {conversation.timestamp}
-                  </span>
-                </div>
-                <p>{conversation.message}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      </div>
+      </main>
     </div>
   );
 }

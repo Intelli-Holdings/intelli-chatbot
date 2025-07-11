@@ -27,6 +27,7 @@ import {
   Twitter,
   User,
   User2Icon,
+  HomeIcon,
   UserX2Icon,
   X,
 } from "lucide-react";
@@ -34,7 +35,7 @@ import {
 export type Icon = LucideIcon;
 
 export const allIcons = {
-  dashboard: LayoutDashboardIcon,
+  dashboard: HomeIcon,
   logo: Command,
   login: LogIn,
   close: X,

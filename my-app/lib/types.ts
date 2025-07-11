@@ -35,3 +35,30 @@ export interface User extends Record<string, any> {
   password: string
   salt: string
 }
+
+
+export type Folder = "inbox" | "starred" | "sent" | "drafts" | "spam" | "archive" | "trash"
+
+export interface Email {
+  id: string
+  from: {
+    name: string
+    email: string
+    avatar?: string
+  }
+  to: string[]
+  cc?: string[]
+  bcc?: string[]
+  subject: string
+  body: string
+  date: Date
+  read: boolean
+  folder: Folder
+  labels?: string[]
+  attachments?: {
+    name: string
+    type: string
+    size: string
+  }[]
+}
+
