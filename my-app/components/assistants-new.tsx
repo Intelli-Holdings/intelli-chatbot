@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+import { useAuth } from "@clerk/nextjs"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 import { CreateAssistantDialog } from "@/components/create-assistant-dialog"
@@ -23,6 +24,7 @@ interface Assistant {
 }
 
 export default function Assistants() {
+  const { getToken } = useAuth()
   const organizationId = useActiveOrganizationId()
   const [assistants, setAssistants] = useState<Assistant[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -34,12 +36,21 @@ export default function Assistants() {
     assistant: null,
   })
 
-  const fetchAssistants = async () => {
+  const fetchAssistants = useCallback(async () => {
     if (!organizationId) return
 
     setIsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`)
+      // Get the session token
+      const token = await getToken()
+      
+      const response = await fetch(`/api/assistants/${organizationId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      
       if (!response.ok) {
         toast.info("No assistants found. Create one to get started.")
         return
@@ -58,12 +69,19 @@ export default function Assistants() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [organizationId, getToken])
 
   const handleDeleteAssistant = async (assistant: Assistant) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistant.id}/`, {
+      // Get the session token
+      const token = await getToken()
+      
+      const response = await fetch(`/api/assistants/${organizationId}?assistantId=${assistant.id}`, {
         method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       })
 
       if (!response.ok) throw new Error("Failed to delete assistant")
@@ -84,7 +102,7 @@ export default function Assistants() {
     if (organizationId) {
       fetchAssistants()
     }
-  }, [organizationId])
+  }, [organizationId, fetchAssistants])
 
   return (
     <div className="space-y-4">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useOrganizationList } from "@clerk/nextjs"
+import { useOrganizationList, useAuth } from "@clerk/nextjs"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,7 @@ interface CreateAssistantDialogProps {
 }
 
 export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDialogProps) {
+  const { getToken } = useAuth()
   const { userMemberships, isLoaded } = useOrganizationList({
     userMemberships: {
       infinite: true,
@@ -70,10 +71,14 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
 
       console.log("Submitting data to backend:", data)
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
+      // Get the session token
+      const token = await getToken()
+
+      const response = await fetch(`/api/assistants/${selectedOrganizationId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       })
