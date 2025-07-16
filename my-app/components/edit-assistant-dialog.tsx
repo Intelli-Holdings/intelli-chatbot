@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { useAuth } from "@clerk/nextjs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +33,7 @@ export function EditAssistantDialog({
   onAssistantUpdated,
   assistants,
 }: EditAssistantDialogProps) {
+  const { getToken } = useAuth()
   const [editedAssistant, setEditedAssistant] = useState<Assistant | null>(assistant)
   const [isEditing, setIsEditing] = useState(false)
 
@@ -57,11 +59,15 @@ export function EditAssistantDialog({
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${editedAssistant.id}/`, {
+      // Get the session token
+      const token = await getToken()
+
+      const response = await fetch(`/api/assistants/${editedAssistant.organization_id}?assistantId=${editedAssistant.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       })
