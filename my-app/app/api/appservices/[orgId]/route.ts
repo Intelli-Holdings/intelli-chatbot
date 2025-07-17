@@ -6,7 +6,7 @@ export async function GET(
 ) {
   try {
     const { orgId } = params;
-    const backendUrl = `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/appservice/paginated/org/${orgId}/appservices/`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/appservice/paginated/org/${orgId}/appservices/`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
