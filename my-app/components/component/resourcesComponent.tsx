@@ -30,6 +30,7 @@ interface VideoContent {
   views: string;
   uploadDate: string;
   author: string;
+  videoUrl: string;
 }
 
 interface CourseContent {
@@ -108,39 +109,97 @@ export function ResourcesComponent() {
         ];
         setPosts(mockPosts);
       } else if (activeCategory === 'Videos') {
-        const mockVideos: VideoContent[] = [
-          {
-            id: '1',
-            title: 'Intelli Platform Demo - Complete Walkthrough',
-            description: 'See how Intelli transforms customer support with AI-powered automation.',
-            thumbnailUrl: '/blogThumbnail.png',
-            duration: '12:34',
-            views: '1.2K',
-            uploadDate: '2024-01-15',
-            author: 'Intelli Official'
-          },
-          {
-            id: '2',
-            title: 'Setting Up Your First AI Assistant',
-            description: 'Step-by-step tutorial on creating and configuring your AI customer support assistant.',
-            thumbnailUrl: '/blogThumbnail.png',
-            duration: '8:45',
-            views: '856',
-            uploadDate: '2024-01-12',
-            author: 'Intelli Tutorials'
-          },
-          {
-            id: '3',
-            title: 'WhatsApp Integration Best Practices',
-            description: 'Learn the best practices for integrating WhatsApp with your business.',
-            thumbnailUrl: '/blogThumbnail.png',
-            duration: '15:20',
-            views: '2.1K',
-            uploadDate: '2024-01-08',
-            author: 'Intelli Tutorials'
+        try {
+          // Fetch real YouTube videos from our API
+          const response = await fetch('/api/youtube/videos?maxResults=12&channelHandle=Intelli-Concierge');
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch YouTube videos');
           }
-        ];
-        setVideos(mockVideos);
+          
+          const data = await response.json();
+          
+          if (data.videos && data.videos.length > 0) {
+            setVideos(data.videos);
+          } else {
+            // Fallback to mock data if no videos found
+            const mockVideos: VideoContent[] = [
+              {
+                id: '1',
+                title: 'Intelli Platform Demo - Complete Walkthrough',
+                description: 'See how Intelli transforms customer support with AI-powered automation.',
+                thumbnailUrl: '/blogThumbnail.png',
+                duration: '12:34',
+                views: '1.2K',
+                uploadDate: '2024-01-15',
+                author: 'Intelli Official',
+                videoUrl: 'https://www.youtube.com/@Intelli-Concierge'
+              },
+              {
+                id: '2',
+                title: 'Setting Up Your First AI Assistant',
+                description: 'Step-by-step tutorial on creating and configuring your AI customer support assistant.',
+                thumbnailUrl: '/blogThumbnail.png',
+                duration: '8:45',
+                views: '856',
+                uploadDate: '2024-01-12',
+                author: 'Intelli Tutorials',
+                videoUrl: 'https://www.youtube.com/@Intelli-Concierge'
+              },
+              {
+                id: '3',
+                title: 'WhatsApp Integration Best Practices',
+                description: 'Learn the best practices for integrating WhatsApp with your business.',
+                thumbnailUrl: '/blogThumbnail.png',
+                duration: '15:20',
+                views: '2.1K',
+                uploadDate: '2024-01-08',
+                author: 'Intelli Tutorials',
+                videoUrl: 'https://www.youtube.com/@Intelli-Concierge'
+              }
+            ];
+            setVideos(mockVideos);
+          }
+        } catch (videoError) {
+          console.error('Error fetching YouTube videos:', videoError);
+          // Fallback to mock data on error
+          const mockVideos: VideoContent[] = [
+            {
+              id: '1',
+              title: 'Intelli Platform Demo - Complete Walkthrough',
+              description: 'See how Intelli transforms customer support with AI-powered automation.',
+              thumbnailUrl: '/blogThumbnail.png',
+              duration: '12:34',
+              views: '1.2K',
+              uploadDate: '2024-01-15',
+              author: 'Intelli Official',
+              videoUrl: 'https://www.youtube.com/@Intelli-Concierge'
+            },
+            {
+              id: '2',
+              title: 'Setting Up Your First AI Assistant',
+              description: 'Step-by-step tutorial on creating and configuring your AI customer support assistant.',
+              thumbnailUrl: '/blogThumbnail.png',
+              duration: '8:45',
+              views: '856',
+              uploadDate: '2024-01-12',
+              author: 'Intelli Tutorials',
+              videoUrl: 'https://www.youtube.com/@Intelli-Concierge'
+            },
+            {
+              id: '3',
+              title: 'WhatsApp Integration Best Practices',
+              description: 'Learn the best practices for integrating WhatsApp with your business.',
+              thumbnailUrl: '/blogThumbnail.png',
+              duration: '15:20',
+              views: '2.1K',
+              uploadDate: '2024-01-08',
+              author: 'Intelli Tutorials',
+              videoUrl: 'https://www.youtube.com/@Intelli-Concierge'
+            }
+          ];
+          setVideos(mockVideos);
+        }
       } else if (activeCategory === 'Courses') {
         const mockCourses: CourseContent[] = [
           {
@@ -292,7 +351,11 @@ export function ResourcesComponent() {
   const renderVideos = (videos: VideoContent[]) => (
     <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12">
       {videos.map((video) => (
-        <Card key={video.id} className="group overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
+        <Card 
+          key={video.id} 
+          className="group overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm cursor-pointer"
+          onClick={() => window.open(video.videoUrl, '_blank')}
+        >
           <CardContent className="p-0">
             <div className="relative aspect-video overflow-hidden">
               <Image
