@@ -6,9 +6,11 @@ import { ChatWidget } from "@/components/ChatWidget";
 
 export default function pricingPage (){
     return (
-        <div>
+        <div className="relative">
             <Navbar />
-            <PricingComponent/>
+            <main className="pt-20">
+                <PricingComponent/>
+            </main>
             <ChatWidget />
         </div>
     );
