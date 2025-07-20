@@ -13,11 +13,13 @@ export interface Conversation {
   id: number;
   customer_number: string;
   customer_name?: string; 
-  messages: ChatMessage[];
+  messages?: ChatMessage[]; // Make messages optional since they're fetched separately
+  message_counter?: number; // Add from API response
+  is_handle_by_human?: boolean; // Add from API response
   updated_at: string;
   phone_number: string;
   recipient_id: string;
-  attachments: {
+  attachments?: {
     id: number;
     media_name: string;
     media_type: string;
