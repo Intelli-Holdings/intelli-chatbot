@@ -13,9 +13,9 @@ export interface Conversation {
   id: number;
   customer_number: string;
   customer_name?: string; 
-  messages?: ChatMessage[]; // Make messages optional since they're fetched separately
-  message_counter?: number; // Add from API response
-  is_handle_by_human?: boolean; // Add from API response
+  messages?: ChatMessage[]; 
+  message_counter?: number; 
+  is_handle_by_human?: boolean; 
   updated_at: string;
   phone_number: string;
   recipient_id: string;
