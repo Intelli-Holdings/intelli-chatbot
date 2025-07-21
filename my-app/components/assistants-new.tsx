@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useAuth } from "@clerk/nextjs"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 import { CreateAssistantDialog } from "@/components/create-assistant-dialog"
@@ -24,7 +23,6 @@ interface Assistant {
 }
 
 export default function Assistants() {
-  const { getToken } = useAuth()
   const organizationId = useActiveOrganizationId()
   const [assistants, setAssistants] = useState<Assistant[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -41,12 +39,8 @@ export default function Assistants() {
 
     setIsLoading(true)
     try {
-      // Get the session token
-      const token = await getToken()
-      
-      const response = await fetch(`/api/assistants/${organizationId}`, {
+      const response = await fetch(`/api/get/assistants/${organizationId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -69,17 +63,13 @@ export default function Assistants() {
     } finally {
       setIsLoading(false)
     }
-  }, [organizationId, getToken])
+  }, [organizationId])
 
   const handleDeleteAssistant = async (assistant: Assistant) => {
     try {
-      // Get the session token
-      const token = await getToken()
-      
-      const response = await fetch(`/api/assistants/${organizationId}?assistantId=${assistant.id}`, {
+      const response = await fetch(`/api/assistants/${assistant.id}`, {
         method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       })
