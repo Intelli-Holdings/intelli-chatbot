@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import MessageInput from "./messageInput"
 import { formatMessage } from "@/utils/formatMessage"
-import type { Conversation } from "./types"
+import type { Conversation, ChatMessage } from "./types"
 import { format, parseISO, isToday, isYesterday } from "date-fns"
 import ConversationHeader from "./conversationsHeader"
 import { ScrollToBottomButton } from "@/app/dashboard/conversations/components/scroll-to-bottom"
@@ -23,7 +23,7 @@ interface ConversationViewProps {
   conversation: Conversation | null
   conversations: Conversation[]
   phoneNumber: string
-  fetchMessages?: (conversationId: string) => Promise<Conversation["messages"]>
+  fetchMessages?: (conversationId: string) => Promise<ChatMessage[]>
 }
 
 // Helper types for media previews
@@ -41,7 +41,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   const dummyRef = useRef<HTMLDivElement>(null)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
   const [lastMessageId, setLastMessageId] = useState<number | null>(null)
-  const [currentMessages, setCurrentMessages] = useState<Conversation["messages"]>([])
+  const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([])
   const [mediaPreview, setMediaPreview] = useState<MediaPreviewState>({
     isOpen: false,
     url: "",
@@ -60,10 +60,16 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   // Set initial messages when conversation changes
   useEffect(() => {
     if (conversation) {
-      setCurrentMessages(conversation.messages)
+      // Messages come with the conversation from the paginated API
+      const messages = conversation.messages || [];
+      setCurrentMessages(messages);
       setLastMessageId(
-        conversation.messages.length > 0 ? Math.max(...conversation.messages.map((msg) => msg.id)) : null,
-      )
+        messages.length > 0 ? Math.max(...messages.map((msg) => msg.id)) : null,
+      );
+    } else {
+      // Clear messages when no conversation is selected
+      setCurrentMessages([]);
+      setLastMessageId(null);
     }
   }, [conversation])
 
@@ -140,7 +146,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
     if (!conversation || !fetchMessages) return
 
     try {
-      const newMessages = await fetchMessages(conversation.id.toString())
+      const newMessages: ChatMessage[] = await fetchMessages(conversation.id.toString())
 
       if (newMessages && newMessages.length > 0) {
         const highestNewId = Math.max(...newMessages.map((msg) => msg.id))
@@ -166,7 +172,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   // Optimistic UI update on message send
   const handleMessageSent = useCallback(
     (newMessageContent: string) => {
-      const optimisticMessage = {
+      const optimisticMessage: ChatMessage = {
         id: Date.now(),
         answer: newMessageContent,
         sender: "customer",
@@ -191,8 +197,8 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
     )
   }
 
-  const groupMessagesByDate = (messages: Conversation["messages"]) => {
-    const groups: { [key: string]: Conversation["messages"] } = {}
+  const groupMessagesByDate = (messages: ChatMessage[]) => {
+    const groups: { [key: string]: ChatMessage[] } = {}
     messages.forEach((message) => {
       const date = format(parseISO(message.created_at), "yyyy-MM-dd")
       if (!groups[date]) {

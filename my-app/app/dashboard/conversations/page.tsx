@@ -74,7 +74,7 @@ interface Message {
 
 async function fetchChatSessions(phoneNumber: string, orgId: string): Promise<ChatSession[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/paginated/conversations/whatsapp/chat_sessions/org/${orgId}/${phoneNumber}/`);
+    const res = await fetch(`/api/appservice/paginated/conversations/whatsapp/chat_sessions/org/${orgId}/${phoneNumber}/`);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
@@ -88,11 +88,12 @@ async function fetchChatSessions(phoneNumber: string, orgId: string): Promise<Ch
 
 async function fetchAppServices(orgId: string): Promise<AppService[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/paginated/org/${orgId}/appservices/`);
+    const res = await fetch(`/api/appservice/paginated/org/${orgId}/appservices/`);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
-    const appServices = await res.json();
+    const data = await res.json();
+    const appServices = data.results || [];
 
     // Fetch chat sessions for each phone number
     for (const service of appServices) {
