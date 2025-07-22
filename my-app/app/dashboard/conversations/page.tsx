@@ -95,11 +95,9 @@ async function fetchAppServices(orgId: string): Promise<AppService[]> {
     const data = await res.json();
     const appServices = data.results || [];
 
-    // Fetch chat sessions for each phone number
-    for (const service of appServices) {
-      if (service.phone_number) {
-        service.chatsessions = await fetchChatSessions(service.phone_number, orgId);
-      }
+    // Fetch chat sessions for the first app service only (since you typically have one)
+    if (appServices.length > 0 && appServices[0].phone_number) {
+      appServices[0].chatsessions = await fetchChatSessions(appServices[0].phone_number, orgId);
     }
 
     return appServices;
@@ -157,7 +155,12 @@ function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-xl font-bold">{`${totalWhatsAppConversations} chats`}</div>
-          <p className="text-xs text-muted-foreground">Monitor whatsapp conversations</p>
+          <p className="text-xs text-muted-foreground">
+            {appServices.length > 0 
+              ? `Monitor conversations for ${appServices[1].phone_number}` 
+              : "See whatsapp chats"
+            }
+          </p>
         </CardContent>
       </Card>
 
