@@ -157,7 +157,7 @@ function StatsCards() {
           <div className="text-xl font-bold">{`${totalWhatsAppConversations} chats`}</div>
           <p className="text-xs text-muted-foreground">
             {appServices.length > 0 
-              ? `Monitor conversations for ${appServices.length > 0 && appServices[0]?.phone_number }` 
+              ? `Monitor conversations for ${appServices[0]?.phone_number}` 
               : "View whatsapp chats"
             }
           </p>
