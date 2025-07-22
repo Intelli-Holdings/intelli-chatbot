@@ -158,7 +158,7 @@ function StatsCards() {
           <p className="text-xs text-muted-foreground">
             {appServices.length > 0 
               ? `Monitor conversations for ${appServices.length > 0 && appServices[0]?.phone_number }` 
-              : "See whatsapp chats"
+              : "View whatsapp chats"
             }
           </p>
         </CardContent>
