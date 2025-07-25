@@ -128,6 +128,7 @@ const EmbeddedSignup = () => {
   const [isSyncingContacts, setIsSyncingContacts] = useState<boolean>(false)
   const [isSyncingHistory, setIsSyncingHistory] = useState<boolean>(false)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [businessAppPhoneNumber, setBusinessAppPhoneNumber] = useState<string | null>(null)
 
   // 1) FB SDK initialization
   const initializeFacebookSDK = useCallback(() => {
@@ -214,55 +215,6 @@ const EmbeddedSignup = () => {
     }
   }, [sdkCode])
 
-  // New function to initiate contacts synchronization
-  const initiateContactsSync = useCallback(async () => {
-    if (!sessionInfo?.phone_number_id || !accessToken) {
-      setError("Missing required information for contacts sync")
-      return
-    }
-
-    setIsSyncingContacts(true)
-    setSyncError(null)
-    setStatusMessage("Synchronizing contacts from WhatsApp Business app...")
-
-    try {
-      const url = `https://graph.facebook.com/v22.0/${sessionInfo.phone_number_id}/smb_app_data`
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json" 
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          sync_type: "smb_app_state_sync"
-        }),
-      })
-
-      const data = await response.json()
-      console.log("Contacts sync response:", data)
-      
-      if (!response.ok) {
-        throw new Error(data.error?.message || "Failed to initiate contacts synchronization")
-      }
-
-      setContactsSyncResponse(data)
-      setStatusMessage("Contacts synchronization initiated. Now synchronizing message history...")
-      
-      // Automatically proceed to history sync
-      setTimeout(() => {
-        initiateHistorySync()
-      }, 1000)
-
-    } catch (err) {
-      console.error("Error initiating contacts sync:", err)
-      setSyncError(err instanceof Error ? err.message : "Error initiating contacts sync")
-      setStatusMessage("Error synchronizing contacts. Please try again.")
-    } finally {
-      setIsSyncingContacts(false)
-    }
-  }, [sessionInfo, accessToken])
-
   // New function to initiate message history synchronization
   const initiateHistorySync = useCallback(async () => {
     if (!sessionInfo?.phone_number_id || !accessToken) {
@@ -313,6 +265,55 @@ const EmbeddedSignup = () => {
     }
   }, [sessionInfo, accessToken])
 
+  // New function to initiate contacts synchronization
+  const initiateContactsSync = useCallback(async () => {
+    if (!sessionInfo?.phone_number_id || !accessToken) {
+      setError("Missing required information for contacts sync")
+      return
+    }
+
+    setIsSyncingContacts(true)
+    setSyncError(null)
+    setStatusMessage("Synchronizing contacts from WhatsApp Business app...")
+
+    try {
+      const url = `https://graph.facebook.com/v22.0/${sessionInfo.phone_number_id}/smb_app_data`
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          sync_type: "smb_app_state_sync"
+        }),
+      })
+
+      const data = await response.json()
+      console.log("Contacts sync response:", data)
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to initiate contacts synchronization")
+      }
+
+      setContactsSyncResponse(data)
+      setStatusMessage("Contacts synchronization initiated. Now synchronizing message history...")
+      
+      // Automatically proceed to history sync
+      setTimeout(() => {
+        initiateHistorySync()
+      }, 1000)
+
+    } catch (err) {
+      console.error("Error initiating contacts sync:", err)
+      setSyncError(err instanceof Error ? err.message : "Error initiating contacts sync")
+      setStatusMessage("Error synchronizing contacts. Please try again.")
+    } finally {
+      setIsSyncingContacts(false)
+    }
+  }, [sessionInfo, accessToken, initiateHistorySync])
+
   // Fetch phone numbers from Meta
   const fetchPhoneNumbers = useCallback(async () => {
     if (!sessionInfo?.waba_id || !accessToken) {
@@ -356,6 +357,120 @@ const EmbeddedSignup = () => {
       setIsLoading(false)
     }
   }, [sessionInfo, accessToken])
+
+  // Fetch assistants
+  const fetchAssistants = useCallback(async () => {
+    if (!organizationId) return
+
+    setIsFetchingAssistants(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch assistants")
+      }
+
+      const data: Assistant[] = await response.json()
+      setAssistants(data)
+
+      if (data.length === 0) {
+        throw new Error("No assistants found. Please create an assistant first.")
+      }
+    } catch (error) {
+      console.error("Error fetching assistants:", error)
+      setError(error instanceof Error ? error.message : "Failed to fetch assistants")
+      setStatusMessage("Error fetching assistants. Please try again.")
+    } finally {
+      setIsFetchingAssistants(false)
+    }
+  }, [organizationId])
+
+  // New function specifically for Business App onboarding package creation
+  const createWhatsAppPackageForBusinessApp = useCallback(async () => {
+    if (!sessionInfo || !accessToken || !organizationId) return
+  
+    setIsCreatingPackage(true)
+    setPackageError(null)
+    setStatusMessage("Creating WhatsApp package for Business App...")
+  
+    try {
+      // First, fetch the phone number details from Meta
+      setStatusMessage("Fetching phone number details...")
+      const phoneDetailsUrl = `https://graph.facebook.com/v22.0/${sessionInfo.phone_number_id}?fields=display_phone_number,verified_name&access_token=${accessToken}`
+      
+      const phoneResponse = await fetch(phoneDetailsUrl, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
+      })
+
+      const phoneData = await phoneResponse.json()
+      console.log("Phone details response:", phoneData)
+      
+      if (!phoneResponse.ok) {
+        throw new Error(phoneData.error?.message || "Failed to fetch phone number details")
+      }
+
+      if (!phoneData.display_phone_number) {
+        throw new Error("No phone number found in response")
+      }
+
+      // Store the fetched phone number for debugging and future use
+      setBusinessAppPhoneNumber(phoneData.display_phone_number)
+
+      // For Business App onboarding, we use the fetched phone number
+      const sanitizedPhoneNumber = phoneData.display_phone_number.replace(/[\s+]/g, '');
+  
+      const payload = {
+        choice: "whatsapp",
+        data: {
+          whatsapp_business_account_id: sessionInfo.waba_id,
+          phone_number: sanitizedPhoneNumber,
+          phone_number_id: sessionInfo.phone_number_id,
+          access_token: accessToken,
+        },
+        organization_id: organizationId,
+      };
+  
+      console.log("WhatsApp Business App package payload:", { 
+        ...payload, 
+        data: { ...payload.data, access_token: "[REDACTED]" } 
+      });
+  
+      setStatusMessage("Creating WhatsApp package...")
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/create/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+  
+      const pkg = await res.json();
+      
+      console.log("Package creation response status:", res.status);
+      console.log("Package creation response:", pkg);
+  
+      if (!res.ok) {
+        console.error("WhatsApp Business App package creation error:", pkg);
+        // Provide more detailed error information
+        if (pkg.phone_number && Array.isArray(pkg.phone_number)) {
+          throw new Error(`Phone number error: ${pkg.phone_number.join(', ')}`);
+        }
+        if (pkg.phone_number_id && Array.isArray(pkg.phone_number_id)) {
+          throw new Error(`Phone number ID error: ${pkg.phone_number_id.join(', ')}`);
+        }
+        throw new Error(pkg.error || pkg.detail || `Failed to create WhatsApp package (${res.status})`);
+      }
+  
+      setPackageResponse(pkg);
+      setStatusMessage("Package created. Please select an assistant.");
+      setStep("selectingAssistant");
+      fetchAssistants();
+    } catch (e) {
+      console.error("Error creating Business App package:", e);
+      setPackageError(e instanceof Error ? e.message : "Error creating package");
+      setStatusMessage("Error creating package. Please try again.");
+    } finally {
+      setIsCreatingPackage(false);
+    }
+  }, [sessionInfo, accessToken, organizationId, fetchAssistants]);
 
   // Subscribe app to WhatsApp Business Account
   const subscribeApp = useCallback(async () => {
@@ -403,33 +518,7 @@ const EmbeddedSignup = () => {
     } finally {
       setIsSubscribing(false)
     }
-  }, [sessionInfo, accessToken, isBusinessAppOnboarding])
-
-  // Fetch assistants
-  const fetchAssistants = useCallback(async () => {
-    if (!organizationId) return
-
-    setIsFetchingAssistants(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch assistants")
-      }
-
-      const data: Assistant[] = await response.json()
-      setAssistants(data)
-
-      if (data.length === 0) {
-        throw new Error("No assistants found. Please create an assistant first.")
-      }
-    } catch (error) {
-      console.error("Error fetching assistants:", error)
-      setError(error instanceof Error ? error.message : "Failed to fetch assistants")
-      setStatusMessage("Error fetching assistants. Please try again.")
-    } finally {
-      setIsFetchingAssistants(false)
-    }
-  }, [organizationId])
+  }, [sessionInfo, accessToken, isBusinessAppOnboarding, createWhatsAppPackageForBusinessApp, fetchPhoneNumbers])
 
   const createAppService = useCallback(async (pkg: PackageResponse) => {
     if (!pkg || !organizationId || !selectedAssistant) return;
@@ -483,57 +572,6 @@ const EmbeddedSignup = () => {
       setIsCreatingAppService(false);
     }
   }, [organizationId, selectedAssistant, isBusinessAppOnboarding, initiateContactsSync]);
-
-  // New function specifically for Business App onboarding package creation
-  const createWhatsAppPackageForBusinessApp = useCallback(async () => {
-    if (!sessionInfo || !accessToken || !organizationId) return
-  
-    setIsCreatingPackage(true)
-    setPackageError(null)
-    setStatusMessage("Creating WhatsApp package for Business App...")
-  
-    try {
-      // For Business App onboarding, we use the phone_number_id directly
-      const sanitizedPhoneNumber = sessionInfo.phone_number_id;
-  
-      const payload = {
-        choice: "whatsapp",
-        data: {
-          whatsapp_business_account_id: sessionInfo.waba_id,
-          phone_number: sanitizedPhoneNumber,
-          phone_number_id: sessionInfo.phone_number_id,
-          access_token: accessToken,
-        },
-        organization_id: organizationId,
-      };
-  
-      console.log("WhatsApp Business App package payload:", { ...payload, data: { ...payload.data, access_token: "[REDACTED]" } });
-  
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/create/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-  
-      const pkg = await res.json();
-  
-      if (!res.ok) {
-        console.error("WhatsApp Business App package creation error:", pkg);
-        throw new Error(pkg.error || pkg.detail || "Failed to create WhatsApp package");
-      }
-  
-      setPackageResponse(pkg);
-      setStatusMessage("Package created. Please select an assistant.");
-      setStep("selectingAssistant");
-      fetchAssistants();
-    } catch (e) {
-      console.error("Error creating Business App package:", e);
-      setPackageError(e instanceof Error ? e.message : "Error creating package");
-      setStatusMessage("Error creating package. Please try again.");
-    } finally {
-      setIsCreatingPackage(false);
-    }
-  }, [sessionInfo, accessToken, organizationId, fetchAssistants]);
 
   const createWhatsAppPackage = useCallback(async () => {
     if (!sessionInfo || !selectedPhoneNumber || !accessToken || !organizationId) return
@@ -1216,6 +1254,7 @@ const EmbeddedSignup = () => {
                   step,
                   isBusinessAppOnboarding,
                   sessionInfo,
+                  businessAppPhoneNumber,
                   hasAccessToken: !!accessToken,
                   hasPin: pin.length > 0,
                   selectedAssistant: selectedAssistant?.name || null,
