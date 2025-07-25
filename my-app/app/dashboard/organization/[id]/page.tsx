@@ -26,7 +26,7 @@ import { MembersTable } from "./components/members-table";
 import { DeleteOrgDialog } from "./components/delete-org-dialog";
 import { InviteModal } from "../components/invite-modal";
 import { PhoneNumberForm } from "@/components/PhoneNumberForm";
-import { AssistantFiles } from "@/components/assistant-files";
+import { NewAssistantFiles } from "@/components/new-assistant-files";
 
 export default function OrganizationDetails({
   params,
@@ -183,7 +183,7 @@ export default function OrganizationDetails({
               <CardTitle>Add files for your assistant</CardTitle>
             </CardHeader>
             <CardContent>
-              <AssistantFiles />
+              <NewAssistantFiles />
             </CardContent>
           </Card>
         </TabsContent>
