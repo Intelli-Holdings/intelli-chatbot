@@ -228,10 +228,6 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
     }
   }, [conversation, fetchMessages, isAiSupport, refreshMessages])
 
-  // Manual refresh function that can be called externally
-  const handleRefreshMessages = useCallback(() => {
-    refreshMessages()
-  }, [refreshMessages])
 
   // Optimistic UI update on message send
   const handleMessageSent = useCallback(
@@ -340,16 +336,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
           phoneNumber={phoneNumber}
           onAiSupportChange={(isActive) => setIsAiSupport(isActive)}
         />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefreshMessages}
-          className="ml-2"
-          disabled={!fetchMessages || isRefreshing}
-        >
-          <Send className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
+        
       </div>
 
       {/* Always render WebSocketHandler when conversation exists, regardless of who's handling it */}
@@ -369,12 +356,6 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
             ></span>
             {isConnected ? "Live connection active" : "Connecting..."}
           </div>
-          {isRefreshing && (
-            <span className="text-xs text-gray-500 flex items-center">
-              <span className="animate-spin inline-block w-3 h-3 border border-gray-400 border-t-transparent rounded-full mr-1"></span>
-              Checking for new messages...
-            </span>
-          )}
         </div>
       )}
 
