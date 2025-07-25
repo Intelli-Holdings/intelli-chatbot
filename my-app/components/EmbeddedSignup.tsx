@@ -6,7 +6,7 @@ import { useEffect, useCallback, useState } from "react"
 import { CardDescription, CardTitle, Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowRight, Loader, RefreshCcw, AlertCircle, Info } from "lucide-react"
+import { ArrowRight, Loader, RefreshCcw, AlertCircle, Info, CheckCircle } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
@@ -21,7 +21,7 @@ declare global {
 // Define type for WhatsApp embedded signup message
 interface WhatsAppSignupMessage {
   type: string
-  event: "FINISH" | "CANCEL" | "ERROR"
+  event: "FINISH" | "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" | "CANCEL" | "ERROR" 
   data: {
     phone_number_id?: string
     waba_id?: string
@@ -81,6 +81,11 @@ type PhoneNumberResponse = {
   }>
 }
 
+type SyncResponse = {
+  messaging_product: string
+  request_id: string
+}
+
 type Assistant = {
   id: number
   name: string
@@ -100,7 +105,7 @@ const EmbeddedSignup = () => {
   const [packageResponse, setPackageResponse] = useState<PackageResponse | null>(null)
   const [appServiceResponse, setAppServiceResponse] = useState<AppServiceResponse | null>(null)
   const [statusMessage, setStatusMessage] = useState<string>("")
-  const [step, setStep] = useState<"initial" | "codeReceived" | "tokenReceived" | "registered" | "fetchingPhone" | "confirmingPhone" | "selectingAssistant" | "creatingAppService" | "creatingPackage" | "complete">("initial")
+  const [step, setStep] = useState<"initial" | "codeReceived" | "tokenReceived" | "registered" | "fetchingPhone" | "confirmingPhone" | "selectingAssistant" | "creatingAppService" | "creatingPackage" | "syncingContacts" | "syncingHistory" | "complete">("initial")
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [debugMode, setDebugMode] = useState<boolean>(false)
@@ -115,6 +120,14 @@ const EmbeddedSignup = () => {
   const [assistants, setAssistants] = useState<Assistant[]>([])
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null)
   const [isFetchingAssistants, setIsFetchingAssistants] = useState<boolean>(false)
+  
+  // New state for Business App onboarding
+  const [isBusinessAppOnboarding, setIsBusinessAppOnboarding] = useState<boolean>(false)
+  const [contactsSyncResponse, setContactsSyncResponse] = useState<SyncResponse | null>(null)
+  const [historySyncResponse, setHistorySyncResponse] = useState<SyncResponse | null>(null)
+  const [isSyncingContacts, setIsSyncingContacts] = useState<boolean>(false)
+  const [isSyncingHistory, setIsSyncingHistory] = useState<boolean>(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
 
   // 1) FB SDK initialization
   const initializeFacebookSDK = useCallback(() => {
@@ -152,7 +165,12 @@ const EmbeddedSignup = () => {
       config_id: process.env.NEXT_PUBLIC_FACEBOOK_CONFIG_ID!,
       response_type: "code",
       override_default_response_type: true,
-      extras: { setup: {}, version: "v3", featureType: "whatsapp_business_app_onboarding", sessionInfoVersion: "3" },
+      extras: { 
+        setup: {}, 
+        version: "v3", 
+        featureType: "whatsapp_business_app_onboarding", 
+        sessionInfoVersion: "3" 
+      },
     })
   }, [handleFBLogin])
 
@@ -195,6 +213,105 @@ const EmbeddedSignup = () => {
       setIsLoading(false)
     }
   }, [sdkCode])
+
+  // New function to initiate contacts synchronization
+  const initiateContactsSync = useCallback(async () => {
+    if (!sessionInfo?.phone_number_id || !accessToken) {
+      setError("Missing required information for contacts sync")
+      return
+    }
+
+    setIsSyncingContacts(true)
+    setSyncError(null)
+    setStatusMessage("Synchronizing contacts from WhatsApp Business app...")
+
+    try {
+      const url = `https://graph.facebook.com/v22.0/${sessionInfo.phone_number_id}/smb_app_data`
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          sync_type: "smb_app_state_sync"
+        }),
+      })
+
+      const data = await response.json()
+      console.log("Contacts sync response:", data)
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to initiate contacts synchronization")
+      }
+
+      setContactsSyncResponse(data)
+      setStatusMessage("Contacts synchronization initiated. Now synchronizing message history...")
+      
+      // Automatically proceed to history sync
+      setTimeout(() => {
+        initiateHistorySync()
+      }, 1000)
+
+    } catch (err) {
+      console.error("Error initiating contacts sync:", err)
+      setSyncError(err instanceof Error ? err.message : "Error initiating contacts sync")
+      setStatusMessage("Error synchronizing contacts. Please try again.")
+    } finally {
+      setIsSyncingContacts(false)
+    }
+  }, [sessionInfo, accessToken])
+
+  // New function to initiate message history synchronization
+  const initiateHistorySync = useCallback(async () => {
+    if (!sessionInfo?.phone_number_id || !accessToken) {
+      setError("Missing required information for history sync")
+      return
+    }
+
+    setIsSyncingHistory(true)
+    setSyncError(null)
+    setStatusMessage("Synchronizing message history from WhatsApp Business app...")
+
+    try {
+      const url = `https://graph.facebook.com/v22.0/${sessionInfo.phone_number_id}/smb_app_data`
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          sync_type: "history"
+        }),
+      })
+
+      const data = await response.json()
+      console.log("History sync response:", data)
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to initiate history synchronization")
+      }
+
+      setHistorySyncResponse(data)
+      setStatusMessage("Message history synchronization initiated. Completing setup...")
+      
+      // Move to complete step after successful sync initiation
+      setTimeout(() => {
+        setStep("complete")
+        setStatusMessage("Setup complete! Your WhatsApp Business account is ready and data synchronization is in progress.")
+      }, 2000)
+
+    } catch (err) {
+      console.error("Error initiating history sync:", err)
+      setSyncError(err instanceof Error ? err.message : "Error initiating history sync")
+      setStatusMessage("Error synchronizing history. Please try again.")
+    } finally {
+      setIsSyncingHistory(false)
+    }
+  }, [sessionInfo, accessToken])
 
   // Fetch phone numbers from Meta
   const fetchPhoneNumbers = useCallback(async () => {
@@ -263,8 +380,19 @@ const EmbeddedSignup = () => {
       }
 
       if (data.success) {
-        setStatusMessage("App subscribed successfully. Fetching phone numbers...")
-        fetchPhoneNumbers()
+        setStatusMessage("App subscribed successfully.")
+        
+        // Check if this is a Business App onboarding (skip phone fetch and registration)
+        if (isBusinessAppOnboarding) {
+          setStatusMessage("Business App detected. Creating WhatsApp package...")
+          setStep("creatingPackage")
+          // For Business App onboarding, we skip phone number registration
+          // and go straight to package creation with existing phone number
+          createWhatsAppPackageForBusinessApp()
+        } else {
+          setStatusMessage("Fetching phone numbers...")
+          fetchPhoneNumbers()
+        }
       } else {
         throw new Error("Failed to subscribe app")
       }
@@ -275,7 +403,7 @@ const EmbeddedSignup = () => {
     } finally {
       setIsSubscribing(false)
     }
-  }, [sessionInfo, accessToken, fetchPhoneNumbers])
+  }, [sessionInfo, accessToken, isBusinessAppOnboarding])
 
   // Fetch assistants
   const fetchAssistants = useCallback(async () => {
@@ -311,7 +439,6 @@ const EmbeddedSignup = () => {
     setStatusMessage("Creating AppService...");
   
     try {
-  
       const sanitizedPhoneNumber = (pkg.phone_number || "").replace(/\+/g, '');
   
       const data = {
@@ -335,8 +462,19 @@ const EmbeddedSignup = () => {
       }
   
       setAppServiceResponse(appsvc);
-      setStep("complete");
-      setStatusMessage("Setup complete! Your WhatsApp business account is ready.");
+      
+      // Check if this is Business App onboarding and needs synchronization
+      if (isBusinessAppOnboarding) {
+        setStep("syncingContacts");
+        setStatusMessage("AppService created. Starting data synchronization...");
+        // Start synchronization process
+        setTimeout(() => {
+          initiateContactsSync();
+        }, 1000);
+      } else {
+        setStep("complete");
+        setStatusMessage("Setup complete! Your WhatsApp business account is ready.");
+      }
     } catch (e) {
       console.error("Error creating AppService:", e);
       setAppServiceError(e instanceof Error ? e.message : "Error creating AppService");
@@ -344,7 +482,58 @@ const EmbeddedSignup = () => {
     } finally {
       setIsCreatingAppService(false);
     }
-  }, [organizationId, selectedAssistant]);
+  }, [organizationId, selectedAssistant, isBusinessAppOnboarding, initiateContactsSync]);
+
+  // New function specifically for Business App onboarding package creation
+  const createWhatsAppPackageForBusinessApp = useCallback(async () => {
+    if (!sessionInfo || !accessToken || !organizationId) return
+  
+    setIsCreatingPackage(true)
+    setPackageError(null)
+    setStatusMessage("Creating WhatsApp package for Business App...")
+  
+    try {
+      // For Business App onboarding, we use the phone_number_id directly
+      const sanitizedPhoneNumber = sessionInfo.phone_number_id;
+  
+      const payload = {
+        choice: "whatsapp",
+        data: {
+          whatsapp_business_account_id: sessionInfo.waba_id,
+          phone_number: sanitizedPhoneNumber,
+          phone_number_id: sessionInfo.phone_number_id,
+          access_token: accessToken,
+        },
+        organization_id: organizationId,
+      };
+  
+      console.log("WhatsApp Business App package payload:", { ...payload, data: { ...payload.data, access_token: "[REDACTED]" } });
+  
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/create/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+  
+      const pkg = await res.json();
+  
+      if (!res.ok) {
+        console.error("WhatsApp Business App package creation error:", pkg);
+        throw new Error(pkg.error || pkg.detail || "Failed to create WhatsApp package");
+      }
+  
+      setPackageResponse(pkg);
+      setStatusMessage("Package created. Please select an assistant.");
+      setStep("selectingAssistant");
+      fetchAssistants();
+    } catch (e) {
+      console.error("Error creating Business App package:", e);
+      setPackageError(e instanceof Error ? e.message : "Error creating package");
+      setStatusMessage("Error creating package. Please try again.");
+    } finally {
+      setIsCreatingPackage(false);
+    }
+  }, [sessionInfo, accessToken, organizationId, fetchAssistants]);
 
   const createWhatsAppPackage = useCallback(async () => {
     if (!sessionInfo || !selectedPhoneNumber || !accessToken || !organizationId) return
@@ -461,10 +650,22 @@ const EmbeddedSignup = () => {
       if (!["https://www.facebook.com", "https://web.facebook.com"].includes(event.origin)) return
       try {
         const data = JSON.parse(event.data)
-        if (data.type === "WA_EMBEDDED_SIGNUP" && data.event === "FINISH") {
+        
+        // Handle Business App onboarding completion
+        if (data.type === "WA_EMBEDDED_SIGNUP" && data.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING") {
           setSessionInfo({ phone_number_id: data.data.phone_number_id, waba_id: data.data.waba_id })
+          setIsBusinessAppOnboarding(true)
+          setStatusMessage("WhatsApp Business App onboarding completed. Proceeding without phone registration...")
+          // Skip PIN entry for Business App users
+          setStep("registered")
+        }
+        // Handle regular onboarding completion
+        else if (data.type === "WA_EMBEDDED_SIGNUP" && data.event === "FINISH") {
+          setSessionInfo({ phone_number_id: data.data.phone_number_id, waba_id: data.data.waba_id })
+          setIsBusinessAppOnboarding(false)
           setStatusMessage("WhatsApp session finished. Please enter your PIN when ready.")
         }
+        
         document.getElementById("session-info-response")!.textContent = JSON.stringify(data, null, 2)
       } catch {}
     }
@@ -488,7 +689,7 @@ const EmbeddedSignup = () => {
               Login with Facebook
             </Button>
           </div>
-        ); // Ensure this case has a proper return statement
+        );
 
       case "codeReceived":
         return (
@@ -521,6 +722,13 @@ const EmbeddedSignup = () => {
                 <p className="font-medium">WhatsApp Session Info</p>
                 <p className="text-sm text-gray-500">Phone Number ID: {sessionInfo.phone_number_id}</p>
                 <p className="text-sm text-gray-500">WABA ID: {sessionInfo.waba_id}</p>
+                {isBusinessAppOnboarding && (
+                  <div className="mt-2 p-2 bg-green-50 rounded-md">
+                    <p className="text-sm text-green-600 font-medium">
+                      ✅ Business App Detected - Phone registration will be skipped
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-4 bg-yellow-50 rounded-md">
@@ -549,16 +757,18 @@ const EmbeddedSignup = () => {
               <p className="text-sm text-gray-500 truncate">{accessToken}</p>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Enter 2FA PIN:</p>
-              <Input
-                type="text"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="Enter 6-digit PIN"
-                maxLength={6}
-              />
-            </div>
+            {!isBusinessAppOnboarding && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Enter 2FA PIN:</p>
+                <Input
+                  type="text"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  placeholder="Enter 6-digit PIN"
+                  maxLength={6}
+                />
+              </div>
+            )}
 
             <CardFooter className="flex justify-between pt-0">
               <Button variant="outline" size="sm" onClick={toggleDebugMode} className="text-xs">
@@ -566,8 +776,8 @@ const EmbeddedSignup = () => {
               </Button>
 
               <Button
-                onClick={directRegisterPhone}
-                disabled={isLoading || !pin || pin.length !== 6 || !sessionInfo || !accessToken}
+                onClick={isBusinessAppOnboarding ? subscribeApp : directRegisterPhone}
+                disabled={isLoading || (!isBusinessAppOnboarding && (!pin || pin.length !== 6)) || !sessionInfo || !accessToken}
                 className="flex items-center gap-2"
               >
                 {isLoading ? (
@@ -576,7 +786,7 @@ const EmbeddedSignup = () => {
                   </>
                 ) : (
                   <>
-                    Register <ArrowRight size={16} />
+                    {isBusinessAppOnboarding ? "Continue" : "Register"} <ArrowRight size={16} />
                   </>
                 )}
               </Button>
@@ -588,8 +798,15 @@ const EmbeddedSignup = () => {
         return (
           <div className="flex flex-col space-y-4">
             <div className="p-4 bg-green-50 rounded-md">
-              <p className="font-medium text-green-700">Registration Successful</p>
-              <p className="text-sm text-green-600">Registration complete. Let&apos;s subscribe your app and fetch your phone numbers.</p>
+              <p className="font-medium text-green-700">
+                {isBusinessAppOnboarding ? "Business App Connected" : "Registration Successful"}
+              </p>
+              <p className="text-sm text-green-600">
+                {isBusinessAppOnboarding 
+                  ? "Your existing WhatsApp Business app is connected. Let's set up your account." 
+                  : "Registration complete. Let's subscribe your app and fetch your phone numbers."
+                }
+              </p>
             </div>
             <Button 
               onClick={subscribeApp} 
@@ -669,6 +886,13 @@ const EmbeddedSignup = () => {
             <div className="p-4 bg-gray-50 rounded-md">
               <p className="font-medium">Select Your Assistant</p>
               <p className="text-sm text-gray-500 mb-4">Choose an assistant to create your WhatsApp package</p>
+              {isBusinessAppOnboarding && (
+                <div className="mb-4 p-2 bg-blue-50 rounded-md">
+                  <p className="text-sm text-blue-600">
+                    📱 This will be connected to your existing WhatsApp Business app
+                  </p>
+                </div>
+              )}
               <div className="mt-2 space-y-2">
                 {isFetchingAssistants ? (
                   <div className="flex items-center justify-center p-4">
@@ -721,31 +945,22 @@ const EmbeddedSignup = () => {
         return (
           <div className="flex flex-col space-y-4">
             <div className="p-4 bg-gray-50 rounded-md">
-              <p className="font-medium">Create AppService</p>
+              <p className="font-medium">Creating AppService</p>
               {packageResponse && (
-                <p className="text-sm text-gray-500">Selected Phone Number: {selectedPhoneNumber}</p>
+                <p className="text-sm text-gray-500">Selected Phone Number: {selectedPhoneNumber || sessionInfo?.phone_number_id}</p>
+              )}
+              {isBusinessAppOnboarding && (
+                <div className="mt-2 p-2 bg-blue-50 rounded-md">
+                  <p className="text-sm text-blue-600">
+                    Setting up integration with your WhatsApp Business app...
+                  </p>
+                </div>
               )}
             </div>
-            <CardFooter className="flex justify-end pt-0">
-              <Button 
-                onClick={() => {
-                  setStep("creatingPackage")
-                  createWhatsAppPackage()
-                }}
-                disabled={isLoading || !selectedPhoneNumber || !packageResponse} 
-                className="flex items-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader size={16} className="animate-spin" /> Processing...
-                  </>
-                ) : (
-                  <>
-                    Continue <ArrowRight size={16} />
-                  </>
-                )}
-              </Button>
-            </CardFooter>
+            <div className="flex items-center justify-center p-4">
+              <Loader size={24} className="animate-spin" />
+              <span className="ml-2">Creating AppService...</span>
+            </div>
           </div>
         )
 
@@ -753,24 +968,98 @@ const EmbeddedSignup = () => {
         return (
           <div className="flex flex-col space-y-4">
             <div className="p-4 bg-gray-50 rounded-md">
-              <p className="font-medium">Create WhatsApp Package</p>
-              {selectedPhoneNumber && (
-                <p className="text-sm text-gray-500">Selected Phone Number: {selectedPhoneNumber}</p>
+              <p className="font-medium">Creating WhatsApp Package</p>
+              {(selectedPhoneNumber || sessionInfo?.phone_number_id) && (
+                <p className="text-sm text-gray-500">
+                  Phone Number: {selectedPhoneNumber || sessionInfo?.phone_number_id}
+                </p>
+              )}
+              {isBusinessAppOnboarding && (
+                <div className="mt-2 p-2 bg-blue-50 rounded-md">
+                  <p className="text-sm text-blue-600">
+                    Creating package for your WhatsApp Business app...
+                  </p>
+                </div>
               )}
             </div>
-            <CardFooter className="flex justify-end pt-0">
-              <Button onClick={createWhatsAppPackage} disabled={isLoading || !selectedPhoneNumber} className="flex items-center gap-2">
-                {isLoading ? (
-                  <>
-                    <Loader size={16} className="animate-spin" /> Processing...
-                  </>
-                ) : (
-                  <>
-                    Create WhatsApp Package <ArrowRight size={16} />
-                  </>
-                )}
-              </Button>
-            </CardFooter>
+            <div className="flex items-center justify-center p-4">
+              <Loader size={24} className="animate-spin" />
+              <span className="ml-2">Creating WhatsApp Package...</span>
+            </div>
+          </div>
+        )
+
+      case "syncingContacts":
+        return (
+          <div className="flex flex-col space-y-4">
+            <div className="p-4 bg-blue-50 rounded-md">
+              <p className="font-medium text-blue-700">Synchronizing Contacts</p>
+              <p className="text-sm text-blue-600">
+                Importing your WhatsApp Business app contacts. This may take a few moments...
+              </p>
+              {contactsSyncResponse && (
+                <div className="mt-2 p-2 bg-white rounded-md">
+                  <p className="text-xs text-gray-600">Request ID: {contactsSyncResponse.request_id}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-center p-4">
+              <Loader size={24} className="animate-spin" />
+              <span className="ml-2">Synchronizing contacts...</span>
+            </div>
+            {syncError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{syncError}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 text-xs" 
+                  onClick={() => {
+                    setSyncError(null)
+                    initiateContactsSync()
+                  }}
+                >
+                  <RefreshCcw size={12} className="mr-1" /> Retry Sync
+                </Button>
+              </div>
+            )}
+          </div>
+        )
+
+      case "syncingHistory":
+        return (
+          <div className="flex flex-col space-y-4">
+            <div className="p-4 bg-blue-50 rounded-md">
+              <p className="font-medium text-blue-700">Synchronizing Message History</p>
+              <p className="text-sm text-blue-600">
+                Importing your WhatsApp Business app message history. This process may take several minutes...
+              </p>
+              {historySyncResponse && (
+                <div className="mt-2 p-2 bg-white rounded-md">
+                  <p className="text-xs text-gray-600">Request ID: {historySyncResponse.request_id}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-center p-4">
+              <Loader size={24} className="animate-spin" />
+              <span className="ml-2">Synchronizing message history...</span>
+            </div>
+            {syncError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{syncError}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 text-xs" 
+                  onClick={() => {
+                    setSyncError(null)
+                    initiateHistorySync()
+                  }}
+                >
+                  <RefreshCcw size={12} className="mr-1" /> Retry Sync
+                </Button>
+              </div>
+            )}
           </div>
         )
 
@@ -779,10 +1068,43 @@ const EmbeddedSignup = () => {
           <div className="flex flex-col space-y-4">
             <div className="p-4 bg-green-50 rounded-md">
               <p className="font-medium text-green-700">Setup Complete</p>
-              <p className="text-sm text-green-600">Your WhatsApp business account is ready.</p>
+              <p className="text-sm text-green-600">
+                {isBusinessAppOnboarding 
+                  ? "Your WhatsApp Business app is now connected and synchronized. You can continue using your WhatsApp Business app alongside our platform."
+                  : "Your WhatsApp business account is ready."
+                }
+              </p>
+              
+              {isBusinessAppOnboarding && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle size={16} className="text-green-500" />
+                    <span className="text-sm text-green-600">WhatsApp Business app connected</span>
+                  </div>
+                  {contactsSyncResponse && (
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle size={16} className="text-green-500" />
+                      <span className="text-sm text-green-600">Contacts synchronization initiated</span>
+                    </div>
+                  )}
+                  {historySyncResponse && (
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle size={16} className="text-green-500" />
+                      <span className="text-sm text-green-600">Message history synchronization initiated</span>
+                    </div>
+                  )}
+                  <div className="mt-3 p-2 bg-yellow-50 rounded-md">
+                    <p className="text-xs text-yellow-600">
+                      <strong>Note:</strong> Synchronization will continue in the background. You&apos;ll receive webhooks as your data is processed.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
+            
             <Button 
               onClick={() => {
+                // Reset all state
                 setSessionInfo(null)
                 setSdkCode(null)
                 setAccessToken(null)
@@ -791,6 +1113,10 @@ const EmbeddedSignup = () => {
                 setPackageResponse(null)
                 setAppServiceResponse(null)
                 setStatusMessage("")
+                setIsBusinessAppOnboarding(false)
+                setContactsSyncResponse(null)
+                setHistorySyncResponse(null)
+                setSyncError(null)
                 setStep("initial")
               }}
               className="flex items-center gap-2"
@@ -807,54 +1133,106 @@ const EmbeddedSignup = () => {
   }
 
   return (
-            <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-lg shadow-sm w-full h-full flex items-center justify-center">          
-    <Card className="w-full max-w-lg mx-auto">
-      <div className="p-6">
-        <CardTitle>WhatsApp Business Setup</CardTitle>
-        <CardDescription className="mt-1">Connect your WhatsApp Business account</CardDescription>
-      </div>
+    <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-lg shadow-sm w-full h-full flex items-center justify-center">          
+      <Card className="w-full max-w-lg mx-auto">
+        <div className="p-6">
+          <CardTitle>WhatsApp Business Setup</CardTitle>
+          <CardDescription className="mt-1">
+            Connect your WhatsApp Business account
+            {isBusinessAppOnboarding && (
+              <span className="block mt-1 text-blue-600 font-medium">
+                🔗 Business App Integration Mode
+              </span>
+            )}
+          </CardDescription>
+        </div>
 
-      <CardContent>
-        {renderStepContent()}
+        <CardContent>
+          {renderStepContent()}
 
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <div className="flex items-start">
-              <AlertCircle size={16} className="text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-              <div>
-                <p className="text-sm text-red-600">{error}</p>
-                {error.includes("Missing Permission") && (
-                  <p className="text-xs text-red-500 mt-1">
-                    This error typically means your token doesn&apos;t have the necessary permissions for WhatsApp Business
-                    API operations. Try using a System Token instead.
-                  </p>
-                )}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-start">
+                <AlertCircle size={16} className="text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-red-600">{error}</p>
+                  {error.includes("Missing Permission") && (
+                    <p className="text-xs text-red-500 mt-1">
+                      This error typically means your token doesn&apos;t have the necessary permissions for WhatsApp Business
+                      API operations. Try using a System Token instead.
+                    </p>
+                  )}
+                </div>
+              </div>
+              {isLoading ? null : (
+                <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={() => setError(null)}>
+                  <RefreshCcw size={12} className="mr-1" /> Try Again
+                </Button>
+              )}
+            </div>
+          )}
+
+          {(packageError || appServiceError) && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-start">
+                <AlertCircle size={16} className="text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-red-600">{packageError || appServiceError}</p>
+                </div>
               </div>
             </div>
-            {isLoading ? null : (
-              <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={() => setError(null)}>
-                <RefreshCcw size={12} className="mr-1" /> Try Again
-              </Button>
-            )}
-          </div>
-        )}
+          )}
 
-        {statusMessage && <p className="text-sm italic text-gray-500 mt-4">{statusMessage}</p>}
+          {statusMessage && (
+            <p className="text-sm italic text-gray-500 mt-4">{statusMessage}</p>
+          )}
 
-        {debugMode && directRegisterResponse && (
-          <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
-            <p className="text-xs font-medium mb-1">Debug: Direct Registration Response</p>
-            <pre className="text-xs overflow-auto max-h-40">{JSON.stringify(directRegisterResponse, null, 2)}</pre>
-          </div>
-        )}
-      </CardContent>
+          {debugMode && (
+            <div className="mt-4 space-y-2">
+              {directRegisterResponse && (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+                  <p className="text-xs font-medium mb-1">Debug: Direct Registration Response</p>
+                  <pre className="text-xs overflow-auto max-h-40">{JSON.stringify(directRegisterResponse, null, 2)}</pre>
+                </div>
+              )}
+              
+              {contactsSyncResponse && (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+                  <p className="text-xs font-medium mb-1">Debug: Contacts Sync Response</p>
+                  <pre className="text-xs overflow-auto max-h-40">{JSON.stringify(contactsSyncResponse, null, 2)}</pre>
+                </div>
+              )}
+              
+              {historySyncResponse && (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+                  <p className="text-xs font-medium mb-1">Debug: History Sync Response</p>
+                  <pre className="text-xs overflow-auto max-h-40">{JSON.stringify(historySyncResponse, null, 2)}</pre>
+                </div>
+              )}
+              
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+                <p className="text-xs font-medium mb-1">Debug: Flow Info</p>
+                <pre className="text-xs overflow-auto max-h-40">{JSON.stringify({
+                  step,
+                  isBusinessAppOnboarding,
+                  sessionInfo,
+                  hasAccessToken: !!accessToken,
+                  hasPin: pin.length > 0,
+                  selectedAssistant: selectedAssistant?.name || null,
+                  packageResponseId: packageResponse?.id || null,
+                  appServiceResponseId: appServiceResponse?.id || null
+                }, null, 2)}</pre>
+              </div>
+            </div>
+          )}
+        </CardContent>
 
-      <div className="hidden">
-        <pre id="session-info-response" />
-        <pre id="sdk-response" />
-      </div>
-    </Card>
-     </div>
+        <div className="hidden">
+          <pre id="session-info-response" />
+          <pre id="sdk-response" />
+        </div>
+      </Card>
+    </div>
   )
 }
 
