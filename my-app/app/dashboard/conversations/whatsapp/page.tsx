@@ -171,7 +171,8 @@ export default function WhatsAppConvosPage() {
               sender: msg.sender || 'ai' // Default to 'ai' if sender not specified
             }));
             
-            return messages;
+            // Reverse the messages so that the oldest appear first (latest at bottom)
+            return messages.reverse();
           } catch (error) {
             console.error(`Failed to fetch messages for customer ${customerNumber}:`, error);
             return [];

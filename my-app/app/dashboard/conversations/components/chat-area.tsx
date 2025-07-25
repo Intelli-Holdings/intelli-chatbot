@@ -53,6 +53,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   const [wsInstance, setWsInstance] = useState<WebSocket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const router = useRouter()
@@ -88,6 +89,10 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
         setCurrentMessages([])
         setLastMessageId(null)
       }
+      
+      // Reset initial load flag when conversation changes
+      setIsInitialLoad(true)
+      setTimeout(() => setIsInitialLoad(false), 500)
     }
   }, [conversation, fetchMessages])
 
@@ -163,29 +168,70 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   const refreshMessages = useCallback(async () => {
     if (!conversation || !fetchMessages) return
 
+    setIsRefreshing(true)
     try {
-      const newMessages = await fetchMessages(conversation.customer_number || conversation.recipient_id)
+      const allMessages = await fetchMessages(conversation.customer_number || conversation.recipient_id)
 
-      if (newMessages && newMessages.length > 0) {
-        const highestNewId = Math.max(...newMessages.map((msg) => msg.id))
+      if (allMessages && allMessages.length > 0) {
+        const highestNewId = Math.max(...allMessages.map((msg) => msg.id))
 
-        if (lastMessageId === null || highestNewId > lastMessageId) {
-          const actualNewMessages = newMessages.filter((msg) => lastMessageId === null || msg.id > lastMessageId)
+        if (lastMessageId === null) {
+          // First time loading - set all messages
+          setCurrentMessages(allMessages)
+          setLastMessageId(highestNewId)
+        } else if (highestNewId > lastMessageId) {
+          // There are new messages - find only the new ones
+          const actualNewMessages = allMessages.filter((msg) => msg.id > lastMessageId)
 
           if (actualNewMessages.length > 0) {
-            setCurrentMessages((prev) => [...(prev || []), ...(actualNewMessages || [])])
+            setCurrentMessages((prev) => [...(prev || []), ...actualNewMessages])
             setLastMessageId(highestNewId)
 
-            if (lastMessageId !== null) {
-            }
+            console.log(`Fetched ${actualNewMessages.length} new messages`)
+            toast({
+              description: `${actualNewMessages.length} new message${actualNewMessages.length > 1 ? 's' : ''} received`,
+              duration: 2000,
+            })
           }
         }
       }
 
     } catch (error) {
       console.error("Error fetching new messages:", error)
+      toast({
+        description: "Failed to fetch new messages",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setIsRefreshing(false)
     }
-  }, [conversation, fetchMessages, lastMessageId])
+  }, [conversation, fetchMessages, lastMessageId, toast])
+
+  // Set up polling to fetch latest messages when AI support is not active
+  useEffect(() => {
+    if (!conversation || !fetchMessages || isAiSupport) return
+
+    // Initial fetch after a short delay to avoid conflicts
+    const initialTimer = setTimeout(() => {
+      refreshMessages()
+    }, 1000)
+
+    // Set up polling every 3 seconds to fetch new messages
+    const pollInterval = setInterval(() => {
+      refreshMessages()
+    }, 3000)
+
+    return () => {
+      clearTimeout(initialTimer)
+      clearInterval(pollInterval)
+    }
+  }, [conversation, fetchMessages, isAiSupport, refreshMessages])
+
+  // Manual refresh function that can be called externally
+  const handleRefreshMessages = useCallback(() => {
+    refreshMessages()
+  }, [refreshMessages])
 
   // Optimistic UI update on message send
   const handleMessageSent = useCallback(
@@ -217,7 +263,13 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
 
   const groupMessagesByDate = (messages: Conversation["messages"]) => {
     const groups: { [key: string]: Conversation["messages"] } = {}
-    messages?.forEach((message) => {
+    
+    // Sort messages by created_at to ensure chronological order
+    const sortedMessages = messages?.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    ) || []
+    
+    sortedMessages.forEach((message) => {
       const date = format(parseISO(message.created_at), "yyyy-MM-dd")
       if (!groups[date]) {
         groups[date] = []
@@ -288,6 +340,16 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
           phoneNumber={phoneNumber}
           onAiSupportChange={(isActive) => setIsAiSupport(isActive)}
         />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefreshMessages}
+          className="ml-2"
+          disabled={!fetchMessages || isRefreshing}
+        >
+          <Send className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
       </div>
 
       {/* Always render WebSocketHandler when conversation exists, regardless of who's handling it */}
@@ -301,10 +363,18 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
       {/* WebSocket connection status indicator - show only when human support is active */}
       {!isAiSupport && (
         <div className="bg-green-50 border-green-200 border-b px-4 py-1 text-sm flex items-center justify-between">
-          <span
-            className={`inline-block w-2 h-2 rounded-full mr-2 ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
-          ></span>
-          {isConnected ? "Live connection active" : "Connecting..."}
+          <div className="flex items-center">
+            <span
+              className={`inline-block w-2 h-2 rounded-full mr-2 ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+            ></span>
+            {isConnected ? "Live connection active" : "Connecting..."}
+          </div>
+          {isRefreshing && (
+            <span className="text-xs text-gray-500 flex items-center">
+              <span className="animate-spin inline-block w-3 h-3 border border-gray-400 border-t-transparent rounded-full mr-1"></span>
+              Checking for new messages...
+            </span>
+          )}
         </div>
       )}
 
@@ -368,7 +438,9 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
         ref={scrollAreaRef}
       >
         <div className="flex flex-col gap-2">
-          {Object.entries(groupedMessages).map(([date, messages]) => (
+          {Object.entries(groupedMessages)
+            .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+            .map(([date, messages]) => (
             <div className="" key={date}>
               {renderDateSeparator(date)}
               {(messages ?? []).map((message) => (
@@ -450,9 +522,6 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
           onMessageSent={handleMessageSent}
         />
       </div>
-
-      {/* Hidden audio element for browsers that need it */}
-      <audio id="notification-sound" src="/notification-sound.mp3" preload="auto" style={{ display: "none" }} />
     </div>
   )
 }
