@@ -180,6 +180,35 @@ export default function WhatsAppConvosPage() {
         };
       
         const handleSelectConversation = async (conversation: Conversation) => {
+          // Reset unread messages when conversation is opened
+          if ((conversation.unread_messages || 0) > 0) {
+            try {
+              await fetch(
+                `/api/appservice/reset/unread_messages/${phoneNumber}/${conversation.customer_number}/`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+              
+              // Update the conversation locally to reset unread count
+              conversation.unread_messages = 0;
+              
+              // Update the conversations list to reflect the reset
+              setConversations(prev => 
+                prev.map(conv => 
+                  conv.customer_number === conversation.customer_number 
+                    ? { ...conv, unread_messages: 0 }
+                    : conv
+                )
+              );
+            } catch (error) {
+              console.error('Failed to reset unread messages:', error);
+            }
+          }
+
           // Fetch messages for the selected conversation if not already loaded
           if (!conversation.messages || conversation.messages.length === 0) {
             const messages = await fetchMessagesForConversation(conversation.customer_number);
@@ -208,6 +237,28 @@ export default function WhatsAppConvosPage() {
             setIsSheetOpen(true);
           }
         };
+
+  // Listen for unread messages reset events from ChatArea component
+  useEffect(() => {
+    const handleUnreadReset = (event: CustomEvent) => {
+      const { customerNumber } = event.detail;
+      
+      // Update the conversations list to reset unread count
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.customer_number === customerNumber 
+            ? { ...conv, unread_messages: 0 }
+            : conv
+        )
+      );
+    };
+
+    window.addEventListener('unreadMessagesReset', handleUnreadReset as EventListener);
+
+    return () => {
+      window.removeEventListener('unreadMessagesReset', handleUnreadReset as EventListener);
+    };
+  }, []);
 
 
   // Show loading screen during initialization
