@@ -77,7 +77,7 @@ export default function ChatSidebar({
     
     // Handle tab filtering (placeholder logic - implement as needed)
     if (activeTab === "unread") {
-      return conversation.messages && conversation.messages.some(m => !m.read)
+      return (conversation.unread_messages || 0) > 0
     }     
     return true
   })
@@ -143,9 +143,7 @@ export default function ChatSidebar({
               const lastMessage = conversation.messages && conversation.messages.length > 0
                 ? conversation.messages[conversation.messages.length - 1]?.content || "No messages yet"
                 : "No messages yet"
-              const unreadCount = conversation.messages 
-                ? conversation.messages.filter((m) => !m.read).length 
-                : 0
+              const unreadCount = conversation.unread_messages || 0
               const displayName = conversation.customer_name || conversation.customer_number || "Unknown"
               const time = conversation.updated_at 
                 ? format(parseISO(conversation.updated_at), "h:mm a")
