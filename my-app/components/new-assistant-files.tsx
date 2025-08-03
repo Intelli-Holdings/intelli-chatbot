@@ -60,7 +60,7 @@ import {
   Clock,
   XCircle
 } from "lucide-react";
-import useActiveOrganizationId from "@/hooks/use-organization-id";
+import { useParams } from "next/navigation";
 import { 
   newFileManagerAPI, 
   type FileUploadResponse, 
@@ -96,8 +96,9 @@ const FileStatusIcon = ({ status }: { status: string }) => {
   }
 };
 
-export function NewAssistantFiles() {
-  const organizationId = useActiveOrganizationId();
+export function NewAssistantFiles({ organizationId }: { organizationId?: string }) {
+  const params = useParams();
+  const orgId = organizationId || (params.id as string);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
@@ -113,6 +114,11 @@ export function NewAssistantFiles() {
   const [selectedFileForVersions, setSelectedFileForVersions] = useState<FileUploadResponse | null>(null);
   const [fileVersions, setFileVersions] = useState<FileUploadResponse[]>([]);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  
+  // Delete confirmation modal states
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeletingFile, setIsDeletingFile] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -157,11 +163,11 @@ export function NewAssistantFiles() {
 
   // Fetch assistants from new API endpoint
   const fetchAssistants = useCallback(async () => {
-    if (!organizationId) return;
+    if (!orgId) return;
 
     setIsFetchingAssistants(true);
     try {
-      const response = await fetch(`/api/get/assistants/${organizationId}`);
+      const response = await fetch(`/api/assistants/org/${orgId}`);
       
       if (!response.ok) {
         toast.error("Failed to fetch assistants. Please try again.");
@@ -180,7 +186,7 @@ export function NewAssistantFiles() {
     } finally {
       setIsFetchingAssistants(false);
     }
-  }, [organizationId]);
+  }, [orgId]);
 
   // Fetch files for selected assistant
   const fetchFiles = useCallback(async () => {
@@ -230,10 +236,10 @@ export function NewAssistantFiles() {
 
   // Effects
   useEffect(() => {
-    if (organizationId) {
+    if (orgId) {
       fetchAssistants();
     }
-  }, [organizationId, fetchAssistants]);
+  }, [orgId, fetchAssistants]);
 
   useEffect(() => {
     if (selectedAssistant) {
@@ -292,19 +298,36 @@ export function NewAssistantFiles() {
     }
   };
 
-  // Handle file deletion
-  const handleDeleteFile = async (fileId: number, fileName: string) => {
-    if (!confirm(`Are you sure you want to delete "${fileName}"?`)) return;
+  // Handle file deletion - opens confirmation modal
+  const handleDeleteFile = (fileId: number, fileName: string) => {
+    setFileToDelete({ id: fileId, name: fileName });
+    setDeleteModalOpen(true);
+  };
 
+  // Confirm file deletion
+  const confirmDeleteFile = async () => {
+    if (!fileToDelete) return;
+
+    setIsDeletingFile(true);
     try {
-      await newFileManagerAPI.deleteFile(fileId);
+      await newFileManagerAPI.deleteFile(fileToDelete.id);
       toast.success("File deleted successfully!");
       fetchFiles(); // Refresh file list
       fetchFileStats(); // Refresh statistics
+      setDeleteModalOpen(false);
+      setFileToDelete(null);
     } catch (error) {
       console.error("Delete error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to delete file.");
+    } finally {
+      setIsDeletingFile(false);
     }
+  };
+
+  // Cancel file deletion
+  const cancelDeleteFile = () => {
+    setDeleteModalOpen(false);
+    setFileToDelete(null);
   };
 
   // Handle view file versions
@@ -406,7 +429,7 @@ export function NewAssistantFiles() {
                   <div>
                     <p>Drag and drop files here, or click to select</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Supports: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, MD, JSON (Max: 512MB)
+                      Supports: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, JSON (Max: 512MB)
                     </p>
                   </div>
                 )}
@@ -524,7 +547,7 @@ export function NewAssistantFiles() {
                           <TableRow key={file.id}>
                             <TableCell>
                               <div className="flex items-center space-x-2">
-                                <span className="text-lg">{getFileTypeIcon(file.file_type)}</span>
+                                <span className="text-sm">{getFileTypeIcon(file.file_type)}</span>
                                 <span className="font-medium">{file.file_name}</span>
                               </div>
                             </TableCell>
@@ -547,13 +570,7 @@ export function NewAssistantFiles() {
                                 >
                                   <History className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => window.open(file.file_url, '_blank')}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
+                               
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -612,7 +629,7 @@ export function NewAssistantFiles() {
                     <Card>
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">{fileStats.total_files}</div>
-                        <p className="text-xs text-muted-foreground">Total Files</p>
+                        <p className="text-xs text-muted-foreground">Files Uploaded</p>
                       </CardContent>
                     </Card>
                     <Card>
@@ -626,13 +643,13 @@ export function NewAssistantFiles() {
                     <Card>
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">{fileStats.max_files_allowed}</div>
-                        <p className="text-xs text-muted-foreground">Max Files</p>
+                        <p className="text-xs text-muted-foreground">Max Number of Files</p>
                       </CardContent>
                     </Card>
                     <Card>
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">{fileStats.remaining_slots}</div>
-                        <p className="text-xs text-muted-foreground">Remaining</p>
+                        <p className="text-xs text-muted-foreground">Files Remaining</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -660,6 +677,41 @@ export function NewAssistantFiles() {
         </TabsContent>
       </Tabs>
 
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete File</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &ldquo;{fileToDelete?.name}&rdquo;?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 justify-end mt-4">
+            <Button
+              variant="outline"
+              onClick={cancelDeleteFile}
+              disabled={isDeletingFile}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteFile}
+              disabled={isDeletingFile}
+            >
+              {isDeletingFile ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Yes, Delete"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* File Versions Dialog */}
       <Dialog
         open={!!selectedFileForVersions}
@@ -686,6 +738,7 @@ export function NewAssistantFiles() {
                   <TableRow>
                     <TableHead>Version</TableHead>
                     <TableHead>Size</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Uploaded</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -695,6 +748,12 @@ export function NewAssistantFiles() {
                     <TableRow key={version.id}>
                       <TableCell>v{version.version}</TableCell>
                       <TableCell>{formatFileSize(version.file_size)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <FileStatusIcon status={version.azure_file_status} />
+                          <span className="capitalize">{version.azure_file_status}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {new Date(version.created_at).toLocaleDateString()}
                       </TableCell>
