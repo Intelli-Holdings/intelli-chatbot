@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 
 // GET - List assistant files
 export async function GET(request: NextRequest) {
@@ -46,7 +47,15 @@ export async function GET(request: NextRequest) {
 // POST - Upload file
 export async function POST(request: NextRequest) {
   try {
+    // Get user email from Clerk
+    const { userId } = auth()
+    const clerkUser = userId ? await clerkClient().users.getUser(userId) : null
+    const userEmail = clerkUser?.emailAddresses?.[0]?.emailAddress || 'anonymous@example.com'
+
     const formData = await request.formData()
+    
+    // Add user email as uploaded_by_name
+    formData.append('uploaded_by_name', userEmail)
     
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/files/`,
