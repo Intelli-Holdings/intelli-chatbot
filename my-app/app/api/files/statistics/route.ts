@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 // GET - File statistics
 export async function GET(request: NextRequest) {
   try {
+    // Get authentication from Clerk
+    const { getToken } = auth()
+    const token = await getToken()
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const assistantId = searchParams.get('assistant_id')
     
@@ -19,6 +31,7 @@ export async function GET(request: NextRequest) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       }
     )
