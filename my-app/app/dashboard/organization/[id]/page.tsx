@@ -183,7 +183,7 @@ export default function OrganizationDetails({
               <CardTitle>Add files for your assistant</CardTitle>
             </CardHeader>
             <CardContent>
-              <NewAssistantFiles />
+              <NewAssistantFiles organizationId={params.id} />
             </CardContent>
           </Card>
         </TabsContent>
