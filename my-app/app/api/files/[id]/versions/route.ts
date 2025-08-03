@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 // GET - Get file versions
 export async function GET(
@@ -8,12 +9,24 @@ export async function GET(
   const { id } = params
   
   try {
+    // Get authentication from Clerk
+    const { getToken } = auth()
+    const token = await getToken()
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/files/${id}/versions/`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       }
     )
