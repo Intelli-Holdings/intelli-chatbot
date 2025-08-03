@@ -1,14 +1,21 @@
 export interface FileUploadResponse {
   id: number;
   file_name: string;
-  file_url: string;
+  file_url?: string;
+  file_id?: string;
   file_type: string;
   file_size: number;
+  file_size_mb?: number;
+  file_hash?: string;
+  azure_file_status: string;
   version: number;
   parent_file: number | null;
   is_deleted: boolean;
   metadata: Record<string, any> | null;
-  assistant_id: string; // assistant_id string based on your API response
+  assistant?: number;
+  assistant_id?: string;
+  uploaded_by?: number;
+  uploaded_by_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -54,7 +61,7 @@ export interface BulkUploadResponse {
 }
 
 export class NewFileManagerAPI {
-  private baseUrl = '/api/assistants/files';
+  private baseUrl = '/api/files';
 
   /**
    * Get list of files for an assistant
@@ -89,11 +96,22 @@ export class NewFileManagerAPI {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.detail || errorMessage;
+      } catch (e) {
+        // If response is not JSON, use the status text or default message
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
-    return await response.json();
+    try {
+      return await response.json();
+    } catch (e) {
+      throw new Error('Server returned invalid response');
+    }
   }
 
   /**
@@ -162,17 +180,28 @@ export class NewFileManagerAPI {
       formData.append('files', file);
     });
 
-    const response = await fetch(`${this.baseUrl}/bulk-upload`, {
+    const response = await fetch(`${this.baseUrl}/bulk_upload`, {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.detail || errorMessage;
+      } catch (e) {
+        // If response is not JSON, use the status text or default message
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
-    return await response.json();
+    try {
+      return await response.json();
+    } catch (e) {
+      throw new Error('Server returned invalid response');
+    }
   }
 
   /**
@@ -216,8 +245,8 @@ export class NewFileManagerAPI {
 }
 
 // Utility functions
-export const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
+export const formatFileSize = (bytes: number | undefined | null): string => {
+  if (!bytes || bytes === 0 || isNaN(bytes)) return '0 Bytes';
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
