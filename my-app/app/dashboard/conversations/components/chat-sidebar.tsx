@@ -141,8 +141,8 @@ export default function ChatSidebar({
           <>
             {filteredConversations.map((conversation) => {
               const lastMessage = conversation.messages && conversation.messages.length > 0
-                ? conversation.messages[conversation.messages.length - 1]?.content || "No messages yet"
-                : "No messages yet"
+                ? conversation.messages[conversation.messages.length - 1]?.content || "Open chat to see messages"
+                : "Select chat to view messages"
               const unreadCount = conversation.unread_messages || 0
               const displayName = conversation.customer_name || conversation.customer_number || "Unknown"
               const time = conversation.updated_at 
