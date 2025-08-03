@@ -25,7 +25,7 @@ export async function GET(
     }
     
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/?organization_id=${organizationId}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`,
       {
         method: 'GET',
         headers: {
