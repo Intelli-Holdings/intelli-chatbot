@@ -119,4 +119,3 @@ export function MembersTable({ searchQuery, sortBy }: MembersTableProps) {
     </div>
   )
 }
-

@@ -5,23 +5,35 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { ExternalLink, Calendar, Clock, ArrowRight, AlertCircle } from "lucide-react"
+import { createSlug, formatDate } from "@/lib/blog-utils"
 
 // Define the structure of a post
 interface MediumPost {
   title: string
   link: string
   contentSnippet: string
-  content?: string
+  content: string
   thumbnail?: string
   pubDate?: string
   categories?: string[]
   author?: string
   readTime?: string
+  guid?: string
+}
+
+interface FeedInfo {
+  title?: string
+  description?: string
+  link?: string
+  image?: {
+    url?: string
+    title?: string
+    link?: string
+  }
+  lastBuildDate?: string
 }
 
 interface ApiResponse {
@@ -29,13 +41,14 @@ interface ApiResponse {
   success: boolean
   message?: string
   error?: string
+  feedInfo?: FeedInfo
+  totalItems?: number
 }
 
 const MediumBlogComponent: React.FC = () => {
   const [posts, setPosts] = useState<MediumPost[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedPost, setSelectedPost] = useState<MediumPost | null>(null)
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -76,9 +89,9 @@ const MediumBlogComponent: React.FC = () => {
             title: "Welcome to Our Blog",
             link: "#",
             contentSnippet:
-              "This is a demo post while we set up your Medium integration. Replace this with your actual Medium RSS feed URL in the API route.",
-            content: "<p>This is a demo post while we set up your Medium integration. Replace this with your actual Medium RSS feed URL in the API route.</p><p>You can customize the content, styling, and layout to match your brand. The blog component supports rich content including images, formatted text, and more.</p>",
-            thumbnail: "/placeholder.svg?height=400&width=600",
+              "This is a demo post while we wait for content from Medium.",
+            content: "<p>This is a demo post while we set up your Medium integration.</p><p>We shall shortly share the blog content with you. The blog component supports rich content including images, formatted text, and more.</p>",
+            thumbnail: "/blogThumbnail.png?height=400&width=600",
             pubDate: new Date().toISOString(),
             categories: ["Demo"],
             author: "Intelli Team",
@@ -93,21 +106,8 @@ const MediumBlogComponent: React.FC = () => {
     fetchPosts()
   }, [])
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return ""
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    } catch {
-      return ""
-    }
-  }
-
   const PostCard = ({ post }: { post: MediumPost }) => (
-    <Card className="group overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
+    <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
       <div className="relative aspect-[16/10] overflow-hidden">
         <Image
           src={post.thumbnail || "/blogThumbnail.png?height=400&width=600"}
@@ -154,19 +154,16 @@ const MediumBlogComponent: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedPost(post)}
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                >
-                  {post.content ? "Read Article" : "Read More"}
-                  <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
-              </DialogTrigger>
-            </Dialog>
+            <Link href={`/blog/${createSlug(post.title)}`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                {post.content ? "Read Article" : "Read More"}
+                <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </Link>
 
             {post.link !== "#" && (
               <Link href={post.link} target="_blank" rel="noopener noreferrer">
@@ -327,81 +324,6 @@ const MediumBlogComponent: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Post Content Modal */}
-      <Dialog open={!!selectedPost} onOpenChange={() => setSelectedPost(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-          {selectedPost && (
-            <>
-              <DialogHeader className="p-6 pb-4 border-b">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <DialogTitle className="text-2xl font-bold leading-tight pr-8">{selectedPost.title}</DialogTitle>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    {selectedPost.pubDate && (
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(selectedPost.pubDate)}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{selectedPost.readTime || "5 min read"}</span>
-                    </div>
-                    {selectedPost.author && <span>by {selectedPost.author}</span>}
-                  </div>
-                </div>
-              </DialogHeader>
-
-              <ScrollArea className="flex-1 p-6">
-                <div className="space-y-6">
-                  {selectedPost.thumbnail && (
-                    <div className="relative aspect-[16/9] rounded-lg overflow-hidden">
-                      <Image
-                        src={selectedPost.thumbnail || "/placeholder.svg"}
-                        alt={selectedPost.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-
-                  <div className="prose prose-gray max-w-none prose-lg">
-                    {selectedPost.content ? (
-                      <div 
-                        className="article-content"
-                        dangerouslySetInnerHTML={{ __html: selectedPost.content }} 
-                        style={{
-                          lineHeight: '1.8',
-                          fontSize: '16px'
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <p className="text-lg leading-relaxed text-gray-700 mb-6">{selectedPost.contentSnippet}</p>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
-                          <p className="text-blue-800 mb-4">
-                            This is a preview of the article. To read the full content, visit the original post on Medium.
-                          </p>
-                          {selectedPost.link !== "#" && (
-                            <Link href={selectedPost.link} target="_blank" rel="noopener noreferrer">
-                              <Button className="bg-blue-600 hover:bg-blue-700">
-                                Read Full Article on Medium
-                                <ExternalLink className="w-4 h-4 ml-2" />
-                              </Button>
-                            </Link>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </ScrollArea>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   )
 }
