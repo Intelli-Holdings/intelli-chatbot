@@ -5,18 +5,19 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import MessageInput from "./messageInput"
 import { formatMessage } from "@/utils/formatMessage"
-import type { Conversation } from "./types"
+import type { Conversation, ChatMessage } from "./types"
 import { format, parseISO, isToday, isYesterday } from "date-fns"
 import ConversationHeader from "./conversationsHeader"
 import { ScrollToBottomButton } from "@/app/dashboard/conversations/components/scroll-to-bottom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Download, FolderDown, File, Image, Music, Video, FileText, ChevronDown, ChevronUp, Send } from "lucide-react"
+import { Download, FolderDown, File, FileImage, Music, Video, FileText, ChevronDown, ChevronUp, Send } from "lucide-react"
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from "@/utils/exportUtils"
 import "./message-bubble.css"
 import ResolveReminder from "@/components/resolve-reminder"
 import { WebSocketHandler } from "@/components/websocket-handler"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
@@ -52,6 +53,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   const [wsInstance, setWsInstance] = useState<WebSocket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const router = useRouter()
@@ -60,12 +62,39 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   // Set initial messages when conversation changes
   useEffect(() => {
     if (conversation) {
-      setCurrentMessages(conversation.messages)
-      setLastMessageId(
-        conversation.messages.length > 0 ? Math.max(...conversation.messages.map((msg) => msg.id)) : null,
-      )
+      // If conversation already has messages, use them
+      if (conversation.messages && conversation.messages.length > 0) {
+        setCurrentMessages(conversation.messages)
+        setLastMessageId(
+          conversation.messages.length > 0 ? Math.max(...conversation.messages.map((msg) => msg.id)) : null,
+        )
+      } else if (fetchMessages) {
+        // If no messages but fetchMessages is available, fetch them
+        const loadMessages = async () => {
+          try {
+            const messages = await fetchMessages(conversation.customer_number || conversation.recipient_id)
+            setCurrentMessages(messages)
+            setLastMessageId(
+              (messages?.length ?? 0) > 0 ? Math.max(...(messages ?? []).map((msg) => msg.id)) : null,
+            )
+          } catch (error) {
+            console.error('Failed to fetch messages for conversation:', error)
+            setCurrentMessages([])
+            setLastMessageId(null)
+          }
+        }
+        loadMessages()
+      } else {
+        // No messages and no fetch function
+        setCurrentMessages([])
+        setLastMessageId(null)
+      }
+      
+      // Reset initial load flag when conversation changes
+      setIsInitialLoad(true)
+      setTimeout(() => setIsInitialLoad(false), 500)
     }
-  }, [conversation])
+  }, [conversation, fetchMessages])
 
   // Listen for AI support changes from the header component
   useEffect(() => {
@@ -94,7 +123,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
       const newMessage = event.detail.message
       console.log("New message received:", newMessage)
       if (newMessage) {
-        setCurrentMessages((prev) => [...prev, newMessage])
+        setCurrentMessages((prev) => [...(prev || []), newMessage])
         setLastMessageId(newMessage.id)
         setShouldAutoScroll(true)
       }
@@ -139,29 +168,66 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   const refreshMessages = useCallback(async () => {
     if (!conversation || !fetchMessages) return
 
+    setIsRefreshing(true)
     try {
-      const newMessages = await fetchMessages(conversation.id.toString())
+      const allMessages = await fetchMessages(conversation.customer_number || conversation.recipient_id)
 
-      if (newMessages && newMessages.length > 0) {
-        const highestNewId = Math.max(...newMessages.map((msg) => msg.id))
+      if (allMessages && allMessages.length > 0) {
+        const highestNewId = Math.max(...allMessages.map((msg) => msg.id))
 
-        if (lastMessageId === null || highestNewId > lastMessageId) {
-          const actualNewMessages = newMessages.filter((msg) => lastMessageId === null || msg.id > lastMessageId)
+        if (lastMessageId === null) {
+          // First time loading - set all messages
+          setCurrentMessages(allMessages)
+          setLastMessageId(highestNewId)
+        } else if (highestNewId > lastMessageId) {
+          // There are new messages - find only the new ones
+          const actualNewMessages = allMessages.filter((msg) => msg.id > lastMessageId)
 
           if (actualNewMessages.length > 0) {
-            setCurrentMessages((prev) => [...prev, ...actualNewMessages])
+            setCurrentMessages((prev) => [...(prev || []), ...actualNewMessages])
             setLastMessageId(highestNewId)
 
-            if (lastMessageId !== null) {
-            }
+            console.log(`Fetched ${actualNewMessages.length} new messages`)
+            toast({
+              description: `${actualNewMessages.length} new message${actualNewMessages.length > 1 ? 's' : ''} received`,
+              duration: 2000,
+            })
           }
         }
       }
 
     } catch (error) {
       console.error("Error fetching new messages:", error)
+      toast({
+        description: "Failed to fetch new messages",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setIsRefreshing(false)
     }
-  }, [conversation, fetchMessages, lastMessageId, ])
+  }, [conversation, fetchMessages, lastMessageId, toast])
+
+  // Set up polling to fetch latest messages when AI support is not active
+  useEffect(() => {
+    if (!conversation || !fetchMessages || isAiSupport) return
+
+    // Initial fetch after a short delay to avoid conflicts
+    const initialTimer = setTimeout(() => {
+      refreshMessages()
+    }, 1000)
+
+    // Set up polling every 3 seconds to fetch new messages
+    const pollInterval = setInterval(() => {
+      refreshMessages()
+    }, 3000)
+
+    return () => {
+      clearTimeout(initialTimer)
+      clearInterval(pollInterval)
+    }
+  }, [conversation, fetchMessages, isAiSupport, refreshMessages])
+
 
   // Optimistic UI update on message send
   const handleMessageSent = useCallback(
@@ -176,7 +242,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
         media: null,
         type: "text",
       }
-      setCurrentMessages((prev) => [...prev, optimisticMessage])
+      setCurrentMessages((prev) => [...(prev || []), optimisticMessage])
       setLastMessageId(optimisticMessage.id)
       setShouldAutoScroll(true)
     },
@@ -193,7 +259,13 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
 
   const groupMessagesByDate = (messages: Conversation["messages"]) => {
     const groups: { [key: string]: Conversation["messages"] } = {}
-    messages.forEach((message) => {
+    
+    // Sort messages by created_at to ensure chronological order
+    const sortedMessages = messages?.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    ) || []
+    
+    sortedMessages.forEach((message) => {
       const date = format(parseISO(message.created_at), "yyyy-MM-dd")
       if (!groups[date]) {
         groups[date] = []
@@ -222,7 +294,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
 
   // Get icon based on file type
   const getFileIcon = (mimeType = "") => {
-    if (mimeType.startsWith("image/")) return <Image className="h-5 w-5 text-blue-500" />
+    if (mimeType.startsWith("image/")) return <FileImage className="h-5 w-5 text-blue-500" />
     if (mimeType.startsWith("video/")) return <Video className="h-5 w-5 text-purple-500" />
     if (mimeType.startsWith("audio/")) return <Music className="h-5 w-5 text-green-500" />
     if (mimeType.includes("pdf")) return <FileText className="h-5 w-5 text-red-500" />
@@ -264,6 +336,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
           phoneNumber={phoneNumber}
           onAiSupportChange={(isActive) => setIsAiSupport(isActive)}
         />
+        
       </div>
 
       {/* Always render WebSocketHandler when conversation exists, regardless of who's handling it */}
@@ -277,10 +350,12 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
       {/* WebSocket connection status indicator - show only when human support is active */}
       {!isAiSupport && (
         <div className="bg-green-50 border-green-200 border-b px-4 py-1 text-sm flex items-center justify-between">
-          <span
-            className={`inline-block w-2 h-2 rounded-full mr-2 ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
-          ></span>
-          {isConnected ? "Live connection active" : "Connecting..."}
+          <div className="flex items-center">
+            <span
+              className={`inline-block w-2 h-2 rounded-full mr-2 ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+            ></span>
+            {isConnected ? "Live connection active" : "Connecting..."}
+          </div>
         </div>
       )}
 
@@ -344,10 +419,12 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
         ref={scrollAreaRef}
       >
         <div className="flex flex-col gap-2">
-          {Object.entries(groupedMessages).map(([date, messages]) => (
+          {Object.entries(groupedMessages)
+            .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+            .map(([date, messages]) => (
             <div className="" key={date}>
               {renderDateSeparator(date)}
-              {messages.map((message) => (
+              {(messages ?? []).map((message) => (
                 <div key={message.id} className="flex flex-col mb-4">
                   {message.content && (
                     <div
@@ -388,7 +465,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
                       <div className="text-sm cursor-pointer" onClick={() => {}}>
                         <div className="max-w-xs rounded-lg overflow-hidden shadow">
                           {message.type === "image" ? (
-                            <img
+                            <Image
                               src={message.media || "/placeholder.svg"}
                               alt="Image"
                               className="w-full h-auto rounded-lg"
@@ -410,7 +487,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
               ))}
             </div>
           ))}
-          {currentMessages.length === 0 && (
+          {(currentMessages?.length ?? 0) === 0 && (
             <div className="flex items-center justify-center h-40">
               <p>No Messages yet</p>
             </div>
@@ -426,10 +503,6 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
           onMessageSent={handleMessageSent}
         />
       </div>
-
-      {/* Hidden audio element for browsers that need it */}
-      <audio id="notification-sound" src="/notification-sound.mp3" preload="auto" style={{ display: "none" }} />
     </div>
   )
 }
-

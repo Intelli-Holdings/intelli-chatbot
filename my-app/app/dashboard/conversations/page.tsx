@@ -72,13 +72,14 @@ interface Message {
   timestamp: string;
 }
 
-async function fetchChatSessions(phoneNumber: string): Promise<ChatSession[]> {
+async function fetchChatSessions(phoneNumber: string, orgId: string): Promise<ChatSession[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`);
+    const res = await fetch(`/api/appservice/paginated/conversations/whatsapp/chat_sessions/org/${orgId}/${phoneNumber}/`);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
-    return await res.json();
+    const data = await res.json();
+    return data.results || [];
   } catch (error) {
     console.error("Failed to fetch chat sessions:", error);
     return [];
@@ -87,17 +88,16 @@ async function fetchChatSessions(phoneNumber: string): Promise<ChatSession[]> {
 
 async function fetchAppServices(orgId: string): Promise<AppService[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/appservice/org/${orgId}/appservices/`);
+    const res = await fetch(`/api/appservice/paginated/org/${orgId}/appservices/`);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
-    const appServices = await res.json();
+    const data = await res.json();
+    const appServices = data.results || [];
 
-    // Fetch chat sessions for each phone number
-    for (const service of appServices) {
-      if (service.phone_number) {
-        service.chatsessions = await fetchChatSessions(service.phone_number);
-      }
+    // Fetch chat sessions for the first app service only (since you typically have one)
+    if (appServices.length > 0 && appServices[0].phone_number) {
+      appServices[0].chatsessions = await fetchChatSessions(appServices[0].phone_number, orgId);
     }
 
     return appServices;
@@ -155,7 +155,12 @@ function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-xl font-bold">{`${totalWhatsAppConversations} chats`}</div>
-          <p className="text-xs text-muted-foreground">Monitor whatsapp conversations</p>
+          <p className="text-xs text-muted-foreground">
+            {appServices.length > 0 
+              ? `Monitor conversations for ${appServices[0]?.phone_number}` 
+              : "View whatsapp chats"
+            }
+          </p>
         </CardContent>
       </Card>
 

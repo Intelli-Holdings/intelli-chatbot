@@ -9,6 +9,7 @@ import useActiveOrganizationId from "@/hooks/use-organization-id";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import type { Conversation } from "@/app/dashboard/conversations/components/types";
 import { toast } from "sonner";
+import LoadingProgress from "@/components/loading-progress";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -22,59 +23,208 @@ export default function WhatsAppConvosPage() {
     const isMobile = useMediaQuery("(max-width: 768px)");
     const activeOrganizationId = useActiveOrganizationId();
     const [loading, setLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [page, setPage] = useState(1);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [loadingProgress, setLoadingProgress] = useState(0);
+    const [loadingMessage, setLoadingMessage] = useState("");
+    const [isInitializing, setIsInitializing] = useState(true);
 
       useEffect(() => {
         if (!activeOrganizationId) return;
     
         async function fetchPhoneNumber() {
           try {
+            setLoadingMessage("Fetching phone configuration...");
+            setLoadingProgress(20);
+            
             const res = await fetch(
-              `${API_BASE_URL}/appservice/org/${activeOrganizationId}/appservices/`
+              `/api/appservice/paginated/org/${activeOrganizationId}/appservices/`
             );
             if (!res.ok) {
               throw new Error(`HTTP error! status: ${res.status}`);
             }
-            const appServices = await res.json();
-            const number = appServices[0]?.phone_number || "";
+            const data = await res.json();
+            const number = data.results?.[0]?.phone_number || "";
             setPhoneNumber(number);
+            
+            setLoadingProgress(40);
+            setLoadingMessage("Phone configuration loaded");
           } catch (error) {
             console.error("Failed to fetch phone number:", error);
+            toast.error("Failed to fetch phone configuration");
           }
         }
     
         fetchPhoneNumber();
       }, [activeOrganizationId]);
 
-        // Fetch conversations
+        // Fetch initial conversations
         useEffect(() => {
-          if (!phoneNumber) return;
+          if (!phoneNumber || !activeOrganizationId) return;
       
           async function fetchConversations() {
+            setLoading(true);
+            setLoadingProgress(50);
+            setLoadingMessage("Loading conversations...");
+            
             try {
+              const startTime = Date.now();
               const res = await fetch(
-                `${API_BASE_URL}/appservice/conversations/whatsapp/chat_sessions/${phoneNumber}/`
+                `/api/appservice/paginated/conversations/whatsapp/chat_sessions/org/${activeOrganizationId}/${phoneNumber}/?page=1&page_size=12`
               );
+              
+              setLoadingProgress(75);
+              setLoadingMessage("Processing chat data...");
+              
               if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
               }
               const data = await res.json();
-              setConversations(Array.isArray(data) ? data : []);
+              
+              setLoadingProgress(90);
+              setLoadingMessage("Preparing conversations...");
+              
+              const conversationsWithMessages = (data.results || []).map((conv: any) => ({
+                ...conv,
+                messages: [], 
+                phone_number: phoneNumber,
+                recipient_id: conv.customer_number,
+                attachments: []
+              }));
+              
+              setConversations(conversationsWithMessages);
+              setHasMore(data.next !== null);
+              setPage(1);
+              
+              setLoadingProgress(100);
+              setLoadingMessage("Ready!");
+              
+              // Small delay to show completion
+              setTimeout(() => {
+                setIsInitializing(false);
+              }, 500);
+              
             } catch (error) {
               console.error("Failed to fetch conversations:", error);
               toast.error("Failed to fetch conversations");
+              setIsInitializing(false);
+            } finally {
+              setLoading(false);
             }
           }
       
           fetchConversations();
-        }, [phoneNumber]);
+        }, [phoneNumber, activeOrganizationId]);
+
+        // Function to load more conversations
+        const loadMoreConversations = async () => {
+          if (!phoneNumber || !activeOrganizationId || !hasMore || isLoadingMore) return;
+          
+          setIsLoadingMore(true);
+          try {
+            const nextPage = page + 1;
+            const res = await fetch(
+              `/api/appservice/paginated/conversations/whatsapp/chat_sessions/org/${activeOrganizationId}/${phoneNumber}/?page=${nextPage}&page_size=12`
+            );
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            const data = await res.json();
+            const newConversationsWithMessages = (data.results || []).map((conv: any) => ({
+              ...conv,
+              messages: [], // Initially empty - will be loaded when conversation is selected
+              phone_number: phoneNumber,
+              recipient_id: conv.customer_number,
+              attachments: []
+            }));
+            
+            setConversations(prev => [...prev, ...newConversationsWithMessages]);
+            setHasMore(data.next !== null);
+            setPage(nextPage);
+          } catch (error) {
+            console.error("Failed to load more conversations:", error);
+            toast.error("Failed to load more conversations");
+          } finally {
+            setIsLoadingMore(false);
+          }
+        };
+
+        // Function to fetch messages for a specific conversation
+        const fetchMessagesForConversation = async (customerNumber: string) => {
+          try {
+            const res = await fetch(
+              `/api/appservice/paginated/conversations/whatsapp/chat_sessions/${phoneNumber}/${customerNumber}/`
+            );
+            
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            // Transform the messages to match the expected format
+            const messages = (data.results || []).map((msg: any) => ({
+              id: msg.id,
+              content: msg.content,
+              answer: msg.answer,
+              created_at: msg.created_at,
+              sender: msg.sender || 'ai' // Default to 'ai' if sender not specified
+            }));
+            
+            // Reverse the messages so that the oldest appear first (latest at bottom)
+            return messages.reverse();
+          } catch (error) {
+            console.error(`Failed to fetch messages for customer ${customerNumber}:`, error);
+            return [];
+          }
+        };
       
-        const handleSelectConversation = (conversation: Conversation) => {
-          setSelectedConversation(conversation);
+        const handleSelectConversation = async (conversation: Conversation) => {
+          // Fetch messages for the selected conversation if not already loaded
+          if (!conversation.messages || conversation.messages.length === 0) {
+            const messages = await fetchMessagesForConversation(conversation.customer_number);
+            
+            // Update the conversation with fetched messages
+            const updatedConversation = {
+              ...conversation,
+              messages: messages
+            };
+            
+            // Update the conversations list to cache the messages
+            setConversations(prev => 
+              prev.map(conv => 
+                conv.customer_number === conversation.customer_number 
+                  ? updatedConversation 
+                  : conv
+              )
+            );
+            
+            setSelectedConversation(updatedConversation);
+          } else {
+            setSelectedConversation(conversation);
+          }
+          
           if (isMobile) {
             setIsSheetOpen(true);
           }
         };
 
+
+  // Show loading screen during initialization
+  if (isInitializing) {
+    return (
+      <div className="flex h-screen max-h-screen overflow-hidden border rounded-xl border-gray-200">
+        <div className="flex-1 flex items-center justify-center">
+          <LoadingProgress 
+            isLoading={true} 
+            loadingType="initial" 
+            currentProgress={loadingProgress}
+            message={loadingMessage}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen max-h-screen overflow-hidden border rounded-xl border-gray-200">
@@ -82,6 +232,9 @@ export default function WhatsAppConvosPage() {
       conversations={conversations}
       onSelectConversation={handleSelectConversation}
       loading={loading}
+      hasMore={hasMore}
+      loadMore={loadMoreConversations}
+      isLoadingMore={isLoadingMore}
       />
       <div className="flex-1 relative">
       {selectedConversation ? (
@@ -89,6 +242,7 @@ export default function WhatsAppConvosPage() {
         conversation={selectedConversation}
         conversations={conversations}
         phoneNumber={phoneNumber}
+        fetchMessages={fetchMessagesForConversation}
         />
       ) : (
         <div className="flex items-center justify-center h-full">
@@ -106,6 +260,7 @@ export default function WhatsAppConvosPage() {
                   conversation={selectedConversation}
                   conversations={conversations}
                   phoneNumber={phoneNumber}
+                  fetchMessages={fetchMessagesForConversation}
                 />
               )}
             </SheetContent>

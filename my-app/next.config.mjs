@@ -37,6 +37,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'cdn-images-1.medium.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'api.qrserver.com',
         port: '',
         pathname: '/v1/create-qr-code/**',
@@ -46,6 +52,24 @@ const nextConfig = {
         hostname: 'img.clerk.com',
         port: '',
         pathname: '/*',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'yt3.ggpht.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
