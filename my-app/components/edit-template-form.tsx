@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -11,22 +10,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, X } from "lucide-react"
+import { type WhatsAppTemplate } from "@/services/whatsapp"
 
-interface CreateTemplateFormProps {
+interface EditTemplateFormProps {
+  template: WhatsAppTemplate
   onClose: () => void
   onSubmit: (templateData: any) => Promise<boolean>
   loading?: boolean
 }
 
-interface TemplateComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS'
-  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'
-  text?: string
-  example?: any
-  buttons?: any[]
-}
-
-export default function CreateTemplateForm({ onClose, onSubmit, loading = false }: CreateTemplateFormProps) {
+export default function EditTemplateForm({ template, onClose, onSubmit, loading = false }: EditTemplateFormProps) {
   const [templateData, setTemplateData] = useState({
     name: "",
     language: "en_US",
@@ -41,6 +34,30 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (template) {
+      // Parse existing template data
+      const headerComponent = template.components?.find(c => c.type === 'HEADER')
+      const bodyComponent = template.components?.find(c => c.type === 'BODY')
+      const footerComponent = template.components?.find(c => c.type === 'FOOTER')
+      const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS')
+
+      setTemplateData({
+        name: template.name,
+        language: template.language,
+        category: template.category,
+        headerType: headerComponent ? headerComponent.format || "TEXT" : "NONE",
+        headerText: headerComponent?.text || "",
+        body: bodyComponent?.text || "",
+        footer: footerComponent?.text || "",
+        buttonType: buttonsComponent ? 
+          (buttonsComponent.buttons?.[0]?.type === 'URL' ? "CALL_TO_ACTION" : "QUICK_REPLY") : "NONE",
+        buttons: buttonsComponent?.buttons || [],
+        variables: [] // Extract from body text if needed
+      })
+    }
+  }, [template])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,7 +75,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
     setIsSubmitting(true)
     
     try {
-      const components: TemplateComponent[] = []
+      const components: any[] = []
       
       // Add header component if specified
       if (templateData.headerType !== "NONE" && templateData.headerText) {
@@ -95,7 +112,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
       }
 
       const payload = {
-        name: templateData.name.toLowerCase().replace(/[^a-z0-9_]/g, '_'), // WhatsApp template name rules
+        name: templateData.name,
         language: templateData.language,
         category: templateData.category,
         components
@@ -104,12 +121,12 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
       const success = await onSubmit(payload)
       
       if (success) {
-        toast.success("Template created successfully!")
+        toast.success("Template updated successfully!")
         onClose()
       }
     } catch (error) {
-      console.error('Template creation error:', error)
-      toast.error("Failed to create template")
+      console.error('Template update error:', error)
+      toast.error("Failed to update template")
     } finally {
       setIsSubmitting(false)
     }
@@ -173,6 +190,29 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
     })
   }
 
+  // Show warning if template is approved
+  if (template.status === 'APPROVED') {
+    return (
+      <div className="p-6 text-center">
+        <h3 className="text-lg font-semibold mb-4">Template Cannot Be Modified</h3>
+        <p className="text-muted-foreground mb-4">
+          Approved templates cannot be edited. To make changes, you&apos;ll need to create a new template.
+        </p>
+        <div className="flex gap-2 justify-center">
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          <Button onClick={() => {
+            // This would create a copy for editing
+            toast.info("Create copy functionality coming soon!")
+          }}>
+            Create Copy
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 max-h-[80vh] overflow-y-auto">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -187,9 +227,10 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
               value={templateData.name}
               onChange={(e) => setTemplateData({ ...templateData, name: e.target.value })}
               required
+              disabled // Template names cannot be changed after creation
             />
             <p className="text-xs text-muted-foreground">
-              Template names must be lowercase, alphanumeric, and can include underscores
+              Template names cannot be changed after creation
             </p>
           </div>
 
@@ -200,6 +241,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
             <Select 
               value={templateData.language} 
               onValueChange={(value) => setTemplateData({ ...templateData, language: value })}
+              disabled // Language cannot be changed after creation
             >
               <SelectTrigger>
                 <SelectValue />
@@ -215,6 +257,9 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
                 <SelectItem value="zh_CN">Chinese (Simplified)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Language cannot be changed after creation
+            </p>
           </div>
         </div>
 
@@ -249,7 +294,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
         </div>
 
         <div className="space-y-2">
-          <Label className="text-xs font-medium text-muted-foreground">HEADER TYPE *</Label>
+          <Label className="text-xs font-medium text-muted-foreground">HEADER TYPE</Label>
           <div className="flex gap-2">
             <Button
               type="button"
@@ -409,7 +454,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false 
             Cancel
           </Button>
           <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isSubmitting || loading}>
-            {isSubmitting ? "Creating..." : "Create Template"}
+            {isSubmitting ? "Updating..." : "Update Template"}
           </Button>
         </div>
       </form>

@@ -154,11 +154,10 @@ export default function SendMessagePage() {
 			console.log("Sending message payload:", JSON.stringify(payload, null, 2))
 
 			const result = await WhatsAppService.sendMessage(
-				selectedAppService.phoneNumberId,
-				selectedAppService.accessToken,
+				selectedAppService,
 				payload
 			)
-
+			
 			setSendResult({
 				success: true,
 				message: `Message sent successfully! Message ID: ${result.messages?.[0]?.id || "N/A"}`,
