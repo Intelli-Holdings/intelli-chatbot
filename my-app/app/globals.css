@@ -134,3 +134,13 @@
   animation: loading-pulse 2s ease-in-out infinite;
 }
 
+/* Card wallet shine animation */
+@keyframes shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.shine-animation {
+  animation: shine 1.5s ease-in-out;
+}
+
