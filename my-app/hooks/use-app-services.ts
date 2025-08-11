@@ -23,7 +23,7 @@ export const useAppServices = (): UseAppServicesReturn => {
 
   const fetchAppServices = async () => {
     if (!organizationId) {
-      setError('Organization ID not available');
+      setError('Organization ID not available. Please ensure you are logged in and have an active organization.');
       return;
     }
 
@@ -34,12 +34,24 @@ export const useAppServices = (): UseAppServicesReturn => {
       const services = await WhatsAppService.fetchAppServices(organizationId);
       setAppServices(services);
       
-      // Auto-select the first app service if available
+      // Auto-select the first app service if available and none is selected
       if (services.length > 0 && !selectedAppService) {
         setSelectedAppService(services[0]);
+      } else if (services.length === 0) {
+        // Provide helpful message when no services are found
+        setError('No WhatsApp services found for this organization. Please configure a WhatsApp Business account first.');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch app services';
+      let errorMessage = 'Failed to fetch app services';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to connect to the API server. Please ensure the backend service is running.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
       setError(errorMessage);
       console.error('Error fetching app services:', err);
     } finally {

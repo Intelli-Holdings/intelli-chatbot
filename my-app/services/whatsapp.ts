@@ -1,11 +1,13 @@
 interface AppService {
-  id: string;
-  wabaId: string;
-  phoneNumberId: string;
-  accessToken: string;
-  organizationId: string;
-  name: string;
-  status: string;
+  id: number;
+  phone_number: string;
+  phone_number_id: string;
+  whatsapp_business_account_id: string;
+  created_at: string;
+  access_token: string; // Required for Meta Graph API calls
+  organizationId?: string;
+  name?: string;
+  status?: string;
 }
 
 interface WhatsAppTemplate {
@@ -14,8 +16,16 @@ interface WhatsAppTemplate {
   category: string;
   status: string;
   language: string;
-  components: any[];
+  components: TemplateComponent[];
   parameters?: any[];
+}
+
+interface TemplateComponent {
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+  text?: string;
+  example?: any;
+  buttons?: any[];
 }
 
 interface WhatsAppApiResponse<T> {
@@ -29,7 +39,6 @@ interface WhatsAppApiResponse<T> {
 }
 
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v22.0';
 
 export class WhatsAppService {
@@ -38,30 +47,51 @@ export class WhatsAppService {
    */
   static async fetchAppServices(organizationId: string): Promise<AppService[]> {
     try {
-      const response = await fetch(`${BASE_URL}/appservice/org/${organizationId}/appservices/`);
+      if (!organizationId) {
+        throw new Error('Organization ID is required');
+      }
+
+      // Use the local API route which handles the backend call
+      const apiUrl = `/api/channels/whatsapp/org/${organizationId}`;
+      
+      console.log('Fetching app services from:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch app services: ${response.statusText}`);
+        throw new Error(`Failed to fetch app services: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      return data.appServices || data || [];
+      // Handle both array response and object with appServices property
+      const services = Array.isArray(data) ? data : (data.appServices || data || []);
+      
+      console.log('Fetched app services:', services);
+      return services;
     } catch (error) {
       console.error('Error fetching app services:', error);
       throw error;
     }
   }
 
+
+
   /**
    * Fetch WhatsApp templates from Meta API
    */
-  static async fetchTemplates(wabaId: string, accessToken: string): Promise<WhatsAppTemplate[]> {
+  static async fetchTemplates(appService: AppService): Promise<WhatsAppTemplate[]> {
     try {
+      
       const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${wabaId}/message_templates`,
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${appService.access_token}`,
             'Content-Type': 'application/json',
           },
         }
@@ -84,17 +114,21 @@ export class WhatsAppService {
    * Create a new WhatsApp template
    */
   static async createTemplate(
-    wabaId: string, 
-    accessToken: string, 
+    appService: AppService,
     templateData: any
   ): Promise<any> {
     try {
+      // Ensure access token is provided
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+      
       const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${wabaId}/message_templates`,
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${appService.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(templateData),
@@ -118,16 +152,21 @@ export class WhatsAppService {
    */
   static async updateTemplate(
     templateId: string,
-    accessToken: string,
+    appService: AppService,
     templateData: any
   ): Promise<any> {
     try {
+      // Ensure access token is provided
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+      
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${templateId}`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${appService.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(templateData),
@@ -150,17 +189,21 @@ export class WhatsAppService {
    * Delete a WhatsApp template
    */
   static async deleteTemplate(
-    wabaId: string,
-    templateName: string,
-    accessToken: string
+    appService: AppService,
+    templateName: string
   ): Promise<any> {
     try {
+      // Ensure access token is provided
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+      
       const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${wabaId}/message_templates?name=${templateName}`,
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates?name=${templateName}`,
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${appService.access_token}`,
             'Content-Type': 'application/json',
           },
         }
@@ -182,17 +225,21 @@ export class WhatsAppService {
    * Send a WhatsApp message using template
    */
   static async sendMessage(
-    phoneNumberId: string,
-    accessToken: string,
+    appService: AppService,
     messageData: any
   ): Promise<any> {
     try {
+      // Ensure access token is provided
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+      
       const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${phoneNumberId}/messages`,
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${appService.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(messageData),
@@ -210,6 +257,36 @@ export class WhatsAppService {
       throw error;
     }
   }
+
+  /**
+   * Send a template message
+   */
+  
+  static async sendTemplateMessage(
+    appService: AppService,
+    to: string,
+    templateName: string,
+    languageCode: string,
+    parameters?: any[]
+  ): Promise<any> {
+    const messageData = {
+      messaging_product: "whatsapp",
+      to: to,
+      type: "template",
+      template: {
+        name: templateName,
+        language: {
+          code: languageCode
+        },
+        components: parameters && parameters.length > 0 ? [{
+          type: "body",
+          parameters: parameters
+        }] : undefined
+      }
+    };
+
+    return this.sendMessage(appService, messageData);
+  }
 }
 
-export type { AppService, WhatsAppTemplate, WhatsAppApiResponse };
+export type { AppService, WhatsAppTemplate, WhatsAppApiResponse, TemplateComponent };

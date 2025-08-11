@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Plus, Trash } from "lucide-react"
+import { toast } from "sonner"
 import CreateTemplateForm from "@/components/create-template-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -109,7 +110,15 @@ export default function CreateTemplatePage() {
           </Button>
           <h1 className="text-2xl font-bold">Create New Template</h1>
         </div>
-        <CreateTemplateForm onClose={() => router.back()} />
+        <CreateTemplateForm 
+          onClose={() => router.back()} 
+          onSubmit={async (templateData) => {
+            // This would normally be handled by the parent component
+            // For now, just return false to indicate it needs to be implemented
+            toast.error("Template creation needs to be connected to your WhatsApp Business API");
+            return false;
+          }}
+        />
       </main>
     </div>
   )

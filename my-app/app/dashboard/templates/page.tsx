@@ -1,71 +1,376 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Settings, ChevronDown, Info } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { WhatsAppService, type AppService, type WhatsAppTemplate } from '@/services/whatsapp';
+import { DefaultTemplate, defaultTemplates } from '@/data/default-templates';
+import { Search, Settings, ChevronDown, Info, Plus, RefreshCw, Eye, Edit, Trash2, Send, TestTube, Sparkles } from "lucide-react"
+import Link from "next/link"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import CreateTemplateForm from "@/components/create-template-form"
 import DashboardHeader from "@/components/dashboard-header"
-
-// Mock data for templates
-const mockTemplates = [
-  {
-    id: "1",
-    name: "intelli_escalations",
-    category: "UTILITY",
-    status: "ACTIVE",
-    language: "English (US)",
-    languageDetails: "Hi {{first_name}}, An agent will assist you shortly.",
-    deliveries: 0,
-    reads: 0,
-    blocks: "--",
-    lastEdited: "Feb 22, 2025",
-  },
-  {
-    id: "2",
-    name: "statement_available_4",
-    category: "MARKETING",
-    status: "ACTIVE",
-    language: "English (US)",
-    languageDetails: "Welcome {{1}} and Congratulations!",
-    deliveries: 0,
-    reads: 0,
-    blocks: "--",
-    lastEdited: "Nov 14, 2024",
-  },
-  {
-    id: "3",
-    name: "customer_support_chat",
-    category: "MARKETING",
-    status: "ACTIVE",
-    language: "English",
-    languageDetails: "Congratulations {{1}} on your purchase!",
-    deliveries: 0,
-    reads: 0,
-    blocks: "--",
-    lastEdited: "Nov 13, 2024",
-  },
-  {
-    id: "4",
-    name: "hello_world",
-    category: "UTILITY",
-    status: "ACTIVE",
-    language: "English (US)",
-    languageDetails: "Welcome and congratulations on your purchase!",
-    deliveries: 0,
-    reads: 0,
-    blocks: "--",
-    lastEdited: "Oct 9, 2024",
-  },
-]
+import useActiveOrganizationId from "@/hooks/use-organization-id"
+import { TemplateCard } from "@/components/template-card"
+import { WhatsAppChatPreview } from "@/components/whatsapp-chat-preview"
+import { TemplateTester } from "@/components/template-tester"
+import { TemplateDetailsDialog } from "@/components/template-details-dialog"
+import { TemplateEditor } from "@/components/template-editor"
 
 export default function TemplatesPage() {
+  const organizationId = useActiveOrganizationId()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [activeTab, setActiveTab] = useState("browse")
+  const [selectedPreviewTemplate, setSelectedPreviewTemplate] = useState<DefaultTemplate | null>(null)
+  const [creatingTemplateId, setCreatingTemplateId] = useState<string | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null)
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+  const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false)
+  
+  // State for app services and templates
+  const [appServices, setAppServices] = useState<AppService[]>([])
+  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([])
+  const [selectedAppService, setSelectedAppService] = useState<AppService | null>(null)
+  const [servicesLoading, setServicesLoading] = useState(false)
+  const [templatesLoading, setTemplatesLoading] = useState(false)
+  const [servicesError, setServicesError] = useState<string | null>(null)
+  const [templatesError, setTemplatesError] = useState<string | null>(null)
+
+  // Fetch app services for organization
+  const fetchAppServices = useCallback(async () => {
+    if (!organizationId) {
+      setServicesError('Organization ID not available. Please ensure you are logged in and have an active organization.');
+      return;
+    }
+
+    setServicesLoading(true);
+    setServicesError(null);
+
+    try {
+      // Use the local API route which handles the backend call
+      const apiUrl = `/api/channels/whatsapp/org/${organizationId}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch app services: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      // Handle both array response and object with appServices property
+      const services = Array.isArray(data) ? data : (data.appServices || data || []);
+      
+      setAppServices(services);
+      
+      // Auto-select the first app service if available and none is selected
+      if (services.length > 0 && !selectedAppService) {
+        setSelectedAppService(services[0]);
+      } else if (services.length === 0) {
+        setServicesError('No WhatsApp services found for this organization. Please configure a WhatsApp Business account first.');
+      }
+    } catch (err) {
+      let errorMessage = 'Failed to fetch app services';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to connect to the API server. Please ensure the backend service is running.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setServicesError(errorMessage);
+      console.error('Error fetching app services:', err);
+    } finally {
+      setServicesLoading(false);
+    }
+  }, [organizationId, selectedAppService]);
+
+  // Fetch WhatsApp templates from Meta API
+  const fetchTemplates = useCallback(async () => {
+    if (!selectedAppService?.whatsapp_business_account_id) {
+      setTemplatesError('App service configuration not available');
+      return;
+    }
+
+    if (!selectedAppService?.access_token) {
+      setTemplatesError('Access token is required for Meta Graph API calls');
+      return;
+    }
+
+    setTemplatesLoading(true);
+    setTemplatesError(null);
+
+    try {
+      // Use WhatsAppService to fetch templates from Meta Graph API directly
+      const data = await WhatsAppService.fetchTemplates(selectedAppService as AppService);
+      setTemplates(data || []);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch templates';
+      setTemplatesError(errorMessage);
+      console.error('Error fetching templates:', err);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [selectedAppService]);
+
+  // Create template function from default template
+  const createTemplateFromDefault = useCallback(async (defaultTemplate: DefaultTemplate): Promise<boolean> => {
+    if (!selectedAppService?.whatsapp_business_account_id) {
+      setTemplatesError('App service configuration not available');
+      return false;
+    }
+
+    if (!selectedAppService?.access_token) {
+      setTemplatesError('Access token is required for Meta Graph API calls');
+      return false;
+    }
+
+    setCreatingTemplateId(defaultTemplate.id);
+
+    try {
+      // Convert default template to WhatsApp API format
+      const templateData = {
+        name: defaultTemplate.name.toLowerCase().replace(/\s+/g, '_'),
+        category: defaultTemplate.category,
+        components: defaultTemplate.components,
+        language: 'en_US'
+      };
+      
+      // Use WhatsAppService to create templates via Meta Graph API directly
+      await WhatsAppService.createTemplate(selectedAppService as AppService, templateData);
+
+      // Refetch templates after creation
+      await fetchTemplates();
+      toast.success('Template created successfully!');
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
+      setTemplatesError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Error creating template:', err);
+      return false;
+    } finally {
+      setCreatingTemplateId(null);
+    }
+  }, [selectedAppService, fetchTemplates]);
+
+  // Create template function
+  const createTemplate = useCallback(async (templateData: any): Promise<boolean> => {
+    if (!selectedAppService?.whatsapp_business_account_id) {
+      setTemplatesError('App service configuration not available');
+      return false;
+    }
+
+    if (!selectedAppService?.access_token) {
+      setTemplatesError('Access token is required for Meta Graph API calls');
+      return false;
+    }
+
+    try {
+      setTemplatesLoading(true);
+      
+      // Use WhatsAppService to create templates via Meta Graph API directly
+      await WhatsAppService.createTemplate(selectedAppService as AppService, templateData);
+
+      // Refetch templates after creation
+      await fetchTemplates();
+      toast.success('Template created successfully!');
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
+      setTemplatesError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Error creating template:', err);
+      return false;
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [selectedAppService, fetchTemplates]);
+
+  // Delete template function
+  const deleteTemplate = useCallback(async (templateName: string): Promise<boolean> => {
+    if (!selectedAppService?.whatsapp_business_account_id) {
+      setTemplatesError('App service configuration not available');
+      return false;
+    }
+
+    if (!selectedAppService?.access_token) {
+      setTemplatesError('Access token is required for Meta Graph API calls');
+      return false;
+    }
+
+    try {
+      setTemplatesLoading(true);
+      
+      // Use WhatsAppService to delete templates via Meta Graph API directly
+      await WhatsAppService.deleteTemplate(selectedAppService as AppService, templateName);
+
+      // Refetch templates after deletion
+      await fetchTemplates();
+      toast.success('Template deleted successfully!');
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete template';
+      setTemplatesError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Error deleting template:', err);
+      return false;
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [selectedAppService, fetchTemplates]);
+
+  // Send test template function
+  const sendTestTemplate = useCallback(async (templateName: string, phoneNumber: string, parameters: string[]): Promise<boolean> => {
+    if (!selectedAppService?.phone_number_id) {
+      toast.error('Phone number ID not available');
+      return false;
+    }
+
+    if (!selectedAppService?.access_token) {
+      toast.error('Access token is required for Meta Graph API calls');
+      return false;
+    }
+
+    try {
+      const messageData = {
+        messaging_product: "whatsapp",
+        to: phoneNumber,
+        type: "template",
+        template: {
+          name: templateName,
+          language: {
+            code: "en_US"
+          },
+          ...(parameters.length > 0 && {
+            components: [
+              {
+                type: "body",
+                parameters: parameters.map((param, index) => ({
+                  type: "text",
+                  text: param
+                }))
+              }
+            ]
+          })
+        }
+      };
+
+      // Use WhatsAppService to send test messages via Meta Graph API directly
+      await WhatsAppService.sendMessage(selectedAppService as AppService, messageData);
+
+      return true;
+    } catch (err) {
+      console.error('Error sending test template:', err);
+      throw err;
+    }
+  }, [selectedAppService]);
+
+  // Effects
+  useEffect(() => {
+    if (organizationId) {
+      fetchAppServices();
+    }
+  }, [organizationId, fetchAppServices]);
+
+  useEffect(() => {
+    if (selectedAppService?.whatsapp_business_account_id) {
+      fetchTemplates();
+    }
+  }, [selectedAppService?.whatsapp_business_account_id, fetchTemplates]);
+
+  // Handle app service selection
+  const handleAppServiceChange = (serviceId: string) => {
+    const service = appServices.find(s => s.id.toString() === serviceId)
+    setSelectedAppService(service || null)
+  }
+
+  // Handle template creation
+  const handleCreateTemplate = async (templateData: any): Promise<boolean> => {
+    const success = await createTemplate(templateData)
+    if (success) {
+      setIsCreateDialogOpen(false)
+    }
+    return success
+  }
+
+  // Handle template deletion
+  const handleDeleteTemplate = async (templateName: string) => {
+    if (confirm(`Are you sure you want to delete the template "${templateName}"?`)) {
+      await deleteTemplate(templateName);
+    }
+  }
+
+  // Handle template viewing
+  const handleViewTemplate = (template: WhatsAppTemplate) => {
+    setSelectedTemplate(template)
+    setIsDetailsDialogOpen(true)
+  }
+
+  // Handle template editing
+  const handleEditTemplate = (template: WhatsAppTemplate) => {
+    setSelectedTemplate(template)
+    setIsEditorDialogOpen(true)
+  }
+
+  // Handle template update
+  const handleUpdateTemplate = async (templateData: any): Promise<boolean> => {
+    // Note: WhatsApp doesn't allow editing approved templates
+    // This would typically create a new template or update a pending one
+    return await createTemplate(templateData)
+  }
+
+  // Filter templates based on search and filters
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesStatus = statusFilter === "all" || template.status.toLowerCase() === statusFilter.toLowerCase()
+    const matchesCategory = categoryFilter === "all" || template.category.toLowerCase() === categoryFilter.toLowerCase()
+    
+    return matchesSearch && matchesStatus && matchesCategory
+  })
+
+  // Get status badge styling
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return "bg-green-100 text-green-800 hover:bg-green-200"
+      case 'PENDING':
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+      case 'REJECTED':
+        return "bg-red-100 text-red-800 hover:bg-red-200"
+      default:
+        return "bg-gray-100 text-gray-800 hover:bg-gray-200"
+    }
+  }
+
+  // Get category badge styling  
+  const getCategoryBadge = (category: string) => {
+    switch (category) {
+      case 'MARKETING':
+        return "bg-blue-100 text-blue-800"
+      case 'UTILITY':
+        return "bg-purple-100 text-purple-800"
+      case 'AUTHENTICATION':
+        return "bg-orange-100 text-orange-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
 
   return (
     <div className="flex h-screen">
@@ -73,174 +378,351 @@ export default function TemplatesPage() {
         <DashboardHeader />
 
         <main className="p-6">
-          <Tabs defaultValue="templates">
-            <TabsList className="mb-6">
-              <TabsTrigger value="templates" className="px-6">
-                Templates
-              </TabsTrigger>
-              <TabsTrigger value="template-groups" className="px-6">
-                Template groups
-              </TabsTrigger>
-            </TabsList>
+          {/* App Service Selection */}
+          {servicesError && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{servicesError}</AlertDescription>
+            </Alert>
+          )}
 
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search" className="pl-9" />
-              </div>            
-
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2 bg-blue-600 hover:bg-blue-700">Create template</Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[90vh] max-w-3xl overflow-auto">
-                  <DialogHeader>
-                    <DialogTitle>Message Template</DialogTitle>
-                  </DialogHeader>
-                  <CreateTemplateForm onClose={() => setIsCreateDialogOpen(false)} />
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <div className="rounded-md border">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium">
-                      <div className="flex items-center gap-1">
-                        Template name
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M7 15L12 20L17 15M7 9L12 4L17 9"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      <div className="flex items-center gap-1">
-                        Category
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M7 15L12 20L17 15M7 9L12 4L17 9"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      <div className="flex items-center gap-1">
-                        Language
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M7 15L12 20L17 15M7 9L12 4L17 9"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      <div className="flex items-center gap-1">
-                        Status
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M7 15L12 20L17 15M7 9L12 4L17 9"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      <div className="flex items-center gap-1">
-                        Message deliveries
-                        <Info className="h-4 w-4 text-muted-foreground" />
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M7 15L12 20L17 15M7 9L12 4L17 9"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      <div className="flex items-center gap-1">
-                        Message reads
-                        <Info className="h-4 w-4 text-muted-foreground" />
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M7 15L12 20L17 15M7 9L12 4L17 9"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      <div className="flex items-center gap-1">
-                        Top blocks
-                        <Info className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium">
-                      <div className="flex items-center gap-1">
-                        Last edited
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M7 15L12 20L17 15M7 9L12 4L17 9"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockTemplates.map((template) => (
-                    <tr key={template.id} className="border-b hover:bg-muted/50">
-                      <td className="px-4 py-3">{template.name}</td>
-                      <td className="px-4 py-3">{template.category}</td>
-                      <td className="px-4 py-3">
-                        <div>
-                          <div>{template.language}</div>
-                          <div className="text-xs text-muted-foreground">{template.languageDetails}</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Active - Qualified</Badge>
-                      </td>
-                      <td className="px-4 py-3">{template.deliveries}</td>
-                      <td className="px-4 py-3">{template.reads}</td>
-                      <td className="px-4 py-3">{template.blocks}</td>
-                      <td className="px-4 py-3">{template.lastEdited}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="border-t p-4 text-sm text-muted-foreground">
-                4 message templates shown (total active templates: 4 of 6000)
+          {appServices.length > 0 && (
+            <div className="mb-6 p-4 border rounded-lg bg-muted/50">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="text-sm font-medium">Active WhatsApp Service</label>
+                  <Select 
+                    value={selectedAppService?.id.toString() || ''} 
+                    onValueChange={handleAppServiceChange}
+                    disabled={servicesLoading}
+                  >
+                    <SelectTrigger className="max-w-md">
+                      <SelectValue placeholder="Select WhatsApp service" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {appServices.map((service) => (
+                        <SelectItem key={service.id} value={service.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <span>{service.phone_number}</span>
+                            <Badge variant="outline" className="text-xs">
+                              ID: {service.id}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchAppServices}
+                  disabled={servicesLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${servicesLoading ? 'animate-spin' : ''}`} />
+                </Button>
               </div>
             </div>
+          )}
+
+          {/* Main Content */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="flex items-center justify-between mb-6">
+              <TabsList>
+                <TabsTrigger value="browse">Browse Templates</TabsTrigger>
+                <TabsTrigger value="manage">Manage Templates</TabsTrigger>
+                <TabsTrigger value="test">Test Templates</TabsTrigger>
+              </TabsList>
+
+              <div className="flex items-center gap-2">
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                      disabled={!selectedAppService}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Custom Template
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[90vh] max-w-3xl overflow-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create Message Template</DialogTitle>
+                    </DialogHeader>
+                    <CreateTemplateForm 
+                      onClose={() => setIsCreateDialogOpen(false)} 
+                      onSubmit={handleCreateTemplate}
+                      loading={templatesLoading}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+
+            {/* Browse Templates Tab */}
+            <TabsContent value="browse" className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-2">Choose from Ready-Made Templates</h2>
+                <p className="text-muted-foreground">
+                  Get started quickly with our pre-designed WhatsApp message templates
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {defaultTemplates.map((template) => (
+                  <TemplateCard
+                    key={template.id}
+                    template={template}
+                    onPreview={(template) => setSelectedPreviewTemplate(template)}
+                    onCreate={createTemplateFromDefault}
+                    isCreating={creatingTemplateId === template.id}
+                  />
+                ))}
+              </div>
+
+              {/* WhatsApp Chat Preview Dialog */}
+              <Dialog 
+                open={!!selectedPreviewTemplate} 
+                onOpenChange={() => setSelectedPreviewTemplate(null)}
+              >
+                <DialogContent className="max-w-md p-0">
+                  {selectedPreviewTemplate && (
+                    <WhatsAppChatPreview
+                      template={selectedPreviewTemplate}
+                      onClose={() => setSelectedPreviewTemplate(null)}
+                    />
+                  )}
+                </DialogContent>
+              </Dialog>
+            </TabsContent>
+
+            {/* Manage Templates Tab */}
+            <TabsContent value="manage" className="space-y-6">
+              {/* Search and Filters */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search templates" 
+                    className="pl-9" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Categories</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="utility">Utility</SelectItem>
+                    <SelectItem value="authentication">Authentication</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchTemplates}
+                  disabled={templatesLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${templatesLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+
+              {/* Error States */}
+              {templatesError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{templatesError}</AlertDescription>
+                </Alert>
+              )}
+
+              {!selectedAppService && appServices.length === 0 && !servicesLoading && (
+                <Alert>
+                  <AlertDescription>
+                    No App services found. Please configure a WhatsApp Business account first.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!selectedAppService && appServices.length > 0 && (
+                <Alert>
+                  <AlertDescription>
+                    Please select an App service to view and manage templates.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Templates Table */}
+              {selectedAppService && (
+                <div className="rounded-md border">
+                  {templatesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin" />
+                      <span className="ml-2">Loading templates...</span>
+                    </div>
+                  ) : filteredTemplates.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <div className="text-muted-foreground mb-4">
+                        {templates.length === 0 ? (
+                          "No templates found. Create your first template to get started."
+                        ) : (
+                          "No templates match your current filters."
+                        )}
+                      </div>
+                      {templates.length === 0 && (
+                        <Button 
+                          onClick={() => {
+                            setActiveTab("browse")
+                          }}
+                          className="gap-2"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Browse Templates
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b bg-muted/50">
+                            <th className="px-4 py-3 text-left font-medium">Template name</th>
+                            <th className="px-4 py-3 text-left font-medium">Category</th>
+                            <th className="px-4 py-3 text-left font-medium">Language</th>
+                            <th className="px-4 py-3 text-left font-medium">Status</th>
+                            <th className="px-4 py-3 text-left font-medium">Components</th>
+                            <th className="px-4 py-3 text-left font-medium">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredTemplates.map((template) => (
+                            <tr key={template.id} className="border-b hover:bg-muted/50">
+                              <td className="px-4 py-3">
+                                <div>
+                                  <div className="font-medium">{template.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    ID: {template.id}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge className={getCategoryBadge(template.category)}>
+                                  {template.category}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="text-sm">{template.language}</div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge className={getStatusBadge(template.status)}>
+                                  {template.status}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="text-sm">
+                                  {template.components?.length || 0} components
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {template.components?.map(c => c.type).join(', ')}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => handleViewTemplate(template)}>
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  {template.status !== 'APPROVED' && (
+                                    <Button size="sm" variant="outline" onClick={() => handleEditTemplate(template)}>
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => handleDeleteTemplate(template.name)}
+                                    disabled={template.status === 'APPROVED'}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="border-t p-4 text-sm text-muted-foreground">
+                        {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} shown 
+                        {filteredTemplates.length !== templates.length && ` (${templates.length} total)`}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Test Templates Tab */}
+            <TabsContent value="test" className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-2">Test Your Templates</h2>
+                <p className="text-muted-foreground">
+                  Send test messages to verify your templates work correctly
+                </p>
+              </div>
+
+              {selectedAppService ? (
+                <TemplateTester
+                  templates={templates}
+                  onSendTest={sendTestTemplate}
+                  loading={templatesLoading}
+                />
+              ) : (
+                <Alert>
+                  <AlertDescription>
+                    Please select a WhatsApp service to test templates.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </TabsContent>
           </Tabs>
+
+          {/* Template Details Dialog */}
+          <TemplateDetailsDialog
+            template={selectedTemplate}
+            open={isDetailsDialogOpen}
+            onClose={() => {
+              setIsDetailsDialogOpen(false)
+              setSelectedTemplate(null)
+            }}
+            onEdit={handleEditTemplate}
+            onDelete={handleDeleteTemplate}
+          />
+
+          {/* Template Editor Dialog */}
+          <TemplateEditor
+            template={selectedTemplate}
+            open={isEditorDialogOpen}
+            onClose={() => {
+              setIsEditorDialogOpen(false)
+              setSelectedTemplate(null)
+            }}
+            onSave={handleUpdateTemplate}
+            loading={templatesLoading}
+          />
         </main>
       </div>
     </div>

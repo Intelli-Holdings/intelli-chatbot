@@ -102,7 +102,7 @@ const data = {
       hasSubmenu: true,
       submenuItems: [
         { title: "📚 Templates Library", url: "/dashboard/templates" },
-        { title: "🧪 Test Templates", url: "/dashboard/templates/library" },
+        { title: "🧪 Test Templates", url: "/dashboard/templates/test" },
         { title: "📡 Send Broadcasts", url: "/dashboard/templates/send" },
         
       ]

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Eye, RefreshCw, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, RefreshCw, Search, Copy, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { type WhatsAppTemplate, type AppService } from '@/services/whatsapp';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
+import CreateTemplateForm from '@/components/create-template-form';
+import EditTemplateForm from '@/components/edit-template-form';
+import TestMessageDialog from '@/components/test-message-dialog';
 
 interface WhatsAppTemplateManagerProps {
   appService: AppService | null;
@@ -31,7 +35,12 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
+  const [templateToTest, setTemplateToTest] = useState<WhatsAppTemplate | null>(null);
 
   // Filter templates based on search term, category, and status
   const filteredTemplates = templates.filter((template) => {
@@ -72,12 +81,68 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
   };
 
   const handleDeleteTemplate = async (templateName: string) => {
-    if (confirm(`Are you sure you want to delete the template "${templateName}"?`)) {
-      const success = await deleteTemplate(templateName);
+    setTemplateToDelete(templateName);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteTemplate = async () => {
+    if (!templateToDelete) return;
+
+    try {
+      const success = await deleteTemplate(templateToDelete);
       if (success) {
-        // Template list will be refetched automatically
+        toast.success("Template deleted successfully!");
+        setIsDeleteDialogOpen(false);
+        setTemplateToDelete(null);
+      } else {
+        toast.error("Failed to delete template");
       }
+    } catch (error) {
+      console.error('Delete template error:', error);
+      toast.error("Failed to delete template");
     }
+  };
+
+  const handleCreateTemplate = async (templateData: any) => {
+    try {
+      const success = await createTemplate(templateData);
+      if (success) {
+        setIsCreateDialogOpen(false);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Create template error:', error);
+      return false;
+    }
+  };
+
+  const handleUpdateTemplate = async (templateData: any) => {
+    if (!selectedTemplate?.id) return false;
+    
+    try {
+      const success = await updateTemplate(selectedTemplate.id, templateData);
+      if (success) {
+        toast.success("Template updated successfully!");
+        setIsEditDialogOpen(false);
+        setSelectedTemplate(null);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Update template error:', error);
+      return false;
+    }
+  };
+
+  const copyTemplateId = (templateName: string) => {
+    navigator.clipboard.writeText(templateName);
+    toast.success("Template name copied to clipboard!");
+  };
+
+  const sendTestMessage = (template: WhatsAppTemplate) => {
+    setTemplateToTest(template);
+    setIsTestDialogOpen(true);
   };
 
   const renderTemplateDetails = (template: WhatsAppTemplate) => (
@@ -198,7 +263,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">Categories</SelectItem>
               <SelectItem value="MARKETING">Marketing</SelectItem>
               <SelectItem value="UTILITY">Utility</SelectItem>
               <SelectItem value="AUTHENTICATION">Authentication</SelectItem>
@@ -273,16 +338,36 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
                           setSelectedTemplate(template);
                           setIsViewDialogOpen(true);
                         }}
+                        title="View details"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => copyTemplateId(template.name)}
+                        title="Copy template name"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => sendTestMessage(template)}
+                        title="Send test message"
+                        disabled={template.status !== 'APPROVED'}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => {
                           setSelectedTemplate(template);
-                          // TODO: Implement edit functionality
+                          setIsEditDialogOpen(true);
                         }}
+                        title="Edit template"
+                        disabled={template.status === 'APPROVED'}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -291,6 +376,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
                         size="sm"
                         onClick={() => handleDeleteTemplate(template.name)}
                         className="text-red-600 hover:text-red-700"
+                        title="Delete template"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -317,23 +403,84 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
 
         {/* Create Template Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>Create New Template</DialogTitle>
               <DialogDescription>
-                Create a new WhatsApp message template
+                Create a new WhatsApp message template that will be submitted to Meta for approval
               </DialogDescription>
             </DialogHeader>
-            <div className="p-4">
-              <Alert>
-                <AlertDescription>
-                  Template creation functionality will be implemented here. 
-                  You can create templates directly in Meta Business Manager for now.
-                </AlertDescription>
-              </Alert>
+            <CreateTemplateForm 
+              onClose={() => setIsCreateDialogOpen(false)}
+              onSubmit={handleCreateTemplate}
+              loading={loading}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Template Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Edit Template</DialogTitle>
+              <DialogDescription>
+                Edit template: {selectedTemplate?.name}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedTemplate && (
+              <EditTemplateForm 
+                template={selectedTemplate}
+                onClose={() => {
+                  setIsEditDialogOpen(false);
+                  setSelectedTemplate(null);
+                }}
+                onSubmit={handleUpdateTemplate}
+                loading={loading}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Template</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete the template &quot;{templateToDelete}&quot;? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsDeleteDialogOpen(false);
+                  setTemplateToDelete(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDeleteTemplate}
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Test Message Dialog */}
+        <TestMessageDialog
+          template={templateToTest}
+          appService={appService}
+          isOpen={isTestDialogOpen}
+          onClose={() => {
+            setIsTestDialogOpen(false);
+            setTemplateToTest(null);
+          }}
+        />
       </CardContent>
     </Card>
   );

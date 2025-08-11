@@ -20,7 +20,7 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
   const [error, setError] = useState<string | null>(null);
 
   const fetchTemplates = useCallback(async () => {
-    if (!appService?.wabaId || !appService?.accessToken) {
+    if (!appService?.whatsapp_business_account_id) {
       setError('App service configuration not available');
       return;
     }
@@ -29,10 +29,7 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
     setError(null);
 
     try {
-      const templateData = await WhatsAppService.fetchTemplates(
-        appService.wabaId,
-        appService.accessToken
-      );
+      const templateData = await WhatsAppService.fetchTemplates(appService);
       setTemplates(templateData);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch templates';
@@ -41,21 +38,17 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
     } finally {
       setLoading(false);
     }
-  }, [appService?.wabaId, appService?.accessToken]);
+  }, [appService]);
 
   const createTemplate = async (templateData: any): Promise<boolean> => {
-    if (!appService?.wabaId || !appService?.accessToken) {
+    if (!appService?.whatsapp_business_account_id) {
       setError('App service configuration not available');
       return false;
     }
 
     try {
       setLoading(true);
-      await WhatsAppService.createTemplate(
-        appService.wabaId,
-        appService.accessToken,
-        templateData
-      );
+      await WhatsAppService.createTemplate(appService, templateData);
       
       // Refetch templates after creation
       await fetchTemplates();
@@ -71,18 +64,14 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
   };
 
   const updateTemplate = async (templateId: string, templateData: any): Promise<boolean> => {
-    if (!appService?.accessToken) {
+    if (!appService?.whatsapp_business_account_id) {
       setError('App service configuration not available');
       return false;
     }
 
     try {
       setLoading(true);
-      await WhatsAppService.updateTemplate(
-        templateId,
-        appService.accessToken,
-        templateData
-      );
+      await WhatsAppService.updateTemplate(templateId, appService, templateData);
       
       // Refetch templates after update
       await fetchTemplates();
@@ -98,18 +87,14 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
   };
 
   const deleteTemplate = async (templateName: string): Promise<boolean> => {
-    if (!appService?.wabaId || !appService?.accessToken) {
+    if (!appService?.whatsapp_business_account_id) {
       setError('App service configuration not available');
       return false;
     }
 
     try {
       setLoading(true);
-      await WhatsAppService.deleteTemplate(
-        appService.wabaId,
-        templateName,
-        appService.accessToken
-      );
+      await WhatsAppService.deleteTemplate(appService, templateName);
       
       // Refetch templates after deletion
       await fetchTemplates();
@@ -125,10 +110,10 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
   };
 
   useEffect(() => {
-    if (appService?.wabaId && appService?.accessToken) {
+    if (appService?.whatsapp_business_account_id) {
       fetchTemplates();
     }
-  }, [appService?.wabaId, appService?.accessToken, fetchTemplates]);
+  }, [appService, fetchTemplates]);
 
   return {
     templates,
