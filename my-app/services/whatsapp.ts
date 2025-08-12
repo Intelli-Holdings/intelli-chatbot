@@ -115,13 +115,8 @@ export class WhatsAppService {
    * Get the primary language code from any variant
    */
   static getPrimaryLanguageCode(code: string): string {
-    // If it's already a primary code
-    for (const [primary, variants] of Object.entries(LANGUAGE_CODES)) {
-      if (variants.includes(code)) {
-        return variants[0]; // Return the first variant as the standard
-      }
-    }
-    return code; // Return as-is if not found
+    // Return the exact language code since templates require exact matches
+    return code;
   }
 
   /**
