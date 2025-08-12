@@ -273,19 +273,6 @@ export default function TemplateTestPage() {
                   <RefreshCw className={`h-4 w-4 ${servicesLoading ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
-
-              {selectedAppService && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-                  <div>
-                    <Label className="text-sm font-medium">Phone Number</Label>
-                    <p className="text-sm text-muted-foreground">{selectedAppService.phone_number}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">WABA ID</Label>
-                    <p className="text-sm text-muted-foreground">{selectedAppService.whatsapp_business_account_id}</p>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -315,12 +302,12 @@ export default function TemplateTestPage() {
                     <Label htmlFor="phone-number">Recipient Phone Number *</Label>
                     <Input
                       id="phone-number"
-                      placeholder="+1234567890"
+                      placeholder="2561234567890"
                       value={testData.phoneNumber}
                       onChange={(e) => setTestData(prev => ({ ...prev, phoneNumber: e.target.value }))}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Include country code (e.g., +1 for US, +44 for UK)
+                      Include country code without plus sign (e.g., 254 for KE, 256 for UG)
                     </p>
                   </div>
 
