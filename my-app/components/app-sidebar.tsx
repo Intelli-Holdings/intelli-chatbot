@@ -103,7 +103,7 @@ const data = {
       submenuItems: [
         { title: "📚 Templates Library", url: "/dashboard/templates" },
         { title: "🧪 Test Templates", url: "/dashboard/templates/test" },
-        { title: "📡 Send Broadcasts", url: "/dashboard/templates/send" },
+        { title: "📡 Send Broadcasts", url: "/dashboard/templates/broadcast" },
         
       ]
     },
