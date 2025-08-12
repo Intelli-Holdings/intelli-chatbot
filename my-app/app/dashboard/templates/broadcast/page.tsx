@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Upload, Plus, Eye, Calendar, Users, MessageSquare, Clock, Play, Pause, BarChart3, Download, Filter, Search } from 'lucide-react';
+import { Upload, Plus, Eye, Calendar, Users, MessageSquare, Clock, Play, Pause, BarChart3, Download, Filter, Search, CheckCheck, User, ImageIcon, PlayCircle, FileText, ExternalLink, Phone  } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -161,9 +161,7 @@ export default function BroadcastCampaignPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <DashboardHeader />
-      
+    <div className="flex min-h-screen flex-col">      
       <main className="flex-1 container py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Broadcast Campaign Manager</h1>
