@@ -22,6 +22,7 @@ import { WhatsAppChatPreview } from "@/components/whatsapp-chat-preview"
 import { TemplateTester } from "@/components/template-tester"
 import { TemplateDetailsDialog } from "@/components/template-details-dialog"
 import { TemplateEditor } from "@/components/template-editor"
+import BroadcastManager from "@/components/broadcast-manager"
 
 export default function TemplatesPage() {
   const organizationId = useActiveOrganizationId()
@@ -375,8 +376,6 @@ export default function TemplatesPage() {
   return (
     <div className="flex h-screen">
       <div className="flex-1 overflow-auto">
-        <DashboardHeader />
-
         <main className="p-6">
           {/* App Service Selection */}
           {servicesError && (
@@ -431,6 +430,7 @@ export default function TemplatesPage() {
                 <TabsTrigger value="browse">Browse Templates</TabsTrigger>
                 <TabsTrigger value="manage">Manage Templates</TabsTrigger>
                 <TabsTrigger value="test">Test Templates</TabsTrigger>
+                <TabsTrigger value="broadcast">Broadcast Manager</TabsTrigger>
               </TabsList>
 
               <div className="flex items-center gap-2">
@@ -554,7 +554,7 @@ export default function TemplatesPage() {
               {!selectedAppService && appServices.length === 0 && !servicesLoading && (
                 <Alert>
                   <AlertDescription>
-                    No App services found. Please configure a WhatsApp Business account first.
+                    Please select a WhatsApp service to view and manage templates.
                   </AlertDescription>
                 </Alert>
               )}
@@ -562,7 +562,7 @@ export default function TemplatesPage() {
               {!selectedAppService && appServices.length > 0 && (
                 <Alert>
                   <AlertDescription>
-                    Please select an App service to view and manage templates.
+                    No WhatsApp services found. Please connect a WhatsApp Business account first.
                   </AlertDescription>
                 </Alert>
               )}
@@ -675,7 +675,31 @@ export default function TemplatesPage() {
               )}
             </TabsContent>
 
-            {/* Test Templates Tab */}
+            {/* Broadcast Templates Tab */}
+            <TabsContent value="broadcast" className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-2">Broadcast Your Templates</h2>
+                <p className="text-muted-foreground">
+                  Send broadcast messages to your contacts using these templates.
+                </p>
+              </div>
+
+              {selectedAppService ? (
+                <BroadcastManager
+                  appService={selectedAppService}
+                  templates={templates}
+                  onSendTest={sendTestTemplate}
+                  loading={templatesLoading}
+                />
+              ) : (
+                <Alert>
+                  <AlertDescription>
+                    Please select a WhatsApp service to broadcast templates.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </TabsContent>
+
             <TabsContent value="test" className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold mb-2">Test Your Templates</h2>
