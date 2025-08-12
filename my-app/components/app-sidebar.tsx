@@ -4,7 +4,7 @@ import * as React from "react";
 import {
   Home,
   Building2,
-  Layout,
+  Files,
   Bot,
   MessageCircle,
   Bell,
@@ -98,12 +98,12 @@ const data = {
     {
       title: "Templates",
       url: "/dashboard/templates",
-      icon: BookDashed,
+      icon: Files,
       hasSubmenu: true,
       submenuItems: [
+        {title: "📄 Overview", url: "/dashboard/templates/overview"},
         { title: "📚 Templates Library", url: "/dashboard/templates" },
-        { title: "🧪 Test Templates", url: "/dashboard/templates/test" },
-        { title: "📡 Send Broadcasts", url: "/dashboard/templates/broadcast" },
+        { title: "📡 Broadcasts Manager", url: "/dashboard/templates/broadcast" },
         
       ]
     },

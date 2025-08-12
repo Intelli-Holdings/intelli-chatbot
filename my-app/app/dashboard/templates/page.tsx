@@ -461,7 +461,7 @@ export default function TemplatesPage() {
             {/* Browse Templates Tab */}
             <TabsContent value="browse" className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">Choose from Ready-Made Templates</h2>
+                <h2 className="text-2xl font-bold mb-2">Choose from Ready Templates</h2>
                 <p className="text-muted-foreground">
                   Get started quickly with our pre-designed WhatsApp message templates
                 </p>

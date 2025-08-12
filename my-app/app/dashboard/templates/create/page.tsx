@@ -65,8 +65,7 @@ export default function CreateTemplatePage() {
   }
 
   const updateTextWithVariables = (text: string, count: number) => {
-    // This is a simplified implementation
-    // In a real app, you'd need more sophisticated variable handling
+
     const regex = /\{\{[0-9]+\}\}/g
     const cleanText = text.replace(regex, "")
 
@@ -82,11 +81,9 @@ export default function CreateTemplatePage() {
     e.preventDefault()
 
     try {
-      // In a real app, this would call the Meta Business Management API
-      console.log("Submitting template:", templateData)
 
-      // Mock successful submission
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+
 
       // Redirect to templates list
       router.push("/templates")
