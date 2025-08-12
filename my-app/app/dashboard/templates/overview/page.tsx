@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { ChevronDown, Info } from "lucide-react"
+import { ChevronDown, Info, MessageSquare, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,54 +9,129 @@ import { Progress } from "@/components/ui/progress"
 import DashboardHeader from "@/components/dashboard-header"
 import AppServiceCredentials from "@/components/app-service-credentials"
 import { useAppServices } from "@/hooks/use-app-services"
+import { useWhatsAppAnalytics } from "@/hooks/use-whatsapp-analytics"
+
+// Country Flag Component
+const CountryFlag: React.FC<{ countryCode: string; className?: string }> = ({ countryCode, className = "w-full h-full" }) => {
+  const [FlagComponent, setFlagComponent] = React.useState<React.ComponentType<{ className?: string }> | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadFlag = async () => {
+      setLoading(true);
+      try {
+        const flagModule = await import(`country-flag-icons/react/3x2/${countryCode.toUpperCase()}.js`);
+        setFlagComponent(() => flagModule.default);
+      } catch (error) {
+        console.warn(`Failed to load flag for country: ${countryCode}`);
+        setFlagComponent(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (countryCode) {
+      loadFlag();
+    }
+  }, [countryCode]);
+
+  if (loading) {
+    return (
+      <div className={`${className} bg-gray-100 animate-pulse rounded`} />
+    );
+  }
+
+  if (FlagComponent) {
+    return <FlagComponent className={className} />;
+  }
+
+  // Fallback for unknown countries
+  return (
+    <div className={`${className} bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600`}>
+      {countryCode.toUpperCase()}
+    </div>
+  );
+};
 
 export default function OverviewPage() {
   const {
     appServices,
-    loading,
-    error,
+    loading: appServicesLoading,
+    error: appServicesError,
     refetch,
     selectedAppService,
     setSelectedAppService,
   } = useAppServices();
 
+  const {
+    analytics,
+    loading: analyticsLoading,
+    error: analyticsError,
+    refetch: refetchAnalytics
+  } = useWhatsAppAnalytics(selectedAppService, 30); // Last 30 days
+
+  const isLoading = appServicesLoading || analyticsLoading;
+  const hasError = appServicesError || analyticsError;
+
   return (
     <div className="flex h-screen">     
       <div className="">
-        <header className="flex h-16 items-start justify-between border-b px-6">
-           <DashboardHeader />
-          <div className="flex items-center gap-2">
-            
-          </div>
-        </header>
-
         <main className="p-6">
           <div className="grid gap-6">
             <div className="flex items-start justify-between">
-              <h2 className="text-xl font-semibold">WhatsApp accounts</h2>
-              <div className="flex items-center gap-4">
-                <h2 className="text-xl font-semibold">Limits</h2>
-              </div>
+              <h2 className="text-xl font-semibold">Whatsapp Account Overview</h2>
             </div>
 
-            {/* App Service Credentials Section */}
             <AppServiceCredentials
               appServices={appServices}
               selectedAppService={selectedAppService}
               onSelectAppService={setSelectedAppService}
-              loading={loading}
-              error={error}
+              loading={appServicesLoading}
+              error={appServicesError}
               onRefresh={refetch}
             />
+
+            {hasError && (
+              <Card className="border-destructive">
+                <CardContent className="p-4">
+                  <div className="text-destructive text-sm">
+                    {appServicesError || analyticsError}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => {
+                      refetch();
+                      refetchAnalytics();
+                    }}
+                  >
+                    Retry
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-[2fr_1fr]">
               <Card className="overflow-hidden">
                 <div className="flex items-center justify-between border-b p-4">
                   <h3 className="text-lg font-medium">
-                    {selectedAppService?.name || 'Intelli'}
+                    {selectedAppService?.name || 'WhatsApp Business Account'}
                   </h3>
                   <div className="flex gap-2">
-                    
+                   
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        refetch();
+                        refetchAnalytics();
+                      }}
+                      disabled={isLoading}
+                      className="h-8 w-8 p-0"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </Button>
                   </div>
                 </div>
 
@@ -70,7 +145,13 @@ export default function OverviewPage() {
                           <span className="text-sm text-muted-foreground">All conversations</span>
                           <Info className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <span className="text-2xl font-medium">43</span>
+                        <span className="text-2xl font-medium">
+                          {isLoading ? (
+                            <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
+                          ) : (
+                            analytics?.totalConversations || 0
+                          )}
+                        </span>
                       </CardContent>
                     </Card>
 
@@ -80,7 +161,13 @@ export default function OverviewPage() {
                           <span className="text-sm text-muted-foreground">Free tier conversations</span>
                           <Info className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <span className="text-2xl font-medium">5</span>
+                        <span className="text-2xl font-medium">
+                          {isLoading ? (
+                            <div className="h-8 w-12 bg-gray-200 animate-pulse rounded"></div>
+                          ) : (
+                            analytics?.freeTierConversations || 0
+                          )}
+                        </span>
                       </CardContent>
                     </Card>
 
@@ -90,7 +177,13 @@ export default function OverviewPage() {
                           <span className="text-sm text-muted-foreground">Approximate charges</span>
                           <Info className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <span className="text-2xl font-medium">$0.34</span>
+                        <span className="text-2xl font-medium">
+                          {isLoading ? (
+                            <div className="h-8 w-20 bg-gray-200 animate-pulse rounded"></div>
+                          ) : (
+                            `$${analytics?.approximateCharges?.toFixed(2) || '0.00'}`
+                          )}
+                        </span>
                       </CardContent>
                     </Card>
                   </div>
@@ -109,44 +202,67 @@ export default function OverviewPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 border-t py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              d="M22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12Z"
-                              stroke="#0086ff"
-                              strokeWidth="2"
-                            />
-                          </svg>
-                        </div>
-                        <div>
-                          <div></div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <span className="inline-block h-3 w-4 overflow-hidden">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-                                <path fill="#FFDA44" d="M0 85.337h512v341.326H0z" />
-                                <path fill="#D80027" d="M0 85.337h170.663v341.326H0z" />
-                                <path fill="#496E2D" d="M341.337 85.337H512v341.326H341.337z" />
-                              </svg>
-                            </span>
-                            Senegal
+                    {analytics?.phoneNumberLimits?.map((phoneLimit, index) => (
+                      <div key={index} className="grid grid-cols-3 gap-4 border-t py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center  bg-blue-100">
+                            <CountryFlag countryCode={phoneLimit.country} className="h-6 w-8" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium">{phoneLimit.phone_number}</div>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">                      
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center">
+                          <span>{phoneLimit.name}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span>{phoneLimit.business_initiated_conversations} of {phoneLimit.limit} used</span>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <span>Intelli-notifications</span>
-                      </div>
-                      <div className="flex items-center">
-                        <span>of 250 used</span>
-                      </div>
-                    </div>
+                    )) || (
+                      selectedAppService ? (
+                        <div className="grid grid-cols-3 gap-4 border-t py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12Z"
+                                  stroke="#0086ff"
+                                  strokeWidth="2"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium">{selectedAppService.phone_number}</div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <span className="inline-block h-3 w-4 overflow-hidden rounded-sm">
+                                  <CountryFlag countryCode="SN" />
+                                </span>
+                                Loading...
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <span>{selectedAppService.name || 'Loading...'}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span>{isLoading ? 'Loading...' : '0 of 250 used'}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border-t py-4 text-center text-muted-foreground">
+                          No phone number data available
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               </Card>
@@ -199,82 +315,100 @@ export default function OverviewPage() {
                               <h5 className="font-medium">Improve message quality</h5>
                               <Info className="h-4 w-4 text-muted-foreground" />
                             </div>
-                            <p className="text-sm text-muted-foreground">13 conversations started/30d</p>
-                            <Progress value={43} className="mt-2 h-2" />
-                            <Button variant="link" className="mt-1 h-auto p-0 text-sm">
+                            <p className="text-sm text-muted-foreground">
+                              {analytics?.totalConversations || 0} conversations started/30d
+                            </p>
+                            <Progress 
+                              value={analytics ? Math.min((analytics.totalConversations / 1000) * 100, 100) : 0} 
+                              className="mt-2 h-2" 
+                            />
+                            <Button 
+                              variant="link" 
+                              className="mt-1 h-auto p-0 text-sm"
+                              onClick={() => window.open("https://developers.facebook.com/docs/whatsapp/messaging-limits/", "_blank")}
+                            >
                               Learn how to improve quality
                             </Button>
                           </div>
                         </div>
                       </Card>
+                    </div>
+                  </div>
+                </Card>
 
-                      <div className="text-center text-sm font-medium">OR</div>
+                {/* Analytics Overview Cards */}
+                <Card className="p-4">
+                  <h3 className="mb-4 text-lg font-medium">Message Analytics</h3>
+                  {analytics ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Total Messages Sent</span>
+                        <span className="font-medium">{analytics.totalSent?.toLocaleString() || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Delivery Rate</span>
+                        <span className="font-medium">
+                          {analytics.totalSent > 0 
+                            ? ((analytics.totalDelivered / analytics.totalSent) * 100).toFixed(1)
+                            : '0'
+                          }%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Free Tier Conversations</span>
+                        <span className="font-medium">{analytics.freeTierConversations?.toLocaleString() || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Total Cost (USD)</span>
+                        <span className="font-medium">${analytics.approximateCharges?.toFixed(2) || '0.00'}</span>
+                      </div>
+                    </div>
+                  ) : isLoading ? (
+                    <div className="space-y-3">
+                      <div className="h-4 bg-muted animate-pulse rounded"></div>
+                      <div className="h-4 bg-muted animate-pulse rounded"></div>
+                      <div className="h-4 bg-muted animate-pulse rounded"></div>
+                      <div className="h-4 bg-muted animate-pulse rounded"></div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-muted-foreground">
+                      <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No analytics data available</p>
+                    </div>
+                  )}
+                </Card>
 
-                      <Card className="mt-4 border p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
-                            <svg
-                              width="20"
-                              height="20"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M12 8V16"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M8 12H16"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
+                {/* Conversation Breakdown */}
+                {analytics?.conversationBreakdown && analytics.conversationBreakdown.length > 0 && (
+                  <Card className="p-4">
+                    <h3 className="mb-4 text-lg font-medium">Conversation Types</h3>
+                    <div className="space-y-3">
+                      {analytics.conversationBreakdown.map((breakdown, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className={`w-3 h-3 rounded-full ${
+                                breakdown.category === 'MARKETING' ? 'bg-blue-500' :
+                                breakdown.category === 'UTILITY' ? 'bg-green-500' :
+                                breakdown.category === 'AUTHENTICATION' ? 'bg-orange-500' :
+                                'bg-gray-500'
+                              }`}
+                            />
+                            <span className="text-sm font-medium">
+                              {breakdown.category.charAt(0) + breakdown.category.slice(1).toLowerCase()}
+                            </span>
                           </div>
-                          <div className="flex-1">
-                            <h5 className="font-medium">Business verification in progress</h5>
-                            <Button variant="link" className="mt-1 h-auto p-0 text-sm">
-                              View details
-                            </Button>
+                          <div className="text-right">
+                            <div className="font-medium">{breakdown.conversations?.toLocaleString() || 0}</div>
+                            <div className="text-xs text-muted-foreground">
+                              ${breakdown.cost?.toFixed(2) || '0.00'}
+                            </div>
                           </div>
                         </div>
-                      </Card>
+                      ))}
                     </div>
-                  </div>
-                </Card>
-
-                <Card className="p-4">
-                  <h3 className="mb-4 text-lg font-medium">What&apos;s new</h3>
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                          d="M13 10V3L4 14H11V21L20 10H13Z"
-                          stroke="#10b981"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Template groups</h4>
-                      <p className="text-sm text-muted-foreground">November 1, 2024</p>
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
+                )}
               </div>
             </div>
           </div>
