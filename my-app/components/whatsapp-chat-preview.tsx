@@ -108,9 +108,9 @@ export function WhatsAppChatPreview({ template, onClose }: WhatsAppChatPreviewPr
                 }}
               >
                 <div className="px-3 pt-2 pb-1">
-                  {template.preview.headerText && (
+                  {template.preview?.header && (
                     <div className="font-semibold text-[#111b21] text-sm mb-1">
-                      {template.preview.headerText}
+                      {template.preview?.header}
                     </div>
                   )}
                   
@@ -118,18 +118,18 @@ export function WhatsAppChatPreview({ template, onClose }: WhatsAppChatPreviewPr
                     className="text-[#111b21] text-[14px] leading-[19px] whitespace-pre-wrap"
                     style={{ wordBreak: 'break-word' }}
                   >
-                    {template.preview.bodyText}
+                    {template.preview?.body}
                   </div>
                   
-                  {template.preview.footerText && (
+                  {template.preview?.footer && (
                     <div className="text-xs text-[#667781] mt-2">
-                      {template.preview.footerText}
+                      {template.preview?.footer}
                     </div>
                   )}
                   
-                  {template.preview.buttons && template.preview.buttons.length > 0 && (
+                  {template.preview?.buttons && template.preview?.buttons.length > 0 && (
                     <div className="mt-3 -mx-3 px-3 border-t border-[#c7e7c3] pt-2 space-y-1">
-                      {template.preview.buttons.map((button, index) => (
+                      {template.preview?.buttons.map((button, index) => (
                         <div 
                           key={index}
                           className="w-full py-2 text-center text-[#00a5f4] text-sm font-medium hover:bg-[#c7e7c3] rounded cursor-pointer transition-colors"
