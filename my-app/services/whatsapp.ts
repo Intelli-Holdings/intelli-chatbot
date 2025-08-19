@@ -119,13 +119,10 @@ export class WhatsAppService {
     // If it's already a primary code
     for (const [primary, variants] of Object.entries(LANGUAGE_CODES)) {
       if (variants.includes(code)) {
-        return variants[0]; // Return the first variant as the standard
+        return variants[0]; 
       }
     }
-    console.log(`Using primary language code: ${code}`);
-    console.log(`Returning code: ${code}`);
-    return code; // Return as-is if not found
-    
+    return code; 
   }
 
   /**
@@ -237,7 +234,7 @@ export class WhatsAppService {
 
       const apiUrl = `/api/channels/whatsapp/org/${organizationId}`;
       
-      console.log('Fetching app services from:', apiUrl);
+   
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -252,8 +249,7 @@ export class WhatsAppService {
 
       const data = await response.json();
       const services = Array.isArray(data) ? data : (data.appServices || data || []);
-      
-      console.log('Fetched app services:', services);
+    
       return services;
     } catch (error) {
       console.error('Error fetching app services:', error);

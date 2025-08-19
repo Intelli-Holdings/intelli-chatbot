@@ -19,7 +19,7 @@ interface WhatsAppTemplate {
 
 interface TemplateTestProps {
   templates: WhatsAppTemplate[]
-  onSendTest: (templateName: string, phoneNumber: string, parameters: string[]) => Promise<boolean>
+  onSendTest: (templateName: string, phoneNumber: string, parameters: string[], languageCode: string) => Promise<boolean>
   loading?: boolean
 }
 
@@ -67,7 +67,12 @@ export function TemplateTester({ templates, onSendTest, loading }: TemplateTestP
 
     setIsSending(true)
     try {
-      const success = await onSendTest(selectedTemplate.name, phoneNumber, parameters)
+      const success = await onSendTest(
+        selectedTemplate.name,
+        phoneNumber,
+        parameters,
+        selectedTemplate.language // Pass the template's language code
+      )
       if (success) {
         toast.success("Test message sent successfully!")
         setPhoneNumber("")
