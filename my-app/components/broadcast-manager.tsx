@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Send, Users, MessageSquare, Eye, Calendar, ExternalLink, Phone, Video, MoreVertical, CheckCheck, Search } from 'lucide-react';
+import { Send, Users, MessageSquare, Eye, Calendar, ExternalLink, Phone, Video, MoreVertical, CheckCheck, Search, BookOpenCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +33,7 @@ interface AppService {
 interface BroadcastManagerProps {
   appService: AppService;
   templates: WhatsAppTemplate[];
-  onSendTest: (templateName: string, phoneNumber: string, parameters: string[]) => Promise<boolean>;
+  onSendTest: (templateName: string, phoneNumber: string, parameters: string[], language: string) => Promise<boolean>;
   loading: boolean;
 }
 
@@ -81,25 +81,33 @@ export default function BroadcastManager({ appService, templates, onSendTest, lo
   };
 
   const handleSendTestMessage = async () => {
-    if (!selectedTemplate || !phoneNumber.trim()) {
-      toast.error('Please select a template and enter a phone number');
-      return;
-    }
+  if (!selectedTemplate || !phoneNumber.trim()) {
+    toast.error('Please select a template and enter a phone number');
+    return;
+  }
 
-    setIsSending(true);
-    try {
-      const success = await onSendTest(selectedTemplate.name, phoneNumber, parameters);
-      if (success) {
-        toast.success('Test message sent successfully!');
-        setPhoneNumber('');
-        setParameters([]);
-      }
-    } catch (error) {
-      toast.error('Failed to send test message');
-    } finally {
-      setIsSending(false);
+  setIsSending(true);
+  try {
+    // Pass both name and language
+    const success = await onSendTest(
+      selectedTemplate.name,
+      phoneNumber,
+      parameters,
+      selectedTemplate.language   // 👈 include the template's language
+    );
+
+    if (success) {
+      toast.success('Test message sent successfully!');
+      setPhoneNumber('');
+      setParameters([]);
     }
-  };
+  } catch (error) {
+    toast.error('Failed to send test message');
+  } finally {
+    setIsSending(false);
+  }
+};
+
 
   const handlePreviewTemplate = (template: WhatsAppTemplate) => {
     setPreviewTemplate(template);
@@ -374,11 +382,11 @@ export default function BroadcastManager({ appService, templates, onSendTest, lo
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Quick Test Broadcast
+              <BookOpenCheck className="h-5 w-5" />
+              Test Broadcast Messages
             </CardTitle>
             <CardDescription>
-              Send a test message to verify your template works correctly
+              Send test messages using approved templates
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -450,12 +458,7 @@ export default function BroadcastManager({ appService, templates, onSendTest, lo
 
         {/* WhatsApp Preview */}
         <Card className="p-0 overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardTitle>WhatsApp Preview</CardTitle>
-            <CardDescription>
-              Live preview of how your message will appear
-            </CardDescription>
-          </CardHeader>
+         
           <CardContent className="p-0">
             {selectedTemplate ? (
               renderWhatsAppPreview(selectedTemplate)
@@ -495,68 +498,8 @@ export default function BroadcastManager({ appService, templates, onSendTest, lo
             <Calendar className="h-4 w-4" />
             <AlertDescription>
               For bulk broadcasts, audience management, and detailed analytics, use the full Campaign Manager.
-              Features include: contact list management, scheduled campaigns, real-time analytics, and more.
             </AlertDescription>
           </Alert>
-        </CardContent>
-      </Card>
-
-      {/* Available Templates Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Available Templates</CardTitle>
-          <CardDescription>
-            Templates ready for broadcast campaigns ({approvedTemplates.length} approved)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Template Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Components</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {templates.map(template => (
-                <TableRow key={template.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{template.name}</div>
-                      <div className="text-xs text-muted-foreground">ID: {template.id}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getCategoryBadge(template.category)}>
-                      {template.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusBadge(template.status)}>
-                      {template.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {template.components?.length || 0} components
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePreviewTemplate(template)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         </CardContent>
       </Card>
 

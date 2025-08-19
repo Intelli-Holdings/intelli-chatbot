@@ -1,24 +1,39 @@
 export interface DefaultTemplate {
-  id: string
-  name: string
-  category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION'
-  description: string
-  components: TemplateComponent[]
-  preview: {
-    headerText?: string
-    bodyText: string
-    footerText?: string
-    buttons?: string[]
-  }
+  id: string;
+  name: string;
+  category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+  description: string;
+  language: string; 
+  components: Array<{
+    type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+    format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
+    text?: string;
+    example?: any;
+    add_security_recommendation?: boolean;
+    code_expiration_minutes?: number;
+    buttons?: Array<{
+      type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'OTP';
+      text: string;
+      url?: string;
+      phone_number?: string;
+      otp_type?: 'COPY_CODE';
+    }>;
+  }>;
+  preview?: {
+    header?: string;
+    body: string;
+    footer?: string;
+    buttons?: string[];
+  };
 }
 
 interface TemplateComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS'
-  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION'
-  text?: string
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
+  text?: string;
   example?: any
-  buttons?: any[]
-  add_security_recommendation?: boolean
+  buttons?: any[];
+  add_security_recommendation?: boolean;
   code_expiration_minutes?: number
 }
 
@@ -29,6 +44,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Order Confirmation',
     category: 'UTILITY',
     description: 'Send order confirmation with details to customers',
+    language: 'en_US',
     components: [
       {
         type: 'HEADER',
@@ -55,9 +71,9 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      headerText: 'Order Confirmed! 🎉',
-      bodyText: 'Hi [Customer Name], thank you for your order!\n\nOrder ID: [Order ID]\nTotal Amount: [Amount]\nEstimated Delivery: [Date]\n\nWe\'ll send you tracking information once your order ships.',
-      footerText: 'Thank you for shopping with us!',
+      header: 'Order Confirmed! 🎉',
+      body: 'Hi [Customer Name], thank you for your order!\n\nOrder ID: [Order ID]\nTotal Amount: [Amount]\nEstimated Delivery: [Date]\n\nWe\'ll send you tracking information once your order ships.',
+      footer: 'Thank you for shopping with us!',
       buttons: ['Track Order']
     }
   },
@@ -66,6 +82,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Appointment Reminder',
     category: 'UTILITY',
     description: 'Remind customers about upcoming appointments',
+    language: 'en_GB',
     components: [
       {
         type: 'BODY',
@@ -86,7 +103,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: 'Hi [Customer Name], this is a reminder about your appointment:\n\n📅 Date: [Date]\n⏰ Time: [Time]\n📍 Location: [Location]\n\nPlease arrive 10 minutes early. Reply YES to confirm or NO to reschedule.',
+      body: 'Hi [Customer Name], this is a reminder about your appointment:\n\n📅 Date: [Date]\n⏰ Time: [Time]\n📍 Location: [Location]\n\nPlease arrive 10 minutes early. Reply YES to confirm or NO to reschedule.',
       buttons: ['Confirm', 'Reschedule']
     }
   },
@@ -95,6 +112,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Shipping Update',
     category: 'UTILITY',
     description: 'Notify customers about shipping status',
+    language: 'en_US',
     components: [
       {
         type: 'HEADER',
@@ -116,7 +134,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: 'Good news [Customer Name]! Your order #[Order ID] has been shipped.\n\nTracking Number: [Tracking Number]\nEstimated Delivery: [Date]\n\nYou can track your package using the button below.',
+      body: 'Good news [Customer Name]! Your order #[Order ID] has been shipped.\n\nTracking Number: [Tracking Number]\nEstimated Delivery: [Date]\n\nYou can track your package using the button below.',
       buttons: ['Track Package']
     }
   },
@@ -125,6 +143,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Payment Receipt',
     category: 'UTILITY',
     description: 'Send payment confirmation and receipt',
+    language: 'en',
     components: [
       {
         type: 'HEADER',
@@ -140,8 +159,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: 'Thank you [Customer Name]! Your payment has been received.\n\nPayment ID: [Payment ID]\nAmount: [Amount]\nDate: [Date]\n\nYour receipt is attached above.',
-      footerText: 'Keep this receipt for your records'
+      body: 'Thank you [Customer Name]! Your payment has been received.\n\nPayment ID: [Payment ID]\nAmount: [Amount]\nDate: [Date]\n\nYour receipt is attached above.',
+      footer: 'Keep this receipt for your records'
     }
   },
   {
@@ -149,6 +168,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Customer Support Response',
     category: 'UTILITY',
     description: 'Respond to customer support inquiries',
+    language: 'en',
     components: [
       {
         type: 'BODY',
@@ -171,7 +191,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: 'Hi [Customer Name], thank you for contacting our support team.\n\nTicket ID: [Ticket ID]\nIssue: [Issue]\n\nOur team is reviewing your request and will get back to you within 24 hours.',
+      body: 'Hi [Customer Name], thank you for contacting our support team.\n\nTicket ID: [Ticket ID]\nIssue: [Issue]\n\nOur team is reviewing your request and will get back to you within 24 hours.',
       buttons: ['Call Support', 'View Ticket']
     }
   },
@@ -182,6 +202,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Seasonal Sale',
     category: 'MARKETING',
     description: 'Promote seasonal sales and discounts',
+    language: 'en_US',
     components: [
       {
         type: 'HEADER',
@@ -207,8 +228,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: '🎉 Hi [Customer Name]! Our [Season] Sale is here!\n\nEnjoy [Discount]% off on all products. Use code: [Code] at checkout.\n\nHurry! Offer valid only until [Date].',
-      footerText: 'Reply STOP to unsubscribe from promotional messages',
+      body: '🎉 Hi [Customer Name]! Our [Season] Sale is here!\n\nEnjoy [Discount]% off on all products. Use code: [Code] at checkout.\n\nHurry! Offer valid only until [Date].',
+      footer: 'Reply STOP to unsubscribe from promotional messages',
       buttons: ['Shop Now']
     }
   },
@@ -217,6 +238,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'New Product Launch',
     category: 'MARKETING',
     description: 'Announce new product launches',
+    language: 'en_US',
     components: [
       {
         type: 'HEADER',
@@ -246,8 +268,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: 'Introducing [Product Name] - Our Latest Innovation! 🚀\n\nHi [Customer Name], be among the first to experience [Feature].\n\nSpecial launch price: [Price] (Regular: [Regular Price])\n\nLimited stock available!',
-      footerText: 'Text STOP to opt-out of marketing messages',
+      body: 'Introducing [Product Name] - Our Latest Innovation! 🚀\n\nHi [Customer Name], be among the first to experience [Feature].\n\nSpecial launch price: [Price] (Regular: [Regular Price])\n\nLimited stock available!',
+      footer: 'Text STOP to opt-out of marketing messages',
       buttons: ['Learn More', 'Not Interested']
     }
   },
@@ -256,6 +278,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Abandoned Cart Reminder',
     category: 'MARKETING',
     description: 'Remind customers about items left in cart',
+    language: 'en_GB',
     components: [
       {
         type: 'HEADER',
@@ -282,9 +305,9 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      headerText: 'You left something behind [Customer Name]! 🛒',
-      bodyText: 'Hi [Customer Name], you have [Number] items in your cart worth [Amount].\n\nComplete your purchase now and get [Discount]% off with code: COMEBACK\n\nYour cart will expire in 24 hours.',
-      footerText: 'Reply STOP to unsubscribe',
+      header: 'You left something behind [Customer Name]! 🛒',
+      body: 'Hi [Customer Name], you have [Number] items in your cart worth [Amount].\n\nComplete your purchase now and get [Discount]% off with code: COMEBACK\n\nYour cart will expire in 24 hours.',
+      footer: 'Reply STOP to unsubscribe',
       buttons: ['Complete Purchase']
     }
   },
@@ -293,6 +316,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Loyalty Program Reward',
     category: 'MARKETING',
     description: 'Notify customers about loyalty rewards',
+    language: 'en_GB',
     components: [
       {
         type: 'BODY',
@@ -318,8 +342,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: '🌟 Congratulations [Customer Name]!\n\nYou\'ve earned [Points] loyalty points. Your total balance is now [Total] points.\n\nRedeem [Required Points] points to get [Discount] off your next purchase!',
-      footerText: 'To opt-out of rewards notifications, reply STOP',
+      body: '🌟 Congratulations [Customer Name]!\n\nYou\'ve earned [Points] loyalty points. Your total balance is now [Total] points.\n\nRedeem [Required Points] points to get [Discount] off your next purchase!',
+      footer: 'To opt-out of rewards notifications, reply STOP',
       buttons: ['View Rewards', 'Check Balance']
     }
   },
@@ -328,6 +352,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Customer Feedback Request',
     category: 'MARKETING',
     description: 'Request feedback after purchase or service',
+    language: 'en_GB',
     components: [
       {
         type: 'HEADER',
@@ -361,9 +386,9 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      headerText: 'We value your opinion! 💭',
-      bodyText: 'Hi [Customer Name], thank you for your recent purchase of [Product].\n\nHow was your experience? Your feedback helps us improve our service.\n\nRate us from 1-5 stars:',
-      footerText: 'Reply STOP to opt-out of feedback requests',
+      header: 'We value your opinion! 💭',
+      body: 'Hi [Customer Name], thank you for your recent purchase of [Product].\n\nHow was your experience? Your feedback helps us improve our service.\n\nRate us from 1-5 stars:',
+      footer: 'Reply STOP to opt-out of feedback requests',
       buttons: ['⭐⭐⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐']
     }
   },
@@ -374,6 +399,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'OTP Verification',
     category: 'AUTHENTICATION',
     description: 'Send one-time password for verification',
+    language: 'en_GB',
     components: [
       {
         type: 'BODY',
@@ -397,8 +423,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: 'Your verification code is [123456]. This code will expire in 10 minutes.\n\n*Do not share this code with anyone.*',
-      footerText: 'If you didn\'t request this code, please ignore this message.',
+      body: 'Your verification code is [123456]. This code will expire in 10 minutes.\n\n*Do not share this code with anyone.*',
+      footer: 'If you didn\'t request this code, please ignore this message.',
       buttons: ['Copy Code']
     }
   },
@@ -407,6 +433,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Login Alert',
     category: 'AUTHENTICATION',
     description: 'Alert users about new login attempts',
+    language: 'en_US',
     components: [
       {
         type: 'BODY',
@@ -429,7 +456,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: '🔐 New login detected:\n\nDevice: [Device]\nLocation: [Location]\nTime: [Time]\n\nIf this wasn\'t you, please secure your account immediately.',
+      body: '🔐 New login detected:\n\nDevice: [Device]\nLocation: [Location]\nTime: [Time]\n\nIf this wasn\'t you, please secure your account immediately.',
       buttons: ['Secure Account', 'It was me']
     }
   },
@@ -438,6 +465,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Password Reset',
     category: 'AUTHENTICATION',
     description: 'Send password reset instructions',
+    language: 'en_US',
     components: [
       {
         type: 'BODY',
@@ -461,8 +489,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: 'Hi [Customer Name], we received a request to reset your password.\n\nYour password reset code is: [Code]\n\nThis code expires in [15] minutes.',
-      footerText: 'If you didn\'t request this, please ignore this message.',
+      body: 'Hi [Customer Name], we received a request to reset your password.\n\nYour password reset code is: [Code]\n\nThis code expires in [15] minutes.',
+      footer: 'If you didn\'t request this, please ignore this message.',
       buttons: ['Reset Password']
     }
   },
@@ -471,6 +499,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Account Verification',
     category: 'AUTHENTICATION',
     description: 'Verify new account registration',
+    language: 'en_US',
     components: [
       {
         type: 'HEADER',
@@ -499,9 +528,9 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      headerText: 'Welcome to [App Name]! 👋',
-      bodyText: 'Hi [Customer Name], please verify your account to get started.\n\nYour verification code is: [Code]\n\nEnter this code in the app to complete registration.',
-      footerText: 'Code expires in 30 minutes',
+      header: 'Welcome to [App Name]! 👋',
+      body: 'Hi [Customer Name], please verify your account to get started.\n\nYour verification code is: [Code]\n\nEnter this code in the app to complete registration.',
+      footer: 'Code expires in 30 minutes',
       buttons: ['Copy Code']
     }
   },
@@ -510,6 +539,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     name: 'Transaction Authorization',
     category: 'AUTHENTICATION',
     description: 'Authorize sensitive transactions',
+    language: 'en_US',
     components: [
       {
         type: 'BODY',
@@ -533,8 +563,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      bodyText: '⚠️ Transaction Authorization Required:\n\nAmount: [Amount]\nRecipient: [Recipient]\nReference: [Reference]\n\nEnter code [Code] to authorize this transaction.',
-      footerText: 'Code expires in 5 minutes. Never share this code.',
+      body: '⚠️ Transaction Authorization Required:\n\nAmount: [Amount]\nRecipient: [Recipient]\nReference: [Reference]\n\nEnter code [Code] to authorize this transaction.',
+      footer: 'Code expires in 5 minutes. Never share this code.',
       buttons: ['Copy Code']
     }
   }

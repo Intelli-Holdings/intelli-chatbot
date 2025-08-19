@@ -90,6 +90,7 @@ interface PhoneNumberLimit {
   country: string;
   business_initiated_conversations: number;
   limit: number;
+  quality_rating?: string;
 }
 
 const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v22.0';
@@ -121,7 +122,10 @@ export class WhatsAppService {
         return variants[0]; // Return the first variant as the standard
       }
     }
+    console.log(`Using primary language code: ${code}`);
+    console.log(`Returning code: ${code}`);
     return code; // Return as-is if not found
+    
   }
 
   /**
@@ -426,12 +430,12 @@ export class WhatsAppService {
       }
 
       // Ensure language code is properly formatted
-      if (messageData.template?.language?.code) {
+       if (!messageData.template?.language?.code) {
         messageData.template.language.code = this.getPrimaryLanguageCode(
           messageData.template.language.code
         );
       }
-      
+
       console.log('Sending message:', JSON.stringify(messageData, null, 2));
       
       const response = await fetch(
