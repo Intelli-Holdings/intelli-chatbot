@@ -2,7 +2,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DefaultTemplate } from "@/data/default-templates"
-import { Eye, Plus, Sparkles, MessageCircle, FileText, Image, Video, MapPin, Phone, Link, ChevronRight } from "lucide-react"
+import { Eye, Plus, Sparkles, MessageCircle, FileText, Image as ImageIcon, Video, MapPin, Phone, Link, ChevronRight, NotebookPen } from "lucide-react"
+import { GearIcon } from "@radix-ui/react-icons"
 
 interface TemplateCardProps {
   template: DefaultTemplate
@@ -38,12 +39,31 @@ export function TemplateCard({ template, onPreview, onCreate, isCreating }: Temp
     }
   }
 
+  // Check if template requires customization
+  const requiresCustomization = () => {
+    // Check for media requirements
+    const headerComponent = template.components?.find(c => c.type === 'HEADER');
+    if (headerComponent && headerComponent.format && 
+        ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format)) {
+      return true;
+    }
+
+    // Check for variables
+    const hasVariables = template.components?.some(component => {
+      return component.text && /\{\{\d+\}\}/.test(component.text);
+    });
+
+    return hasVariables || false;
+  };
+
+  const needsCustomization = requiresCustomization();
+
   const getHeaderIcon = (component: any) => {
     if (!component || component.type !== 'HEADER') return null
     
     switch (component.format) {
       case 'IMAGE':
-        return <Image className="h-4 w-4 text-muted-foreground" />
+        return <ImageIcon className="h-4 w-4 text-muted-foreground" />
       case 'VIDEO':
         return <Video className="h-4 w-4 text-muted-foreground" />
       case 'DOCUMENT':
@@ -133,46 +153,75 @@ export function TemplateCard({ template, onPreview, onCreate, isCreating }: Temp
   }
 
   return (
-    <Card className="h-full flex flex-col hover:shadow-lg transition-all duration-200 border-gray-200 dark:border-gray-700 p-2">
-     
-        {/* Header Section */}
-       
-
-        {/* Template Preview Section */}
-        <div className="flex-1 mb-4">
-          {renderTemplatePreview()}
+    <Card className={`h-full flex flex-col hover:shadow-lg transition-all duration-200 border-gray-200 dark:border-gray-700 p-2 ${needsCustomization ? 'ring-1 ring-blue-200 border-blue-300' : ''}`}>
+      {/* Header Section with Indicators */}
+      <div className="p-2 border-b">
+        <div className="flex items-center justify-between mb-2">
+          <Badge className={`${getCategoryColor(template.category)} text-xs`}>
+            <div className="flex items-center gap-1">
+              {getCategoryIcon(template.category)}
+              {template.category}
+            </div>
+          </Badge>
+          {needsCustomization && (
+            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+              <Plus className="h-3 w-3 mr-1" />
+              Customizable
+            </Badge>
+          )}
         </div>
+        <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+          {template.name}
+        </h3>
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+          {template.description}
+        </p>
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-3 border-t p-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onPreview(template)}
-            className="flex-1"
-          >
-            <Eye className="h-4 w-4 mr-1.5" />
-            Preview
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={() => onCreate(template)}
-            disabled={isCreating}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            {isCreating ? (
-              <>
-                <Sparkles className="h-4 w-4 mr-1.5 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-1.5" />
-                Use Template
-              </>
-            )}
-          </Button>
-        </div>
+      {/* Template Preview Section */}
+      <div className="flex-1 mb-4 p-2">
+        {renderTemplatePreview()}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-2 pt-3 border-t p-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => onPreview(template)}
+          className="flex-1"
+        >
+          <Eye className="h-4 w-4 mr-1.5" />
+          Preview
+        </Button>
+        <Button 
+          size="sm" 
+          onClick={() => onCreate(template)}
+          disabled={isCreating}
+          className={`flex-1 ${needsCustomization ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white`}
+        >
+          {isCreating ? (
+            <>
+              <Sparkles className="h-4 w-4 mr-1.5 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            <>
+              {needsCustomization ? (
+                <>
+                  <NotebookPen className="h-4 w-4 mr-1.5" />
+                  Customize
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Use Template
+                </>
+              )}
+            </>
+          )}
+        </Button>
+      </div>
     </Card>
   )
 }

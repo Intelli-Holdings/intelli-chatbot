@@ -23,6 +23,7 @@ import { TemplateTester } from "@/components/template-tester"
 import { TemplateDetailsDialog } from "@/components/template-details-dialog"
 import { TemplateEditor } from "@/components/template-editor"
 import BroadcastManager from "@/components/broadcast-manager"
+import { CustomizeTemplateDialog } from "@/components/customize-template-dialog"
 
 export default function TemplatesPage() {
   const organizationId = useActiveOrganizationId()
@@ -36,6 +37,8 @@ export default function TemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
   const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false)
+  const [isCustomizeDialogOpen, setIsCustomizeDialogOpen] = useState(false)
+  const [selectedCustomizeTemplate, setSelectedCustomizeTemplate] = useState<DefaultTemplate | null>(null)
   
   // State for app services and templates
   const [appServices, setAppServices] = useState<AppService[]>([])
@@ -141,21 +144,28 @@ export default function TemplatesPage() {
       return false;
     }
 
+    // Check if template requires media or has variables
+    const requiresCustomization = checkTemplateRequiresCustomization(defaultTemplate);
+    
+    if (requiresCustomization) {
+      // Open customization dialog
+      setSelectedCustomizeTemplate(defaultTemplate);
+      setIsCustomizeDialogOpen(true);
+      return true; // Don't create yet, wait for customization
+    }
+
+    // Create template directly if no customization needed
     setCreatingTemplateId(defaultTemplate.id);
 
     try {
-      // Convert default template to WhatsApp API format
       const templateData = {
         name: defaultTemplate.name.toLowerCase().replace(/\s+/g, '_'),
         category: defaultTemplate.category,
         components: defaultTemplate.components,
-        language: 'en_US'
+        language: defaultTemplate.language || 'en_US'
       };
       
-      // Use WhatsAppService to create templates via Meta Graph API directly
       await WhatsAppService.createTemplate(selectedAppService as AppService, templateData);
-
-      // Refetch templates after creation
       await fetchTemplates();
       toast.success('Template created successfully!');
       return true;
@@ -169,6 +179,58 @@ export default function TemplatesPage() {
       setCreatingTemplateId(null);
     }
   }, [selectedAppService, fetchTemplates]);
+
+  // Check if template requires customization
+  const checkTemplateRequiresCustomization = (template: DefaultTemplate): boolean => {
+    // Check for media requirements
+    const headerComponent = template.components?.find(c => c.type === 'HEADER');
+    if (headerComponent && headerComponent.format && 
+        ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format)) {
+      return true;
+    }
+
+    // Check for variables
+    const hasVariables = template.components?.some(component => {
+      return component.text && /\{\{\d+\}\}/.test(component.text);
+    });
+
+    return hasVariables || false;
+  };
+
+  // Handle customized template creation
+  const handleCustomizedTemplateCreation = useCallback(async (
+    templateData: any, 
+    customizations: any
+  ): Promise<boolean> => {
+    if (!selectedAppService?.whatsapp_business_account_id) {
+      setTemplatesError('App service configuration not available');
+      return false;
+    }
+
+    if (!selectedAppService?.access_token) {
+      setTemplatesError('Access token is required for Meta Graph API calls');
+      return false;
+    }
+
+    setCreatingTemplateId(selectedCustomizeTemplate?.id || null);
+
+    try {
+      await WhatsAppService.createTemplate(selectedAppService as AppService, templateData);
+      await fetchTemplates();
+      toast.success('Template created successfully with your customizations!');
+      setIsCustomizeDialogOpen(false);
+      setSelectedCustomizeTemplate(null);
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
+      setTemplatesError(errorMessage);
+      toast.error(errorMessage);
+      console.error('Error creating template:', err);
+      return false;
+    } finally {
+      setCreatingTemplateId(null);
+    }
+  }, [selectedAppService, fetchTemplates, selectedCustomizeTemplate]);
 
   // Create template function
   const createTemplate = useCallback(async (templateData: any): Promise<boolean> => {
@@ -237,50 +299,56 @@ export default function TemplatesPage() {
   }, [selectedAppService, fetchTemplates]);
 
   // Send test template function
-  const sendTestTemplate = useCallback(async (templateName: string, phoneNumber: string, parameters: string[]): Promise<boolean> => {
-    if (!selectedAppService?.phone_number_id) {
-      toast.error('Phone number ID not available');
-      return false;
-    }
+  const sendTestTemplate = useCallback(async (
+  templateName: string, 
+  phoneNumber: string, 
+  parameters: string[],
+  languageCode: string = 'en_US' // Add language parameter
+): Promise<boolean> => {
+  if (!selectedAppService?.phone_number_id) {
+    toast.error('Phone number ID not available');
+    return false;
+  }
 
-    if (!selectedAppService?.access_token) {
-      toast.error('Access token is required for Meta Graph API calls');
-      return false;
-    }
+  if (!selectedAppService?.access_token) {
+    toast.error('Access token is required for Meta Graph API calls');
+    return false;
+  }
 
-    try {
-      const messageData = {
-        messaging_product: "whatsapp",
-        to: phoneNumber,
-        type: "template",
-        template: {
-          name: templateName,
-          language: {
-            code: "en_US"
-          },
-          ...(parameters.length > 0 && {
-            components: [
-              {
-                type: "body",
-                parameters: parameters.map((param, index) => ({
-                  type: "text",
-                  text: param
-                }))
-              }
-            ]
-          })
-        }
-      };
+  try {
+    const messageData = {
+      messaging_product: "whatsapp",
+      to: phoneNumber,
+      type: "template",
+      template: {
+        name: templateName,
+        language: {
+          code: languageCode // Use dynamic language code
+        },
+        ...(parameters.length > 0 && {
+          components: [
+            {
+              type: "body",
+              parameters: parameters.map((param) => ({
+                type: "text",
+                text: param
+              }))
+            }
+          ]
+        })
+      }
+    };
 
-      // Use WhatsAppService to send test messages via Meta Graph API directly
-      await WhatsAppService.sendMessage(selectedAppService as AppService, messageData);
-
-      return true;
-    } catch (err) {
-      console.error('Error sending test template:', err);
-      throw err;
-    }
-  }, [selectedAppService]);
+    await WhatsAppService.sendMessage(selectedAppService as AppService, messageData);
+    toast.success('Test message sent successfully!');
+    return true;
+  } catch (err) {
+    console.error('Error sending test template:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Failed to send test message';
+    toast.error(errorMessage);
+    throw err;
+  }
+}, [selectedAppService]);
 
   // Effects
   useEffect(() => {
@@ -429,7 +497,6 @@ export default function TemplatesPage() {
               <TabsList>
                 <TabsTrigger value="browse">Browse Templates</TabsTrigger>
                 <TabsTrigger value="manage">Manage Templates</TabsTrigger>
-                <TabsTrigger value="test">Test Templates</TabsTrigger>
                 <TabsTrigger value="broadcast">Broadcast Manager</TabsTrigger>
               </TabsList>
 
@@ -444,7 +511,7 @@ export default function TemplatesPage() {
                       Create Custom Template
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-h-[90vh] max-w-3xl overflow-auto">
+                  <DialogContent className="max-h-[90vh] max-w-3xl overflow-auto pt-6">
                     <DialogHeader>
                       <DialogTitle>Create Message Template</DialogTitle>
                     </DialogHeader>
@@ -452,6 +519,7 @@ export default function TemplatesPage() {
                       onClose={() => setIsCreateDialogOpen(false)} 
                       onSubmit={handleCreateTemplate}
                       loading={templatesLoading}
+                      appService={selectedAppService}
                     />
                   </DialogContent>
                 </Dialog>
@@ -699,29 +767,6 @@ export default function TemplatesPage() {
                 </Alert>
               )}
             </TabsContent>
-
-            <TabsContent value="test" className="space-y-6">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">Test Your Templates</h2>
-                <p className="text-muted-foreground">
-                  Send test messages to verify your templates work correctly
-                </p>
-              </div>
-
-              {selectedAppService ? (
-                <TemplateTester
-                  templates={templates}
-                  onSendTest={sendTestTemplate}
-                  loading={templatesLoading}
-                />
-              ) : (
-                <Alert>
-                  <AlertDescription>
-                    Please select a WhatsApp service to test templates.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </TabsContent>
           </Tabs>
 
           {/* Template Details Dialog */}
@@ -746,6 +791,19 @@ export default function TemplatesPage() {
             }}
             onSave={handleUpdateTemplate}
             loading={templatesLoading}
+          />
+
+          {/* Customize Template Dialog */}
+          <CustomizeTemplateDialog
+            template={selectedCustomizeTemplate}
+            open={isCustomizeDialogOpen}
+            onClose={() => {
+              setIsCustomizeDialogOpen(false)
+              setSelectedCustomizeTemplate(null)
+            }}
+            onSubmit={handleCustomizedTemplateCreation}
+            loading={creatingTemplateId === selectedCustomizeTemplate?.id}
+            appService={selectedAppService}
           />
         </main>
       </div>
