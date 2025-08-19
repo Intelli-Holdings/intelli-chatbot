@@ -70,7 +70,11 @@ const nextConfig = {
         hostname: 'img.youtube.com',
         port: '',
         pathname: '/**',
-      }
+      },
+      {
+      protocol: "https",
+      hostname: "res.cloudinary.com",
+    }
     ],
   },
   experimental: {
