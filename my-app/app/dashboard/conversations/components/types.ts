@@ -13,11 +13,13 @@ export interface Conversation {
   id: number;
   customer_number: string;
   customer_name?: string; 
-  messages: ChatMessage[];
+  messages?: ChatMessage[]; 
+  message_counter?: number; 
+  is_handle_by_human?: boolean; 
   updated_at: string;
   phone_number: string;
   recipient_id: string;
-  attachments: {
+  attachments?: {
     id: number;
     media_name: string;
     media_type: string;

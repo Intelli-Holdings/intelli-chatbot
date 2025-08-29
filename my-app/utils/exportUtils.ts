@@ -14,7 +14,9 @@ export const exportToPDF = (conversation: Conversation) => {
   doc.text(`Name: ${customerName}`, 14, 25)
   doc.text(`Phone: ${conversation.customer_number}`, 14, 35)
 
-  conversation.messages.forEach(message => {
+  // Handle optional messages array
+  const messages = conversation.messages || []
+  messages.forEach(message => {
     const messageRow = [
       new Date(message.created_at).toLocaleString(),
       message.content ? 'Customer' : (message.sender === 'ai' ? 'AI' : 'Human'),
@@ -35,11 +37,13 @@ export const exportToPDF = (conversation: Conversation) => {
 
 export const exportToCSV = (conversation: Conversation) => {
   const customerName = conversation.customer_name || 'Unknown'
+  const messages = conversation.messages || []
+  
   const csvContent = "data:text/csv;charset=utf-8," 
     + `Customer Name: ${customerName}\n`
     + `Customer Number: ${conversation.customer_number}\n\n`
     + "Timestamp,Sender,Message\n"
-    + conversation.messages.map(message => {
+    + messages.map(message => {
         return `${new Date(message.created_at).toLocaleString()},${message.content ? 'Customer' : (message.sender === 'ai' ? 'AI' : 'Human')},"${message.content || message.answer || ''}"`
       }).join("\n")
 

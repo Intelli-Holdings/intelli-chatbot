@@ -54,4 +54,3 @@ export function DeleteOrgDialog({ open, onOpenChange }: DeleteOrgDialogProps) {
     </AlertDialog>
   )
 }
-

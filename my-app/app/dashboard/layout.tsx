@@ -1,5 +1,6 @@
 "use client";
 import { AppSidebar } from "@/components/app-sidebar";
+import { usePathname } from "next/navigation";
 import {
   SidebarInset,
   SidebarProvider,
@@ -29,6 +30,8 @@ export default function DashboardLayout({
 }) {
   const [queryClient] = useState(() => new QueryClient())
   const { unreadCount } = useNotificationContext()
+  const pathname = usePathname();
+  
 
   return (
     <div suppressHydrationWarning>
@@ -41,7 +44,7 @@ export default function DashboardLayout({
           } as React.CSSProperties
         }
       >
-        <AppSidebar />
+         <AppSidebar activePath={pathname} />
             <SidebarInset>
               <header className="flex h-16 shrink-0 items-center gap-2 px-4">
                 <SidebarTrigger className="-ml-1" />

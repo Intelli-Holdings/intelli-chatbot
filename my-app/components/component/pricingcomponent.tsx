@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import PricingCard from './pricingCard';
+import { Badge } from '@/components/ui/badge';
 
 const PricingComponent = () => {
   const [isAnnual, setIsAnnual] = useState<boolean>(true);
@@ -65,16 +66,16 @@ const PricingComponent = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <section className="container mx-auto px-4 py-20">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-4xl font-bold mb-4">
+        <div className="text-center lg:text-center mb-12 lg:mb-16 space-y-4">
+          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent leading-tight py-2">
             Choose the Perfect Plan for Your Business
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Start your 7-day free trial today. No credit card required.
           </p>
 
           {/* Simplified Tab-style Billing Selector */}
-          <div className="inline-flex bg-gray-100 p-1 rounded-lg">
+          <div className="inline-flex bg-gray-100 p-1 rounded-lg mt-8">
             <button
               onClick={() => setIsAnnual(false)}
               className={`px-6 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
