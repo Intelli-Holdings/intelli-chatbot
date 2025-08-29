@@ -792,7 +792,6 @@ export default function TemplatesPage() {
             onSave={handleUpdateTemplate}
             loading={templatesLoading}
           />
-
           {/* Customize Template Dialog */}
           <CustomizeTemplateDialog
             template={selectedCustomizeTemplate}

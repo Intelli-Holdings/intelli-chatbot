@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useRef } from "react"
 import { toast } from "sonner"
+import { metaConfigService } from "@/services/meta-config"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -245,12 +246,18 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
     try {
       setIsUploadingMedia(true)
       
-      // Step 1: Create upload session
-      const createSessionUrl = `https://graph.facebook.com/v22.0/${appService.whatsapp_business_account_id}/uploads`
+      // Get the correct App ID from Meta using the access token
+      const config = await metaConfigService.getConfigForAppService(appService)
+      if (!config) {
+        throw new Error('Could not get Meta app configuration')
+      }
+
+      // Step 1: Create upload session using the App ID
+      const createSessionUrl = `https://graph.facebook.com/v22.0/${config.appId}/uploads`
       const sessionResponse = await fetch(createSessionUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${appService.access_token}`,
+          'Authorization': `Bearer ${config.accessToken}`,
           'file_type': file.type,
           'file_length': file.size.toString(),
           'name': file.name
@@ -270,7 +277,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
       const uploadResponse = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${appService.access_token}`,
+          'Authorization': `Bearer ${config.accessToken}`,
           'file_offset': '0'
         },
         body: file
