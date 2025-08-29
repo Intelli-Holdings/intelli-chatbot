@@ -111,11 +111,6 @@ export default function TemplatesPage() {
       return;
     }
 
-    if (!selectedAppService?.access_token) {
-      setTemplatesError('Access token is required for Meta Graph API calls');
-      return;
-    }
-
     setTemplatesLoading(true);
     setTemplatesError(null);
 
@@ -136,11 +131,6 @@ export default function TemplatesPage() {
   const createTemplateFromDefault = useCallback(async (defaultTemplate: DefaultTemplate): Promise<boolean> => {
     if (!selectedAppService?.whatsapp_business_account_id) {
       setTemplatesError('App service configuration not available');
-      return false;
-    }
-
-    if (!selectedAppService?.access_token) {
-      setTemplatesError('Access token is required for Meta Graph API calls');
       return false;
     }
 
@@ -207,11 +197,6 @@ export default function TemplatesPage() {
       return false;
     }
 
-    if (!selectedAppService?.access_token) {
-      setTemplatesError('Access token is required for Meta Graph API calls');
-      return false;
-    }
-
     setCreatingTemplateId(selectedCustomizeTemplate?.id || null);
 
     try {
@@ -236,11 +221,6 @@ export default function TemplatesPage() {
   const createTemplate = useCallback(async (templateData: any): Promise<boolean> => {
     if (!selectedAppService?.whatsapp_business_account_id) {
       setTemplatesError('App service configuration not available');
-      return false;
-    }
-
-    if (!selectedAppService?.access_token) {
-      setTemplatesError('Access token is required for Meta Graph API calls');
       return false;
     }
 
@@ -269,11 +249,6 @@ export default function TemplatesPage() {
   const deleteTemplate = useCallback(async (templateName: string): Promise<boolean> => {
     if (!selectedAppService?.whatsapp_business_account_id) {
       setTemplatesError('App service configuration not available');
-      return false;
-    }
-
-    if (!selectedAppService?.access_token) {
-      setTemplatesError('Access token is required for Meta Graph API calls');
       return false;
     }
 
@@ -307,11 +282,6 @@ export default function TemplatesPage() {
 ): Promise<boolean> => {
   if (!selectedAppService?.phone_number_id) {
     toast.error('Phone number ID not available');
-    return false;
-  }
-
-  if (!selectedAppService?.access_token) {
-    toast.error('Access token is required for Meta Graph API calls');
     return false;
   }
 
