@@ -233,50 +233,24 @@ export function CustomizeTemplateDialog({
         throw new Error('Could not get Meta app configuration');
       }
 
-      // Step 1: Create upload session using the App ID
-      const createSessionUrl = `https://graph.facebook.com/v22.0/${config.appId}/uploads`;
-      const sessionResponse = await fetch(createSessionUrl, {
+      // Use the backend API to upload the file
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('appId', config.appId);
+      formData.append('accessToken', config.accessToken);
+
+      const response = await fetch('/api/whatsapp/upload-media', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${config.accessToken}`,
-          'file_type': file.type,
-          'file_length': file.size.toString(),
-          'name': file.name
-        }
+        body: formData
       });
 
-      if (!sessionResponse.ok) {
-        const error = await sessionResponse.json();
-        throw new Error(error.error?.message || 'Failed to create upload session');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload media');
       }
 
-      const sessionData = await sessionResponse.json();
-      const uploadSessionId = sessionData.id;
-
-      // Step 2: Upload the file to the session
-      const uploadUrl = `https://graph.facebook.com/v22.0/${uploadSessionId}`;
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${config.accessToken}`,
-          'file_offset': '0'
-        },
-        body: file
-      });
-
-      if (!uploadResponse.ok) {
-        const error = await uploadResponse.json();
-        throw new Error(error.error?.message || 'Failed to upload file');
-      }
-
-      const uploadData = await uploadResponse.json();
-      
-      // Return the media handle (h field)
-      if (!uploadData.h) {
-        throw new Error('No media handle returned from upload');
-      }
-      
-      return uploadData.h;
+      const data = await response.json();
+      return data.mediaHandle;
     } catch (error) {
       console.error('Meta upload error:', error);
       throw error;
