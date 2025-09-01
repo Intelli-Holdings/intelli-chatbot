@@ -1,3 +1,4 @@
+// app/api/whatsapp/upload-media/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -14,22 +15,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'video/mp4', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: `Invalid file type. Allowed types: ${allowedTypes.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Step 1: Create upload session
-    const createSessionUrl = `https://graph.facebook.com/v22.0/${appId}/uploads`;
-    const sessionResponse = await fetch(createSessionUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        'file_type': file.type,
+    // Step 1: Create upload session using query parameters (as per Meta docs)
+    const createSessionUrl = `https://graph.facebook.com/v23.0/${appId}/uploads?` +
+      new URLSearchParams({
+        'file_name': file.name,
         'file_length': file.size.toString(),
-        'file_name': file.name
-      })
+        'file_type': file.type,
+        'access_token': accessToken
+      });
+
+    console.log('Creating upload session:', createSessionUrl);
+
+    const sessionResponse = await fetch(createSessionUrl, {
+      method: 'POST'
     });
 
     if (!sessionResponse.ok) {
@@ -42,16 +52,21 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = await sessionResponse.json();
-    const uploadSessionId = sessionData.id;
+    const uploadSessionId = sessionData.id; // This will be like "upload:XXXX"
+    
+    console.log('Upload session created:', uploadSessionId);
 
     // Step 2: Upload the file to the session
-    const uploadUrl = `https://graph.facebook.com/v22.0/${uploadSessionId}`;
+    // Use OAuth format for authorization as per Meta docs
+    const uploadUrl = `https://graph.facebook.com/v23.0/${uploadSessionId}`;
+    
+    console.log('Uploading file to:', uploadUrl);
+    
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'file_offset': '0',
-        'Content-Type': file.type,
+        'Authorization': `OAuth ${accessToken}`, // OAuth format, not Bearer
+        'file_offset': '0'
       },
       body: buffer
     });
@@ -67,11 +82,15 @@ export async function POST(request: NextRequest) {
 
     const uploadData = await uploadResponse.json();
     
-    // Return the media handle
+    console.log('Upload successful, handle:', uploadData.h);
+    
+    // Return the media handle (h field)
     return NextResponse.json({ 
       success: true, 
-      handle: uploadData.h,
-      sessionId: uploadSessionId 
+      handle: uploadData.h, // This is what will be used in template creation
+      sessionId: uploadSessionId,
+      fileType: file.type,
+      fileName: file.name
     });
 
   } catch (error) {
