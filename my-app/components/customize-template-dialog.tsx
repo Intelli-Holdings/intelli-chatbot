@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { metaConfigService } from '@/services/meta-config';
+import { TemplateCreationHandler } from '@/utils/template-creator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -250,7 +251,7 @@ export function CustomizeTemplateDialog({
       }
 
       const data = await response.json();
-      return data.mediaHandle;
+      return data.handle;
     } catch (error) {
       console.error('Meta upload error:', error);
       throw error;
@@ -281,59 +282,65 @@ export function CustomizeTemplateDialog({
     setIsSubmitting(true);
 
     try {
-      // Prepare template data with customizations
-      const templateData = {
-        name: template.name.toLowerCase().replace(/\s+/g, '_'),
+      // Handle media upload if required
+      let headerMediaHandle = null;
+      
+      if (mediaRequirement.required && customizations.mediaFile) {
+        try {
+          toast.info("Uploading media to Meta...");
+          headerMediaHandle = await uploadMediaToMeta(customizations.mediaFile);
+        } catch (uploadError) {
+          toast.error("Failed to upload media to Meta.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Prepare template data for the template creator
+      const templateInputData = {
+        name: template.name,
         category: template.category,
-        components: await Promise.all(template.components?.map(async (component) => {
-          if (component.type === 'HEADER' && mediaRequirement.required && customizations.mediaFile) {
-            // Upload media and get handle
-            try {
-              toast.info("Uploading media to Meta...");
-              const mediaHandle = await uploadMediaToMeta(customizations.mediaFile);
-              
-              return {
-                ...component,
-                example: {
-                  header_handle: [mediaHandle]
-                }
-              };
-            } catch (uploadError) {
-              toast.error("Failed to upload media to Meta.");
-              throw uploadError;
-            }
-          }
-
-          // Add examples for text variables in any component
-          if (component.text && allVariables.length > 0) {
-            const exampleValues = allVariables.map(variable => {
-              const key = variable.replace(/[{}]/g, '');
-              return customizations.variables[key] || `Sample ${key}`;
-            });
-
-            if (component.type === 'HEADER') {
-              return {
-                ...component,
-                example: {
-                  header_text: exampleValues
-                }
-              };
-            } else if (component.type === 'BODY') {
-              return {
-                ...component,
-                example: {
-                  body_text: [exampleValues]
-                }
-              };
-            }
-          }
-
-          return component;
-        }) || []),
-        language: template.language || 'en_US'
+        language: template.language || 'en_US',
+        headerType: mediaRequirement.required ? mediaRequirement.format : 'NONE',
+        headerMediaHandle,
+        body: template.components?.find(c => c.type === 'BODY')?.text || '',
+        bodyVariables: allVariables,
+        footer: template.components?.find(c => c.type === 'FOOTER')?.text || '',
+        buttonType: template.components?.find(c => c.type === 'BUTTONS') ? 'QUICK_REPLY' : 'NONE',
+        buttons: template.components?.find(c => c.type === 'BUTTONS')?.buttons || [],
+        // Add customization values
+        customVariableValues: customizations.variables
       };
 
-      const success = await onSubmit(templateData, customizations);
+      // Use the template creation handler
+      const formattedTemplate = TemplateCreationHandler.createTemplate(templateInputData);
+
+      // Override examples with actual customized values
+      formattedTemplate.components = formattedTemplate.components.map(component => {
+        if (component.type === 'BODY' && component.example?.body_text) {
+          // Replace example values with actual customized values
+          const customizedValues = allVariables.map(variable => {
+            const key = variable.replace(/[{}]/g, '');
+            return customizations.variables[key] || `Sample ${key}`;
+          });
+          
+          component.example.body_text = [customizedValues];
+        }
+
+        if (component.type === 'HEADER' && component.example?.header_text) {
+          // Replace example values with actual customized values for header
+          const customizedValues = allVariables.map(variable => {
+            const key = variable.replace(/[{}]/g, '');
+            return customizations.variables[key] || `Sample ${key}`;
+          });
+          
+          component.example.header_text = customizedValues;
+        }
+
+        return component;
+      });
+
+      const success = await onSubmit(formattedTemplate, customizations);
       if (success) {
         onClose();
         // Clean up preview URLs
@@ -343,7 +350,7 @@ export function CustomizeTemplateDialog({
       }
     } catch (error) {
       console.error('Template creation error:', error);
-      toast.error("Failed to create template");
+      toast.error(error instanceof Error ? error.message : "Failed to create template");
     } finally {
       setIsSubmitting(false);
     }

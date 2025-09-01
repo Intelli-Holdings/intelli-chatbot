@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useRef } from "react"
 import { toast } from "sonner"
 import { metaConfigService } from "@/services/meta-config"
+import { TemplateCreationHandler } from "@/utils/template-creator"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -269,7 +270,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
       }
 
       const data = await response.json()
-      return data.mediaHandle
+      return data.handle
     } catch (error) {
       console.error('Meta upload error:', error)
       throw error
@@ -304,111 +305,36 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
     setIsSubmitting(true)
     
     try {
-      const components: TemplateComponent[] = []
+      // Handle media upload if needed
+      let headerMediaHandle = null
       
-      // Add header component with media example if needed
-      if (templateData.headerType !== "NONE") {
-        if (templateData.headerType === "TEXT" && templateData.headerText) {
-          const headerComponent: any = {
-            type: "HEADER",
-            format: "TEXT",
-            text: templateData.headerText
-          }
-          
-          // Add example for text variables
-          if (templateData.headerVariables.length > 0) {
-            headerComponent.example = {
-              header_text: templateData.headerVariables.map((_, i) => `Sample ${i + 1}`)
-            }
-          }
-          
-          components.push(headerComponent)
-        } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(templateData.headerType)) {
-          const headerComponent: any = {
-            type: "HEADER",
-            format: templateData.headerType as any
-          }
-          
-          // Handle media URL or file
-          let mediaHandle = null
-          
-          // If file was uploaded, upload it to Meta and get handle
-          if (templateData.headerMediaFile && mediaUploadMethod === 'upload') {
-            if (!appService) {
-              toast.error("App service is required for media upload")
-              setIsSubmitting(false)
-              return
-            }
-            
-            try {
-              toast.info("Uploading media to Meta...")
-              mediaHandle = await uploadMediaToMeta(templateData.headerMediaFile, appService)
-            } catch (uploadError) {
-              toast.error("Failed to upload media to Meta.")
-              setIsSubmitting(false)
-              return
-            }
-          }
-          
-          // Add example media handle (not URL)
-          if (mediaHandle) {
-            headerComponent.example = {
-              header_handle: [mediaHandle] // Meta expects media handle, not URL
-            }
-          } else {
-            toast.error("Media upload is required for media templates")
-            setIsSubmitting(false)
-            return
-          }
-          
-          components.push(headerComponent)
-        } else if (templateData.headerType === 'LOCATION') {
-          components.push({
-            type: "HEADER",
-            format: "LOCATION"
-          })
+      if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(templateData.headerType) && templateData.headerMediaFile) {
+        if (!appService) {
+          toast.error("App service is required for media upload")
+          setIsSubmitting(false)
+          return
+        }
+        
+        try {
+          toast.info("Uploading media to Meta...")
+          headerMediaHandle = await uploadMediaToMeta(templateData.headerMediaFile, appService)
+        } catch (uploadError) {
+          toast.error("Failed to upload media to Meta.")
+          setIsSubmitting(false)
+          return
         }
       }
-      
-      // Add body component with examples for variables
-      const bodyComponent: any = {
-        type: "BODY",
-        text: templateData.body
-      }
-      
-      // Add example values for body variables
-      if (templateData.bodyVariables.length > 0) {
-        bodyComponent.example = {
-          body_text: [templateData.bodyVariables.map((_, i) => `Example ${i + 1}`)]
-        }
-      }
-      
-      components.push(bodyComponent)
-      
-      // Add footer component if specified
-      if (templateData.footer) {
-        components.push({
-          type: "FOOTER",
-          text: templateData.footer
-        })
-      }
-      
-      // Add buttons if specified
-      if (templateData.buttonType !== "NONE" && templateData.buttons.length > 0) {
-        components.push({
-          type: "BUTTONS",
-          buttons: templateData.buttons
-        })
+
+      // Prepare template data with media handle
+      const templateDataWithMedia = {
+        ...templateData,
+        headerMediaHandle
       }
 
-      const payload = {
-        name: templateData.name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-        language: templateData.language,
-        category: templateData.category,
-        components
-      }
+      // Use the new template creation handler
+      const formattedTemplate = TemplateCreationHandler.createTemplate(templateDataWithMedia)
 
-      const success = await onSubmit(payload)
+      const success = await onSubmit(formattedTemplate)
       
       if (success) {
         toast.success("Template created successfully!")
@@ -420,21 +346,35 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
       }
     } catch (error) {
       console.error('Template creation error:', error)
-      toast.error("Failed to create template")
+      toast.error(error instanceof Error ? error.message : "Failed to create template")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const addButton = () => {
-    const maxButtons = templateData.buttonType === "QUICK_REPLY" ? 3 : 2
-    
-    if (templateData.buttons.length >= maxButtons) {
-      toast.error(`Maximum ${maxButtons} buttons allowed for ${templateData.buttonType}`)
-      return
-    }
+  const maxButtons = templateData.buttonType === "QUICK_REPLY" ? 3 : 2;
+  
+  if (templateData.buttons.length >= maxButtons) {
+    toast.error(`Maximum ${maxButtons} buttons allowed for ${templateData.buttonType}`);
+    return;
+  }
 
-    if (templateData.buttonType === "CALL_TO_ACTION") {
+  if (templateData.buttonType === "CALL_TO_ACTION") {
+    // For authentication templates, add OTP button option
+    if (templateData.category === "AUTHENTICATION") {
+      setTemplateData({
+        ...templateData,
+        buttons: [
+          ...templateData.buttons,
+          {
+            type: "OTP",
+            otp_type: "COPY_CODE",
+            text: "Copy Code"
+          }
+        ]
+      });
+    } else {
       setTemplateData({
         ...templateData,
         buttons: [
@@ -445,20 +385,21 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
             url: "https://"
           }
         ]
-      })
-    } else if (templateData.buttonType === "QUICK_REPLY") {
-      setTemplateData({
-        ...templateData,
-        buttons: [
-          ...templateData.buttons,
-          {
-            type: "QUICK_REPLY",
-            text: ""
-          }
-        ]
-      })
+      });
     }
+  } else if (templateData.buttonType === "QUICK_REPLY") {
+    setTemplateData({
+      ...templateData,
+      buttons: [
+        ...templateData.buttons,
+        {
+          type: "QUICK_REPLY",
+          text: ""
+        }
+      ]
+    });
   }
+};
 
   const removeButton = (index: number) => {
     setTemplateData({
