@@ -167,7 +167,7 @@ export class WhatsAppService {
         if (variableMatches && variableMatches.length > 0) {
           const exampleValues = variableMatches.map((_: any, index: number) => `value${index + 1}`);
           formattedComponent.example = {
-            body_text: [exampleValues]
+            body_text: exampleValues  // Fixed: Use flat array, not nested [exampleValues]
           };
         }
       }
