@@ -49,7 +49,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       {
         type: 'HEADER',
         format: 'TEXT',
-        text: 'Order Confirmed! 🎉'
+        text: 'Order Confirmed!'
       },
       {
         type: 'BODY',
@@ -71,7 +71,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      header: 'Order Confirmed! 🎉',
+      header: 'Order Confirmed!',
       body: 'Hi [Customer Name], thank you for your order!\n\nOrder ID: [Order ID]\nTotal Amount: [Amount]\nEstimated Delivery: [Date]\n\nWe\'ll send you tracking information once your order ships.',
       footer: 'Thank you for shopping with us!',
       buttons: ['Track Order']
@@ -246,7 +246,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: 'Introducing {{1}} - Our Latest Innovation! 🚀\n\nHi {{2}}, be among the first to experience {{3}}.\n\nSpecial launch price: {{4}} (Regular: {{5}})\n\nLimited stock available!'
+        text: 'Introducing {{1}} - Our Latest Innovation! \n\nHi {{2}}, be among the first to experience {{3}}.\n\nSpecial launch price: {{4}} (Regular: {{5}})\n\nLimited stock available!'
       },
       {
         type: 'FOOTER',
@@ -268,7 +268,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Introducing [Product Name] - Our Latest Innovation! 🚀\n\nHi [Customer Name], be among the first to experience [Feature].\n\nSpecial launch price: [Price] (Regular: [Regular Price])\n\nLimited stock available!',
+      body: 'Introducing [Product Name] - Our Latest Innovation! \n\nHi [Customer Name], be among the first to experience [Feature].\n\nSpecial launch price: [Price] (Regular: [Regular Price])\n\nLimited stock available!',
       footer: 'Text STOP to opt-out of marketing messages',
       buttons: ['Learn More', 'Not Interested']
     }
@@ -283,7 +283,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       {
         type: 'HEADER',
         format: 'TEXT',
-        text: 'You left something behind {{1}}! 🛒'
+        text: 'You left something behind {{1}}! '
       },
       {
         type: 'BODY',
@@ -305,7 +305,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      header: 'You left something behind [Customer Name]! 🛒',
+      header: 'You left something behind [Customer Name]!',
       body: 'Hi [Customer Name], you have [Number] items in your cart worth [Amount].\n\nComplete your purchase now and get [Discount]% off with code: COMEBACK\n\nYour cart will expire in 24 hours.',
       footer: 'Reply STOP to unsubscribe',
       buttons: ['Complete Purchase']
@@ -320,7 +320,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     components: [
       {
         type: 'BODY',
-        text: '🌟 Congratulations {{1}}!\n\nYou\'ve earned {{2}} loyalty points. Your total balance is now {{3}} points.\n\nRedeem {{4}} points to get {{5}} off your next purchase!'
+        text: ' Congratulations {{1}}!\n\nYou\'ve earned {{2}} loyalty points. Your total balance is now {{3}} points.\n\nRedeem {{4}} points to get {{5}} off your next purchase!'
       },
       {
         type: 'FOOTER',
@@ -342,7 +342,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: '🌟 Congratulations [Customer Name]!\n\nYou\'ve earned [Points] loyalty points. Your total balance is now [Total] points.\n\nRedeem [Required Points] points to get [Discount] off your next purchase!',
+      body: ' Congratulations [Customer Name]!\n\nYou\'ve earned [Points] loyalty points. Your total balance is now [Total] points.\n\nRedeem [Required Points] points to get [Discount] off your next purchase!',
       footer: 'To opt-out of rewards notifications, reply STOP',
       buttons: ['View Rewards', 'Check Balance']
     }
@@ -357,7 +357,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       {
         type: 'HEADER',
         format: 'TEXT',
-        text: 'We value your opinion! 💭'
+        text: 'We value your opinion! '
       },
       {
         type: 'BODY',
@@ -504,7 +504,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       {
         type: 'HEADER',
         format: 'TEXT',
-        text: 'Welcome to {{1}}! 👋'
+        text: 'Welcome to {{1}}! '
       },
       {
         type: 'BODY',
@@ -528,7 +528,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      header: 'Welcome to [App Name]! 👋',
+      header: 'Welcome to [App Name]!',
       body: 'Hi [Customer Name], please verify your account to get started.\n\nYour verification code is: [Code]\n\nEnter this code in the app to complete registration.',
       footer: 'Code expires in 30 minutes',
       buttons: ['Copy Code']
@@ -543,7 +543,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     components: [
       {
         type: 'BODY',
-        text: '⚠️ Transaction Authorization Required:\n\nAmount: {{1}}\nRecipient: {{2}}\nReference: {{3}}\n\nEnter code {{4}} to authorize this transaction.',
+        text: ' Transaction Authorization Required:\n\nAmount: {{1}}\nRecipient: {{2}}\nReference: {{3}}\n\nEnter code {{4}} to authorize this transaction.',
         add_security_recommendation: true
       },
       {
