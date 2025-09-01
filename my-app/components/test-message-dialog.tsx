@@ -27,9 +27,12 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       // Extract variables from body text
       const bodyComponent = template.components?.find(c => c.type === 'BODY');
       if (bodyComponent?.text) {
-        const variableMatches = bodyComponent.text.match(/\{\{\d+\}\}/g) || [];
-        const variableCount = variableMatches.length;
-        setVariables(new Array(variableCount).fill(''));
+          variableMatches.map(match => parseInt(match.match(/\d+/)[0]))
+        );
+        
+        // Create array based on highest variable number (e.g., {{1}}, {{3}} = 3 variables)
+        const maxVariableNum = uniqueVariables.size > 0 ? Math.max(...Array.from(uniqueVariables)) : 0;
+        setVariables(new Array(maxVariableNum).fill(''));
       }
     }
   }, [template]);

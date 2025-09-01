@@ -324,7 +324,7 @@ export function CustomizeTemplateDialog({
             return customizations.variables[key] || `Sample ${key}`;
           });
           
-          component.example.body_text = [customizedValues];
+          component.example.body_text = customizedValues;  // Fixed: Use flat array
         }
 
         if (component.type === 'HEADER' && component.example?.header_text) {

@@ -49,7 +49,16 @@ export class TemplateCreationHandler {
 
     // Add footer component
     if (templateData.footer?.trim()) {
-      components.push(this.createFooterComponent(templateData.footer))
+      const footerComponent = this.createFooterComponent(templateData.footer, templateData.category)
+      if (footerComponent) {
+        components.push(footerComponent)
+      }
+    } else if (templateData.category === 'MARKETING') {
+      // Auto-add opt-out footer for marketing templates
+      const footerComponent = this.createFooterComponent(undefined, templateData.category)
+      if (footerComponent) {
+        components.push(footerComponent)
+      }
     }
 
     // Add buttons component
@@ -75,7 +84,7 @@ export class TemplateCreationHandler {
    * Creates header component based on type
    */
   private static createHeaderComponent(templateData: any): TemplateComponent | null {
-    const { headerType, headerText, headerVariables, headerMediaHandle } = templateData
+    const { headerType, headerText, headerVariables, headerMediaHandle, customVariableValues } = templateData
 
     switch (headerType) {
       case 'TEXT':
@@ -95,8 +104,26 @@ export class TemplateCreationHandler {
 
         // Add examples for variables
         if (headerVariables?.length > 0) {
+          const exampleValues = headerVariables.map((variable: any, i: number) => {
+            const key = variable.replace(/[{}]/g, '')
+            
+            // Use custom values if available
+            if (customVariableValues && customVariableValues[key]) {
+              return customVariableValues[key]
+            }
+            
+            // Generate meaningful examples
+            if (key.toLowerCase().includes('company') || key.includes('1')) {
+              return 'YourCompany'
+            } else if (key.toLowerCase().includes('name')) {
+              return 'John'
+            } else {
+              return `Sample${i + 1}`
+            }
+          })
+          
           headerComponent.example = {
-            header_text: headerVariables.map((_: any, i: number) => `Sample ${i + 1}`)
+            header_text: exampleValues
           }
         }
 
@@ -132,7 +159,7 @@ export class TemplateCreationHandler {
    * Creates body component with proper variable examples
    */
   private static createBodyComponent(templateData: any): TemplateComponent {
-    const { body, bodyVariables } = templateData
+    const { body, bodyVariables, customVariableValues } = templateData
 
     const bodyComponent: TemplateComponent = {
       type: 'BODY',
@@ -141,8 +168,33 @@ export class TemplateCreationHandler {
 
     // Add examples for variables - Note the nested array structure
     if (bodyVariables?.length > 0) {
+      // Use custom values if provided, otherwise use meaningful examples
+      const exampleValues = bodyVariables.map((variable: any, i: number) => {
+        const key = variable.replace(/[{}]/g, '')
+        
+        // Use custom values if available
+        if (customVariableValues && customVariableValues[key]) {
+          return customVariableValues[key]
+        }
+        
+        // Generate meaningful examples based on common variable patterns
+        if (key.toLowerCase().includes('name') || key.includes('1')) {
+          return 'John Doe'
+        } else if (key.toLowerCase().includes('order') || key.includes('2')) {
+          return '#12345'
+        } else if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.includes('3')) {
+          return '$99.99'
+        } else if (key.toLowerCase().includes('date') || key.toLowerCase().includes('time') || key.includes('4')) {
+          return 'March 15'
+        } else if (key.toLowerCase().includes('code') || key.toLowerCase().includes('track')) {
+          return 'ABC123'
+        } else {
+          return `Sample${i + 1}`
+        }
+      })
+      
       bodyComponent.example = {
-        body_text: [bodyVariables.map((_: any, i: number) => `Example ${i + 1}`)]
+        body_text: exampleValues  // Fixed: Use flat array, not nested [exampleValues]
       }
     }
 
@@ -150,9 +202,20 @@ export class TemplateCreationHandler {
   }
 
   /**
-   * Creates footer component
+   * Creates footer component with proper opt-out requirements
    */
-  private static createFooterComponent(footerText: string): TemplateComponent {
+  private static createFooterComponent(footerText?: string, category?: string): TemplateComponent | null {
+    if (!footerText?.trim()) {
+      // For marketing templates, auto-add opt-out footer if missing
+      if (category === 'MARKETING') {
+        return {
+          type: 'FOOTER',
+          text: 'Reply STOP to opt out'
+        }
+      }
+      return null
+    }
+
     return {
       type: 'FOOTER',
       text: footerText.substring(0, 60) // Max 60 characters
@@ -210,8 +273,22 @@ export class TemplateCreationHandler {
         }
 
         // Add example if URL contains variables
-        if (button.url?.includes('{{1}}') && button.example) {
-          urlButton.example = [button.example]
+        if (button.url?.includes('{{1}}')) {
+          // Match the variable pattern with meaningful examples
+          let exampleValue = button.example || 'default-value'
+          
+          // Generate contextual examples based on URL pattern
+          if (button.url.includes('order') || button.url.includes('purchase')) {
+            exampleValue = button.example || 'ORD12345'
+          } else if (button.url.includes('track') || button.url.includes('status')) {
+            exampleValue = button.example || 'TRK98765'
+          } else if (button.url.includes('product') || button.url.includes('item')) {
+            exampleValue = button.example || 'PROD456'
+          } else if (button.url.includes('user') || button.url.includes('profile')) {
+            exampleValue = button.example || 'USR789'
+          }
+          
+          urlButton.example = [exampleValue]
         }
 
         return urlButton
@@ -230,7 +307,7 @@ export class TemplateCreationHandler {
       case 'COPY_CODE':
         return {
           type: 'COPY_CODE',
-          example: button.example || 'CODE123'
+          example: [button.example || 'CODE123']  // Fixed: example should be an array
         } as any
 
       default:
@@ -324,7 +401,7 @@ export class TemplateCreationHandler {
             type: "BODY",
             text: "Your verification code is {{1}}. This code expires in 10 minutes.",
             example: {
-              body_text: [["123456"]]
+              body_text: ["123456"]  // Fixed: Use flat array, not nested [[]]
             }
           },
           {
@@ -354,7 +431,7 @@ export class TemplateCreationHandler {
             type: "BODY",
             text: "🎉 Our {{1}} sale is now live! Get {{2}} off everything. Use code {{3}}",
             example: {
-              body_text: [["Summer", "25%", "SAVE25"]]
+              body_text: ["Summer", "25%", "SAVE25"]  // Fixed: Use flat array
             }
           },
           {
@@ -394,7 +471,7 @@ export class TemplateCreationHandler {
             type: "BODY",
             text: "Hi {{1}}, your order {{2}} has been confirmed. Total: {{3}}. Estimated delivery: {{4}}",
             example: {
-              body_text: [["John", "#12345", "$99.99", "March 15"]]
+              body_text: ["John", "#12345", "$99.99", "March 15"]  // Fixed: Use flat array
             }
           },
           {
