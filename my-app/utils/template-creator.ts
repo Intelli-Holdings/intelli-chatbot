@@ -18,13 +18,15 @@ export interface TemplateButton {
   phone_number?: string
   url?: string
   otp_type?: string
-  example?: string[]
+  example?: string[] | string
 }
 
 export interface TemplateData {
   name: string
   language: string
   category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION'
+  add_security_recommendation?: boolean;
+  code_expiration_minutes?: number;
   components: TemplateComponent[]
 }
 
@@ -72,12 +74,23 @@ export class TemplateCreationHandler {
     // Validate template based on category
     this.validateTemplate(templateData.category, components)
 
-    return {
+    const result: TemplateData = {
       name: this.sanitizeTemplateName(templateData.name),
       language: templateData.language || 'en_US',
       category: templateData.category,
       components
+    };
+
+    if (templateData.category === 'AUTHENTICATION') {
+      if (templateData.add_security_recommendation) {
+        result.add_security_recommendation = true;
+      }
+      if (templateData.code_expiration_minutes) {
+        result.code_expiration_minutes = templateData.code_expiration_minutes;
+      }
     }
+
+    return result;
   }
 
   /**
@@ -194,8 +207,8 @@ export class TemplateCreationHandler {
       })
       
       bodyComponent.example = {
-        body_text: exampleValues  // Fixed: Use flat array, not nested [exampleValues]
-      }
+        body_text: [exampleValues],
+      };
     }
 
     return bodyComponent
@@ -294,21 +307,22 @@ export class TemplateCreationHandler {
         return urlButton
 
       case 'OTP':
-        // Special handling for authentication templates
+        // For AUTHENTICATION templates, an OTP button is a special type of COPY_CODE button.
         if (category === 'AUTHENTICATION') {
           return {
-            type: 'OTP',
-            otp_type: 'COPY_CODE',
-            text: button.text || 'Copy Code'
-          }
+            type: 'COPY_CODE',
+            example: '123456' // Example is required for COPY_CODE buttons
+          };
         }
-        return null
+        // If not an AUTH template, an OTP button is not valid in this context.
+        return null;
 
       case 'COPY_CODE':
+        // This is for a generic "copy code" button, not the OTP-specific one.
         return {
           type: 'COPY_CODE',
-          example: [button.example || 'CODE123']  // Fixed: example should be an array
-        } as any
+          example: button.example || 'EXAMPLE_CODE',
+        };
 
       default:
         return null
@@ -401,7 +415,7 @@ export class TemplateCreationHandler {
             type: "BODY",
             text: "Your verification code is {{1}}. This code expires in 10 minutes.",
             example: {
-              body_text: ["123456"]  // Fixed: Use flat array, not nested [[]]
+              body_text: [["123456"]]
             }
           },
           {
@@ -431,7 +445,7 @@ export class TemplateCreationHandler {
             type: "BODY",
             text: "🎉 Our {{1}} sale is now live! Get {{2}} off everything. Use code {{3}}",
             example: {
-              body_text: ["Summer", "25%", "SAVE25"]  // Fixed: Use flat array
+              body_text: [["Summer", "25%", "SAVE25"]]
             }
           },
           {
@@ -471,7 +485,7 @@ export class TemplateCreationHandler {
             type: "BODY",
             text: "Hi {{1}}, your order {{2}} has been confirmed. Total: {{3}}. Estimated delivery: {{4}}",
             example: {
-              body_text: ["John", "#12345", "$99.99", "March 15"]  // Fixed: Use flat array
+              body_text: [["John", "#12345", "$99.99", "March 15"]]
             }
           },
           {
