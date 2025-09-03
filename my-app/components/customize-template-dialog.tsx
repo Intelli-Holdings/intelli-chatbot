@@ -324,7 +324,7 @@ export function CustomizeTemplateDialog({
             return customizations.variables[key] || `Sample ${key}`;
           });
           
-          component.example.body_text = customizedValues;  // Fixed: Use flat array
+          component.example.body_text = [customizedValues];
         }
 
         if (component.type === 'HEADER' && component.example?.header_text) {
@@ -501,7 +501,7 @@ export function CustomizeTemplateDialog({
                   <div className="grid grid-cols-1 gap-4">
                     {allVariables.map((variable) => {
                       const key = variable.replace(/[{}]/g, '');
-                      const placeholder = getVariablePlaceholder(parseInt(key));
+                    
                       
                       return (
                         <div key={variable} className="space-y-2">
@@ -511,8 +511,7 @@ export function CustomizeTemplateDialog({
                               {variable}
                             </Badge>
                           </Label>
-                          <Input
-                            placeholder={placeholder}
+                          <Input                        
                             value={customizations.variables[key] || ''}
                             onChange={(e) => updateVariable(key, e.target.value)}
                           />
@@ -640,20 +639,3 @@ export function CustomizeTemplateDialog({
   );
 }
 
-// Helper function to get variable placeholders
-function getVariablePlaceholder(variableNum: number): string {
-  const placeholders = [
-    'Customer Name',
-    'Order ID', 
-    'Date',
-    'Amount',
-    'Link',
-    'Product Name',
-    'Location',
-    'Time',
-    'Code',
-    'Company Name'
-  ];
-  
-  return placeholders[variableNum - 1] || `Variable ${variableNum}`;
-}
