@@ -3,14 +3,14 @@ export interface DefaultTemplate {
   name: string;
   category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
   description: string;
-  language: string; 
+  language: string;
+  add_security_recommendation?: boolean;
+  code_expiration_minutes?: number;
   components: Array<{
     type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
     format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
     text?: string;
     example?: any;
-    add_security_recommendation?: boolean;
-    code_expiration_minutes?: number;
     buttons?: Array<{
       type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'OTP';
       text: string;
@@ -395,36 +395,36 @@ export const defaultTemplates: DefaultTemplate[] = [
 
   // AUTHENTICATION TEMPLATES
   {
-    id: 'otp-verification',
+    id: 'otp_verification',
     name: 'OTP Verification',
     category: 'AUTHENTICATION',
-    description: 'Send one-time password for verification',
-    language: 'en_GB',
+    description: 'Send a one-time password for verification',
+    language: 'en',
+    add_security_recommendation: true,
+    code_expiration_minutes: 10,
     components: [
       {
         type: 'BODY',
-        text: 'Your verification code is {{1}}. This code will expire in 10 minutes.\n\n*Do not share this code with anyone.*',
-        add_security_recommendation: true
+        text: 'Your verification code is {{1}}. This code will expire in 10 minutes. If you did not request this code, please ignore this message.'
       },
       {
         type: 'FOOTER',
-        text: 'If you didn\'t request this code, please ignore this message.',
-        code_expiration_minutes: 10
+        text: 'For your security, do not share this code.'
       },
       {
         type: 'BUTTONS',
         buttons: [
           {
             type: 'OTP',
-            otp_type: 'COPY_CODE',
-            text: 'Copy Code'
+            text: 'Copy Code',
+            otp_type: 'COPY_CODE'
           }
         ]
       }
     ],
     preview: {
-      body: 'Your verification code is [123456]. This code will expire in 10 minutes.\n\n*Do not share this code with anyone.*',
-      footer: 'If you didn\'t request this code, please ignore this message.',
+      body: 'Your verification code is [123456]. This code will expire in 10 minutes. If you did not request this code, please ignore this message.',
+      footer: 'For your security, do not share this code.',
       buttons: ['Copy Code']
     }
   },
@@ -434,11 +434,11 @@ export const defaultTemplates: DefaultTemplate[] = [
     category: 'AUTHENTICATION',
     description: 'Alert users about new login attempts',
     language: 'en_US',
+    add_security_recommendation: true,
     components: [
       {
         type: 'BODY',
-        text: '🔐 New login detected:\n\nDevice: {{1}}\nLocation: {{2}}\nTime: {{3}}\n\nIf this wasn\'t you, please secure your account immediately.',
-        add_security_recommendation: true
+        text: '🔐 New login detected:\n\nDevice: {{1}}\nLocation: {{2}}\nTime: {{3}}\n\nIf this wasn\'t you, please secure your account immediately.'
       },
       {
         type: 'BUTTONS',
@@ -464,18 +464,13 @@ export const defaultTemplates: DefaultTemplate[] = [
     id: 'password-reset',
     name: 'Password Reset',
     category: 'AUTHENTICATION',
-    description: 'Send password reset instructions',
-    language: 'en_US',
+    description: 'Help users reset their password securely',
+    language: 'en',
+    add_security_recommendation: true,
     components: [
       {
         type: 'BODY',
-        text: 'Hi {{1}}, we received a request to reset your password.\n\nYour password reset code is: {{2}}\n\nThis code expires in {{3}} minutes.',
-        add_security_recommendation: true
-      },
-      {
-        type: 'FOOTER',
-        text: 'If you didn\'t request this, please ignore this message.',
-        code_expiration_minutes: 15
+        text: 'Hi {{1}}, we received a request to reset your password. Use the button below to reset it. If you did not make this request, please contact support immediately.'
       },
       {
         type: 'BUTTONS',
@@ -489,8 +484,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Hi [Customer Name], we received a request to reset your password.\n\nYour password reset code is: [Code]\n\nThis code expires in [15] minutes.',
-      footer: 'If you didn\'t request this, please ignore this message.',
+      body: 'Hi [Customer Name], we received a request to reset your password. Use the button below to reset it. If you did not make this request, please contact support immediately.',
       buttons: ['Reset Password']
     }
   },
@@ -500,6 +494,8 @@ export const defaultTemplates: DefaultTemplate[] = [
     category: 'AUTHENTICATION',
     description: 'Verify new account registration',
     language: 'en_US',
+    add_security_recommendation: true,
+    code_expiration_minutes: 30,
     components: [
       {
         type: 'HEADER',
@@ -508,13 +504,11 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: 'Hi {{1}}, please verify your account to get started.\n\nYour verification code is: {{2}}\n\nEnter this code in the app to complete registration.',
-        add_security_recommendation: true
+        text: 'Hi {{1}}, please verify your account to get started.\n\nYour verification code is: {{2}}\n\nEnter this code in the app to complete registration.'
       },
       {
         type: 'FOOTER',
-        text: 'Code expires in 30 minutes',
-        code_expiration_minutes: 30
+        text: 'Code expires in 30 minutes'
       },
       {
         type: 'BUTTONS',
@@ -535,36 +529,92 @@ export const defaultTemplates: DefaultTemplate[] = [
     }
   },
   {
-    id: 'transaction-authorization',
-    name: 'Transaction Authorization',
+    id: 'account-login-alert',
+    name: 'Account Login Alert',
     category: 'AUTHENTICATION',
-    description: 'Authorize sensitive transactions',
-    language: 'en_US',
+    description: 'Alert users about a new login to their account',
+    language: 'en',
+    add_security_recommendation: true,
     components: [
       {
         type: 'BODY',
-        text: ' Transaction Authorization Required:\n\nAmount: {{1}}\nRecipient: {{2}}\nReference: {{3}}\n\nEnter code {{4}} to authorize this transaction.',
-        add_security_recommendation: true
+        text: 'We detected a new login to your account from an unrecognized device.\n\nDevice: {{1}}\nLocation: {{2}}\nTime: {{3}}\n\nIf this was you, you can ignore this message. If not, please secure your account immediately.'
       },
       {
-        type: 'FOOTER',
-        text: 'Code expires in 5 minutes. Never share this code.',
-        code_expiration_minutes: 5
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Secure Account',
+            url: 'https://example.com/security'
+          },
+          {
+            type: 'QUICK_REPLY',
+            text: 'It was me'
+          }
+        ]
+      }
+    ],
+    preview: {
+      body: 'We detected a new login to your account from an unrecognized device.\n\nDevice: [Device]\nLocation: [Location]\nTime: [Time]\n\nIf this was you, you can ignore this message. If not, please secure your account immediately.',
+      buttons: ['Secure Account', 'It was me']
+    }
+  },
+  {
+    id: 'transaction-authentication',
+    name: 'Transaction Authentication',
+    category: 'AUTHENTICATION',
+    description: 'Require users to authenticate a transaction',
+    language: 'en',
+    add_security_recommendation: true,
+    code_expiration_minutes: 30,
+    components: [
+      {
+        type: 'BODY',
+        text: 'Please approve the following transaction:\n\nMerchant: {{1}}\nAmount: {{2}}\n\nUse the code {{3}} to complete your transaction. This code expires in 30 minutes.'
       },
       {
         type: 'BUTTONS',
         buttons: [
           {
             type: 'OTP',
-            otp_type: 'COPY_CODE',
-            text: 'Copy Code'
+            text: 'Copy Code',
+            otp_type: 'COPY_CODE'
           }
         ]
       }
     ],
     preview: {
-      body: '⚠️ Transaction Authorization Required:\n\nAmount: [Amount]\nRecipient: [Recipient]\nReference: [Reference]\n\nEnter code [Code] to authorize this transaction.',
-      footer: 'Code expires in 5 minutes. Never share this code.',
+      body: 'Please approve the following transaction:\n\nMerchant: [Merchant]\nAmount: [Amount]\n\nUse the code [Code] to complete your transaction. This code expires in 30 minutes.',
+      buttons: ['Copy Code']
+    }
+  },
+  {
+    id: 'reservation-otp',
+    name: 'Reservation OTP',
+    category: 'AUTHENTICATION',
+    description: 'Send an OTP to confirm a reservation',
+    language: 'en',
+    add_security_recommendation: true,
+    code_expiration_minutes: 5,
+    components: [
+      {
+        type: 'BODY',
+        text: 'Your reservation code is {{1}}. Please show this code upon arrival. This code is valid for 5 minutes.'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'OTP',
+            text: 'Copy Code',
+            otp_type: 'COPY_CODE'
+          }
+        ]
+      }
+    ],
+    preview: {
+      body: 'Your reservation code is [Code]. Please show this code upon arrival. This code is valid for 5 minutes.',
       buttons: ['Copy Code']
     }
   }
