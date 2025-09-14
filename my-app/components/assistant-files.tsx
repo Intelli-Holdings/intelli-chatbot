@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import {
   Card,
@@ -50,15 +50,8 @@ export function AssistantFiles() {
     },
   });
 
-  // Fetch assistants when component mounts
-  React.useEffect(() => {
-    if (organizationId) {
-      fetchAssistants();
-    }
-  }, [organizationId]);
-
   // Fetch assistants from API
-  const fetchAssistants = async () => {
+  const fetchAssistants = useCallback(async () => {
     if (!organizationId) return;
 
     setIsFetchingAssistants(true);
@@ -84,7 +77,14 @@ export function AssistantFiles() {
     } finally {
       setIsFetchingAssistants(false);
     }
-  };
+  }, [organizationId]);
+
+  // Fetch assistants when component mounts
+  React.useEffect(() => {
+    if (organizationId) {
+      fetchAssistants();
+    }
+  }, [organizationId, fetchAssistants]);
 
   // Handle file removal
   const removeFile = (index: number) => {

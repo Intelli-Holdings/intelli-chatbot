@@ -7,7 +7,7 @@ interface MessagePayload {
   aiResponse: string;
 }
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     if (req.method === "POST") {
       const { userId, message, aiResponse } = req.body as MessagePayload;
@@ -29,4 +29,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     console.error(e);
     res.status(500).json({ message: "Internal server error" });
   }
-}
+};
+
+export default handler;

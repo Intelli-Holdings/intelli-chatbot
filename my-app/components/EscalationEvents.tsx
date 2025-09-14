@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Event, EscalationEvent } from "@/types/events";
 import { EventCard } from "./EscalationEventCard";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -28,13 +28,7 @@ export default function EscalationEvents() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (activeOrganizationId) {
-      fetchOrganizationEvents();
-    }
-  }, [activeOrganizationId]);
-
-  const fetchOrganizationEvents = async () => {
+  const fetchOrganizationEvents = useCallback(async () => {
     if (!activeOrganizationId) return;
     
     setIsLoading(true);
@@ -54,7 +48,13 @@ export default function EscalationEvents() {
       setIsLoading(false);
 
     }
-  };
+  }, [activeOrganizationId]);
+
+  useEffect(() => {
+    if (activeOrganizationId) {
+      fetchOrganizationEvents();
+    }
+  }, [activeOrganizationId, fetchOrganizationEvents]);
 
   const handleCreateEvent = async (formData: EscalationEvent) => {
     if (!activeOrganizationId) return;
