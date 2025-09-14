@@ -200,7 +200,11 @@ export default function TemplatesPage() {
     setCreatingTemplateId(selectedCustomizeTemplate?.id || null);
 
     try {
-      await WhatsAppService.createTemplate(selectedAppService as AppService, templateData);
+      const finalTemplateData = {
+        ...templateData,
+        customVariableValues: customizations,
+      };
+      await WhatsAppService.createTemplate(selectedAppService as AppService, finalTemplateData);
       await fetchTemplates();
       toast.success('Template created successfully with your customizations!');
       setIsCustomizeDialogOpen(false);
@@ -278,15 +282,17 @@ export default function TemplatesPage() {
   templateName: string, 
   phoneNumber: string, 
   parameters: string[],
-  languageCode: string = 'en_US' // Add language parameter
+  languageCode: string,
 ): Promise<boolean> => {
   if (!selectedAppService?.phone_number_id) {
     toast.error('Phone number ID not available');
     return false;
   }
 
+  console.log('Sending template:', templateName, 'with language code:', languageCode);
+
   try {
-    const messageData = {
+    const messageData: any = {
       messaging_product: "whatsapp",
       to: phoneNumber,
       type: "template",
@@ -294,20 +300,22 @@ export default function TemplatesPage() {
         name: templateName,
         language: {
           code: languageCode // Use dynamic language code
-        },
-        ...(parameters.length > 0 && {
-          components: [
-            {
-              type: "body",
-              parameters: parameters.map((param) => ({
-                type: "text",
-                text: param
-              }))
-            }
-          ]
-        })
+        }
       }
     };
+
+    // Add components if there are parameters
+    if (parameters.length > 0) {
+      messageData.template.components = [
+        {
+          type: "body",
+          parameters: parameters.map((param) => ({
+            type: "text",
+            text: param
+          }))
+        }
+      ];
+    }
 
     await WhatsAppService.sendMessage(selectedAppService as AppService, messageData);
     toast.success('Test message sent successfully!');

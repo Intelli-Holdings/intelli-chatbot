@@ -113,6 +113,18 @@ export function CustomizeTemplateDialog({
 
   if (!template) return null;
 
+  // Utility: extract and sort variable tokens like ['{{1}}','{{2}}'] from a given text
+  const extractVariables = (text?: string): string[] => {
+    if (!text) return [];
+    const matches = text.match(/\{\{(\d+)\}\}/g) || [];
+    const unique = Array.from(new Set(matches));
+    return unique.sort((a, b) => {
+      const aNum = parseInt(a.replace(/[{}]/g, ''));
+      const bNum = parseInt(b.replace(/[{}]/g, ''));
+      return aNum - bNum;
+    });
+  };
+
   // Check if template requires media
   const getMediaRequirement = (): MediaRequirement => {
     const headerComponent = template.components?.find(c => c.type === 'HEADER');
@@ -158,6 +170,13 @@ export function CustomizeTemplateDialog({
   };
 
   const allVariables = getAllVariables();
+
+  // Also compute component-specific variables
+  const bodyText = template.components?.find(c => c.type === 'BODY')?.text || '';
+  const headerComponent = template.components?.find(c => c.type === 'HEADER');
+  const headerText = headerComponent?.format === 'TEXT' ? (headerComponent.text || '') : '';
+  const bodyVariables = extractVariables(bodyText);
+  const headerVariables = extractVariables(headerText);
 
   // Handle variable input change
   const updateVariable = (variableKey: string, value: string) => {
@@ -296,15 +315,36 @@ export function CustomizeTemplateDialog({
         }
       }
 
+      // Determine header type/text/variables from template
+      let headerType: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' = 'NONE';
+      let headerTextForTemplate: string | undefined = undefined;
+      let headerVariablesForTemplate: string[] | undefined = undefined;
+
+      if (headerComponent) {
+        if (headerComponent.format === 'TEXT') {
+          headerType = 'TEXT';
+          headerTextForTemplate = headerText;
+          headerVariablesForTemplate = headerVariables;
+        } else if (headerComponent.format === 'IMAGE' || headerComponent.format === 'VIDEO' || headerComponent.format === 'DOCUMENT') {
+          headerType = headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+        }
+      }
+      
       // Prepare template data for the template creator
       const templateInputData = {
         name: template.name,
         category: template.category,
-        language: template.language || 'en_US',
-        headerType: mediaRequirement.required ? mediaRequirement.format : 'NONE',
+        language: template.language,
+        add_security_recommendation: template.add_security_recommendation,
+        code_expiration_minutes: template.code_expiration_minutes,
+        headerType: headerType === 'NONE' ? (mediaRequirement.required ? mediaRequirement.format : 'NONE') : headerType,
+        headerText: headerTextForTemplate,
+        headerVariables: headerVariablesForTemplate,
         headerMediaHandle,
-        body: template.components?.find(c => c.type === 'BODY')?.text || '',
-        bodyVariables: allVariables,
+        body: (template.category === 'AUTHENTICATION' && bodyVariables.length > 0) 
+          ? '' 
+          : bodyText,
+        bodyVariables: bodyVariables,
         footer: template.components?.find(c => c.type === 'FOOTER')?.text || '',
         buttonType: template.components?.find(c => c.type === 'BUTTONS') ? 'QUICK_REPLY' : 'NONE',
         buttons: template.components?.find(c => c.type === 'BUTTONS')?.buttons || [],
@@ -315,42 +355,73 @@ export function CustomizeTemplateDialog({
       // Use the template creation handler
       const formattedTemplate = TemplateCreationHandler.createTemplate(templateInputData);
 
-      // Override examples with actual customized values
+      // Override examples with actual customized values, preserving original examples for marketing templates
       formattedTemplate.components = formattedTemplate.components.map(component => {
-        if (component.type === 'BODY' && component.example?.body_text) {
-          // Replace example values with actual customized values
-          const customizedValues = allVariables.map(variable => {
-            const key = variable.replace(/[{}]/g, '');
-            return customizations.variables[key] || `Sample ${key}`;
-          });
-          
-          component.example.body_text = customizedValues;  // Fixed: Use flat array
+        // Get the original component from the template to preserve existing examples
+        const originalComponent = template.components?.find(c => c.type === component.type);
+        
+        if (component.type === 'BODY') {
+          if (bodyVariables.length > 0) {
+            // If body has variables, replace example values with actual customized values
+            const bodyValues = bodyVariables.map(variable => {
+              const key = variable.replace(/[{}]/g, '');
+              return customizations.variables[key] || `Sample ${key}`;
+            });
+
+            if (!component.example) component.example = {};
+            // Meta requires body_text examples to be nested arrays: [["value1", "value2"]]
+            component.example.body_text = [bodyValues];
+          } else if ((template.category === 'MARKETING' || template.category === 'UTILITY') && originalComponent?.example) {
+            // For marketing/utility templates without variables, preserve the original example
+            if (!component.example) component.example = {};
+            component.example = { ...originalComponent.example };
+          }
         }
 
-        if (component.type === 'HEADER' && component.example?.header_text) {
-          // Replace example values with actual customized values for header
-          const customizedValues = allVariables.map(variable => {
+        if (component.type === 'HEADER' && component.format === 'TEXT' && headerVariables.length > 0) {
+          // For header text variables, the example is a flat array of strings
+          const headerValues = headerVariables.map(variable => {
             const key = variable.replace(/[{}]/g, '');
             return customizations.variables[key] || `Sample ${key}`;
           });
-          
-          component.example.header_text = customizedValues;
+
+          if (!component.example) component.example = {};
+          component.example.header_text = headerValues;
+        }
+
+        if (component.type === 'BUTTONS') {
+          component.buttons = component.buttons?.map((button: any) => {
+            if (button.type === 'URL' && button.url?.includes('{{')) {
+              const urlVariable = (button.url.match(/\{\{(\d+)\}\}/g) || [])[0];
+              if (urlVariable) {
+                const key = urlVariable.replace(/[{}]/g, '');
+                const exampleValue = customizations.variables[key] || 'default-url-value';
+                button.example = [exampleValue];
+              }
+            }
+            return button;
+          });
         }
 
         return component;
       });
 
-      const success = await onSubmit(formattedTemplate, customizations);
-      if (success) {
-        onClose();
-        // Clean up preview URLs
-        if (customizations.mediaPreview) {
-          URL.revokeObjectURL(customizations.mediaPreview);
+      try {
+        const success = await onSubmit(formattedTemplate, customizations);
+        if (success) {
+          onClose();
+          // Clean up preview URLs
+          if (customizations.mediaPreview) {
+            URL.revokeObjectURL(customizations.mediaPreview);
+          }
         }
+      } catch (error) {
+        console.error('Template creation error:', error);
+        toast.error(error instanceof Error ? error.message : "Failed to create template");
       }
     } catch (error) {
-      console.error('Template creation error:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to create template");
+      console.error('Template submission error:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to submit template");
     } finally {
       setIsSubmitting(false);
     }
@@ -501,7 +572,6 @@ export function CustomizeTemplateDialog({
                   <div className="grid grid-cols-1 gap-4">
                     {allVariables.map((variable) => {
                       const key = variable.replace(/[{}]/g, '');
-                      const placeholder = getVariablePlaceholder(parseInt(key));
                       
                       return (
                         <div key={variable} className="space-y-2">
@@ -511,8 +581,7 @@ export function CustomizeTemplateDialog({
                               {variable}
                             </Badge>
                           </Label>
-                          <Input
-                            placeholder={placeholder}
+                          <Input                        
                             value={customizations.variables[key] || ''}
                             onChange={(e) => updateVariable(key, e.target.value)}
                           />
@@ -638,22 +707,4 @@ export function CustomizeTemplateDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-// Helper function to get variable placeholders
-function getVariablePlaceholder(variableNum: number): string {
-  const placeholders = [
-    'Customer Name',
-    'Order ID', 
-    'Date',
-    'Amount',
-    'Link',
-    'Product Name',
-    'Location',
-    'Time',
-    'Code',
-    'Company Name'
-  ];
-  
-  return placeholders[variableNum - 1] || `Variable ${variableNum}`;
 }
