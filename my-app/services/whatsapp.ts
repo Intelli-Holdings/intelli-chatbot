@@ -185,17 +185,12 @@ export class WhatsAppService {
             };
           }
         } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format)) {
-          // For media headers, use the provided media handle from template data
+          // For media headers, use the provided media handle from upload API response
           if (component.example?.header_handle?.[0]) {
             const mediaHandle = component.example.header_handle[0];
             
-            // Validate that the handle is not a placeholder and has proper format
-            if (!this.validateMediaHandle(mediaHandle, component.format)) {
-              throw new Error(`Media header component (${component.format}) requires a valid media handle from upload API. Please upload media first.`);
-            }
-            
             formattedComponent.example = {
-              header_handle: [mediaHandle] // Dynamic handle from upload API response
+              header_handle: [mediaHandle] // Always use uploadData.h from upload API response
             };
           } else {
             // This should not happen in normal flow - media headers without handles
