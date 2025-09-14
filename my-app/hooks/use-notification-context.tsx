@@ -7,6 +7,7 @@ import useActiveOrganizationId from "./use-organization-id"
 import { useUser } from "@clerk/nextjs"
 import { NotificationContextType } from "@/types/notification"
 import { Facebook, MessageSquare, Mail, Globe, Bell } from "lucide-react"
+import Image from "next/image"
 
 interface PaginatedResponse {
   count: number
@@ -194,7 +195,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // WebSocket connect logic
   const connect = useCallback(() => {
     if (!activeOrganizationId) return
-    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/events/${activeOrganizationId}/`)
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_DEV_WEBSOCKET_URL}/events/${activeOrganizationId}/`)
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -206,12 +207,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        console.log("WebSocket message received:", data)
+       
 
         const payload = data.message || data // Extract actual notification
 
         if (payload.type === "connection_established") {
-          console.log("Connection established with notification service")
+         
         } else if (payload.type === "notification") {
           // Add new notification to state
           setNotifications(prev => {
@@ -231,7 +232,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             <div className="flex items-start gap-3">
               <div className={`mt-1 flex-shrink-0 h-8 w-8 rounded-full ${channelInfo.bgColor} flex items-center justify-center ${channelInfo.textColor}`}>
                 {typeof channelInfo.icon === "string" ? (
-                  <img src={channelInfo.icon} alt={payload.channel} className="h-5 w-5" />
+                  <Image src={channelInfo.icon} alt={payload.channel} width={20} height={20} className="h-5 w-5" />
                 ) : (
                   channelInfo.icon
                 )}
@@ -271,22 +272,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             },
           )
         } else if (payload.type === "pong") {
-          console.log("Received pong from server")
+     
         }
       } catch (error) {
-        console.error("Error processing WebSocket message:", error)
+
       }
     }
 
     ws.onclose = () => {
       setIsConnected(false)
-      // Attempt reconnect after 5s
-      reconnectTimeoutRef.current = window.setTimeout(connect, 5000)
+      // Attempt reconnect after 1 minute
+      reconnectTimeoutRef.current = window.setTimeout(connect, 60000)
     }
 
-    ws.onerror = err => {
-      console.error('WebSocket error', err)
-      ws.close()
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error)
     }
   }, [activeOrganizationId])
 
@@ -303,11 +303,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Reconnect on network changes
   useEffect(() => {
     const handleOnline = () => {
-      console.log("Network restored, reconnecting WS...")
+    
       connect()
     }
     const handleOffline = () => {
-      console.log("Network lost, WS will reconnect when online.")
+    
       setIsConnected(false)
     }
     window.addEventListener("online", handleOnline)
