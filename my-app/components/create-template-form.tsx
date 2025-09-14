@@ -271,7 +271,8 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
   
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('appId', config.appId)
+      formData.append('appId', config.appId) // Use App ID for upload session
+      formData.append('phoneNumberId', appService.phone_number_id) // Phone number ID for media endpoint
       formData.append('accessToken', config.accessToken)
   
       const response = await fetch('/api/whatsapp/upload-media', {
@@ -288,14 +289,14 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
       
       // Debug logging
       console.log('Media upload response:', data)
-      console.log('Media handle (uploadData.h):', data.handle)
+      console.log('Media ID for template messages:', data.mediaId)
       
-      // Use the handle field which contains uploadData.h from the API response
-      const mediaHandle = data.handle
+      // Use the mediaId field for template messages
+      const mediaHandle = data.mediaId
       
       if (!mediaHandle) {
-        console.error('No valid handle found in response:', data)
-        throw new Error('Media upload succeeded but no handle was returned')
+        console.error('No valid media ID found in response:', data)
+        throw new Error('Media upload succeeded but no media ID was returned')
       }
       
       return mediaHandle
