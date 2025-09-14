@@ -151,16 +151,11 @@ export class TemplateCreationHandler {
           throw new Error(`Media handle is required for ${headerType} header. Please upload media first.`)
         }
 
-        // Validate the media handle format
-        if (!this.validateMediaHandle(headerMediaHandle, headerType)) {
-          throw new Error(`Invalid media handle for ${headerType} header. Please upload media again to get a valid handle.`)
-        }
-
         return {
           type: 'HEADER',
           format: headerType as any,
           example: {
-            header_handle: [headerMediaHandle] // Dynamic handle from upload API response
+            header_handle: [headerMediaHandle] // Always use uploadData.h from upload API response
           }
         }
 
@@ -496,7 +491,7 @@ export class TemplateCreationHandler {
             type: "HEADER",
             format: "IMAGE",
             example: {
-              header_handle: ["DYNAMIC_HANDLE_FROM_UPLOAD"] // Media handle dynamically fetched from upload API
+              header_handle: ["DYNAMIC_HANDLE_FROM_UPLOAD"] // Media handle must be uploadData.h from upload API response
             }
           },
           {
@@ -536,7 +531,7 @@ export class TemplateCreationHandler {
             type: "HEADER",
             format: "DOCUMENT",
             example: {
-              header_handle: ["DYNAMIC_HANDLE_FROM_UPLOAD"] // Media handle dynamically fetched from upload API
+              header_handle: ["DYNAMIC_HANDLE_FROM_UPLOAD"] // Media handle must be uploadData.h from upload API response
             }
           },
           {
