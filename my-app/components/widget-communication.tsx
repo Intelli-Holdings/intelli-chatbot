@@ -81,7 +81,7 @@ export function WidgetCommunication({
         socketRef.current.close();
       }
     };
-  }, [isLoaded, useOrganizationList, connectToWidget]);
+  }, [isLoaded, useOrganizationList, connectToWidget, userMemberships.data]);
 
   return (
     <div className="flex flex-col w-full max-w-[400px] mx-auto bg-white rounded-xl overflow-hidden shadow-md">
