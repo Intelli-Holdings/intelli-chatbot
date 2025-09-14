@@ -210,7 +210,12 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: '🎉 Hi {{1}}! Our {{2}} Sale is here!\n\nEnjoy {{3}}% off on all products. Use code: {{4}} at checkout.\n\nHurry! Offer valid only until {{5}}.'
+        text: '🎉 Hi {{1}}! Our {{2}} Sale is here!\n\nEnjoy {{3}}% off on all products. Use code: {{4}} at checkout.\n\nHurry! Offer valid only until {{5}}.',
+        example: {
+          body_text: [
+            ["customer", "Summer", "25", "SALE25", "end of the month"]
+          ]
+        }
       },
       {
         type: 'FOOTER',
@@ -246,7 +251,12 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: 'Introducing {{1}} - Our Latest Innovation! \n\nHi {{2}}, be among the first to experience {{3}}.\n\nSpecial launch price: {{4}} (Regular: {{5}})\n\nLimited stock available!'
+        text: 'Introducing {{1}} - Our Latest Innovation! \n\nHi {{2}}, be among the first to experience {{3}}.\n\nSpecial launch price: {{4}} (Regular: {{5}})\n\nLimited stock available!',
+        example: {
+          body_text: [
+            ["New Product", "customer", "amazing features", "$99", "$129"]
+          ]
+        }
       },
       {
         type: 'FOOTER',
@@ -287,7 +297,12 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: 'Hi {{1}}, you have {{2}} items in your cart worth {{3}}.\n\nComplete your purchase now and get {{4}}% off with code: COMEBACK\n\nYour cart will expire in 24 hours.'
+        text: 'Hi {{1}}, you have {{2}} items in your cart worth {{3}}.\n\nComplete your purchase now and get {{4}}% off with code: COMEBACK\n\nYour cart will expire in 24 hours.',
+        example: {
+          body_text: [
+            ["customer", "3", "$50", "10"]
+          ]
+        }
       },
       {
         type: 'FOOTER',
@@ -320,7 +335,12 @@ export const defaultTemplates: DefaultTemplate[] = [
     components: [
       {
         type: 'BODY',
-        text: ' Congratulations {{1}}!\n\nYou\'ve earned {{2}} loyalty points. Your total balance is now {{3}} points.\n\nRedeem {{4}} points to get {{5}} off your next purchase!'
+        text: ' Congratulations {{1}}!\n\nYou\'ve earned {{2}} loyalty points. Your total balance is now {{3}} points.\n\nRedeem {{4}} points to get {{5}} off your next purchase!',
+        example: {
+          body_text: [
+            ["customer", "100", "500", "200", "$10"]
+          ]
+        }
       },
       {
         type: 'FOOTER',
@@ -361,7 +381,12 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: 'Hi {{1}}, thank you for your recent purchase of {{2}}.\n\nHow was your experience? Your feedback helps us improve our service.\n\nRate us from 1-5 stars:'
+        text: 'Hi {{1}}, thank you for your recent purchase of {{2}}.\n\nHow was your experience? Your feedback helps us improve our service.\n\nRate us from 1-5 stars:',
+        example: {
+          body_text: [
+            ["customer", "product"]
+          ]
+        }
       },
       {
         type: 'FOOTER',
@@ -408,10 +433,6 @@ export const defaultTemplates: DefaultTemplate[] = [
         text: 'Your verification code is {{1}}. This code will expire in 10 minutes. If you did not request this code, please ignore this message.'
       },
       {
-        type: 'FOOTER',
-        text: 'For your security, do not share this code.'
-      },
-      {
         type: 'BUTTONS',
         buttons: [
           {
@@ -424,68 +445,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     ],
     preview: {
       body: 'Your verification code is [123456]. This code will expire in 10 minutes. If you did not request this code, please ignore this message.',
-      footer: 'For your security, do not share this code.',
       buttons: ['Copy Code']
-    }
-  },
-  {
-    id: 'login-alert',
-    name: 'Login Alert',
-    category: 'AUTHENTICATION',
-    description: 'Alert users about new login attempts',
-    language: 'en_US',
-    add_security_recommendation: true,
-    components: [
-      {
-        type: 'BODY',
-        text: '🔐 New login detected:\n\nDevice: {{1}}\nLocation: {{2}}\nTime: {{3}}\n\nIf this wasn\'t you, please secure your account immediately.'
-      },
-      {
-        type: 'BUTTONS',
-        buttons: [
-          {
-            type: 'URL',
-            text: 'Secure Account',
-            url: 'https://example.com/security'
-          },
-          {
-            type: 'QUICK_REPLY',
-            text: 'It was me'
-          }
-        ]
-      }
-    ],
-    preview: {
-      body: '🔐 New login detected:\n\nDevice: [Device]\nLocation: [Location]\nTime: [Time]\n\nIf this wasn\'t you, please secure your account immediately.',
-      buttons: ['Secure Account', 'It was me']
-    }
-  },
-  {
-    id: 'password-reset',
-    name: 'Password Reset',
-    category: 'AUTHENTICATION',
-    description: 'Help users reset their password securely',
-    language: 'en',
-    add_security_recommendation: true,
-    components: [
-      {
-        type: 'BODY',
-        text: 'Hi {{1}}, we received a request to reset your password. Use the button below to reset it. If you did not make this request, please contact support immediately.'
-      },
-      {
-        type: 'BUTTONS',
-        buttons: [
-          {
-            type: 'URL',
-            text: 'Reset Password',
-            url: 'https://example.com/reset/{{1}}'
-          }
-        ]
-      }
-    ],
-    preview: {
-      body: 'Hi [Customer Name], we received a request to reset your password. Use the button below to reset it. If you did not make this request, please contact support immediately.',
-      buttons: ['Reset Password']
     }
   },
   {
@@ -507,10 +467,6 @@ export const defaultTemplates: DefaultTemplate[] = [
         text: 'Hi {{1}}, please verify your account to get started.\n\nYour verification code is: {{2}}\n\nEnter this code in the app to complete registration.'
       },
       {
-        type: 'FOOTER',
-        text: 'Code expires in 30 minutes'
-      },
-      {
         type: 'BUTTONS',
         buttons: [
           {
@@ -524,40 +480,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     preview: {
       header: 'Welcome to [App Name]!',
       body: 'Hi [Customer Name], please verify your account to get started.\n\nYour verification code is: [Code]\n\nEnter this code in the app to complete registration.',
-      footer: 'Code expires in 30 minutes',
       buttons: ['Copy Code']
-    }
-  },
-  {
-    id: 'account-login-alert',
-    name: 'Account Login Alert',
-    category: 'AUTHENTICATION',
-    description: 'Alert users about a new login to their account',
-    language: 'en',
-    add_security_recommendation: true,
-    components: [
-      {
-        type: 'BODY',
-        text: 'We detected a new login to your account from an unrecognized device.\n\nDevice: {{1}}\nLocation: {{2}}\nTime: {{3}}\n\nIf this was you, you can ignore this message. If not, please secure your account immediately.'
-      },
-      {
-        type: 'BUTTONS',
-        buttons: [
-          {
-            type: 'URL',
-            text: 'Secure Account',
-            url: 'https://example.com/security'
-          },
-          {
-            type: 'QUICK_REPLY',
-            text: 'It was me'
-          }
-        ]
-      }
-    ],
-    preview: {
-      body: 'We detected a new login to your account from an unrecognized device.\n\nDevice: [Device]\nLocation: [Location]\nTime: [Time]\n\nIf this was you, you can ignore this message. If not, please secure your account immediately.',
-      buttons: ['Secure Account', 'It was me']
     }
   },
   {
