@@ -113,21 +113,52 @@ const LANGUAGE_CODES: Record<string, string[]> = {
 
 export class WhatsAppService {
   /**
-   * Get the primary language code from any variant
+   * Validates that a media handle is properly formatted and not a placeholder
    */
-  static getPrimaryLanguageCode(code: string): string {
-    // If it's already a primary code
-    for (const [primary, variants] of Object.entries(LANGUAGE_CODES)) {
-      if (variants.includes(code)) {
-        return variants[0]; 
-      }
+  static validateMediaHandle(handle: string, mediaType: string): boolean {
+    if (!handle || typeof handle !== 'string') {
+      return false;
     }
-    return code; 
+
+    // Check for placeholder values
+    if (handle === 'DYNAMIC_HANDLE_FROM_UPLOAD' || 
+        handle.includes('...') || 
+        handle.includes('sample') || 
+        handle.includes('example')) {
+      return false;
+    }
+
+    // Basic validation for Meta media handle format
+    // Meta handles typically start with a number followed by a colon
+    const handlePattern = /^\d+:[a-zA-Z0-9+/=]+$/;
+    return handlePattern.test(handle);
   }
 
   /**
-   * Format template components with proper parameter structure
+   * Get language variations to try for template sending
    */
+  static getLanguageVariations(code: string): string[] {
+    const variations: string[] = [code]; // Start with the original code
+    
+    // Add common variations
+    if (code === 'en') {
+      variations.push('en_US', 'en_GB');
+    } else if (code === 'en_US') {
+      variations.push('en', 'en_GB');
+    } else if (code === 'en_GB') {
+      variations.push('en', 'en_US');
+    }
+    
+    // For other languages, add the base and common regional variants
+    const baseCode = code.split('_')[0];
+    if (baseCode !== code && !variations.includes(baseCode)) {
+      variations.push(baseCode);
+    }
+    
+    return variations;
+  }
+
+ 
   static formatTemplateComponents(components: any[]): any[] {
     return components.map(component => {
       const formattedComponent: any = {
@@ -147,14 +178,27 @@ export class WhatsAppService {
           const variableMatches = component.text.match(/\{\{(\d+)\}\}/g);
           if (variableMatches) {
             formattedComponent.example = {
-              header_text: variableMatches.map(() => 'Sample Text')
+              header_text: variableMatches.map(() => '')
             };
           }
         } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format)) {
-          // For media headers, provide example handle
-          formattedComponent.example = {
-            header_handle: ['4::aW1hZ2UvanBlZw==:ARbP5DLhsSX3p-pbFdiQXZHCGpGoJuXO1-ZkuNFB2iodKQ:e:1696914075:3449824985297315:100002914375136:ARZFU3VEKoOVrRvGGYW4DA']
-          };
+          // For media headers, use the provided media handle from template data
+          if (component.example?.header_handle?.[0]) {
+            const mediaHandle = component.example.header_handle[0];
+            
+            // Validate that the handle is not a placeholder and has proper format
+            if (!this.validateMediaHandle(mediaHandle, component.format)) {
+              throw new Error(`Media header component (${component.format}) requires a valid media handle from upload API. Please upload media first.`);
+            }
+            
+            formattedComponent.example = {
+              header_handle: [mediaHandle] // Dynamic handle from upload API response
+            };
+          } else {
+            // This should not happen in normal flow - media headers without handles
+            // should trigger the customization dialog where users upload media
+            throw new Error(`Media header component (${component.format}) requires a media handle. Please upload media first.`);
+          }
         }
       }
 
@@ -425,35 +469,71 @@ export class WhatsAppService {
         throw new Error('Access token is required for Meta Graph API calls');
       }
 
-      // Ensure language code is properly formatted
-       if (!messageData.template?.language?.code) {
-        messageData.template.language.code = this.getPrimaryLanguageCode(
-          messageData.template.language.code
-        );
+      // Ensure language code is provided - use exact match with template
+      if (!messageData.template?.language?.code) {
+        // Default to en_US if no language code is provided
+        messageData.template.language = { code: 'en_US' };
       }
 
+      console.log('Sending message with template:', messageData.template.name, 'language:', messageData.template.language.code);
       console.log('Sending message:', JSON.stringify(messageData, null, 2));
-      
-      const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${appService.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(messageData),
-        }
-      );
 
-      const responseData = await response.json();
+      // Try sending with the original language code first
+      let lastError: any;
+      const languageVariations = this.getLanguageVariations(messageData.template.language.code);
       
-      if (!response.ok) {
-        console.error('Message send failed:', responseData);
-        throw new Error(`Failed to send message: ${responseData.error?.message || response.statusText}`);
+      for (const languageCode of languageVariations) {
+        try {
+          // Update the language code for this attempt
+          const attemptData = {
+            ...messageData,
+            template: {
+              ...messageData.template,
+              language: { code: languageCode }
+            }
+          };
+
+          console.log(`Attempting to send with language code: ${languageCode}`);
+          
+          const response = await fetch(
+            `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${appService.access_token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(attemptData),
+            }
+          );
+
+          const responseData = await response.json();
+          
+          if (response.ok) {
+            console.log(`Successfully sent with language code: ${languageCode}`);
+            return responseData;
+          } else {
+            lastError = responseData;
+            // If it's not a language/translation error, don't try other variations
+            if (!responseData.error?.message?.includes('translation') && 
+                !responseData.error?.message?.includes('Template name does not exist')) {
+              break;
+            }
+            console.log(`Failed with language code ${languageCode}:`, responseData.error?.message);
+          }
+        } catch (error) {
+          lastError = error;
+          console.log(`Network error with language code ${languageCode}:`, error);
+        }
       }
 
-      return responseData;
+      // If we get here, all attempts failed
+      console.error('All language variations failed. Last error:', lastError);
+      if (lastError?.error?.message) {
+        throw new Error(`Failed to send message: ${lastError.error.message}`);
+      } else {
+        throw new Error(`Failed to send message: ${lastError instanceof Error ? lastError.message : 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('Error sending WhatsApp message:', error);
       throw error;
@@ -477,7 +557,7 @@ export class WhatsAppService {
       template: {
         name: templateName,
         language: {
-          code: this.getPrimaryLanguageCode(languageCode)
+          code: languageCode // Use the language code as provided
         }
       }
     };

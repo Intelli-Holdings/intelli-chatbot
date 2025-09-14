@@ -50,16 +50,18 @@ export class TemplateCreationHandler {
     components.push(bodyComponent)
 
     // Add footer component
-    if (templateData.footer?.trim()) {
-      const footerComponent = this.createFooterComponent(templateData.footer, templateData.category)
-      if (footerComponent) {
-        components.push(footerComponent)
-      }
-    } else if (templateData.category === 'MARKETING') {
-      // Auto-add opt-out footer for marketing templates
-      const footerComponent = this.createFooterComponent(undefined, templateData.category)
-      if (footerComponent) {
-        components.push(footerComponent)
+    if (templateData.category !== 'AUTHENTICATION') {
+      if (templateData.footer?.trim()) {
+        const footerComponent = this.createFooterComponent(templateData.footer, templateData.category)
+        if (footerComponent) {
+          components.push(footerComponent)
+        }
+      } else if (templateData.category === 'MARKETING') {
+        // Auto-add opt-out footer for marketing templates
+        const footerComponent = this.createFooterComponent(undefined, templateData.category)
+        if (footerComponent) {
+          components.push(footerComponent)
+        }
       }
     }
 
@@ -146,14 +148,19 @@ export class TemplateCreationHandler {
       case 'VIDEO':
       case 'DOCUMENT':
         if (!headerMediaHandle) {
-          throw new Error(`Media handle is required for ${headerType} header`)
+          throw new Error(`Media handle is required for ${headerType} header. Please upload media first.`)
+        }
+
+        // Validate the media handle format
+        if (!this.validateMediaHandle(headerMediaHandle, headerType)) {
+          throw new Error(`Invalid media handle for ${headerType} header. Please upload media again to get a valid handle.`)
         }
 
         return {
           type: 'HEADER',
           format: headerType as any,
           example: {
-            header_handle: [headerMediaHandle]
+            header_handle: [headerMediaHandle] // Dynamic handle from upload API response
           }
         }
 
@@ -172,46 +179,48 @@ export class TemplateCreationHandler {
    * Creates body component with proper variable examples
    */
   private static createBodyComponent(templateData: any): TemplateComponent {
-    const { body, bodyVariables, customVariableValues } = templateData
+    const { body, bodyVariables, customVariableValues, category } = templateData;
 
     const bodyComponent: TemplateComponent = {
       type: 'BODY',
-      text: body
-    }
+    };
 
-    // Add examples for variables - Note the nested array structure
-    if (bodyVariables?.length > 0) {
-      // Use custom values if provided, otherwise use meaningful examples
+    const hasVariables = bodyVariables?.length > 0;
+
+    if (hasVariables) {
       const exampleValues = bodyVariables.map((variable: any, i: number) => {
-        const key = variable.replace(/[{}]/g, '')
-        
-        // Use custom values if available
+        const key = variable.replace(/[{}]/g, '');
         if (customVariableValues && customVariableValues[key]) {
-          return customVariableValues[key]
+          return customVariableValues[key];
         }
-        
-        // Generate meaningful examples based on common variable patterns
-        if (key.toLowerCase().includes('name') || key.includes('1')) {
-          return 'John Doe'
-        } else if (key.toLowerCase().includes('order') || key.includes('2')) {
-          return '#12345'
-        } else if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.includes('3')) {
-          return '$99.99'
-        } else if (key.toLowerCase().includes('date') || key.toLowerCase().includes('time') || key.includes('4')) {
-          return 'March 15'
-        } else if (key.toLowerCase().includes('code') || key.toLowerCase().includes('track')) {
-          return 'ABC123'
-        } else {
-          return `Sample${i + 1}`
-        }
-      })
+        if (key.toLowerCase().includes('name') || key.includes('1')) return 'John Doe';
+        if (key.toLowerCase().includes('order') || key.includes('2')) return '#12345';
+        if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.includes('3')) return '$99.99';
+        if (key.toLowerCase().includes('date') || key.toLowerCase().includes('time') || key.includes('4')) return 'March 15';
+        if (key.toLowerCase().includes('code') || key.toLowerCase().includes('track')) return 'ABC123';
+        return `Sample${i + 1}`;
+      });
       
       bodyComponent.example = {
         body_text: [exampleValues],
       };
+    } else if (category === 'MARKETING' || category === 'UTILITY') {
+      // Marketing and Utility templates ALWAYS need an example field, even without variables
+      // For templates without variables, provide an array with a single element
+      const exampleText = body?.substring(0, 60) || 'Sample message';
+      bodyComponent.example = {
+        body_text: [[exampleText]]
+      };
     }
 
-    return bodyComponent
+    // Add the 'text' property based on Meta's rules:
+    // - ALWAYS for non-AUTHENTICATION templates.
+    // - ONLY for AUTHENTICATION templates if they DO NOT have variables.
+    if (category !== 'AUTHENTICATION' || !hasVariables) {
+      bodyComponent.text = body;
+    }
+
+    return bodyComponent;
   }
 
   /**
@@ -243,7 +252,7 @@ export class TemplateCreationHandler {
 
     if (!buttons?.length) return null
 
-    const formattedButtons: TemplateButton[] = []
+    let formattedButtons: TemplateButton[] = []
 
     for (const button of buttons) {
       const formattedButton = this.formatButton(button, buttonType, category)
@@ -252,6 +261,29 @@ export class TemplateCreationHandler {
       }
     }
 
+    if (category === 'AUTHENTICATION') {
+      if (formattedButtons.length !== 1 || formattedButtons[0].type !== 'OTP') {
+        // Find the valid OTP button or create a default one if none is valid
+        const otpButton = buttons.find((b: any) => b.type === 'OTP');
+        if (otpButton) {
+          formattedButtons = [{
+            type: 'OTP',
+            text: otpButton.text || 'Copy Code',
+            otp_type: 'COPY_CODE'
+          }];
+        } else {
+          // If no valid OTP button is found, you might want to throw an error
+          // or just use a default, depending on desired behavior.
+          // Here, we'll default to a single valid OTP button.
+          formattedButtons = [{
+            type: 'OTP',
+            text: 'Copy Code',
+            otp_type: 'COPY_CODE'
+          }];
+        }
+      }
+    }
+    
     if (formattedButtons.length === 0) return null
 
     return {
@@ -394,6 +426,28 @@ export class TemplateCreationHandler {
   }
 
   /**
+   * Validates that a media handle is properly formatted and not a placeholder
+   */
+  static validateMediaHandle(handle: string, mediaType: string): boolean {
+    if (!handle || typeof handle !== 'string') {
+      return false;
+    }
+
+    // Check for placeholder values
+    if (handle === 'DYNAMIC_HANDLE_FROM_UPLOAD' || 
+        handle.includes('...') || 
+        handle.includes('sample') || 
+        handle.includes('example')) {
+      return false;
+    }
+
+    // Basic validation for Meta media handle format
+    // Meta handles typically start with a number followed by a colon
+    const handlePattern = /^\d+:[a-zA-Z0-9+/=]+$/;
+    return handlePattern.test(handle);
+  }
+
+  /**
    * Creates sample template structures for different categories
    */
   static createSampleTemplates() {
@@ -438,7 +492,7 @@ export class TemplateCreationHandler {
             type: "HEADER",
             format: "IMAGE",
             example: {
-              header_handle: ["2:c2FtcGxl..."] // Media handle from upload
+              header_handle: ["DYNAMIC_HANDLE_FROM_UPLOAD"] // Media handle dynamically fetched from upload API
             }
           },
           {
@@ -478,7 +532,7 @@ export class TemplateCreationHandler {
             type: "HEADER",
             format: "DOCUMENT",
             example: {
-              header_handle: ["4::YX..."] // PDF handle
+              header_handle: ["DYNAMIC_HANDLE_FROM_UPLOAD"] // Media handle dynamically fetched from upload API
             }
           },
           {
