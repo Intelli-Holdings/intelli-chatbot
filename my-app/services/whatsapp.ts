@@ -119,7 +119,7 @@ export class WhatsAppService {
     if (!handle || typeof handle !== 'string') {
       return false;
     }
-
+  
     // Check for placeholder values
     if (handle === 'DYNAMIC_HANDLE_FROM_UPLOAD' || 
         handle.includes('...') || 
@@ -127,10 +127,13 @@ export class WhatsAppService {
         handle.includes('example')) {
       return false;
     }
-
-    // Basic validation for Meta media handle format
-    // Meta handles typically start with a number followed by a colon
-    const handlePattern = /^\d+:[a-zA-Z0-9+/=]+$/;
+  
+    // More flexible validation for different handle formats
+    if (handle.length < 5) {
+      return false;
+    }
+  
+    const handlePattern = /^[a-zA-Z0-9:_\-+/=]+$/;
     return handlePattern.test(handle);
   }
 
