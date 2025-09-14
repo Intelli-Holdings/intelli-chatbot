@@ -11,48 +11,6 @@ import AppServiceCredentials from "@/components/app-service-credentials"
 import { useAppServices } from "@/hooks/use-app-services"
 import { useWhatsAppAnalytics } from "@/hooks/use-whatsapp-analytics"
 
-// Country Flag Component
-const CountryFlag: React.FC<{ countryCode: string; className?: string }> = ({ countryCode, className = "w-full h-full" }) => {
-  const [FlagComponent, setFlagComponent] = React.useState<React.ComponentType<{ className?: string }> | null>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const loadFlag = async () => {
-      setLoading(true);
-      try {
-        const flagModule = await import(`country-flag-icons/react/3x2/${countryCode.toUpperCase()}.js`);
-        setFlagComponent(() => flagModule.default);
-      } catch (error) {
-        console.warn(`Failed to load flag for country: ${countryCode}`);
-        setFlagComponent(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (countryCode) {
-      loadFlag();
-    }
-  }, [countryCode]);
-
-  if (loading) {
-    return (
-      <div className={`${className} bg-gray-100 animate-pulse rounded`} />
-    );
-  }
-
-  if (FlagComponent) {
-    return <FlagComponent className={className} />;
-  }
-
-  // Fallback for unknown countries
-  return (
-    <div className={`${className} bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600`}>
-      {countryCode.toUpperCase()}
-    </div>
-  );
-};
-
 export default function OverviewPage() {
   const {
     appServices,
@@ -206,7 +164,6 @@ export default function OverviewPage() {
                       <div key={index} className="grid grid-cols-3 gap-4 border-t py-4">
                         <div className="flex items-center gap-2">
                           <div className="flex h-8 w-8 items-center justify-center  bg-blue-100">
-                            <CountryFlag countryCode={phoneLimit.country} className="h-6 w-8" />
                           </div>
                           <div>
                             <div className="text-sm font-medium">{phoneLimit.phone_number}</div>
@@ -244,7 +201,6 @@ export default function OverviewPage() {
                               <div className="text-sm font-medium">{selectedAppService.phone_number}</div>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <span className="inline-block h-3 w-4 overflow-hidden rounded-sm">
-                                  <CountryFlag countryCode="SN" />
                                 </span>
                                 Loading...
                               </div>

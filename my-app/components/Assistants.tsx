@@ -154,7 +154,7 @@ export default function Assistants() {
     if (selectedOrganizationId) {
       fetchAssistants();
     }
-  }, [selectedOrganizationId]);
+  }, [selectedOrganizationId, fetchAssistants]);
 
   const selectedOrg = userMemberships?.data?.find(
     membership => membership.organization.id === selectedOrganizationId

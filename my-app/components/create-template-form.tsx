@@ -14,7 +14,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, X, Image as ImageIcon, Video, FileText, MapPin, Copy, Phone, Link, MessageSquare, Info, Upload, FolderOpen, Globe, File, Eye, EyeOff, Folder, Check, Loader2 } from "lucide-react"
+import { Plus, X, Image as ImageIcon, Video, FileText, MapPin, Copy, Phone, Link, MessageSquare, Info, Upload, FolderOpen, Globe, File, Eye, EyeOff, Folder, Check, Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
+import type { 
+  TemplateCategory,
+  TEMPLATE_LIMITS,
+  SUPPORTED_LANGUAGES
+} from '@/types/whatsapp-templates'
+import { 
+  validateTemplateName,
+  validateHeaderText,
+  validateBodyText,
+  validateFooterText,
+  validateButtonText,
+  validateButtonCombination
+} from '@/types/whatsapp-templates'
+import {
+  validateTemplateCompliance,
+  autoCategorizeTemplate,
+  getCategoryRequirements
+} from '@/utils/template-validation'
 
 interface CreateTemplateFormProps {
   onClose: () => void
@@ -90,7 +108,7 @@ const MEDIA_CONFIGS = {
 export default function CreateTemplateForm({ onClose, onSubmit, loading = false, appService }: CreateTemplateFormProps) {
   const [templateData, setTemplateData] = useState({
     name: "",
-    language: "en_US", // Default language
+    language: "", 
     category: "UTILITY",
     headerType: "NONE",
     headerText: "",
@@ -137,7 +155,6 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
     })
   }
 
-  // Insert variable at cursor position
   const insertVariable = (field: 'body' | 'header') => {
     const variables = field === 'body' ? templateData.bodyVariables : templateData.headerVariables
     const nextIndex = variables.length + 1
@@ -198,7 +215,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
       headerMediaPreview: previewUrl
     })
 
-    toast.success(`${file.name} uploaded successfully`)
+    toast.success(`${file.name} added successfully`)
   }
 
   // Handle folder selection

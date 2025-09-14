@@ -36,7 +36,12 @@ export default function TemplateBroadcast({ templates, appService }: TemplateBro
       // Extract variables from body text
       const bodyComponent = template.components?.find(c => c.type === 'BODY');
       if (bodyComponent?.text) {
-          variableMatches.map(match => parseInt(match.match(/\d+/)[0]))
+        const variableMatches = bodyComponent.text.match(/\{\{(\d+)\}\}/g) || [];
+        const uniqueVariables = new Set(
+          variableMatches.map(match => {
+            const numberMatch = match.match(/\d+/);
+            return numberMatch ? parseInt(numberMatch[0]) : 0;
+          })
         );
         
         // Create array based on highest variable number (e.g., {{1}}, {{3}} = 3 variables)
