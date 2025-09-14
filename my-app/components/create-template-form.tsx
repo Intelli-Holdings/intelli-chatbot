@@ -264,30 +264,41 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
     try {
       setIsUploadingMedia(true)
       
-      // Get the correct App ID from Meta using the access token
       const config = await metaConfigService.getConfigForAppService(appService)
       if (!config) {
         throw new Error('Could not get Meta app configuration')
       }
-
-      // Use the backend API to upload the file
+  
       const formData = new FormData()
       formData.append('file', file)
       formData.append('appId', config.appId)
       formData.append('accessToken', config.accessToken)
-
+  
       const response = await fetch('/api/whatsapp/upload-media', {
         method: 'POST',
         body: formData
       })
-
+  
       if (!response.ok) {
         const error = await response.json()
         throw new Error(error.error || 'Failed to upload media')
       }
-
+  
       const data = await response.json()
-      return data.handle
+      
+      // Debug logging
+      console.log('Media upload response:', data)
+      console.log('Media handle:', data.handle)
+      
+      // Ensure we're returning the correct field
+      const mediaHandle = data.handle || data.h || data.id || data.media_id
+      
+      if (!mediaHandle) {
+        console.error('No valid handle found in response:', data)
+        throw new Error('Media upload succeeded but no handle was returned')
+      }
+      
+      return mediaHandle
     } catch (error) {
       console.error('Meta upload error:', error)
       throw error
@@ -322,7 +333,6 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
     setIsSubmitting(true)
     
     try {
-      // Handle media upload if needed
       let headerMediaHandle = null
       
       if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(templateData.headerType) && templateData.headerMediaFile) {
@@ -335,27 +345,37 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
         try {
           toast.info("Uploading media to Meta...")
           headerMediaHandle = await uploadMediaToMeta(templateData.headerMediaFile, appService)
+          
+          // Verify the handle was received
+          console.log('Received media handle:', headerMediaHandle)
+          
+          if (!headerMediaHandle) {
+            throw new Error('No media handle received from upload')
+          }
+          
         } catch (uploadError) {
-          toast.error("Failed to upload media to Meta.")
+          console.error('Upload error:', uploadError)
+          toast.error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`)
           setIsSubmitting(false)
           return
         }
       }
-
+  
       // Prepare template data with media handle
       const templateDataWithMedia = {
         ...templateData,
-        headerMediaHandle
+        headerMediaHandle: headerMediaHandle // Explicitly set even if null
       }
-
+      
+      console.log('Template data with media:', templateDataWithMedia)
+  
       // Use the new template creation handler
       const formattedTemplate = TemplateCreationHandler.createTemplate(templateDataWithMedia)
-
+  
       const success = await onSubmit(formattedTemplate)
       
       if (success) {
         toast.success("Template created successfully!")
-        // Clean up preview URL if exists
         if (templateData.headerMediaPreview) {
           URL.revokeObjectURL(templateData.headerMediaPreview)
         }
