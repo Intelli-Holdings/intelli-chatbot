@@ -74,14 +74,10 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
       url ||
       `${process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://dev-intelliconcierge.onrender.com/ws"}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`
 
-    console.log("Connecting to WebSocket for human support:", WEBSOCKET_URL)
-
     const ws = new WebSocket(WEBSOCKET_URL)
     wsRef.current = ws
 
-    ws.onopen = () => {
-      console.log("WebSocket connection established for human support.")
-      
+    ws.onopen = () => {     
 
       // Dispatch connection status event
       window.dispatchEvent(
@@ -133,9 +129,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
       }
     }
 
-    ws.onclose = () => {
-      console.log("WebSocket connection closed for human support.")
-     
+    ws.onclose = () => {    
 
       // Dispatch connection status event
       window.dispatchEvent(
