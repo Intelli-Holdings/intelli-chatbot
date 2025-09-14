@@ -288,10 +288,10 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
       
       // Debug logging
       console.log('Media upload response:', data)
-      console.log('Media handle:', data.handle)
+      console.log('Media handle (uploadData.h):', data.handle)
       
-      // Ensure we're returning the correct field
-      const mediaHandle = data.handle || data.h || data.id || data.media_id
+      // Use the handle field which contains uploadData.h from the API response
+      const mediaHandle = data.handle
       
       if (!mediaHandle) {
         console.error('No valid handle found in response:', data)
@@ -361,10 +361,10 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
         }
       }
   
-      // Prepare template data with media handle
+      // Prepare template data with media handle from upload API
       const templateDataWithMedia = {
         ...templateData,
-        headerMediaHandle: headerMediaHandle // Explicitly set even if null
+        headerMediaHandle: headerMediaHandle // Always use handle from upload API response
       }
       
       console.log('Template data with media:', templateDataWithMedia)

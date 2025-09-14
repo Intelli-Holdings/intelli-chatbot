@@ -270,6 +270,12 @@ export function CustomizeTemplateDialog({
       }
 
       const data = await response.json();
+      
+      // Debug logging
+      console.log('Media upload response:', data);
+      console.log('Media handle (uploadData.h):', data.handle);
+      
+      // Use the handle field which contains uploadData.h from the API response
       return data.handle;
     } catch (error) {
       console.error('Meta upload error:', error);
@@ -340,7 +346,7 @@ export function CustomizeTemplateDialog({
         headerType: headerType === 'NONE' ? (mediaRequirement.required ? mediaRequirement.format : 'NONE') : headerType,
         headerText: headerTextForTemplate,
         headerVariables: headerVariablesForTemplate,
-        headerMediaHandle,
+        headerMediaHandle, // Always use handle from upload API response, never from template data
         body: (template.category === 'AUTHENTICATION' && bodyVariables.length > 0) 
           ? '' 
           : bodyText,
