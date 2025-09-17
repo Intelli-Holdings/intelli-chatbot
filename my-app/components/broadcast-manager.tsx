@@ -93,7 +93,7 @@ export default function BroadcastManager({ appService, templates, onSendTest, lo
       selectedTemplate.name,
       phoneNumber,
       parameters,
-      selectedTemplate.language   // 👈 include the template's language
+      selectedTemplate.language  
     );
 
     if (success) {
