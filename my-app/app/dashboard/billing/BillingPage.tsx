@@ -1,9 +1,14 @@
+"use client"
 import { Button } from "@/components/ui/button";
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { PaymentMethod } from "@/components/payment-method";
 import AddPaymentMethodModal from '@/components/modal/addpayment-modal';
+import StripePaymentModal from '@/components/modal/stripe-payment-modal';
+import CardWallet from '@/components/ui/card-wallet';
+import { usePaymentCards } from '@/hooks/use-payment-cards';
+import { toast } from 'sonner';
 import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
@@ -63,6 +68,49 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function BillingPage() {
+  const {
+    cards,
+    isLoading,
+    error,
+    addCard,
+    removeCard,
+    setDefaultCard,
+  } = usePaymentCards();
+  
+  const [isStripeModalOpen, setIsStripeModalOpen] = useState(false);
+
+  const handleAddPaymentMethod = async (paymentMethod: any) => {
+    try {
+      await addCard(paymentMethod, paymentMethod.isDefault);
+      setIsStripeModalOpen(false);
+      toast.success('Payment method added successfully!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add payment method');
+    }
+  };
+
+  const handleSetDefault = async (cardId: string) => {
+    try {
+      await setDefaultCard(cardId);
+      toast.success('Default payment method updated!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update default payment method');
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    try {
+      await removeCard(cardId);
+      toast.success('Payment method removed successfully!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove payment method');
+    }
+  };
+
+  const handleViewDetails = (cardId: string) => {
+    // Implement view details functionality
+    toast.info('View details functionality coming soon!');
+  };
    
   return (
     <div className="grid w-full ">
@@ -85,6 +133,12 @@ export function BillingPage() {
                 >
                   Billing History
                 </TabsTrigger>
+                <TabsTrigger
+                  className="border-blue-500 text-blue-600 font-medium"
+                  value="invoices"
+                >
+                  Invoices/Receipts
+                </TabsTrigger>
               </TabsList>
               <div className="ml-auto flex items-center gap-2">
                 <DropdownMenu>
@@ -101,9 +155,11 @@ export function BillingPage() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Filter by</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem >Fulfilled</DropdownMenuItem>
-                    <DropdownMenuItem>Declined</DropdownMenuItem>
+                    <DropdownMenuItem>Successful</DropdownMenuItem>
+                    <DropdownMenuItem>Failed</DropdownMenuItem>
+                    <DropdownMenuItem>Pending</DropdownMenuItem>
                     <DropdownMenuItem>Refunded</DropdownMenuItem>
+                    <DropdownMenuItem>Disputed</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button
@@ -119,56 +175,39 @@ export function BillingPage() {
             <TabsContent value="payment">
               <Card>
                 <CardHeader className="px-7">
-                  <CardTitle>Payment Methods</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    Payment Methods
+                    <span className="text-sm font-normal text-gray-500">
+                      {cards.length}/4 cards
+                    </span>
+                  </CardTitle>
                   <CardDescription>
-                    Manage your payment methods.
+                    Manage your payment methods. You can add up to 4 cards.
                   </CardDescription>
                 </CardHeader>
                 <div className="border-b border-gray-200"></div>
                 <div className="mt-4 p-5">
-                <Button
-       
-        className="bg-blue-600 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-md"
-      >
-        + Add Payment Method
-      </Button>
-      </div>
-                <CardContent>             
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="">
-                      <Card className="mt-4 p-8 center-items max-w-sm bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md">
-                        <div className="flex justify-between items-center mb-4">
-                          <CreditCardIcon className="text-white" />
-                          <div className="text-sm text-white">
-                            VALID TILL 05/29
-                          </div>
-                        </div>
-                        <div className="text-white">
-                          <div className="text-2xl font-medium">
-                            XXXX - XXXX - XXXX - 0001
-                          </div>
-                          <div className="mt-2 text-sm">NAME</div>
-                          <div className="text-sm font-medium">
-                            CARD HOLDER NAME
-                          </div>
-                        </div>
-                      </Card>
+                  <Button
+                    onClick={() => setIsStripeModalOpen(true)}
+                    disabled={isLoading || cards.length >= 4}
+                    className="bg-blue-600 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-md"
+                  >
+                    + Add Payment Method {cards.length >= 4 && '(Limit Reached)'}
+                  </Button>
+                  {error && (
+                    <div className="mt-2 text-sm text-red-600">
+                      {error}
                     </div>
-                    
-                    <Card>
-                      <CardHeader className="px-6">
-                        <CardTitle>PayPal</CardTitle>
-                        <CardDescription></CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-muted-foreground">
-                            Connected
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  )}
+                </div>
+                <CardContent>
+              
+                  <CardWallet
+                    cards={cards}
+                    onSetDefault={handleSetDefault}
+                    onDeleteCard={handleDeleteCard}
+                    onViewDetails={handleViewDetails}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -305,9 +344,124 @@ export function BillingPage() {
               </Card>
             </TabsContent>
             
+            <TabsContent value="invoices">
+              <Card>
+                <CardHeader className="px-7">
+                  <CardTitle>Invoices & Receipts</CardTitle>
+                  <CardDescription>
+                    Download and manage your invoices and receipts.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table className="bg-gray-100 shadow-md center-items bg-gradient-to-r from-accent-500 text-gray-900 rounded-xl shadow-md">
+                    <TableHeader className="mt-4 p-8 center-items bg-gradient-to-r from-accent-500 text-gray-900 ">
+                      <TableRow>
+                        <TableHead>Invoice #</TableHead>
+                        <TableHead className="font-medium sm:table-cell">
+                          Date
+                        </TableHead>
+                        <TableHead className="font-medium sm:table-cell">
+                          Status
+                        </TableHead>
+                        <TableHead className="font-medium md:table-cell">
+                          Amount
+                        </TableHead>
+                        <TableHead className="font-medium text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow className="bg-accent">
+                        <TableCell>
+                          <div className="font-medium">INV-2023-001</div>
+                          <div className="hidden text-sm text-muted-foreground md:inline">
+                            Pro Plan Monthly
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          2023-06-23
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge className="text-xs" variant="secondary">
+                            Paid
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          $250.00
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm">
+                            <File className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <div className="font-medium">INV-2023-002</div>
+                          <div className="hidden text-sm text-muted-foreground md:inline">
+                            Business Plan Yearly
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          2023-06-24
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge className="text-xs" variant="secondary">
+                            Paid
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          $2,400.00
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm">
+                            <File className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <div className="font-medium">INV-2023-003</div>
+                          <div className="hidden text-sm text-muted-foreground md:inline">
+                            Pro Plan Monthly
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          2023-07-23
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge className="text-xs" variant="destructive">
+                            Overdue
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          $250.00
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm">
+                            <File className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
           </Tabs>
         </div>
       </main>
+      
+      {/* Stripe Payment Modal */}
+      <StripePaymentModal
+        isOpen={isStripeModalOpen}
+        onClose={() => setIsStripeModalOpen(false)}
+        onSuccess={handleAddPaymentMethod}
+        loading={isLoading}
+      />
     </div>
   );
 }

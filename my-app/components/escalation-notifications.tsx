@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useOrganization } from "@clerk/nextjs"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -33,23 +33,16 @@ export default function EscalationNotifications() {
   const [searchTerm, setSearchTerm] = useState("")
   const { organization } = useOrganization()
 
-  useEffect(() => {
-    fetchNotifications()
-    if (organization) {
-      fetchOrganizationUsers()
-    }
-  }, [organization])
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     // In a real application, you would fetch notifications from your API
     // For now, we'll use dummy data
     setNotifications([
       { id: "1", message: "Critical system error", timestamp: new Date().toISOString(), resolved: false },
       { id: "2", message: "Database connection lost", timestamp: new Date().toISOString(), resolved: false },
     ])
-  }
+  }, [])
 
-  const fetchOrganizationUsers = async () => {
+  const fetchOrganizationUsers = useCallback(async () => {
     if (organization) {
       try {
         const members = await organization.getMemberships()
@@ -63,7 +56,14 @@ export default function EscalationNotifications() {
         console.error("Error fetching organization users:", error)
       }
     }
-  }
+  }, [organization])
+
+  useEffect(() => {
+    fetchNotifications()
+    if (organization) {
+      fetchOrganizationUsers()
+    }
+  }, [organization, fetchOrganizationUsers, fetchNotifications])
 
   const assignNotification = async (notificationId: string, userId: string) => {
     try {
