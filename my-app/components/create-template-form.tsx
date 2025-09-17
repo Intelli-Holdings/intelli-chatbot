@@ -549,7 +549,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
                   <>
                     {templateData.headerMediaFile && (
                       <div className="text-xs text-green-600 dark:text-green-400">
-                        🔹 {templateData.headerMediaFile.name}
+                        📹 {templateData.headerMediaFile.name}
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-muted-foreground">
