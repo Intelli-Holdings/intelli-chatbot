@@ -256,8 +256,7 @@ export function CustomizeTemplateDialog({
       // Use the backend API to upload the file
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('appId', config.appId); // Use App ID for upload session
-      formData.append('phoneNumberId', appService.phone_number_id); // Phone number ID for media endpoint
+      formData.append('appId', config.appId);
       formData.append('accessToken', config.accessToken);
 
       const response = await fetch('/api/whatsapp/upload-media', {
@@ -274,10 +273,10 @@ export function CustomizeTemplateDialog({
       
       // Debug logging
       console.log('Media upload response:', data);
-      console.log('Media ID for template messages:', data.mediaId);
+      console.log('Media handle (uploadData.h):', data.handle);
       
-      // Use the mediaId field for template messages
-      return data.mediaId;
+      // Use the handle field which contains uploadData.h from the API response
+      return data.handle;
     } catch (error) {
       console.error('Meta upload error:', error);
       throw error;
