@@ -6,8 +6,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const accessToken = formData.get('accessToken') as string;
-    const appId = formData.get('appId') as string; // This is the App ID for upload session
-    const phoneNumberId = formData.get('phoneNumberId') as string; // Phone number ID for media endpoint
+    const appId = formData.get('appId') as string;
 
     if (!file || !accessToken || !appId) {
       return NextResponse.json(
@@ -84,41 +83,11 @@ export async function POST(request: NextRequest) {
     const uploadData = await uploadResponse.json();
     
     console.log('Upload successful, handle:', uploadData.h);
-
-    // Step 3: Get the media ID from the uploaded media
-    // Use the standard media upload API to get the media ID
-    const mediaFormData = new FormData();
-    mediaFormData.append('messaging_product', 'whatsapp');
-    mediaFormData.append('file', new Blob([buffer], { type: file.type }), file.name);
-
-    // Use phone number ID for the media endpoint if available, otherwise fallback to appId
-    const mediaEndpointId = phoneNumberId || appId;
-    const mediaResponse = await fetch(`https://graph.facebook.com/v23.0/${mediaEndpointId}/media`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: mediaFormData
-    });
-
-    if (!mediaResponse.ok) {
-      const error = await mediaResponse.json();
-      console.error('Media ID fetch error:', error);
-      return NextResponse.json(
-        { error: error.error?.message || 'Failed to get media ID' },
-        { status: mediaResponse.status }
-      );
-    }
-
-    const mediaData = await mediaResponse.json();
     
-    console.log('Media ID obtained:', mediaData.id);
-    
-    // Return both the resumable upload handle and the media ID
+    // Return the media handle (h field)
     return NextResponse.json({ 
       success: true, 
-      handle: uploadData.h, // Resumable upload handle
-      mediaId: mediaData.id, // Media ID for template messages
+      handle: uploadData.h, // This is what will be used in template creation
       sessionId: uploadSessionId,
       fileType: file.type,
       fileName: file.name

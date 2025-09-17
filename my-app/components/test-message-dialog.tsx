@@ -73,8 +73,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('appId', config.appId); // Use App ID for upload session
-      formData.append('phoneNumberId', appService.phone_number_id); // Phone number ID for media endpoint
+      formData.append('appId', config.appId);
       formData.append('accessToken', config.accessToken);
 
       const response = await fetch('/api/whatsapp/upload-media', {
@@ -90,11 +89,11 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       const data = await response.json();
       console.log('Media upload response:', data);
       
-      if (!data.mediaId) {
-        throw new Error('Media upload succeeded but no media ID was returned');
+      if (!data.handle) {
+        throw new Error('Media upload succeeded but no handle was returned');
       }
       
-      return data.mediaId; // Use mediaId for template messages
+      return data.handle;
     } catch (error) {
       console.error('Meta upload error:', error);
       throw error;
@@ -153,13 +152,32 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       if (mediaType && headerMediaHandle) {
         const headerComponent: any = {
           type: "header",
-          parameters: [{
-            type: mediaType.toLowerCase(),
-            [mediaType.toLowerCase()]: {
+          parameters: []
+        };
+
+        if (mediaType === 'IMAGE') {
+          headerComponent.parameters.push({
+            type: "image",
+            image: {
+              id: headerMediaHandle  // Use the handle as media ID
+            }
+          });
+        } else if (mediaType === 'VIDEO') {
+          headerComponent.parameters.push({
+            type: "video",
+            video: {
               id: headerMediaHandle
             }
-          }]
-        };
+          });
+        } else if (mediaType === 'DOCUMENT') {
+          headerComponent.parameters.push({
+            type: "document",
+            document: {
+              id: headerMediaHandle,
+              filename: headerMediaFile?.name || "document.pdf"
+            }
+          });
+        }
 
         components.push(headerComponent);
       }
