@@ -10,7 +10,7 @@ const testimonials = [
     author: "Andrews Narteh",
     title: "Recruitment Analyst",
     company: "ALX Ghana ",
-    avatar: "/professional-woman-ceo.png",
+    avatar: "/Andrews-Narteh.jpeg",
     logo: "/alx.jpeg",
     website: "https://www.alxafrica.com/ghana/",
   },
@@ -21,7 +21,7 @@ const testimonials = [
     author: "Lucy Wamugunda",
     title: "Digital Marketing Specialist",
     company: "Rift Valley Institute of Business Studies (RViBS)",
-    avatar: "/professional-nonprofit-director.jpg",
+    avatar: "/lucy-wamugunda.jpeg",
     logo: "/RVIBS.jpeg",
     website: "https://rvibs.ac.ke/",
   },
@@ -31,7 +31,7 @@ const testimonials = [
     author: "Emily Fiagbedzi",
     title: "AI Startup Program Director",
     company: "Mest Africa",
-    avatar: "/professional-government-official.jpg",
+    avatar: "/Emily.png",
     logo: "/mestafrica_logo.jpeg",
     website: "https://meltwater.org/mest-ai-startup-program/",
   },
@@ -79,7 +79,7 @@ export function BrandCarousel() {
           </blockquote>
 
           <div className="flex items-center justify-center gap-3 md:gap-4 mb-4 md:mb-6">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden flex-shrink-0">
+            <div className="w-12 h-12 md:w-12 md:h-12 rounded-xl overflow-hidden flex-shrink-0">
               <Image
                 src={currentTestimonial.avatar || "/placeholder.svg"}
                 alt={currentTestimonial.author}
@@ -98,7 +98,7 @@ export function BrandCarousel() {
 
           <div className="w-24 md:w-32 h-1 bg-slate-200 rounded-full mx-auto overflow-hidden">
             <div
-              className="h-full bg-cyan-500 rounded-full transition-all duration-100 ease-linear"
+              className="h-full bg-slate-600 rounded-full transition-all duration-100 ease-linear"
               style={{ width: `${progress}%` }}
             />
           </div>
