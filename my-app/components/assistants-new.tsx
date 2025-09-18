@@ -84,7 +84,7 @@ export default function Assistants() {
     if (organizationId) {
       fetchAssistants()
     }
-  }, [organizationId])
+  }, [organizationId, fetchAssistants])
 
   return (
     <div className="space-y-4">
