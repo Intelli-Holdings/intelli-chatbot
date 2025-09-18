@@ -2,7 +2,7 @@ import { Navbar } from "@/components/navbar";
 import React from "react";
 import TestimonialSection from "@/components/testimonial-section";
 
-export default function UsecasesPage() {
+export default function CustomerStoriesPage() {
   return (
     <div className="relative">
       <main className="pt-16">
