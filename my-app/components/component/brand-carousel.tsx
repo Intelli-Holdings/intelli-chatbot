@@ -70,7 +70,7 @@ export function BrandCarousel() {
     <section className="py-12 md:py-20 bg-slate-50 rounded-2xl">
       <div className="container mx-auto px-4 max-w-6xl  ">
         <div
-          className="text-center mb-8 md:mb-12 px-4 rounded-2xl bg-gradient-to-r from-[#007fff]  to-[#68E4E6] bg-opacity-10 blur-xs py-10 md:py-16"
+          className="text-center mb-8 md:mb-12 px-4 rounded-2xl bg-gradient-to-r from-[#007fff]  to-[#68E4E6] bg-opacity-10 py-10 md:py-16"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
