@@ -1,7 +1,10 @@
 import { FC } from 'react'
 import Image from 'next/image'
+import AnimatedLogoCloud from "@/components/component/animated-logo-cloud";
+import { BrandCarousel } from '@/components/component/brand-carousel';
 
-const testimonials = [
+{/**
+ * const testimonials = [
   {
     name: 'Bernard Addey Sackey',
     description:
@@ -33,6 +36,8 @@ const testimonials = [
     image: '/acquel.jpeg',
   },
 ]
+ */}
+
 interface TestimonalCardProps {
   name: string
   description: string
@@ -75,17 +80,29 @@ const TestimonialCard: FC<TestimonalCardProps> = ({
   )
 }
 
-const Testimonals = () => {
+const Testimonials = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-5 py-12">
       <h2 className="text-center text-5xl font-bold mb-10">
         Join 100+ Businesses on Intelli
       </h2>
+      <div className="w-full mb-10">
+        <AnimatedLogoCloud />
+      </div>
+
       <p className="max-w-2xl text-center text-sm font-semibold md:text-base ">
         Intelli is loved and used by many companies. It is
         a great tool for businesses that intend to improve customer experience.
       </p>
-      <div className="relative mt-12 flex h-full w-full flex-col items-center justify-center gap-5 md:flex-row">
+
+        <div className="w-full mb-10">
+        <BrandCarousel />
+        </div>
+
+
+
+      {/**
+       *       <div className="relative mt-12 flex h-full w-full flex-col items-center justify-center gap-5 md:flex-row">
         {[0, 1, 2].map((colIndex) => (
           <div key={colIndex} className="flex flex-col justify-center gap-4">
             {testimonials
@@ -96,8 +113,14 @@ const Testimonals = () => {
           </div>
         ))}
       </div>
+       * 
+       * 
+       */
+
+      }
+
     </div>
   )
 }
 
-export default Testimonals
+export default Testimonials

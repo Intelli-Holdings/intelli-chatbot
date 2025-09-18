@@ -19,6 +19,7 @@ export interface Conversation {
   updated_at: string;
   phone_number: string;
   recipient_id: string;
+  unread_messages?: number;
   attachments?: {
     id: number;
     media_name: string;
