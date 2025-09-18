@@ -15,7 +15,7 @@ const logos = [
   },
   {
     name: "JA Ghana",
-    url: "/JA.jpg",
+    url: "/JA.png",
   },
   {
     name: "Oracom Group",
@@ -49,7 +49,7 @@ const AnimatedLogoCloud = () => {
                   <Image
                     key={key}
                     src={logo.url || "/placeholder.svg"}
-                    className="h-24 w-32 px-2 object-contain grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100"
+                    className="h-20 w-32 px-2 object-contain grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100"
                     alt={`${logo.name}`}
                     loading="lazy"
                     width={128}
