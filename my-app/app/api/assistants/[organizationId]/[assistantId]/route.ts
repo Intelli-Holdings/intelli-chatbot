@@ -10,7 +10,7 @@ export async function PUT(
     const body = await request.json()
     console.log(`[intelli] Editing assistant ${assistantId} for organization: ${organizationId}`, body)
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/api/assistants/${assistantId}/`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -49,7 +49,7 @@ export async function DELETE(
   try {
     console.log(`[intelli] Deleting assistant ${assistantId} for organization: ${organizationId}`)
 
-    const backendUrl = `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/api/assistants/${assistantId}/`
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`
     console.log(`[intelli] Making DELETE request to: ${backendUrl}`)
 
     const response = await fetch(backendUrl, {

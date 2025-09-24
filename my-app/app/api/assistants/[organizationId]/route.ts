@@ -7,7 +7,7 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
     console.log(` Proxying request for organization: ${organizationId}`)
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_DEV_API_BASE_URL}/api/get/assistants/${organizationId}/`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`,
       {
         method: "GET",
         headers: {
