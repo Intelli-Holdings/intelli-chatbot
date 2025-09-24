@@ -1,8 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-
 import { CreateAssistantDialog } from "@/components/create-assistant-dialog"
 import { EditAssistantDialog } from "@/components/edit-assistant-dialog"
 import { Bot, CircleDot, BadgeCheck, Info, MoreVertical, Pencil, Trash } from "lucide-react"
@@ -20,6 +19,9 @@ interface Assistant {
   assistant_id: string
   organization: string
   organization_id: string
+  type: string
+  created_at: string
+  updated_at: string
 }
 
 export default function Assistants() {
@@ -34,35 +36,68 @@ export default function Assistants() {
     assistant: null,
   })
 
-  const fetchAssistants = async () => {
+  const fetchAssistants = useCallback(async () => {
     if (!organizationId) return
 
     setIsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`)
+      console.log(`[v0] Fetching assistants via API route for org: ${organizationId}`)
+      const response = await fetch(`/api/assistants/${organizationId}`)
+
+      console.log(`[v0] API route response status: ${response.status}`)
+
       if (!response.ok) {
-        toast.info("No assistants found. Create one to get started.")
-        return
+        if (response.status === 404) {
+          toast.info("No assistants found. Create one to get started.")
+          setAssistants([])
+          return
+        }
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data: Assistant[] = await response.json()
-      setAssistants(data)
+      console.log(`[v0] Successfully fetched ${data.length} assistants`)
 
-      if (data.length === 0) {
-        toast.info("No assistants found. Create one to get started.")
+      if (!Array.isArray(data)) {
+        console.error("[v0] API response is not an array:", data)
+        throw new Error("Invalid response format: expected array of assistants")
+      }
+
+      const validatedAssistants = data.filter((assistant) => {
+        const isValid =
+          assistant &&
+          typeof assistant.id === "number" &&
+          typeof assistant.name === "string" &&
+          typeof assistant.assistant_id === "string" &&
+          typeof assistant.organization === "string" &&
+          typeof assistant.prompt === "string"
+
+        if (!isValid) {
+          console.warn("[v0] Invalid assistant object:", assistant)
+        }
+
+        return isValid
+      })
+
+      console.log(`[v0] Validated ${validatedAssistants.length} out of ${data.length} assistants`)
+      setAssistants(validatedAssistants)
+
+      if (validatedAssistants.length === 0) {
+        toast.info("No valid assistants found. Create one to get started.")
       }
     } catch (error) {
-      console.error("Error fetching assistants:", error)
-
-      toast.error("Failed to fetch assistants. Please try again.")
+      console.error("[v0] Error fetching assistants:", error)
+      toast.error(`Failed to fetch assistants: ${error instanceof Error ? error.message : "Unknown error"}`)
+      setAssistants([])
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [organizationId]) // Added organizationId as dependency for useCallback
 
   const handleDeleteAssistant = async (assistant: Assistant) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistant.id}/`, {
+      const response = await fetch(`/api/assistants/${organizationId}/${assistant.id}`, {
         method: "DELETE",
       })
 
@@ -81,10 +116,8 @@ export default function Assistants() {
   }
 
   useEffect(() => {
-    if (organizationId) {
-      fetchAssistants()
-    }
-  }, [organizationId, fetchAssistants])
+    fetchAssistants()
+  }, [fetchAssistants])
 
   return (
     <div className="space-y-4">
