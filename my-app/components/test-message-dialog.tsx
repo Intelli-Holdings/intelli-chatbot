@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { type WhatsAppTemplate } from '@/services/whatsapp';
 import { WhatsAppService } from '@/services/whatsapp';
-import { metaConfigService } from '@/services/meta-config';
 import { Upload, Image as ImageIcon, Video, FileText } from 'lucide-react';
 
 interface TestMessageDialogProps {
@@ -63,18 +62,27 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
   };
 
   const uploadMediaToMeta = async (file: File): Promise<string> => {
+    if (!appService) {
+      throw new Error('App service not provided');
+    }
+
+    if (!appService.whatsapp_business_account_id) {
+      throw new Error('WhatsApp Business Account ID not available');
+    }
+
+    if (!appService.access_token || appService.access_token === 'undefined') {
+      console.error('Invalid access token in appService:', appService);
+      throw new Error('Valid access token not available');
+    }
+
     try {
       setIsUploadingMedia(true);
       
-      const config = await metaConfigService.getConfigForAppService(appService);
-      if (!config) {
-        throw new Error('Could not get Meta app configuration');
-      }
-
+      // Use the backend API to upload the file
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('appId', config.appId);
-      formData.append('accessToken', config.accessToken);
+      formData.append('wabaId', appService.whatsapp_business_account_id); // Use WABA ID instead of app ID
+      formData.append('accessToken', appService.access_token); // Use access_token directly from appService
 
       const response = await fetch('/api/whatsapp/upload-media', {
         method: 'POST',
@@ -83,6 +91,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('Upload failed:', error);
         throw new Error(error.error || 'Failed to upload media');
       }
 
@@ -116,7 +125,8 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       setHeaderMediaHandle(handle);
       toast.success('Media uploaded successfully');
     } catch (error) {
-      toast.error('Failed to upload media');
+      console.error('File upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload media');
       setHeaderMediaFile(null);
     }
   };
