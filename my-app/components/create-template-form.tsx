@@ -3,7 +3,6 @@
 import type React from "react"
 import { useState, useRef } from "react"
 import { toast } from "sonner"
-import { metaConfigService } from "@/services/meta-config"
 import { TemplateCreationHandler } from "@/utils/template-creator"
 
 import { Button } from "@/components/ui/button"
@@ -261,49 +260,55 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
 
   // Upload file to Meta's Resumable Upload API and get media handle
   const uploadMediaToMeta = async (file: File, appService: any): Promise<string> => {
+        if (!appService) {
+      throw new Error('App service not provided');
+    }
+
+    if (!appService.whatsapp_business_account_id) {
+      throw new Error('WhatsApp Business Account ID not available');
+    }
+
+    if (!appService.access_token || appService.access_token === 'undefined') {
+      console.error('Invalid access token in appService:', appService);
+      throw new Error('Valid access token not available');
+    }
+
     try {
-      setIsUploadingMedia(true)
+      setIsUploadingMedia(true);
       
-      const config = await metaConfigService.getConfigForAppService(appService)
-      if (!config) {
-        throw new Error('Could not get Meta app configuration')
-      }
-  
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('appId', config.appId)
-      formData.append('accessToken', config.accessToken)
-  
+      // Use the backend API to upload the file
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('wabaId', appService.whatsapp_business_account_id); // Use WABA ID 
+      formData.append('accessToken', appService.access_token); // Use access_token directly from appService
       const response = await fetch('/api/whatsapp/upload-media', {
         method: 'POST',
         body: formData
-      })
-  
+      });
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to upload media')
+        const error = await response.json();
+        console.error('Upload failed:', error);
+        throw new Error(error.error || 'Failed to upload media');
       }
-  
-      const data = await response.json()
+
+      const data = await response.json();
       
       // Debug logging
-      console.log('Media upload response:', data)
-      console.log('Media handle (uploadData.h):', data.handle)
+      console.log('Media upload response:', data);
+      console.log('Media handle:', data.handle);
       
-      // Use the handle field which contains uploadData.h from the API response
-      const mediaHandle = data.handle
-      
-      if (!mediaHandle) {
-        console.error('No valid handle found in response:', data)
-        throw new Error('Media upload succeeded but no handle was returned')
+      if (!data.handle) {
+        throw new Error('No media handle received from upload');
       }
       
-      return mediaHandle
+      // Use the handle field which contains the media handle from the API response
+      return data.handle;
     } catch (error) {
-      console.error('Meta upload error:', error)
-      throw error
+      console.error('Meta upload error:', error);
+      throw error;
     } finally {
-      setIsUploadingMedia(false)
+      setIsUploadingMedia(false);
     }
   }
 
@@ -353,6 +358,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
             throw new Error('No media handle received from upload')
           }
           
+          toast.success("Media uploaded successfully!");
         } catch (uploadError) {
           console.error('Upload error:', uploadError)
           toast.error(`Failed to upload media: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`)
