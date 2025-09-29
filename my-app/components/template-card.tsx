@@ -163,12 +163,6 @@ export function TemplateCard({ template, onPreview, onCreate, isCreating }: Temp
               {template.category}
             </div>
           </Badge>
-          {needsCustomization && (
-            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-              <Plus className="h-3 w-3 mr-1" />
-              Customizable
-            </Badge>
-          )}
         </div>
         <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
           {template.name}
