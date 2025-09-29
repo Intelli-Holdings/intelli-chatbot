@@ -1,12 +1,15 @@
 "use client"
 
-import React, { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2 } from "lucide-react"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import useActiveOrganizationId from "@/hooks/use-organization-id"
 
 interface Assistant {
   id: number
@@ -15,13 +18,16 @@ interface Assistant {
   assistant_id: string
   organization: string
   organization_id: string
+  type: string
+  created_at: string
+  updated_at: string
 }
 
 interface EditAssistantDialogProps {
   isOpen: boolean
   onClose: () => void
   assistant: Assistant | null
-  onAssistantUpdated: (updatedAssistants: Assistant[]) => void
+  onAssistantUpdated: (assistants: Assistant[]) => void
   assistants: Assistant[]
 }
 
@@ -32,99 +38,119 @@ export function EditAssistantDialog({
   onAssistantUpdated,
   assistants,
 }: EditAssistantDialogProps) {
-  const [editedAssistant, setEditedAssistant] = useState<Assistant | null>(assistant)
-  const [isEditing, setIsEditing] = useState(false)
+  const organizationId = useActiveOrganizationId()
+  const [name, setName] = useState("")
+  const [prompt, setPrompt] = useState("")
+  const [assistantId, setAssistantId] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Update local state when the assistant prop changes
-  React.useEffect(() => {
-    setEditedAssistant(assistant)
+  useEffect(() => {
+    if (assistant) {
+      setName(assistant.name)
+      setPrompt(assistant.prompt)
+      setAssistantId(assistant.assistant_id)
+    }
   }, [assistant])
 
-  const handleEditAssistant = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!editedAssistant) return
-
-    setIsEditing(true)
-
-    // Backend Payload
-    const payload = {
-      id: editedAssistant.id,
-      name: editedAssistant.name,
-      prompt: editedAssistant.prompt,
-      assistant_id: editedAssistant.assistant_id,
-      organization: editedAssistant.organization,
+    if (!assistant || !name.trim() || !prompt.trim() || !assistantId.trim()) {
+      toast.error("Please fill in all fields")
+      return
     }
 
+    if (!organizationId) {
+      toast.error("No organization selected")
+      return
+    }
+
+    setIsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${editedAssistant.id}/`, {
+      console.log(`[v0] Editing assistant ${assistant.id} for organization: ${organizationId}`)
+      const response = await fetch(`/api/assistants/${organizationId}/${assistant.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          id: assistant.id,
+          name: name.trim(),
+          prompt: prompt.trim(),
+          assistant_id: assistantId.trim(),
+          organization: assistant.organization,
+        }),
       })
 
+      console.log(`[v0] Edit assistant response status: ${response.status}`)
+
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Error response:", errorData)
-        throw new Error(errorData.detail || "Failed to edit assistant")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to update assistant")
       }
 
       const updatedData = await response.json()
+      console.log(`[v0] Successfully updated assistant:`, updatedData)
+
       const updatedAssistants = assistants.map((a) => (a.id === updatedData.id ? updatedData : a))
 
-      onAssistantUpdated(updatedAssistants)
       toast.success("Assistant updated successfully!")
+      onAssistantUpdated(updatedAssistants)
       onClose()
     } catch (error) {
-      console.error("Error editing assistant:", error)
-      toast.error("Failed to edit assistant. Please try again.")
+      console.error("[v0] Error updating assistant:", error)
+      toast.error(`Failed to update assistant: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
-      setIsEditing(false)
+      setIsLoading(false)
     }
   }
 
-  if (!editedAssistant) return null
-
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Assistant</DialogTitle>
-          <DialogDescription>Make changes to your assistant&apos;s configuration.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleEditAssistant} className="space-y-4">
-          <Input
-            value={editedAssistant.name}
-            onChange={(e) => setEditedAssistant((prev) => (prev ? { ...prev, name: e.target.value } : null))}
-            placeholder="Assistant Name"
-            required
-          />
-          <Textarea
-            value={editedAssistant.prompt}
-            onChange={(e) => setEditedAssistant((prev) => (prev ? { ...prev, prompt: e.target.value } : null))}
-            placeholder="Prompt"
-            required
-            className="min-h-[100px]"
-          />
-          <Input
-            value={editedAssistant.assistant_id}
-            onChange={(e) => setEditedAssistant((prev) => (prev ? { ...prev, assistant_id: e.target.value } : null))}
-            placeholder="Assistant ID"
-            required
-          />
-          <Button type="submit" disabled={isEditing}>
-            {isEditing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Editing...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">Name</Label>
+            <Input
+              id="edit-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter assistant name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-prompt">Prompt</Label>
+            <Textarea
+              id="edit-prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Enter assistant prompt"
+              rows={4}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-assistant-id">Assistant ID</Label>
+            <Input
+              id="edit-assistant-id"
+              value={assistantId}
+              onChange={(e) => setAssistantId(e.target.value)}
+              placeholder="Enter assistant ID"
+              required
+            />
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Updating..." : "Update Assistant"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
