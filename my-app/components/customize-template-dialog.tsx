@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react';
-import { metaConfigService } from '@/services/meta-config';
 import { TemplateCreationHandler } from '@/utils/template-creator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -244,20 +243,27 @@ export function CustomizeTemplateDialog({
 
   // Upload file to Meta's API and get media handle
   const uploadMediaToMeta = async (file: File): Promise<string> => {
+    if (!appService) {
+      throw new Error('App service not provided');
+    }
+
+    if (!appService.whatsapp_business_account_id) {
+      throw new Error('WhatsApp Business Account ID not available');
+    }
+
+    if (!appService.access_token || appService.access_token === 'undefined') {
+      console.error('Invalid access token in appService:', appService);
+      throw new Error('Valid access token not available');
+    }
+
     try {
       setIsUploadingMedia(true);
       
-      // Get the correct App ID from Meta using the access token
-      const config = await metaConfigService.getConfigForAppService(appService);
-      if (!config) {
-        throw new Error('Could not get Meta app configuration');
-      }
-
       // Use the backend API to upload the file
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('appId', config.appId);
-      formData.append('accessToken', config.accessToken);
+      formData.append('wabaId', appService.whatsapp_business_account_id);
+      formData.append('accessToken', appService.access_token); // Fixed: using access_token instead of accessToken
 
       const response = await fetch('/api/whatsapp/upload-media', {
         method: 'POST',
@@ -266,6 +272,7 @@ export function CustomizeTemplateDialog({
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('Upload failed:', error);
         throw new Error(error.error || 'Failed to upload media');
       }
 
@@ -273,9 +280,13 @@ export function CustomizeTemplateDialog({
       
       // Debug logging
       console.log('Media upload response:', data);
-      console.log('Media handle (uploadData.h):', data.handle);
+      console.log('Media handle:', data.handle);
       
-      // Use the handle field which contains uploadData.h from the API response
+      if (!data.handle) {
+        throw new Error('No media handle received from upload');
+      }
+      
+      // Use the handle field which contains the media handle from the API response
       return data.handle;
     } catch (error) {
       console.error('Meta upload error:', error);
@@ -314,8 +325,10 @@ export function CustomizeTemplateDialog({
         try {
           toast.info("Uploading media to Meta...");
           headerMediaHandle = await uploadMediaToMeta(customizations.mediaFile);
+          toast.success("Media uploaded successfully!");
         } catch (uploadError) {
-          toast.error("Failed to upload media to Meta.");
+          console.error('Failed to upload media:', uploadError);
+          toast.error(uploadError instanceof Error ? uploadError.message : "Failed to upload media to Meta");
           setIsSubmitting(false);
           return;
         }
@@ -346,7 +359,7 @@ export function CustomizeTemplateDialog({
         headerType: headerType === 'NONE' ? (mediaRequirement.required ? mediaRequirement.format : 'NONE') : headerType,
         headerText: headerTextForTemplate,
         headerVariables: headerVariablesForTemplate,
-        headerMediaHandle, // Always use handle from upload API response, never from template data
+        headerMediaHandle, // Always use handle from upload API response
         body: (template.category === 'AUTHENTICATION' && bodyVariables.length > 0) 
           ? '' 
           : bodyText,
