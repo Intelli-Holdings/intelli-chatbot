@@ -75,7 +75,6 @@ export default function TemplatesPage() {
       }
 
       const data = await response.json();
-      // Handle both array response and object with appServices property
       const services = Array.isArray(data) ? data : (data.appServices || data || []);
       
       setAppServices(services);
@@ -485,8 +484,7 @@ export default function TemplatesPage() {
                       className="gap-2 bg-blue-600 hover:bg-blue-700"
                       disabled={!selectedAppService}
                     >
-                      <Plus className="h-4 w-4" />
-                      Create Custom Template
+                      Create Template
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-h-[90vh] max-w-3xl overflow-auto pt-6">
@@ -578,16 +576,6 @@ export default function TemplatesPage() {
                     <SelectItem value="authentication">Authentication</SelectItem>
                   </SelectContent>
                 </Select>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchTemplates}
-                  disabled={templatesLoading}
-                >
-                  <RefreshCw className={`h-4 w-4 ${templatesLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
               </div>
 
               {/* Error States */}

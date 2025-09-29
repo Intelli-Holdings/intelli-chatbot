@@ -96,6 +96,38 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
     }
   }, [conversation, fetchMessages])
 
+  // Reset unread messages when conversation is viewed (mimicking WhatsApp Web behavior)
+  useEffect(() => {
+    if (conversation && (conversation.unread_messages || 0) > 0) {
+      // Add a small delay to ensure the user has actually "viewed" the conversation
+      const resetTimer = setTimeout(async () => {
+        try {
+          await fetch(
+            `/api/appservice/reset/unread_messages/${phoneNumber}/${conversation.customer_number}/`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+          
+          // Dispatch a custom event to notify other components that unread count has been reset
+          window.dispatchEvent(new CustomEvent('unreadMessagesReset', {
+            detail: { 
+              customerNumber: conversation.customer_number,
+              phoneNumber: phoneNumber
+            }
+          }));
+        } catch (error) {
+          console.error('Failed to reset unread messages:', error);
+        }
+      }, 1000); // 1 second delay to ensure user has viewed the chat
+
+      return () => clearTimeout(resetTimer);
+    }
+  }, [conversation, phoneNumber])
+
   // Listen for AI support changes from the header component
   useEffect(() => {
     const handleAiSupportChange = (event: CustomEvent) => {
@@ -489,7 +521,8 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
           ))}
           {(currentMessages?.length ?? 0) === 0 && (
             <div className="flex items-center justify-center h-40">
-              <p>No Messages yet</p>
+               <span className="px-4 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">No Messages Yet</span>
+
             </div>
           )}
           <div className="h-4" ref={dummyRef} />

@@ -1,27 +1,13 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { useState, useEffect } from "react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Contact } from '@/types/contact'
-import { Conversation } from '@/app/dashboard/conversations/components/types'
-import { format } from 'date-fns'
-import { ContactSkeleton } from '@/components/contact-skeleton'
+import type { Contact } from "@/types/contact"
+import { format } from "date-fns"
+import { ContactSkeleton } from "@/components/contact-skeleton"
 
-interface ContactsProps {
-  conversations?: Conversation[];
-  phoneNumber: string;
-  searchTerm?: string;
-}
 interface ChatSession {
   customer_name: string
   customer_number: string
@@ -35,8 +21,7 @@ interface ContactsTableProps {
   searchTerm?: string
 }
 
-export function Contacts({ contacts: chatSessions = [], searchTerm = "" }: ContactsTableProps) {
-  const [isLoading, setIsLoading] = useState(true)
+export function ContactsTable({ contacts: chatSessions = [], isLoading, searchTerm = "" }: ContactsTableProps) {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([])
 
@@ -61,19 +46,18 @@ export function Contacts({ contacts: chatSessions = [], searchTerm = "" }: Conta
   }, [chatSessions])
 
   useEffect(() => {
-    // Filter contacts based on search term
-    const filtered = contacts.filter(contact => {
-      const searchLower = searchTerm.toLowerCase();
+    const filtered = contacts.filter((contact) => {
+      const searchLower = searchTerm.toLowerCase()
       return (
         contact.name.toLowerCase().includes(searchLower) ||
         contact.email.toLowerCase().includes(searchLower) ||
         contact.phone.toLowerCase().includes(searchLower) ||
         contact.company.toLowerCase().includes(searchLower) ||
         contact.title.toLowerCase().includes(searchLower)
-      );
-    });
-    setFilteredContacts(filtered);
-  }, [contacts, searchTerm]);
+      )
+    })
+    setFilteredContacts(filtered)
+  }, [contacts, searchTerm])
 
   return (
     <div className="overflow-x-auto rounded-xl border border-blue-300 shadow-sm">

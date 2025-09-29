@@ -1,4 +1,3 @@
-// app/api/whatsapp/upload-media/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -6,12 +5,11 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const accessToken = formData.get('accessToken') as string;
-    const appId = formData.get('appId') as string; // This is the App ID for upload session
-    const phoneNumberId = formData.get('phoneNumberId') as string; // Phone number ID for media endpoint
+    const wabaId = formData.get('wabaId') as string;
 
-    if (!file || !accessToken || !appId) {
+    if (!file || !accessToken || !wabaId) {
       return NextResponse.json(
-        { error: 'Missing required parameters' },
+        { error: `Missing required parameters: ${!file ? 'file' : ''} ${!accessToken ? 'accessToken' : ''} ${!wabaId ? 'wabaId' : ''}` },
         { status: 400 }
       );
     }
@@ -25,11 +23,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File size exceeds limit. Maximum size: 100MB, Your file: ${(file.size / 1024 / 1024).toFixed(2)}MB` },
+        { status: 400 }
+      );
+    }
+
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Step 1: Create upload session using query parameters (as per Meta docs)
-    const createSessionUrl = `https://graph.facebook.com/v23.0/${appId}/uploads?` +
+    const createSessionUrl = `https://graph.facebook.com/v23.0/${wabaId}/uploads?` +
       new URLSearchParams({
         'file_name': file.name,
         'file_length': file.size.toString(),
@@ -38,9 +44,13 @@ export async function POST(request: NextRequest) {
       });
 
     console.log('Creating upload session:', createSessionUrl);
+    console.log('Creating upload session with WABA ID:', wabaId);
+    console.log('File details:', { name: file.name, size: file.size, type: file.type });
+
 
     const sessionResponse = await fetch(createSessionUrl, {
-      method: 'POST'
+      method: 'POST',
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!sessionResponse.ok) {
@@ -53,16 +63,16 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = await sessionResponse.json();
-    const uploadSessionId = sessionData.id; // This will be like "upload:XXXX"
-    
+    const uploadSessionId = sessionData.id;
+
     console.log('Upload session created:', uploadSessionId);
 
     // Step 2: Upload the file to the session
     // Use OAuth format for authorization as per Meta docs
     const uploadUrl = `https://graph.facebook.com/v23.0/${uploadSessionId}`;
-    
+
     console.log('Uploading file to:', uploadUrl);
-    
+
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
@@ -82,43 +92,13 @@ export async function POST(request: NextRequest) {
     }
 
     const uploadData = await uploadResponse.json();
-    
+
     console.log('Upload successful, handle:', uploadData.h);
 
-    // Step 3: Get the media ID from the uploaded media
-    // Use the standard media upload API to get the media ID
-    const mediaFormData = new FormData();
-    mediaFormData.append('messaging_product', 'whatsapp');
-    mediaFormData.append('file', new Blob([buffer], { type: file.type }), file.name);
-
-    // Use phone number ID for the media endpoint if available, otherwise fallback to appId
-    const mediaEndpointId = phoneNumberId || appId;
-    const mediaResponse = await fetch(`https://graph.facebook.com/v23.0/${mediaEndpointId}/media`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      },
-      body: mediaFormData
-    });
-
-    if (!mediaResponse.ok) {
-      const error = await mediaResponse.json();
-      console.error('Media ID fetch error:', error);
-      return NextResponse.json(
-        { error: error.error?.message || 'Failed to get media ID' },
-        { status: mediaResponse.status }
-      );
-    }
-
-    const mediaData = await mediaResponse.json();
-    
-    console.log('Media ID obtained:', mediaData.id);
-    
-    // Return both the resumable upload handle and the media ID
-    return NextResponse.json({ 
-      success: true, 
-      handle: uploadData.h, // Resumable upload handle
-      mediaId: mediaData.id, // Media ID for template messages
+    // Return the media handle (h field)
+    return NextResponse.json({
+      success: true,
+      handle: uploadData.h, // This is what will be used in template creation
       sessionId: uploadSessionId,
       fileType: file.type,
       fileName: file.name

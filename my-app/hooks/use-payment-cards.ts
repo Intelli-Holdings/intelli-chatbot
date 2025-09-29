@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 
 export interface PaymentCard {
+  [x: string]: any;
   id: string;
   last4: string;
   brand: string;
@@ -15,6 +16,7 @@ export interface PaymentCard {
 }
 
 interface UsePaymentCardsResult {
+  customerId: string | null;
   cards: PaymentCard[];
   isLoading: boolean;
   error: string | null;
@@ -158,12 +160,13 @@ export const usePaymentCards = (): UsePaymentCardsResult => {
   }, []);
 
   return {
-    cards,
-    isLoading,
-    error,
-    addCard,
-    removeCard,
-    setDefaultCard,
-    refreshCards,
+  cards,
+  isLoading,
+  error,
+  addCard,
+  removeCard,
+  setDefaultCard,
+  refreshCards,
+  customerId: null,
   };
 };

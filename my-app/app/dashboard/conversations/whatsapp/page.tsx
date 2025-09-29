@@ -13,6 +13,27 @@ import LoadingProgress from "@/components/loading-progress";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
+// Helper function to get read conversations from localStorage
+const getReadConversations = (phoneNumber: string): Set<string> => {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const stored = localStorage.getItem(`readConversations_${phoneNumber}`);
+    return new Set(stored ? JSON.parse(stored) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+// Helper function to save read conversations to localStorage
+const saveReadConversations = (phoneNumber: string, readConversations: Set<string>) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(`readConversations_${phoneNumber}`, JSON.stringify(Array.from(readConversations)));
+  } catch (error) {
+    console.error('Failed to save read conversations to localStorage:', error);
+  }
+};
+
 
 export default function WhatsAppConvosPage() {
    const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -85,6 +106,9 @@ export default function WhatsAppConvosPage() {
               setLoadingProgress(90);
               setLoadingMessage("Preparing conversations...");
               
+              // Get previously read conversations from localStorage
+              const readConversations = getReadConversations(phoneNumber);
+              
               const conversationsWithMessages = (data.results || []).map((conv: any) => ({
                 ...conv,
                 messages: [], 
@@ -92,6 +116,33 @@ export default function WhatsAppConvosPage() {
                 recipient_id: conv.customer_number,
                 attachments: []
               }));
+              
+              // Reset unread messages on backend for previously read conversations
+              const resetPromises = conversationsWithMessages
+                .filter((conv: any) => readConversations.has(conv.customer_number) && (conv.unread_messages || 0) > 0)
+                .map(async (conv: any) => {
+                  try {
+                    await fetch(
+                      `/api/appservice/reset/unread_messages/${phoneNumber}/${conv.customer_number}/`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                      }
+                    );
+                    // Update local state after successful reset
+                    conv.unread_messages = 0;
+                  } catch (error) {
+                    console.error(`Failed to reset unread messages for ${conv.customer_number}:`, error);
+                  }
+                });
+              
+              // Wait for all reset operations to complete
+              if (resetPromises.length > 0) {
+                setLoadingMessage("Syncing read status...");
+                await Promise.all(resetPromises);
+              }
               
               setConversations(conversationsWithMessages);
               setHasMore(data.next !== null);
@@ -180,6 +231,8 @@ export default function WhatsAppConvosPage() {
         };
       
         const handleSelectConversation = async (conversation: Conversation) => {
+          // Don't reset unread messages immediately - wait until messages are loaded and viewed
+          
           // Fetch messages for the selected conversation if not already loaded
           if (!conversation.messages || conversation.messages.length === 0) {
             const messages = await fetchMessagesForConversation(conversation.customer_number);
@@ -208,6 +261,35 @@ export default function WhatsAppConvosPage() {
             setIsSheetOpen(true);
           }
         };
+
+  // Listen for unread messages reset events from ChatArea component
+  useEffect(() => {
+    const handleUnreadReset = (event: CustomEvent) => {
+      const { customerNumber } = event.detail;
+      
+      // ChatArea component already handled the API call, we just need to update local state
+      
+      // Mark this conversation as read in localStorage
+      const readConversations = getReadConversations(phoneNumber);
+      readConversations.add(customerNumber);
+      saveReadConversations(phoneNumber, readConversations);
+      
+      // Update the conversations list to reset unread count
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.customer_number === customerNumber 
+            ? { ...conv, unread_messages: 0 }
+            : conv
+        )
+      );
+    };
+
+    window.addEventListener('unreadMessagesReset', handleUnreadReset as EventListener);
+
+    return () => {
+      window.removeEventListener('unreadMessagesReset', handleUnreadReset as EventListener);
+    };
+  }, [phoneNumber]);
 
 
   // Show loading screen during initialization

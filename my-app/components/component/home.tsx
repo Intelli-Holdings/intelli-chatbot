@@ -1,12 +1,10 @@
 import { Button } from "@/components/ui/button";
-import FAQcomponent from "@/components/home/FAQcomponent";
 
 import { Navbar } from "@/components/navbar";
 
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
-import Testimonals from "@/components/testimonial";
 
+import Testimonials from "@/components/testimonial";
 
 // Section and component imports
 
@@ -19,6 +17,7 @@ import ValueProposition from "@/components/ValueProposition";
 import PlatformCards from "@/components/platform-cards";
 import UsecaseComponent from "@/components/usecaseComponent";
 import Banner from "../signup-banner";
+
 
 export function Home() {
   return (
@@ -109,8 +108,9 @@ export function Home() {
           <div className="flex justify-center mb-4">
             <Badge>Testimonials</Badge>
           </div>
-          <div className="container mx-auto sm:px-6 lg:px-8">
-            <Testimonals />
+
+          <div className="container mx-auto sm:px-6 lg:px-8 p-2">         
+            <Testimonials />
           </div>
         </section>
 

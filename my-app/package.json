@@ -112,7 +112,7 @@
     "onborda": "^1.2.4",
     "openai": "^4.29.2",
     "papaparse": "^5.5.2",
-    "posthog-js": "^1.217.0",
+    "posthog-js": "^1.257.0",
     "react": "^18",
     "react-day-picker": "^8.10.0",
     "react-dom": "^18",
