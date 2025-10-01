@@ -22,12 +22,16 @@ export default function ConsentBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const ls = typeof window !== "undefined" ? window.localStorage.getItem(LS_KEY) : null
-    const ck = readCookie(COOKIE_NAME)
-    if (!ls && !ck) {
-      setVisible(true)
-    }
-  }, [])
+  const ck = readCookie('cookie_consent')  // '' | 'accepted' | 'declined'
+  if (!ck) {
+    setVisible(true)                      
+  } else {
+    // keep localStorage in sync, handles mismatch cases
+    window.localStorage.setItem('cookie-consent', ck)
+    setVisible(false)
+  }
+}, [])
+
 
   const accept = useCallback(() => {
     if (typeof window !== "undefined") window.localStorage.setItem(LS_KEY, "accepted")
