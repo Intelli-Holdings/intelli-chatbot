@@ -76,13 +76,14 @@ export function Navbar() {
     }
   }
 
-  const handleGetStartedAction = () => {
-    if (isSignedIn) {
-      router.push("/dashboard")
-    } else {
-      router.push("/auth/sign-up")
-    }
+const handleGetStartedAction = () => {
+  if (isSignedIn) {
+    router.push("/dashboard")
+  } else {
+    onSignUpClick()       
+    router.push("/auth/sign-up")
   }
+}
 
   const onSignUpClick = useCallback(() => {
     if (window.fbq) {
