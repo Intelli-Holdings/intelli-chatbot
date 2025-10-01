@@ -9,7 +9,7 @@ type Consent = 'accepted' | 'rejected' | null
 const STORAGE_KEY = 'marketing_consent'
 
 export default function ConsentBanner() {
-  const [visible, setVisible] = useState< boolean >(false)
+  const [visible, setVisible] = useState<boolean>(false)
 
   useEffect(() => {
     const saved = (localStorage.getItem(STORAGE_KEY) as Consent) || null
