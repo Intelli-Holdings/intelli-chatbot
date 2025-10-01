@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react'
 
 import CreateOrganizationStep from '@/components/CreateOrganization';
 import { 
@@ -11,7 +12,12 @@ import {
 import Link from "next/link";
 import CircuitBackground from '@/components/ui/circuit-background';
 
+declare global { interface Window { fbq?: (...args: any[]) => void } }
+
 export default function PreOnboardingPage() {
+    useEffect(() => {
+    window.fbq?.('track', 'CompleteRegistration', { status: 'success' })
+  }, [])
   return (
     <div className="mx-auto py-10 min-h-screen relative">
       <CircuitBackground />
