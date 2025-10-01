@@ -107,7 +107,8 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <head>
 <Script async src="https://www.googletagmanager.com/gtag/js?id=G-2V9CBMTJHN"></Script>
-
+<Script async src="https://connect.facebook.net/en_US/fbevents.js"></Script>
+<Script async src="https://js.hsadspixel.net/fb.js" type="text/javascript" id="hs-ads-pixel-2914723308689782" data-ads-portal-id="2914723308689782" data-ads-env="prod" data-loader="hs-scriptloader" data-hsjs-portal="2858726" data-hsjs-env="prod" data-hsjs-hublet="na1"></Script>
 <Script id="google-analytics" strategy="lazyOnload">
   {
     `
