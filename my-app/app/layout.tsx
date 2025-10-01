@@ -118,7 +118,6 @@ export default function RootLayout({
     `
   }
 </Script>
- <ConsentGate />  {/* renders MetaPixel only after consent */}
         </head>
         <PHProvider>
         
@@ -126,9 +125,7 @@ export default function RootLayout({
           <SignedOut></SignedOut>
           <SignedIn></SignedIn>
           <body className={inter.className}>
-            <ConsentBanner /> 
-              {/* Track SPA pageview */}
-            <FBPageView />
+               <ConsentGate /> {/* renders MetaPixel only after consent */}
           <AttentionBadge />
             <PostHogPageView />
             <AptabaseProvider appKey="A-US-3705920924">
