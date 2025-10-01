@@ -30,7 +30,6 @@ export default function ContactsPage() {
 
   const fetchAppServices = useCallback(async (orgId: string): Promise<AppService[]> => {
     try {
-      console.log(`[v0] Fetching app services for organization: ${orgId}`)
       const response = await fetch(`/api/contacts/appservices/${orgId}`)
 
       if (!response.ok) {
@@ -39,10 +38,10 @@ export default function ContactsPage() {
       }
 
       const data = await response.json()
-      console.log(`[v0] App services response:`, data)
+
       return Array.isArray(data) ? data : []
     } catch (error) {
-      console.error("[v0] Failed to fetch app services:", error)
+
       toast({
         title: "Error",
         description: "Failed to fetch app services",
@@ -54,7 +53,7 @@ export default function ContactsPage() {
 
   const fetchChatSessions = useCallback(async (orgId: string, phoneNumber: string): Promise<ChatSession[]> => {
     try {
-      console.log(`[v0] Fetching chat sessions for org: ${orgId}, phone: ${phoneNumber}`)
+      
       const response = await fetch(`/api/contacts/chatsessions/${orgId}/${phoneNumber}`)
 
       if (!response.ok) {
@@ -63,7 +62,7 @@ export default function ContactsPage() {
       }
 
       const data = await response.json()
-      console.log(`[v0] Chat sessions response:`, data)
+ 
 
       if (Array.isArray(data)) {
         return data.map((session: any) => ({
@@ -86,7 +85,7 @@ export default function ContactsPage() {
 
       return []
     } catch (error) {
-      console.error("[v0] Failed to fetch chat sessions:", error)
+      console.error("[intelli] Failed to fetch chat sessions:", error)
       return []
     }
   }, [])
@@ -95,13 +94,12 @@ export default function ContactsPage() {
     async (orgId: string) => {
       try {
         setIsLoading(true)
-        console.log(`[v0] Starting contacts fetch for organization: ${orgId}`)
+    
 
         // Step 1: Fetch app services to get phone numbers
         const appServices = await fetchAppServices(orgId)
 
         if (appServices.length === 0) {
-          console.log("[v0] No app services found")
           setContacts([])
           return
         }
@@ -121,10 +119,9 @@ export default function ContactsPage() {
           (contact, index, self) => index === self.findIndex((c) => c.customer_number === contact.customer_number),
         )
 
-        console.log(`[v0] Found ${uniqueContacts.length} unique contacts`)
         setContacts(uniqueContacts)
       } catch (error) {
-        console.error("[v0] Error fetching contacts:", error)
+        console.error("[intelli] Error fetching contacts:", error)
         toast({
           title: "Error",
           description: "Failed to fetch contacts",

@@ -1,12 +1,16 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback} from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Menu, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useUser, useClerk } from "@clerk/nextjs"
+
+declare global {
+  interface Window { fbq?: (...args: any[]) => void }
+}
 
 const navItems = [
 	{
@@ -79,6 +83,12 @@ export function Navbar() {
       router.push("/auth/sign-up")
     }
   }
+
+  const onSignUpClick = useCallback(() => {
+    if (window.fbq) {
+      window.fbq('track', 'Lead', { cta: 'home_sign_up' })
+    }
+  }, [])
 
   useEffect(() => {
     if (dropdownOpen) {
