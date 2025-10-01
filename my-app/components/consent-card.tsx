@@ -51,7 +51,7 @@ export default function ConsentBanner() {
       aria-label="Cookie consent"
       className="fixed left-6 bottom-6 z-50 max-w-sm"
     >
-      <div className="rounded-2xl border border-blue-200 bg-white text-blue-900 shadow-xl transform translate-y-2">
+      <div className="rounded-3xl border border-blue-200 bg-white text-blue-900 shadow-xl transform translate-y-2">
         <div className="p-5">
           <div className="flex items-start gap-3">
             <div className="flex-1">
