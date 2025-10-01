@@ -472,34 +472,11 @@ export default function TemplatesPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center justify-between mb-6">
               <TabsList>
-                <TabsTrigger value="browse">Browse Templates</TabsTrigger>
+                <TabsTrigger value="browse">Default Templates</TabsTrigger>
+                <TabsTrigger value="create">Create Template</TabsTrigger>
                 <TabsTrigger value="manage">Manage Templates</TabsTrigger>
                 <TabsTrigger value="broadcast">Broadcast Manager</TabsTrigger>
               </TabsList>
-
-              <div className="flex items-center gap-2">
-                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      className="gap-2 bg-blue-600 hover:bg-blue-700"
-                      disabled={!selectedAppService}
-                    >
-                      Create Template
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-h-[90vh] max-w-3xl overflow-auto pt-6">
-                    <DialogHeader>
-                      <DialogTitle>Create Message Template</DialogTitle>
-                    </DialogHeader>
-                    <CreateTemplateForm 
-                      onClose={() => setIsCreateDialogOpen(false)} 
-                      onSubmit={handleCreateTemplate}
-                      loading={templatesLoading}
-                      appService={selectedAppService}
-                    />
-                  </DialogContent>
-                </Dialog>
-              </div>
             </div>
 
             {/* Browse Templates Tab */}
@@ -537,6 +514,15 @@ export default function TemplatesPage() {
                   )}
                 </DialogContent>
               </Dialog>
+            </TabsContent>
+
+            {/* Create Template Tab */}
+            <TabsContent value="create" className="space-y-6">
+              <CreateTemplateForm 
+              appService={selectedAppService}
+              onClose={() => setIsCreateDialogOpen(false)}
+              onSubmit={handleCreateTemplate} 
+              />
             </TabsContent>
 
             {/* Manage Templates Tab */}
