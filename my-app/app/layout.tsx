@@ -8,6 +8,11 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import AttentionBadge from "@/components/AttentionBadge";
 import Script from "next/script";
 
+// Meta Pixel Imports
+import MetaPixel from "@/components/MetaPixel"
+import FBPageView from "@/components/PageView"
+import ConsentGate from "@/components/consent-gate";
+import ConsentBanner from "@/components/consent-card";
 
 
 // Onborda
@@ -113,6 +118,7 @@ export default function RootLayout({
     `
   }
 </Script>
+ <ConsentGate />  {/* renders MetaPixel only after consent */}
         </head>
         <PHProvider>
         
@@ -120,6 +126,9 @@ export default function RootLayout({
           <SignedOut></SignedOut>
           <SignedIn></SignedIn>
           <body className={inter.className}>
+            <ConsentBanner /> 
+              {/* Track SPA pageview */}
+            <FBPageView />
           <AttentionBadge />
             <PostHogPageView />
             <AptabaseProvider appKey="A-US-3705920924">
