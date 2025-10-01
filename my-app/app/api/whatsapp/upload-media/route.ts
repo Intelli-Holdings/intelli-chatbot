@@ -5,16 +5,30 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const accessToken = formData.get('accessToken') as string;
-    const wabaId = formData.get('wabaId') as string;
+    
+    // Get APP_ID from environment variable
+    const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
 
-    if (!file || !accessToken || !wabaId) {
+    // 🔒 Validate parameters
+    if (!file || !accessToken) {
       return NextResponse.json(
-        { error: `Missing required parameters: ${!file ? 'file' : ''} ${!accessToken ? 'accessToken' : ''} ${!wabaId ? 'wabaId' : ''}` },
+        {
+          error: `Missing required parameters: ${
+            !file ? 'file ' : ''
+          }${!accessToken ? 'accessToken' : ''}`,
+        },
         { status: 400 }
       );
     }
 
-    // Validate file type
+    if (!appId) {
+      return NextResponse.json(
+        { error: 'Facebook APP_ID not configured. Please set NEXT_PUBLIC_FACEBOOK_APP_ID in your .env.local file' },
+        { status: 500 }
+      );
+    }
+
+    // ✅ Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'video/mp4', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
@@ -23,41 +37,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ✅ Validate size
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File size exceeds limit. Maximum size: 100MB, Your file: ${(file.size / 1024 / 1024).toFixed(2)}MB` },
+        {
+          error: `File size exceeds limit. Maximum size: 100MB, Your file: ${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        },
         { status: 400 }
       );
     }
 
-    // Convert file to buffer
-    const buffer = Buffer.from(await file.arrayBuffer());
+    console.log('Starting Resumable Upload for:', { 
+      name: file.name, 
+      size: file.size, 
+      type: file.type,
+      appId 
+    });
 
-    // Step 1: Create upload session using query parameters (as per Meta docs)
-    const createSessionUrl = `https://graph.facebook.com/v23.0/${wabaId}/uploads?` +
-      new URLSearchParams({
-        'file_name': file.name,
-        'file_length': file.size.toString(),
-        'file_type': file.type,
-        'access_token': accessToken
-      });
+    //Step 1: Start upload session using APP_ID
+    const sessionUrl = `https://graph.facebook.com/v23.0/${appId}/uploads`;
+    
+    const sessionParams = new URLSearchParams({
+      file_name: file.name,
+      file_length: file.size.toString(),
+      file_type: file.type,
+      access_token: accessToken
+    });
 
-    console.log('Creating upload session:', createSessionUrl);
-    console.log('Creating upload session with WABA ID:', wabaId);
-    console.log('File details:', { name: file.name, size: file.size, type: file.type });
-
-
-    const sessionResponse = await fetch(createSessionUrl, {
-      method: 'POST',
-      signal: AbortSignal.timeout(30000),
+    console.log('Creating upload session...');
+    const sessionResponse = await fetch(`${sessionUrl}?${sessionParams}`, {
+      method: 'POST'
     });
 
     if (!sessionResponse.ok) {
-      const error = await sessionResponse.json();
-      console.error('Session creation error:', error);
+      const sessionError = await sessionResponse.json();
+      console.error('Session creation failed:', sessionError);
       return NextResponse.json(
-        { error: error.error?.message || 'Failed to create upload session' },
+        { error: sessionError.error?.message || 'Failed to create upload session' },
         { status: sessionResponse.status }
       );
     }
@@ -67,47 +84,55 @@ export async function POST(request: NextRequest) {
 
     console.log('Upload session created:', uploadSessionId);
 
-    // Step 2: Upload the file to the session
-    // Use OAuth format for authorization as per Meta docs
+    //Step 2: Upload file data using the upload session ID
+    const buffer = Buffer.from(await file.arrayBuffer());
     const uploadUrl = `https://graph.facebook.com/v23.0/${uploadSessionId}`;
 
-    console.log('Uploading file to:', uploadUrl);
-
+    console.log('Uploading file data...');
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `OAuth ${accessToken}`, // OAuth format, not Bearer
+        'Authorization': `OAuth ${accessToken}`,
         'file_offset': '0'
       },
-      body: buffer
+      body: buffer,
     });
 
     if (!uploadResponse.ok) {
-      const error = await uploadResponse.json();
-      console.error('Upload error:', error);
+      const uploadError = await uploadResponse.json();
+      console.error('File upload failed:', uploadError);
       return NextResponse.json(
-        { error: error.error?.message || 'Failed to upload file' },
+        { error: uploadError.error?.message || 'Failed to upload file data' },
         { status: uploadResponse.status }
       );
     }
 
-    const uploadData = await uploadResponse.json();
+    const uploadResult = await uploadResponse.json();
+    const mediaHandle = uploadResult.h;
 
-    console.log('Upload successful, handle:', uploadData.h);
+    if (!mediaHandle) {
+      console.error('No handle returned:', uploadResult);
+      return NextResponse.json(
+        { error: 'No media handle returned from upload' },
+        { status: 500 }
+      );
+    }
 
-    // Return the media handle (h field)
+    console.log('Upload to META successful! Media handle:', mediaHandle);
+
+    // Return the handle
     return NextResponse.json({
       success: true,
-      handle: uploadData.h, // This is what will be used in template creation
-      sessionId: uploadSessionId,
+      handle: mediaHandle,
       fileType: file.type,
-      fileName: file.name
+      fileName: file.name,
+      fileSize: file.size,
     });
 
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Internal server error during upload' },
+      { error: error instanceof Error ? error.message : 'Unknown error occurred' },
       { status: 500 }
     );
   }
