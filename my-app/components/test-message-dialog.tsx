@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { type WhatsAppTemplate } from '@/services/whatsapp';
 import { WhatsAppService } from '@/services/whatsapp';
-import { Upload, Image as ImageIcon, Video, FileText } from 'lucide-react';
+import { Upload, Image as ImageIcon, Video, FileText, Loader2 } from 'lucide-react';
 
 interface TestMessageDialogProps {
   template: WhatsAppTemplate | null;
@@ -66,10 +66,6 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       throw new Error('App service not provided');
     }
 
-    if (!appService.whatsapp_business_account_id) {
-      throw new Error('WhatsApp Business Account ID not available');
-    }
-
     if (!appService.access_token || appService.access_token === 'undefined') {
       console.error('Invalid access token in appService:', appService);
       throw new Error('Valid access token not available');
@@ -78,11 +74,14 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     try {
       setIsUploadingMedia(true);
       
-      // Use the backend API to upload the file
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('wabaId', appService.whatsapp_business_account_id); // Use WABA ID instead of app ID
-      formData.append('accessToken', appService.access_token); // Use access_token directly from appService
+      formData.append('accessToken', appService.access_token);
+
+      console.log('Uploading media to Resumable Upload API...', {
+        fileName: file.name,
+        fileSize: file.size
+      });
 
       const response = await fetch('/api/whatsapp/upload-media', {
         method: 'POST',
@@ -90,7 +89,13 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const errorText = await response.text();
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText };
+        }
         console.error('Upload failed:', error);
         throw new Error(error.error || 'Failed to upload media');
       }
@@ -99,7 +104,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       console.log('Media upload response:', data);
       
       if (!data.handle) {
-        throw new Error('Media upload succeeded but no handle was returned');
+        throw new Error('No media handle received from upload');
       }
       
       return data.handle;
@@ -123,11 +128,12 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     try {
       const handle = await uploadMediaToMeta(file);
       setHeaderMediaHandle(handle);
-      toast.success('Media uploaded successfully');
+      toast.success('Media uploaded successfully!');
     } catch (error) {
       console.error('File upload error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to upload media');
       setHeaderMediaFile(null);
+      setHeaderMediaHandle('');
     }
   };
 
@@ -165,11 +171,12 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
           parameters: []
         };
 
+        // Use the handle with 'id' field instead of 'link'
         if (mediaType === 'IMAGE') {
           headerComponent.parameters.push({
             type: "image",
             image: {
-              id: headerMediaHandle  // Use the handle as media ID
+              id: headerMediaHandle  // Use handle as ID
             }
           });
         } else if (mediaType === 'VIDEO') {
@@ -216,7 +223,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
         }
       };
 
-      console.log('Sending message with data:', messageData);
+      console.log('Sending message with data:', JSON.stringify(messageData, null, 2));
 
       await WhatsAppService.sendMessage(
         appService,
@@ -233,7 +240,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       setHeaderMediaHandle('');
     } catch (error) {
       console.error('Send test message error:', error);
-      toast.error("Failed to send test message");
+      toast.error(error instanceof Error ? error.message : "Failed to send test message");
     } finally {
       setIsSending(false);
     }
@@ -297,37 +304,51 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               />
               
               {headerMediaFile ? (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    {mediaType === 'IMAGE' && <ImageIcon className="h-4 w-4" />}
-                    {mediaType === 'VIDEO' && <Video className="h-4 w-4" />}
-                    {mediaType === 'DOCUMENT' && <FileText className="h-4 w-4" />}
-                    <span className="text-sm">{headerMediaFile.name}</span>
-                    {headerMediaHandle && (
-                      <span className="text-xs text-green-600">✓ Uploaded</span>
-                    )}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      {mediaType === 'IMAGE' && <ImageIcon className="h-4 w-4" />}
+                      {mediaType === 'VIDEO' && <Video className="h-4 w-4" />}
+                      {mediaType === 'DOCUMENT' && <FileText className="h-4 w-4" />}
+                      <span className="text-sm">{headerMediaFile.name}</span>
+                      {headerMediaHandle && (
+                        <span className="text-xs text-green-600">✓ Uploaded</span>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setHeaderMediaFile(null);
+                        setHeaderMediaHandle('');
+                      }}
+                    >
+                      Remove
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setHeaderMediaFile(null);
-                      setHeaderMediaHandle('');
-                    }}
-                  >
-                    Remove
-                  </Button>
+                  
+                  {headerMediaHandle && (
+                    <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs">
+                      <span className="font-medium text-green-700 dark:text-green-400">
+                        ✓ Media handle received and ready to send
+                      </span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Button
                   type="button"
                   variant="outline"
+                  className="w-full"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingMedia}
                 >
                   {isUploadingMedia ? (
-                    <>Uploading...</>
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
@@ -349,7 +370,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             <div className="space-y-2">
               <Label>Template Variables</Label>
               {variables.map((variable, index) => (
-                <div key={index}>
+                <div key={index} className="space-y-1">
                   <Label htmlFor={`var-${index}`} className="text-sm">
                     Variable {index + 1}
                   </Label>
@@ -366,19 +387,24 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
           <div className="space-y-2">
             <Label>Preview</Label>
-            <div className="p-3 border rounded-lg bg-gray-50">
-              <div className="text-sm">
-                <div className="font-medium mb-1">Template: {template.name}</div>
-                <div className="font-medium mb-1">Category: {template.category}</div>
-                <div className="font-medium mb-2">Status: 
+            <div className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-900">
+              <div className="text-sm space-y-2">
+                <div className="font-medium">Template: {template.name}</div>
+                <div className="font-medium">Category: {template.category}</div>
+                <div className="font-medium">
+                  Status: 
                   <span className={`ml-1 ${template.status === 'APPROVED' ? 'text-green-600' : 'text-yellow-600'}`}>
                     {template.status}
                   </span>
                 </div>
                 {template.components?.map((component, index) => (
-                  <div key={index} className="mb-2">
-                    <div className="font-medium text-xs text-gray-500 uppercase">{component.type}</div>
-                    <div>{component.text || (component.format ? `[${component.format}]` : '')}</div>
+                  <div key={index} className="pt-2">
+                    <div className="font-medium text-xs text-gray-500 dark:text-gray-400 uppercase">
+                      {component.type}
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      {component.text || (component.format ? `[${component.format}]` : '')}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -393,7 +419,14 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               onClick={handleSendTest} 
               disabled={isSending || template.status !== 'APPROVED' || (mediaType && !headerMediaHandle)}
             >
-              {isSending ? "Sending..." : "Send Test"}
+              {isSending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Test"
+              )}
             </Button>
           </div>
 
