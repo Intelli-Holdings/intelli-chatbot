@@ -39,3 +39,11 @@ next-env.d.ts
 
 # Sentry Config File
 .sentryclirc
+
+# IDEs and editors
+.idea
+*.iml
+*.xml
+
+/idea
+.vscode
