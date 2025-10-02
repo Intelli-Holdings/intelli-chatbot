@@ -48,7 +48,9 @@ export default function ConsentGate() {
 
   return (
     <>
-      <Script
+    
+
+        <Script
         id="meta-pixel"
         strategy="afterInteractive"
       >
