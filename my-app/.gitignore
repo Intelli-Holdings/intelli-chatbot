@@ -44,6 +44,6 @@ next-env.d.ts
 .idea
 *.iml
 *.xml
-
+.idea/*.xml
 /idea
 .vscode
