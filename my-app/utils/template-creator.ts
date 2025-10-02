@@ -154,8 +154,9 @@ export class TemplateCreationHandler {
         return {
           type: 'HEADER',
           format: headerType as any,
+          [headerType.toLowerCase()]: { id: headerMediaHandle },
           example: {
-            header_handle: [headerMediaHandle] // Always use uploadData.h from upload API response
+            header_handle: [headerMediaHandle]
           }
         }
 

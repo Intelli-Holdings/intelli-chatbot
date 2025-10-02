@@ -82,11 +82,8 @@ export default function CreateTemplatePage() {
 
     try {
 
-
-
-
       // Redirect to templates list
-      router.push("/templates")
+      router.push("/dashboard/templates")
     } catch (error) {
       console.error("Error creating template:", error)
     }
@@ -94,7 +91,6 @@ export default function CreateTemplatePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <DashboardHeader />
       <main className="flex-1 container py-6">
         <div className="flex items-center mb-6">
           <Button 

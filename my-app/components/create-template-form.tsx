@@ -259,58 +259,62 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
   }
 
   // Upload file to Meta's Resumable Upload API and get media handle
-  const uploadMediaToMeta = async (file: File, appService: any): Promise<string> => {
-        if (!appService) {
-      throw new Error('App service not provided');
-    }
-
-    if (!appService.whatsapp_business_account_id) {
-      throw new Error('WhatsApp Business Account ID not available');
-    }
-
-    if (!appService.access_token || appService.access_token === 'undefined') {
-      console.error('Invalid access token in appService:', appService);
-      throw new Error('Valid access token not available');
-    }
-
-    try {
-      setIsUploadingMedia(true);
-      
-      // Use the backend API to upload the file
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('wabaId', appService.whatsapp_business_account_id); // Use WABA ID 
-      formData.append('accessToken', appService.access_token); // Use access_token directly from appService
-      const response = await fetch('/api/whatsapp/upload-media', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Upload failed:', error);
-        throw new Error(error.error || 'Failed to upload media');
-      }
-
-      const data = await response.json();
-      
-      // Debug logging
-      console.log('Media upload response:', data);
-      console.log('Media handle:', data.handle);
-      
-      if (!data.handle) {
-        throw new Error('No media handle received from upload');
-      }
-      
-      // Use the handle field which contains the media handle from the API response
-      return data.handle;
-    } catch (error) {
-      console.error('Meta upload error:', error);
-      throw error;
-    } finally {
-      setIsUploadingMedia(false);
-    }
+const uploadMediaToMeta = async (file: File, appService: any): Promise<string> => {
+  if (!appService) {
+    throw new Error('App service not provided');
   }
+
+  if (!appService.access_token || appService.access_token === 'undefined') {
+    console.error('Invalid access token in appService:', appService);
+    throw new Error('Valid access token not available');
+  }
+
+  try {
+    setIsUploadingMedia(true);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('accessToken', appService.access_token);
+
+    console.log('Uploading media to Resumable Upload API...', {
+      fileName: file.name,
+      fileSize: file.size
+    });
+
+    const response = await fetch('/api/whatsapp/upload-media', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { error: errorText };
+      }
+      console.error('Upload failed:', error);
+      throw new Error(error.error || 'Failed to upload media');
+    }
+
+    const data = await response.json();
+    
+    console.log('Media upload response:', data);
+    console.log('Media handle:', data.handle);
+    
+    if (!data.handle) {
+      throw new Error('No media handle received from upload');
+    }
+    
+    return data.handle;
+  } catch (error) {
+    console.error('Meta upload error:', error);
+    throw error;
+  } finally {
+    setIsUploadingMedia(false);
+  }
+}
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
