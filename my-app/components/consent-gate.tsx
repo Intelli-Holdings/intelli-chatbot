@@ -48,7 +48,9 @@ export default function ConsentGate() {
 
   return (
     <>
-      <Script
+        <Script async src="https://connect.facebook.net/en_US/fbevents.js"></Script>
+
+        <Script
         id="meta-pixel"
         strategy="afterInteractive"
       >
