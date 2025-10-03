@@ -18,6 +18,14 @@ interface WhatsAppTemplate {
   language: string;
   components: TemplateComponent[];
   parameters?: any[];
+  last_updated?: string;
+  quality_score?: {
+    score: string;
+    date: number;
+  };
+  rejected_reason?: string;
+  created_at?: string;
+  message_send_ttl_seconds?: number;
 }
 
 interface TemplateComponent {
