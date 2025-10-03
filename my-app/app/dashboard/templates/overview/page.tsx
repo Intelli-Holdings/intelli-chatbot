@@ -1,6 +1,6 @@
 "use client"
 import React from "react"
-import { ChevronDown, Info, MessageSquare, RefreshCw } from "lucide-react"
+import { ChevronDown, Info, MessageSquare, RefreshCw, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import DashboardHeader from "@/components/dashboard-header"
 import AppServiceCredentials from "@/components/app-service-credentials"
 import { useAppServices } from "@/hooks/use-app-services"
 import { useWhatsAppAnalytics } from "@/hooks/use-whatsapp-analytics"
+import { toast } from "sonner"
 
 export default function OverviewPage() {
   const {
@@ -31,6 +32,17 @@ export default function OverviewPage() {
   const isLoading = appServicesLoading || analyticsLoading;
   const hasError = appServicesError || analyticsError;
 
+  // Function to open Meta Business Dashboard
+  const openMetaDashboard = () => {
+    if (!selectedAppService?.whatsapp_business_account_id) {
+      toast.error("No WhatsApp Business Account selected");
+      return;
+    }
+
+    const metaDashboardUrl = `https://business.facebook.com/wa/manage/home/?waba_id=${selectedAppService.whatsapp_business_account_id}`;
+    window.open(metaDashboardUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="flex h-screen">     
       <div className="">
@@ -38,6 +50,17 @@ export default function OverviewPage() {
           <div className="grid gap-6">
             <div className="flex items-start justify-between">
               <h2 className="text-xl font-semibold">Whatsapp Account Overview</h2>
+              {selectedAppService && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openMetaDashboard}
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Manage in Meta Dashboard
+                </Button>
+              )}
             </div>
 
             <AppServiceCredentials
@@ -49,27 +72,6 @@ export default function OverviewPage() {
               onRefresh={refetch}
             />
 
-            {hasError && (
-              <Card className="border-destructive">
-                <CardContent className="p-4">
-                  <div className="text-destructive text-sm">
-                    {appServicesError || analyticsError}
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2"
-                    onClick={() => {
-                      refetch();
-                      refetchAnalytics();
-                    }}
-                  >
-                    Retry
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
             <div className="grid grid-cols-1 gap-6 md:grid-cols-[2fr_1fr]">
               <Card className="overflow-hidden">
                 <div className="flex items-center justify-between border-b p-4">
@@ -77,9 +79,20 @@ export default function OverviewPage() {
                     {selectedAppService?.name || 'WhatsApp Business Account'}
                   </h3>
                   <div className="flex gap-2">
-                   
+                    {selectedAppService && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={openMetaDashboard}
+                        className="h-8 gap-2 text-xs"
+                        title="Open Meta Business Dashboard"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Meta Dashboard
+                      </Button>
+                    )}
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => {
                         refetch();
