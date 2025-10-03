@@ -230,7 +230,7 @@ export default function CreateTemplateForm({ onClose, onSubmit, loading = false,
   }
 
   const addButton = () => {
-    const maxButtons = templateData.buttonType === "QUICK_REPLY" ? 3 : 3; // Max 3 total: 2 URL + 1 Phone
+    const maxButtons = templateData.buttonType === "QUICK_REPLY" ? 3 : 3; // 2 URL buttons allowed + 1 Phone Button = 3 total
     
     if (templateData.buttons.length >= maxButtons) {
       toast.error(`Maximum ${maxButtons} buttons allowed`);
