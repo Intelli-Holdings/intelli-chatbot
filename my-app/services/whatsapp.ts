@@ -18,6 +18,14 @@ interface WhatsAppTemplate {
   language: string;
   components: TemplateComponent[];
   parameters?: any[];
+  last_updated?: string;
+  quality_score?: {
+    score: string;
+    date: number;
+  };
+  rejected_reason?: string;
+  created_at?: string;
+  message_send_ttl_seconds?: number;
 }
 
 interface TemplateComponent {
@@ -162,7 +170,7 @@ export class WhatsAppService {
   }
 
  
-  static formatTemplateComponents(components: any[]): any[] {
+   static formatTemplateComponents(components: any[]): any[] {
     return components.map(component => {
       const formattedComponent: any = {
         type: component.type
@@ -172,6 +180,13 @@ export class WhatsAppService {
       if (component.type === 'HEADER') {
         if (component.format) {
           formattedComponent.format = component.format;
+        }
+        
+        // Handle LOCATION header - no example or parameters needed at creation time
+        if (component.format === 'LOCATION') {
+          // Location headers are created with just type and format
+          // The actual location data is provided when sending the message
+          return formattedComponent;
         }
         
         if (component.format === 'TEXT' && component.text) {
@@ -209,7 +224,7 @@ export class WhatsAppService {
         if (variableMatches && variableMatches.length > 0) {
           const exampleValues = variableMatches.map((_: any, index: number) => `value${index + 1}`);
           formattedComponent.example = {
-            body_text: exampleValues  // Fixed: Use flat array, not nested [exampleValues]
+            body_text: exampleValues
           };
         }
       }
