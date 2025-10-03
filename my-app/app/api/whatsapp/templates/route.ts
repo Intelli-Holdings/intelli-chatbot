@@ -294,41 +294,47 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Support both query parameters (backward compatibility) and JSON body
     const { searchParams } = new URL(request.url);
-    const templateId = searchParams.get('templateId');
-    const templateName = searchParams.get('templateName');
-    const wabaId = searchParams.get('wabaId');
-    const accessToken = searchParams.get('accessToken');
+    let templateName = searchParams.get('templateName');
+    let wabaId = searchParams.get('wabaId');
+    let accessToken = searchParams.get('accessToken');
 
-    if (!wabaId || !accessToken || (!templateId && !templateName)) {
+    // If not in query params, try to get from body
+    if (!templateName || !wabaId || !accessToken) {
+      try {
+        const body = await request.json();
+        templateName = body.name || body.templateName || templateName;
+        wabaId = body.wabaId || wabaId;
+        accessToken = body.accessToken || accessToken;
+      } catch (e) {
+        // Body parsing failed, continue with query params
+      }
+    }
+
+    if (!wabaId || !accessToken || !templateName) {
       return NextResponse.json(
-        { error: 'Missing required parameters: wabaId, accessToken, and either templateId or templateName are required' },
+        { 
+          error: 'Missing required parameters',
+          details: 'wabaId, accessToken, and template name are required'
+        },
         { status: 400 }
       );
     }
 
-    // Meta API supports deletion by name or ID
-    let deleteUrl;
-    if (templateName) {
-      // Delete by name (this is what WhatsApp typically uses)
-      deleteUrl = `${META_GRAPH_API_BASE}/${wabaId}/message_templates?name=${encodeURIComponent(templateName)}`;
-    } else {
-      // Delete by ID
-      deleteUrl = `${META_GRAPH_API_BASE}/${templateId}`;
-    }
+    console.log(`Deleting template: ${templateName} from WABA: ${wabaId}`);
 
-    const response = await fetch(
-      deleteUrl,
-      {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Delete by name (Meta's preferred method)
+    const deleteUrl = `${META_GRAPH_API_BASE}/${wabaId}/message_templates?name=${encodeURIComponent(templateName)}`;
 
-    // Meta API returns success: true for successful deletion
+    const response = await fetch(deleteUrl, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
     const result = await response.json();
 
     if (!response.ok) {
@@ -341,17 +347,25 @@ export async function DELETE(request: NextRequest) {
         errorMessage = 'Template not found or already deleted.';
       } else if (result.error?.error_subcode === 2388101) {
         errorMessage = 'Cannot delete an approved template that has been sent in the last 24 hours.';
+      } else if (result.error?.code === 100) {
+        errorMessage = 'Invalid template name or insufficient permissions.';
       }
       
       return NextResponse.json(
-        { error: errorMessage },
+        { 
+          error: errorMessage,
+          details: result.error
+        },
         { status: response.status }
       );
     }
 
+    console.log(`Template ${templateName} deleted successfully:`, result);
+
     return NextResponse.json({
       success: true,
-      message: 'Template deleted successfully',
+      message: `Template "${templateName}" deleted successfully`,
+      data: result
     });
   } catch (error) {
     console.error('Error deleting template:', error);
@@ -364,7 +378,10 @@ export async function DELETE(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
