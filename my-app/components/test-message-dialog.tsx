@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { type WhatsAppTemplate } from '@/services/whatsapp';
 import { WhatsAppService } from '@/services/whatsapp';
-import { Upload, Image as ImageIcon, Video, FileText, Loader2, Info } from 'lucide-react';
+import { Upload, Image as ImageIcon, Video, FileText, Loader2, Info, MapPin } from 'lucide-react';
 
 interface TestMessageDialogProps {
   template: WhatsAppTemplate | null;
@@ -18,12 +18,25 @@ interface TestMessageDialogProps {
   onClose: () => void;
 }
 
+interface LocationData {
+  latitude: string;
+  longitude: string;
+  name: string;
+  address: string;
+}
+
 export default function TestMessageDialog({ template, appService, isOpen, onClose }: TestMessageDialogProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [variables, setVariables] = useState<string[]>([]);
   const [headerVariables, setHeaderVariables] = useState<string[]>([]);
   const [headerMediaFile, setHeaderMediaFile] = useState<File | null>(null);
   const [headerMediaHandle, setHeaderMediaHandle] = useState<string>('');
+  const [locationData, setLocationData] = useState<LocationData>({
+    latitude: '',
+    longitude: '',
+    name: '',
+    address: ''
+  });
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -48,16 +61,21 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       // Extract header variables (for variable media templates)
       const headerComponent = template.components?.find(c => c.type === 'HEADER');
       if (headerComponent?.example?.header_handle || headerComponent?.example?.header_text) {
-        // This template has variable media in the header
         const headerParams = headerComponent.example.header_handle || headerComponent.example.header_text || [];
         setHeaderVariables(new Array(headerParams.length).fill(''));
       } else {
         setHeaderVariables([]);
       }
 
-      // Reset media state
+      // Reset media and location state
       setHeaderMediaFile(null);
       setHeaderMediaHandle('');
+      setLocationData({
+        latitude: '',
+        longitude: '',
+        name: '',
+        address: ''
+      });
     }
   }, [template]);
 
@@ -65,8 +83,23 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
   const getHeaderMediaInfo = () => {
     const headerComponent = template?.components?.find(c => c.type === 'HEADER');
     
-    if (!headerComponent?.format || !['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format)) {
-      return { hasMedia: false, isVariable: false, format: undefined };
+    if (!headerComponent?.format) {
+      return { hasMedia: false, isVariable: false, format: undefined, isLocation: false };
+    }
+
+    // Check if it's a location header
+    if (headerComponent.format === 'LOCATION') {
+      return {
+        hasMedia: false,
+        isVariable: false,
+        format: 'LOCATION' as const,
+        isLocation: true
+      };
+    }
+
+    // Check for other media types
+    if (!['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format)) {
+      return { hasMedia: false, isVariable: false, format: undefined, isLocation: false };
     }
 
     // Check if header has variables (example parameters)
@@ -78,7 +111,8 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     return {
       hasMedia: true,
       isVariable: hasVariables,
-      format: headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT'
+      format: headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT',
+      isLocation: false
     };
   };
 
@@ -155,6 +189,41 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     }
   };
 
+  const validateLocationData = (): boolean => {
+    if (!locationData.latitude.trim()) {
+      toast.error("Latitude is required");
+      return false;
+    }
+    if (!locationData.longitude.trim()) {
+      toast.error("Longitude is required");
+      return false;
+    }
+    if (!locationData.name.trim()) {
+      toast.error("Location name is required");
+      return false;
+    }
+    if (!locationData.address.trim()) {
+      toast.error("Address is required");
+      return false;
+    }
+
+    // Validate latitude range (-90 to 90)
+    const lat = parseFloat(locationData.latitude);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      toast.error("Latitude must be between -90 and 90");
+      return false;
+    }
+
+    // Validate longitude range (-180 to 180)
+    const lng = parseFloat(locationData.longitude);
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      toast.error("Longitude must be between -180 and 180");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSendTest = async () => {
     if (!template || !appService) return;
 
@@ -177,13 +246,35 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       return;
     }
 
+    // Validate location data if template has location header
+    if (headerInfo.isLocation && !validateLocationData()) {
+      return;
+    }
+
     setIsSending(true);
 
     try {
       const components = [];
 
-      // Add header component ONLY if template has VARIABLE media
-      if (headerInfo.isVariable && headerMediaHandle) {
+      // Add location header component
+      if (headerInfo.isLocation) {
+        components.push({
+          type: "header",
+          parameters: [
+            {
+              type: "location",
+              location: {
+                latitude: locationData.latitude,
+                longitude: locationData.longitude,
+                name: locationData.name,
+                address: locationData.address
+              }
+            }
+          ]
+        });
+      }
+      // Add media header component ONLY if template has VARIABLE media
+      else if (headerInfo.isVariable && headerMediaHandle) {
         const headerComponent: any = {
           type: "header",
           parameters: []
@@ -265,6 +356,12 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       setHeaderVariables([]);
       setHeaderMediaFile(null);
       setHeaderMediaHandle('');
+      setLocationData({
+        latitude: '',
+        longitude: '',
+        name: '',
+        address: ''
+      });
     } catch (error) {
       console.error('Send message error:', error);
       toast.error(error instanceof Error ? error.message : "Failed to send message");
@@ -279,10 +376,17 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     setVariables(newVariables);
   };
 
+  const updateLocationField = (field: keyof LocationData, value: string) => {
+    setLocationData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   if (!template) return null;
 
   const headerInfo = getHeaderMediaInfo();
-  const acceptedFormats = {
+  const acceptedFormats: Record<'IMAGE' | 'VIDEO' | 'DOCUMENT', string> = {
     IMAGE: 'image/jpeg,image/png',
     VIDEO: 'video/mp4',
     DOCUMENT: 'application/pdf'
@@ -318,8 +422,73 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             </p>
           </div>
 
+          {/* Location input section - for templates with LOCATION header */}
+          {headerInfo.isLocation && (
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Location Details *
+              </Label>
+              
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  This template requires location information. Enter the coordinates, name, and address.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="location-name" className="text-sm">Location Name *</Label>
+                <Input
+                  id="location-name"
+                  placeholder="e.g., Philz Coffee"
+                  value={locationData.name}
+                  onChange={(e) => updateLocationField('name', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location-address" className="text-sm">Address *</Label>
+                <Input
+                  id="location-address"
+                  placeholder="e.g., 101 Forest Ave, Palo Alto, CA 94301"
+                  value={locationData.address}
+                  onChange={(e) => updateLocationField('address', e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="location-latitude" className="text-sm">Latitude *</Label>
+                  <Input
+                    id="location-latitude"
+                    type="number"
+                    step="any"
+                    placeholder="e.g., 37.4421"
+                    value={locationData.latitude}
+                    onChange={(e) => updateLocationField('latitude', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">-90 to 90</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location-longitude" className="text-sm">Longitude *</Label>
+                  <Input
+                    id="location-longitude"
+                    type="number"
+                    step="any"
+                    placeholder="e.g., -122.1616"
+                    value={locationData.longitude}
+                    onChange={(e) => updateLocationField('longitude', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">-180 to 180</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Media upload section - ONLY for templates with VARIABLE media */}
-          {headerInfo.isVariable && headerInfo.format && (
+          {headerInfo.isVariable && headerInfo.format && headerInfo.format !== 'LOCATION' && (
             <div className="space-y-2">
               <Label>Template Header Media ({headerInfo.format}) *</Label>
               
@@ -333,7 +502,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               <input
                 ref={fileInputRef}
                 type="file"
-                accept={acceptedFormats[headerInfo.format]}
+                accept={acceptedFormats[headerInfo.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT']}
                 onChange={handleFileUpload}
                 className="hidden"
               />
@@ -467,7 +636,8 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               disabled={
                 isSending || 
                 template.status !== 'APPROVED' || 
-                (headerInfo.isVariable && !headerMediaHandle)
+                (headerInfo.isVariable && !headerMediaHandle) ||
+                (headerInfo.isLocation && (!locationData.latitude || !locationData.longitude || !locationData.name || !locationData.address))
               }
             >
               {isSending ? (
