@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!appId) {
       return NextResponse.json(
-        { error: 'Facebook APP_ID not configured. Please set NEXT_PUBLIC_FACEBOOK_APP_ID in your .env.local file' },
+        { error: 'Facebook APP_ID not configured. ' },
         { status: 500 }
       );
     }
