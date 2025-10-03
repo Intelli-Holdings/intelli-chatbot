@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { type WhatsAppTemplate } from '@/services/whatsapp';
 import { WhatsAppService } from '@/services/whatsapp';
-import { Upload, Image as ImageIcon, Video, FileText, Loader2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, Video, FileText, Loader2, Info } from 'lucide-react';
 
 interface TestMessageDialogProps {
   template: WhatsAppTemplate | null;
@@ -21,6 +21,7 @@ interface TestMessageDialogProps {
 export default function TestMessageDialog({ template, appService, isOpen, onClose }: TestMessageDialogProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [variables, setVariables] = useState<string[]>([]);
+  const [headerVariables, setHeaderVariables] = useState<string[]>([]);
   const [headerMediaFile, setHeaderMediaFile] = useState<File | null>(null);
   const [headerMediaHandle, setHeaderMediaHandle] = useState<string>('');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -30,7 +31,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
   React.useEffect(() => {
     if (template) {
-      // Extract variables from body text
+      // Extract body variables
       const bodyComponent = template.components?.find(c => c.type === 'BODY');
       if (bodyComponent?.text) {
         const variableMatches = bodyComponent.text.match(/\{\{(\d+)\}\}/g) || [];
@@ -40,25 +41,45 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             return numberMatch ? parseInt(numberMatch[0]) : 0;
           })
         );
-        
-        // Create array based on highest variable number
         const maxVariableNum = uniqueVariables.size > 0 ? Math.max(...Array.from(uniqueVariables)) : 0;
         setVariables(new Array(maxVariableNum).fill(''));
       }
 
-      // Reset media state when template changes
+      // Extract header variables (for variable media templates)
+      const headerComponent = template.components?.find(c => c.type === 'HEADER');
+      if (headerComponent?.example?.header_handle || headerComponent?.example?.header_text) {
+        // This template has variable media in the header
+        const headerParams = headerComponent.example.header_handle || headerComponent.example.header_text || [];
+        setHeaderVariables(new Array(headerParams.length).fill(''));
+      } else {
+        setHeaderVariables([]);
+      }
+
+      // Reset media state
       setHeaderMediaFile(null);
       setHeaderMediaHandle('');
     }
   }, [template]);
 
-  // Check if template has media header
-  const getHeaderMediaType = () => {
+  // Check if template has media header and whether it's variable or fixed
+  const getHeaderMediaInfo = () => {
     const headerComponent = template?.components?.find(c => c.type === 'HEADER');
-    if (headerComponent?.format && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format)) {
-      return headerComponent.format;
+    
+    if (!headerComponent?.format || !['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format)) {
+      return { hasMedia: false, isVariable: false, format: undefined };
     }
-    return undefined;
+
+    // Check if header has variables (example parameters)
+    const hasVariables = !!(
+      headerComponent.example?.header_handle?.length || 
+      headerComponent.example?.header_text?.length
+    );
+
+    return {
+      hasMedia: true,
+      isVariable: hasVariables,
+      format: headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT'
+    };
   };
 
   const uploadMediaToMeta = async (file: File): Promise<string> => {
@@ -120,9 +141,6 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const mediaType = getHeaderMediaType();
-    if (!mediaType) return;
-
     setHeaderMediaFile(file);
 
     try {
@@ -145,17 +163,17 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       return;
     }
 
-    // Validate phone number format
     const cleanNumber = phoneNumber.replace(/[^\d]/g, '');
     if (cleanNumber.length < 10) {
       toast.error("Please enter a valid phone number");
       return;
     }
 
-    // Check if media is required but not uploaded
-    const mediaType = getHeaderMediaType();
-    if (mediaType && !headerMediaHandle) {
-      toast.error(`Please upload ${mediaType.toLowerCase()} for the template header`);
+    const headerInfo = getHeaderMediaInfo();
+    
+    // Only require media upload if template has VARIABLE media
+    if (headerInfo.isVariable && !headerMediaHandle) {
+      toast.error(`Please upload ${headerInfo.format?.toLowerCase()} for the template header`);
       return;
     }
 
@@ -164,29 +182,28 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     try {
       const components = [];
 
-      // Add header component if template has media header
-      if (mediaType && headerMediaHandle) {
+      // Add header component ONLY if template has VARIABLE media
+      if (headerInfo.isVariable && headerMediaHandle) {
         const headerComponent: any = {
           type: "header",
           parameters: []
         };
 
-        // Use the handle with 'id' field instead of 'link'
-        if (mediaType === 'IMAGE') {
+        if (headerInfo.format === 'IMAGE') {
           headerComponent.parameters.push({
             type: "image",
             image: {
-              id: headerMediaHandle  // Use handle as ID
+              id: headerMediaHandle
             }
           });
-        } else if (mediaType === 'VIDEO') {
+        } else if (headerInfo.format === 'VIDEO') {
           headerComponent.parameters.push({
             type: "video",
             video: {
               id: headerMediaHandle
             }
           });
-        } else if (mediaType === 'DOCUMENT') {
+        } else if (headerInfo.format === 'DOCUMENT') {
           headerComponent.parameters.push({
             type: "document",
             document: {
@@ -198,14 +215,23 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
         components.push(headerComponent);
       }
+      // If template has FIXED media (no variables), we don't add header component
+      // The media is already part of the template definition
 
       // Add body component if there are variables
       if (variables.length > 0) {
+        const filledVariables = variables.filter(v => v.trim());
+        if (filledVariables.length === 0) {
+          toast.error("Please fill in at least one variable value");
+          setIsSending(false);
+          return;
+        }
+
         components.push({
           type: "body",
-          parameters: variables.map(value => ({
+          parameters: variables.map((value, index) => ({
             type: "text",
-            text: value || `Sample Value ${variables.indexOf(value) + 1}`
+            text: value || `Sample Value ${index + 1}`
           }))
         });
       }
@@ -230,17 +256,18 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
         messageData
       );
 
-      toast.success("Test message sent successfully!");
+      toast.success("Message sent successfully!");
       onClose();
       
       // Reset form
       setPhoneNumber('');
       setVariables([]);
+      setHeaderVariables([]);
       setHeaderMediaFile(null);
       setHeaderMediaHandle('');
     } catch (error) {
-      console.error('Send test message error:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to send test message");
+      console.error('Send message error:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to send message");
     } finally {
       setIsSending(false);
     }
@@ -254,7 +281,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
   if (!template) return null;
 
-  const mediaType = getHeaderMediaType();
+  const headerInfo = getHeaderMediaInfo();
   const acceptedFormats = {
     IMAGE: 'image/jpeg,image/png',
     VIDEO: 'video/mp4',
@@ -263,11 +290,11 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Send Test Message</DialogTitle>
+          <DialogTitle>Send Message</DialogTitle>
           <DialogDescription>
-            Send a test message using template: {template.name}
+            Send a message using template: {template.name}
           </DialogDescription>
         </DialogHeader>
 
@@ -287,18 +314,26 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Include country code (e.g., +1 for US)
+              Include country code (e.g., +1 for US, +256 for Uganda)
             </p>
           </div>
 
-          {/* Media upload section for templates with media headers */}
-          {mediaType && (
+          {/* Media upload section - ONLY for templates with VARIABLE media */}
+          {headerInfo.isVariable && headerInfo.format && (
             <div className="space-y-2">
-              <Label>Template Header Media ({mediaType}) *</Label>
+              <Label>Template Header Media ({headerInfo.format}) *</Label>
+              
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  This template requires you to upload media for each message sent.
+                </AlertDescription>
+              </Alert>
+
               <input
                 ref={fileInputRef}
                 type="file"
-                accept={acceptedFormats[mediaType as keyof typeof acceptedFormats]}
+                accept={acceptedFormats[headerInfo.format]}
                 onChange={handleFileUpload}
                 className="hidden"
               />
@@ -307,9 +342,9 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-2">
-                      {mediaType === 'IMAGE' && <ImageIcon className="h-4 w-4" />}
-                      {mediaType === 'VIDEO' && <Video className="h-4 w-4" />}
-                      {mediaType === 'DOCUMENT' && <FileText className="h-4 w-4" />}
+                      {headerInfo.format === 'IMAGE' && <ImageIcon className="h-4 w-4" />}
+                      {headerInfo.format === 'VIDEO' && <Video className="h-4 w-4" />}
+                      {headerInfo.format === 'DOCUMENT' && <FileText className="h-4 w-4" />}
                       <span className="text-sm">{headerMediaFile.name}</span>
                       {headerMediaHandle && (
                         <span className="text-xs text-green-600">✓ Uploaded</span>
@@ -352,20 +387,31 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
-                      Upload {mediaType.toLowerCase()}
+                      Upload {headerInfo.format.toLowerCase()}
                     </>
                   )}
                 </Button>
               )}
               
               <p className="text-xs text-muted-foreground">
-                {mediaType === 'IMAGE' && 'Supported: JPG, PNG (max 5MB)'}
-                {mediaType === 'VIDEO' && 'Supported: MP4 (max 16MB)'}
-                {mediaType === 'DOCUMENT' && 'Supported: PDF (max 100MB)'}
+                {headerInfo.format === 'IMAGE' && 'Supported: JPG, PNG (max 5MB)'}
+                {headerInfo.format === 'VIDEO' && 'Supported: MP4 (max 16MB)'}
+                {headerInfo.format === 'DOCUMENT' && 'Supported: PDF (max 100MB)'}
               </p>
             </div>
           )}
 
+          {/* Info for templates with FIXED media */}
+          {headerInfo.hasMedia && !headerInfo.isVariable && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                This template has fixed media that was uploaded during template creation. No media upload needed for sending.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Body variables */}
           {variables.length > 0 && (
             <div className="space-y-2">
               <Label>Template Variables</Label>
@@ -385,6 +431,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             </div>
           )}
 
+          {/* Template Preview */}
           <div className="space-y-2">
             <Label>Preview</Label>
             <div className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-900">
@@ -417,7 +464,11 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             </Button>
             <Button 
               onClick={handleSendTest} 
-              disabled={isSending || template.status !== 'APPROVED' || (mediaType && !headerMediaHandle)}
+              disabled={
+                isSending || 
+                template.status !== 'APPROVED' || 
+                (headerInfo.isVariable && !headerMediaHandle)
+              }
             >
               {isSending ? (
                 <>
@@ -425,7 +476,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
                   Sending...
                 </>
               ) : (
-                "Send Test"
+                "Send Message"
               )}
             </Button>
           </div>
