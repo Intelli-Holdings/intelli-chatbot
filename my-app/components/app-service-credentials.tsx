@@ -69,9 +69,6 @@ const AppServiceCredentials: React.FC<AppServiceCredentialsProps> = ({
             <CardTitle className="flex items-center gap-2">
               WhatsApp Appservices
             </CardTitle>
-            <CardDescription>
-              Select the appservice to use
-            </CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -100,7 +97,7 @@ const AppServiceCredentials: React.FC<AppServiceCredentialsProps> = ({
         {!loading && appServices.length > 0 && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="app-service">Select App Service</Label>
+              <Label htmlFor="app-service">Active App Service</Label>
               <Select
                 value={selectedAppService?.id.toString() || ''}
                 onValueChange={(value) => {
