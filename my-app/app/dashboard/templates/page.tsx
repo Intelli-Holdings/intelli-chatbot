@@ -187,14 +187,13 @@ export default function TemplatesPage() {
       }
 
       // Check if template requires media or has variables
-      const requiresCustomization =
-        checkTemplateRequiresCustomization(defaultTemplate);
+      const requiresCustomization = checkTemplateRequiresCustomization(defaultTemplate);
 
       if (requiresCustomization) {
         // Open customization dialog
         setSelectedCustomizeTemplate(defaultTemplate);
         setIsCustomizeDialogOpen(true);
-        return true; // Don't create yet, wait for customization
+        return true;
       }
 
       // Create template directly if no customization needed
@@ -245,12 +244,18 @@ export default function TemplatesPage() {
       return true;
     }
 
-    // Check for variables
+    // Check for variables in body and header
     const hasVariables = template.components?.some((component) => {
       return component.text && /\{\{\d+\}\}/.test(component.text);
     });
 
-    return hasVariables || false;
+    // Check for URL button variables
+    const buttonsComponent = template.components?.find(c => c.type === "BUTTONS");
+    const hasUrlButtonVariables = buttonsComponent?.buttons?.some(button => 
+      button.type === 'URL' && button.url?.includes('{{')
+    );
+
+    return hasVariables || hasUrlButtonVariables || false;
   };
 
   // Handle customized template creation
@@ -364,67 +369,85 @@ export default function TemplatesPage() {
   );
 
   // Send test template function
-  const sendTestTemplate = useCallback(
-    async (
-      templateName: string,
-      phoneNumber: string,
-      parameters: string[],
-      languageCode: string
-    ): Promise<boolean> => {
-      if (!selectedAppService?.phone_number_id) {
-        toast.error("Phone number ID not available");
-        return false;
-      }
+  // Replace the sendTestTemplate function in your page.tsx (around line 369-409)
 
-      console.log(
-        "Sending template:",
-        templateName,
-        "with language code:",
-        languageCode
-      );
-
-      try {
-        const messageData: any = {
-          messaging_product: "whatsapp",
-          to: phoneNumber,
-          type: "template",
-          template: {
-            name: templateName,
-            language: {
-              code: languageCode, // Use dynamic language code
-            },
+const sendTestTemplate = useCallback(
+  async (
+    templateName: string,
+    phoneNumber: string,
+    parameters: string[],
+    languageCode: string,
+    locationData?: { latitude: string; longitude: string; name: string; address: string }
+  ): Promise<boolean> => {
+    if (!selectedAppService?.phone_number_id) {
+      toast.error("Phone number ID not available");
+      return false;
+    }
+    try {
+      const messageData: any = {
+        messaging_product: "whatsapp",
+        to: phoneNumber,
+        type: "template",
+        template: {
+          name: templateName,
+          language: {
+            code: languageCode,
           },
-        };
+        },
+      };
 
-        // Add components if there are parameters
-        if (parameters.length > 0) {
-          messageData.template.components = [
+      // Build components array
+      const components: any[] = [];
+
+      // Add location header component if location data is provided
+      if (locationData && locationData.latitude && locationData.longitude && locationData.name && locationData.address) {
+        components.push({
+          type: "header",
+          parameters: [
             {
-              type: "body",
-              parameters: parameters.map((param) => ({
-                type: "text",
-                text: param,
-              })),
-            },
-          ];
-        }
-
-        await WhatsAppService.sendMessage(
-          selectedAppService as AppService,
-          messageData
-        );
-        toast.success("Test message sent successfully!");
-        return true;
-      } catch (err) {
-        console.error("Error sending test template:", err);
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to send test message";
-        toast.error(errorMessage);
-        throw err;
+              type: "location",
+              location: {
+                latitude: locationData.latitude,
+                longitude: locationData.longitude,
+                name: locationData.name,
+                address: locationData.address
+              }
+            }
+          ]
+        });
       }
-    },
-    [selectedAppService]
-  );
+
+      // Add body parameters if there are any
+      if (parameters.length > 0) {
+        components.push({
+          type: "body",
+          parameters: parameters.map((param) => ({
+            type: "text",
+            text: param,
+          })),
+        });
+      }
+
+      // Add components to template if any exist
+      if (components.length > 0) {
+        messageData.template.components = components;
+      }
+      await WhatsAppService.sendMessage(
+        selectedAppService as AppService,
+        messageData
+      );
+      toast.success("Test message sent successfully!");
+      return true;
+    } catch (err) {
+      console.error("Error sending test template:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to send test message";
+      toast.error(errorMessage);
+      throw err;
+    }
+  },
+  [selectedAppService]
+);
 
   // Effects
   useEffect(() => {
