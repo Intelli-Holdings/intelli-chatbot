@@ -54,6 +54,7 @@ import { TemplateDetailsDialog } from "@/components/template-details-dialog";
 import { TemplateEditor } from "@/components/template-editor";
 import BroadcastManager from "@/components/broadcast-manager";
 import { CustomizeTemplateDialog } from "@/components/customize-template-dialog";
+import FlowManager from '@/components/flows-manager';
 
 export default function TemplatesPage() {
   const organizationId = useActiveOrganizationId();
@@ -606,6 +607,7 @@ export default function TemplatesPage() {
                 <TabsTrigger value="create">Create Template</TabsTrigger>
                 <TabsTrigger value="manage">Manage Templates</TabsTrigger>
                 <TabsTrigger value="broadcast">Broadcast Manager</TabsTrigger>
+                <TabsTrigger value="flows">Flows Manager</TabsTrigger>
               </TabsList>
             </div>
 
@@ -920,7 +922,13 @@ export default function TemplatesPage() {
                 </Alert>
               )}
             </TabsContent>
+
+               <TabsContent value="flows">
+              <FlowManager appService={selectedAppService} />
+          </TabsContent>
           </Tabs>
+
+       
 
           {/* Template Details Dialog */}
           <TemplateDetailsDialog
