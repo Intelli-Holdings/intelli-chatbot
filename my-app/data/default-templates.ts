@@ -27,16 +27,6 @@ export interface DefaultTemplate {
   };
 }
 
-interface TemplateComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
-  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
-  text?: string;
-  example?: any
-  buttons?: any[];
-  add_security_recommendation?: boolean;
-  code_expiration_minutes?: number
-}
-
 export const defaultTemplates: DefaultTemplate[] = [
   // UTILITY TEMPLATES
   {
@@ -53,7 +43,10 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: 'Hi {{1}}, thank you for your order!\n\nOrder ID: {{2}}\nTotal Amount: {{3}}\nEstimated Delivery: {{4}}\n\nWe\'ll send you tracking information once your order ships.'
+        text: 'Hi {{1}}, thank you for your order!\n\nOrder ID: {{2}}\nTotal Amount: {{3}}\nEstimated Delivery: {{4}}\n\nWe\'ll send you tracking information once your order ships.',
+        example: {
+          body_text: [['John Doe', '#12345', '$99.99', 'March 15']]
+        }
       },
       {
         type: 'FOOTER',
@@ -72,7 +65,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     ],
     preview: {
       header: 'Order Confirmed!',
-      body: 'Hi [Customer Name], thank you for your order!\n\nOrder ID: [Order ID]\nTotal Amount: [Amount]\nEstimated Delivery: [Date]\n\nWe\'ll send you tracking information once your order ships.',
+      body: 'Hi John Doe, thank you for your order!\n\nOrder ID: #12345\nTotal Amount: $99.99\nEstimated Delivery: March 15\n\nWe\'ll send you tracking information once your order ships.',
       footer: 'Thank you for shopping with us!',
       buttons: ['Track Order']
     }
@@ -86,7 +79,10 @@ export const defaultTemplates: DefaultTemplate[] = [
     components: [
       {
         type: 'BODY',
-        text: 'Hi {{1}}, this is a reminder about your appointment:\n\n📅 Date: {{2}}\n⏰ Time: {{3}}\n📍 Location: {{4}}\n\nPlease arrive 10 minutes early. Reply YES to confirm or NO to reschedule.'
+        text: 'Hi {{1}}, this is a reminder about your appointment:\n\n📅 Date: {{2}}\n⏰ Time: {{3}}\n📍 Location: {{4}}\n\nPlease arrive 10 minutes early.',
+        example: {
+          body_text: [['John Doe', 'March 15, 2025', '2:00 PM', '123 Main St']]
+        }
       },
       {
         type: 'BUTTONS',
@@ -103,7 +99,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Hi [Customer Name], this is a reminder about your appointment:\n\n📅 Date: [Date]\n⏰ Time: [Time]\n📍 Location: [Location]\n\nPlease arrive 10 minutes early. Reply YES to confirm or NO to reschedule.',
+      body: 'Hi John Doe, this is a reminder about your appointment:\n\n📅 Date: March 15, 2025\n⏰ Time: 2:00 PM\n📍 Location: 123 Main St\n\nPlease arrive 10 minutes early.',
       buttons: ['Confirm', 'Reschedule']
     }
   },
@@ -120,7 +116,10 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: 'Good news {{1}}! Your order #{{2}} has been shipped.\n\nTracking Number: {{3}}\nEstimated Delivery: {{4}}\n\nYou can track your package using the button below.'
+        text: 'Good news {{1}}! Your order #{{2}} has been shipped.\n\nTracking Number: {{3}}\nEstimated Delivery: {{4}}\n\nYou can track your package using the button below.',
+        example: {
+          body_text: [['John Doe', '12345', 'TRK98765XYZ', 'March 20, 2025']]
+        }
       },
       {
         type: 'BUTTONS',
@@ -134,7 +133,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Good news [Customer Name]! Your order #[Order ID] has been shipped.\n\nTracking Number: [Tracking Number]\nEstimated Delivery: [Date]\n\nYou can track your package using the button below.',
+      body: 'Good news John Doe! Your order #12345 has been shipped.\n\nTracking Number: TRK98765XYZ\nEstimated Delivery: March 20, 2025\n\nYou can track your package using the button below.',
       buttons: ['Track Package']
     }
   },
@@ -151,7 +150,10 @@ export const defaultTemplates: DefaultTemplate[] = [
       },
       {
         type: 'BODY',
-        text: 'Thank you {{1}}! Your payment has been received.\n\nPayment ID: {{2}}\nAmount: {{3}}\nDate: {{4}}\n\nYour receipt is attached above.'
+        text: 'Thank you {{1}}! Your payment has been received.\n\nPayment ID: {{2}}\nAmount: {{3}}\nDate: {{4}}\n\nYour receipt is attached above.',
+        example: {
+          body_text: [['John Doe', 'PAY-12345', '$99.99', 'March 10, 2025']]
+        }
       },
       {
         type: 'FOOTER',
@@ -159,7 +161,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Thank you [Customer Name]! Your payment has been received.\n\nPayment ID: [Payment ID]\nAmount: [Amount]\nDate: [Date]\n\nYour receipt is attached above.',
+      body: 'Thank you John Doe! Your payment has been received.\n\nPayment ID: PAY-12345\nAmount: $99.99\nDate: March 10, 2025\n\nYour receipt is attached above.',
       footer: 'Keep this receipt for your records'
     }
   },
@@ -172,7 +174,10 @@ export const defaultTemplates: DefaultTemplate[] = [
     components: [
       {
         type: 'BODY',
-        text: 'Hi {{1}}, thank you for contacting our support team.\n\nTicket ID: {{2}}\nIssue: {{3}}\n\nOur team is reviewing your request and will get back to you within 24 hours.'
+        text: 'Hi {{1}}, thank you for contacting our support team.\n\nTicket ID: {{2}}\nIssue: {{3}}\n\nOur team is reviewing your request and will get back to you within 24 hours.',
+        example: {
+          body_text: [['John Doe', 'TICKET-789', 'Product inquiry']]
+        }
       },
       {
         type: 'BUTTONS',
@@ -191,7 +196,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Hi [Customer Name], thank you for contacting our support team.\n\nTicket ID: [Ticket ID]\nIssue: [Issue]\n\nOur team is reviewing your request and will get back to you within 24 hours.',
+      body: 'Hi John Doe, thank you for contacting our support team.\n\nTicket ID: TICKET-789\nIssue: Product inquiry\n\nOur team is reviewing your request and will get back to you within 24 hours.',
       buttons: ['Call Support', 'View Ticket']
     }
   },
@@ -212,14 +217,12 @@ export const defaultTemplates: DefaultTemplate[] = [
         type: 'BODY',
         text: '🎉 Hi {{1}}! Our {{2}} Sale is here!\n\nEnjoy {{3}}% off on all products. Use code: {{4}} at checkout.\n\nHurry! Offer valid only until {{5}}.',
         example: {
-          body_text: [
-            ["customer", "Summer", "25", "SALE25", "end of the month"]
-          ]
+          body_text: [['John', 'Summer', '25', 'SALE25', 'March 31']]
         }
       },
       {
         type: 'FOOTER',
-        text: 'Reply STOP to unsubscribe from promotional messages'
+        text: 'Reply STOP to unsubscribe'
       },
       {
         type: 'BUTTONS',
@@ -228,14 +231,18 @@ export const defaultTemplates: DefaultTemplate[] = [
             type: 'URL',
             text: 'Shop Now',
             url: 'https://example.com/sale'
+          },
+          {
+            type: 'QUICK_REPLY',
+            text: 'Unsubscribe'
           }
         ]
       }
     ],
     preview: {
-      body: '🎉 Hi [Customer Name]! Our [Season] Sale is here!\n\nEnjoy [Discount]% off on all products. Use code: [Code] at checkout.\n\nHurry! Offer valid only until [Date].',
-      footer: 'Reply STOP to unsubscribe from promotional messages',
-      buttons: ['Shop Now']
+      body: '🎉 Hi John! Our Summer Sale is here!\n\nEnjoy 25% off on all products. Use code: SALE25 at checkout.\n\nHurry! Offer valid only until March 31.',
+      footer: 'Reply STOP to unsubscribe',
+      buttons: ['Shop Now', 'Unsubscribe']
     }
   },
   {
@@ -253,14 +260,12 @@ export const defaultTemplates: DefaultTemplate[] = [
         type: 'BODY',
         text: 'Introducing {{1}} - Our Latest Innovation! \n\nHi {{2}}, be among the first to experience {{3}}.\n\nSpecial launch price: {{4}} (Regular: {{5}})\n\nLimited stock available!',
         example: {
-          body_text: [
-            ["New Product", "customer", "amazing features", "$99", "$129"]
-          ]
+          body_text: [['SmartWidget Pro', 'John', 'amazing features', '$99', '$129']]
         }
       },
       {
         type: 'FOOTER',
-        text: 'Text STOP to opt-out of marketing messages'
+        text: 'Reply STOP to opt-out'
       },
       {
         type: 'BUTTONS',
@@ -278,8 +283,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Introducing [Product Name] - Our Latest Innovation! \n\nHi [Customer Name], be among the first to experience [Feature].\n\nSpecial launch price: [Price] (Regular: [Regular Price])\n\nLimited stock available!',
-      footer: 'Text STOP to opt-out of marketing messages',
+      body: 'Introducing SmartWidget Pro - Our Latest Innovation! \n\nHi John, be among the first to experience amazing features.\n\nSpecial launch price: $99 (Regular: $129)\n\nLimited stock available!',
+      footer: 'Reply STOP to opt-out',
       buttons: ['Learn More', 'Not Interested']
     }
   },
@@ -293,15 +298,13 @@ export const defaultTemplates: DefaultTemplate[] = [
       {
         type: 'HEADER',
         format: 'TEXT',
-        text: 'You left something behind {{1}}! '
+        text: 'You left something behind!'
       },
       {
         type: 'BODY',
         text: 'Hi {{1}}, you have {{2}} items in your cart worth {{3}}.\n\nComplete your purchase now and get {{4}}% off with code: COMEBACK\n\nYour cart will expire in 24 hours.',
         example: {
-          body_text: [
-            ["customer", "3", "$50", "10"]
-          ]
+          body_text: [['John', '3', '$50', '10']]
         }
       },
       {
@@ -315,15 +318,19 @@ export const defaultTemplates: DefaultTemplate[] = [
             type: 'URL',
             text: 'Complete Purchase',
             url: 'https://example.com/cart'
+          },
+          {
+            type: 'QUICK_REPLY',
+            text: 'Unsubscribe'
           }
         ]
       }
     ],
     preview: {
-      header: 'You left something behind [Customer Name]!',
-      body: 'Hi [Customer Name], you have [Number] items in your cart worth [Amount].\n\nComplete your purchase now and get [Discount]% off with code: COMEBACK\n\nYour cart will expire in 24 hours.',
+      header: 'You left something behind!',
+      body: 'Hi John, you have 3 items in your cart worth $50.\n\nComplete your purchase now and get 10% off with code: COMEBACK\n\nYour cart will expire in 24 hours.',
       footer: 'Reply STOP to unsubscribe',
-      buttons: ['Complete Purchase']
+      buttons: ['Complete Purchase', 'Unsubscribe']
     }
   },
   {
@@ -335,16 +342,14 @@ export const defaultTemplates: DefaultTemplate[] = [
     components: [
       {
         type: 'BODY',
-        text: ' Congratulations {{1}}!\n\nYou\'ve earned {{2}} loyalty points. Your total balance is now {{3}} points.\n\nRedeem {{4}} points to get {{5}} off your next purchase!',
+        text: '🎁 Congratulations {{1}}!\n\nYou\'ve earned {{2}} loyalty points. Your total balance is now {{3}} points.\n\nRedeem {{4}} points to get {{5}} off your next purchase!',
         example: {
-          body_text: [
-            ["customer", "100", "500", "200", "$10"]
-          ]
+          body_text: [['John', '100', '500', '200', '$10']]
         }
       },
       {
         type: 'FOOTER',
-        text: 'To opt-out of rewards notifications, reply STOP'
+        text: 'Reply STOP to opt-out'
       },
       {
         type: 'BUTTONS',
@@ -356,15 +361,15 @@ export const defaultTemplates: DefaultTemplate[] = [
           },
           {
             type: 'QUICK_REPLY',
-            text: 'Check Balance'
+            text: 'Unsubscribe'
           }
         ]
       }
     ],
     preview: {
-      body: ' Congratulations [Customer Name]!\n\nYou\'ve earned [Points] loyalty points. Your total balance is now [Total] points.\n\nRedeem [Required Points] points to get [Discount] off your next purchase!',
-      footer: 'To opt-out of rewards notifications, reply STOP',
-      buttons: ['View Rewards', 'Check Balance']
+      body: '🎁 Congratulations John!\n\nYou\'ve earned 100 loyalty points. Your total balance is now 500 points.\n\nRedeem 200 points to get $10 off your next purchase!',
+      footer: 'Reply STOP to opt-out',
+      buttons: ['View Rewards', 'Unsubscribe']
     }
   },
   {
@@ -377,20 +382,18 @@ export const defaultTemplates: DefaultTemplate[] = [
       {
         type: 'HEADER',
         format: 'TEXT',
-        text: 'We value your opinion! '
+        text: 'We value your opinion!'
       },
       {
         type: 'BODY',
         text: 'Hi {{1}}, thank you for your recent purchase of {{2}}.\n\nHow was your experience? Your feedback helps us improve our service.\n\nRate us from 1-5 stars:',
         example: {
-          body_text: [
-            ["customer", "product"]
-          ]
+          body_text: [['John', 'SmartWidget']]
         }
       },
       {
         type: 'FOOTER',
-        text: 'Reply STOP to opt-out of feedback requests'
+        text: 'Reply STOP to opt-out'
       },
       {
         type: 'BUTTONS',
@@ -405,16 +408,16 @@ export const defaultTemplates: DefaultTemplate[] = [
           },
           {
             type: 'QUICK_REPLY',
-            text: '⭐⭐⭐'
+            text: 'Unsubscribe'
           }
         ]
       }
     ],
     preview: {
-      header: 'We value your opinion! 💭',
-      body: 'Hi [Customer Name], thank you for your recent purchase of [Product].\n\nHow was your experience? Your feedback helps us improve our service.\n\nRate us from 1-5 stars:',
-      footer: 'Reply STOP to opt-out of feedback requests',
-      buttons: ['⭐⭐⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐']
+      header: 'We value your opinion!',
+      body: 'Hi John, thank you for your recent purchase of SmartWidget.\n\nHow was your experience? Your feedback helps us improve our service.\n\nRate us from 1-5 stars:',
+      footer: 'Reply STOP to opt-out',
+      buttons: ['⭐⭐⭐⭐⭐', '⭐⭐⭐⭐', 'Unsubscribe']
     }
   },
 
@@ -430,7 +433,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     components: [
       {
         type: 'BODY',
-        text: 'Your verification code is {{1}}. This code will expire in 10 minutes. If you did not request this code, please ignore this message.'
+        text: '{{1}} is your verification code. It will expire in 10 minutes.'
       },
       {
         type: 'BUTTONS',
@@ -444,7 +447,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Your verification code is [123456]. This code will expire in 10 minutes. If you did not request this code, please ignore this message.',
+      body: '123456 is your verification code. It will expire in 10 minutes.',
       buttons: ['Copy Code']
     }
   },
@@ -460,11 +463,11 @@ export const defaultTemplates: DefaultTemplate[] = [
       {
         type: 'HEADER',
         format: 'TEXT',
-        text: 'Welcome to {{1}}! '
+        text: 'Welcome to MyApp'
       },
       {
         type: 'BODY',
-        text: 'Hi {{1}}, please verify your account to get started.\n\nYour verification code is: {{2}}\n\nEnter this code in the app to complete registration.'
+        text: 'Hi {{1}}, please verify your account.\n\nYour verification code is: {{2}}\n\nEnter this code in the app to complete registration.'
       },
       {
         type: 'BUTTONS',
@@ -478,8 +481,8 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      header: 'Welcome to [App Name]!',
-      body: 'Hi [Customer Name], please verify your account to get started.\n\nYour verification code is: [Code]\n\nEnter this code in the app to complete registration.',
+      header: 'Welcome to MyApp',
+      body: 'Hi John, please verify your account.\n\nYour verification code is: 123456\n\nEnter this code in the app to complete registration.',
       buttons: ['Copy Code']
     }
   },
@@ -490,11 +493,11 @@ export const defaultTemplates: DefaultTemplate[] = [
     description: 'Require users to authenticate a transaction',
     language: 'en',
     add_security_recommendation: true,
-    code_expiration_minutes: 30,
+    code_expiration_minutes: 5,
     components: [
       {
         type: 'BODY',
-        text: 'Please approve the following transaction:\n\nMerchant: {{1}}\nAmount: {{2}}\n\nUse the code {{3}} to complete your transaction. This code expires in 30 minutes.'
+        text: 'Approve transaction:\n\nMerchant: {{1}}\nAmount: {{2}}\n\nCode: {{3}}\n\nExpires in 5 minutes.'
       },
       {
         type: 'BUTTONS',
@@ -508,7 +511,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Please approve the following transaction:\n\nMerchant: [Merchant]\nAmount: [Amount]\n\nUse the code [Code] to complete your transaction. This code expires in 30 minutes.',
+      body: 'Approve transaction:\n\nMerchant: Amazon\nAmount: $99.99\n\nCode: 123456\n\nExpires in 5 minutes.',
       buttons: ['Copy Code']
     }
   },
@@ -523,7 +526,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     components: [
       {
         type: 'BODY',
-        text: 'Your reservation code is {{1}}. Please show this code upon arrival. This code is valid for 5 minutes.'
+        text: 'Your reservation code is {{1}}. Show this upon arrival. Valid for 5 minutes.'
       },
       {
         type: 'BUTTONS',
@@ -537,7 +540,7 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: 'Your reservation code is [Code]. Please show this code upon arrival. This code is valid for 5 minutes.',
+      body: 'Your reservation code is ABC123. Show this upon arrival. Valid for 5 minutes.',
       buttons: ['Copy Code']
     }
   }

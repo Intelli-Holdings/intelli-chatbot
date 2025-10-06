@@ -413,20 +413,21 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
         }
 
         if (component.type === 'BUTTONS') {
-          component.buttons = component.buttons?.map((button: any) => {
-            if (button.type === 'URL' && button.url?.includes('{{')) {
-              const urlVariable = (button.url.match(/\{\{(\d+)\}\}/g) || [])[0];
-              if (urlVariable) {
-                const key = urlVariable.replace(/[{}]/g, '');
-                const exampleValue = customizations.variables[key] || 'default-url-value';
-                button.example = [exampleValue];
-              }
-            }
-            return button;
-          });
-        }
+  component.buttons = component.buttons?.map((button: any) => {
+    if (button.type === 'URL' && button.url?.includes('{{')) {
+      const urlVariable = (button.url.match(/\{\{(\d+)\}\}/g) || [])[0];
+      if (urlVariable) {
+        const key = urlVariable.replace(/[{}]/g, '');
+        const exampleValue = customizations.variables[key] || 'default-value';
+        // Meta expects URL button examples as an array
+        button.example = [exampleValue];
+      }
+    }
+    return button;
+  });
+}
 
-        return component;
+return component;
       });
 
       try {
