@@ -50,20 +50,20 @@ export const defaultTemplates: DefaultTemplate[] = [
           {
             type: 'PHONE_NUMBER',
             text: 'Call Support',
-            phone_number: '+1234567890'
+            phone_number: '254114567890'
           },
           {
             type: 'URL',
             text: 'View Ticket',
             url: 'https://support.example.com/ticket/{{1}}',
-            example: ['TICKET-789'] // URL parameter example
+            example: ['TICKET-789']
           }
         ]
       }
     ],
     preview: {
       body: 'Hi John Doe, thank you for contacting our support team.\n\nTicket ID: TICKET-789\nIssue: Product inquiry\n\nOur team is reviewing your request and will get back to you within 24 hours.',
-      buttons: ['Call Support', 'View Ticket'] // Matches actual button text
+      buttons: ['Call Support', 'View Ticket']
     }
   },
 
@@ -79,12 +79,12 @@ export const defaultTemplates: DefaultTemplate[] = [
         type: 'HEADER',
         format: 'IMAGE',
         example: {
-          header_handle: [''] // Will be filled during customization
+          header_handle: ['']
         }
       },
       {
         type: 'BODY',
-        text: '🎉 Hi {{1}}! Our {{2}} Sale is here!\n\nEnjoy {{3}}% off on all products. Use code: {{4}} at checkout.\n\nHurry! Offer valid only until {{5}}.',
+        text: 'Hi {{1}}! Our {{2}} Sale is here!\n\nEnjoy {{3}}% off on all products. Use code: {{4}} at checkout.\n\nHurry! Offer valid only until {{5}}.',
         example: {
           body_text: [['John', 'Summer', '25', 'SALE25', 'March 31']]
         }
@@ -109,9 +109,9 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     preview: {
-      body: '🎉 Hi John! Our Summer Sale is here!\n\nEnjoy 25% off on all products. Use code: SALE25 at checkout.\n\nHurry! Offer valid only until March 31.',
+      body: 'Hi John! Our Summer Sale is here!\n\nEnjoy 25% off on all products. Use code: SALE25 at checkout.\n\nHurry! Offer valid only until March 31.',
       footer: 'Reply STOP to unsubscribe',
-      buttons: ['Shop Now', 'Unsubscribe'] // Matches actual button text
+      buttons: ['Shop Now', 'Unsubscribe']
     }
   },
 
@@ -145,7 +145,7 @@ export const defaultTemplates: DefaultTemplate[] = [
     ],
     preview: {
       body: 'Approve transaction:\n\nMerchant: Amazon\nAmount: $99.99\n\nCode: 123456\n\nExpires in 5 minutes.',
-      buttons: ['Copy Code'] // Matches actual button text
+      buttons: ['Copy Code']
     }
   },
 

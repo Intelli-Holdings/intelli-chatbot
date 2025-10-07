@@ -8,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { 
   Plus, X, Upload, ChevronLeft, ChevronRight, 
-  Info, Image as ImageIcon, Video, Trash2, AlertCircle 
+  Info, Image as ImageIcon, Video, Trash2, AlertCircle, Loader2 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
@@ -22,6 +23,7 @@ interface CarouselCard {
   headerMediaPreview: string;
   headerMediaType: 'IMAGE' | 'VIDEO';
   bodyText: string;
+  bodyVariables: { [key: string]: string };
   buttons: CarouselButton[];
 }
 
@@ -54,6 +56,7 @@ export default function CarouselTemplateCreator({
   language
 }: CarouselTemplateCreatorProps) {
   const [messageBody, setMessageBody] = useState('');
+  const [messageBodyVariables, setMessageBodyVariables] = useState<{ [key: string]: string }>({});
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [cards, setCards] = useState<CarouselCard[]>([
     {
@@ -63,6 +66,7 @@ export default function CarouselTemplateCreator({
       headerMediaPreview: '',
       headerMediaType: 'IMAGE',
       bodyText: '',
+      bodyVariables: {},
       buttons: []
     },
     {
@@ -72,13 +76,58 @@ export default function CarouselTemplateCreator({
       headerMediaPreview: '',
       headerMediaType: 'IMAGE',
       bodyText: '',
+      bodyVariables: {},
       buttons: []
     }
   ]);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentCard = cards[currentCardIndex];
+
+  // Extract variables from text (e.g., {{1}}, {{2}})
+  const extractVariables = (text: string): string[] => {
+    if (!text) return [];
+    const matches = text.match(/\{\{(\d+)\}\}/g) || [];
+    const unique = Array.from(new Set(matches));
+    return unique.sort((a, b) => {
+      const aNum = parseInt(a.replace(/[{}]/g, ''));
+      const bNum = parseInt(b.replace(/[{}]/g, ''));
+      return aNum - bNum;
+    });
+  };
+
+  // Handle message body change and extract variables
+  const handleMessageBodyChange = (value: string) => {
+    setMessageBody(value);
+    
+    const variables = extractVariables(value);
+    const newVariables: { [key: string]: string } = {};
+    
+    variables.forEach(variable => {
+      const key = variable.replace(/[{}]/g, '');
+      newVariables[key] = messageBodyVariables[key] || '';
+    });
+    
+    setMessageBodyVariables(newVariables);
+  };
+
+  // Handle card body change and extract variables
+  const handleCardBodyChange = (value: string) => {
+    const variables = extractVariables(value);
+    const newVariables: { [key: string]: string } = {};
+    
+    variables.forEach(variable => {
+      const key = variable.replace(/[{}]/g, '');
+      newVariables[key] = currentCard.bodyVariables[key] || '';
+    });
+    
+    updateCard(currentCardIndex, { 
+      bodyText: value,
+      bodyVariables: newVariables
+    });
+  };
 
   const uploadMediaToMeta = async (file: File): Promise<string> => {
     if (!appService?.access_token || appService.access_token === 'undefined') {
@@ -145,6 +194,7 @@ export default function CarouselTemplateCreator({
     });
 
     try {
+      toast.info('Uploading media to Meta...');
       const handle = await uploadMediaToMeta(file);
       updateCard(currentCardIndex, { headerMediaHandle: handle });
       toast.success('Media uploaded successfully!');
@@ -177,9 +227,11 @@ export default function CarouselTemplateCreator({
       headerMediaPreview: '',
       headerMediaType: cards[0].headerMediaType,
       bodyText: '',
+      bodyVariables: {},
       buttons: []
     }]);
     setCurrentCardIndex(cards.length);
+    toast.success('Card added');
   };
 
   const removeCard = (index: number) => {
@@ -192,6 +244,7 @@ export default function CarouselTemplateCreator({
     if (currentCardIndex >= cards.length - 1) {
       setCurrentCardIndex(Math.max(0, currentCardIndex - 1));
     }
+    toast.success('Card removed');
   };
 
   const addButton = () => {
@@ -221,9 +274,20 @@ export default function CarouselTemplateCreator({
   };
 
   const validateCarousel = (): boolean => {
-    if (!messageBody.trim()) {
+    // Check message body
+    if (!messageBody || !messageBody.trim()) {
       toast.error('Message body is required');
       return false;
+    }
+
+    // Check message body variables have example values
+    const msgBodyVars = extractVariables(messageBody);
+    for (const variable of msgBodyVars) {
+      const key = variable.replace(/[{}]/g, '');
+      if (!messageBodyVariables[key] || !messageBodyVariables[key].trim()) {
+        toast.error(`Please provide example value for message body variable ${variable}`);
+        return false;
+      }
     }
 
     // Check all cards have media
@@ -248,30 +312,186 @@ export default function CarouselTemplateCreator({
       }
 
       if (cards[i].buttons.length !== firstButtonCount) {
-        toast.error(`Card ${i + 1}: All cards must have same number of buttons`);
+        toast.error(`Card ${i + 1}: All cards must have same number of buttons (${firstButtonCount})`);
         setCurrentCardIndex(i);
         return false;
+      }
+
+      // Validate card body variables
+      if (hasBody) {
+        const cardBodyVars = extractVariables(cards[i].bodyText);
+        for (const variable of cardBodyVars) {
+          const key = variable.replace(/[{}]/g, '');
+          if (!cards[i].bodyVariables[key] || !cards[i].bodyVariables[key].trim()) {
+            toast.error(`Card ${i + 1}: Please provide example value for variable ${variable}`);
+            setCurrentCardIndex(i);
+            return false;
+          }
+        }
+      }
+    }
+
+    // Validate buttons
+    for (let i = 0; i < cards.length; i++) {
+      for (let j = 0; j < cards[i].buttons.length; j++) {
+        const button = cards[i].buttons[j];
+        
+        if (!button.text || !button.text.trim()) {
+          toast.error(`Card ${i + 1}, Button ${j + 1}: Button text is required`);
+          setCurrentCardIndex(i);
+          return false;
+        }
+
+        if (button.type === 'URL') {
+          if (!button.url || !button.url.trim()) {
+            toast.error(`Card ${i + 1}, Button ${j + 1}: URL is required`);
+            setCurrentCardIndex(i);
+            return false;
+          }
+          
+          if (button.url.includes('{{1}}')) {
+            if (!button.urlVariable || !button.urlVariable.trim()) {
+              toast.error(`Card ${i + 1}, Button ${j + 1}: URL variable example is required`);
+              setCurrentCardIndex(i);
+              return false;
+            }
+          }
+        }
+
+        if (button.type === 'PHONE_NUMBER') {
+          if (!button.phone_number || !button.phone_number.trim()) {
+            toast.error(`Card ${i + 1}, Button ${j + 1}: Phone number is required`);
+            setCurrentCardIndex(i);
+            return false;
+          }
+        }
       }
     }
 
     return true;
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!validateCarousel()) return;
 
-    const carouselData = {
-      messageBody,
-      cards: cards.map(card => ({
-        headerMediaHandle: card.headerMediaHandle,
-        headerMediaType: card.headerMediaType,
-        bodyText: card.bodyText,
-        buttons: card.buttons
-      }))
-    };
+    setIsSubmitting(true);
 
-    onComplete(carouselData);
+    try {
+      // Build components array according to Meta's API format
+      const components: any[] = [];
+
+      // Body component with variables
+      const bodyComponent: any = {
+        type: 'body',
+        text: messageBody
+      };
+
+      // Add message body variable examples
+      const msgBodyVars = extractVariables(messageBody);
+      if (msgBodyVars.length > 0) {
+        const exampleValues = msgBodyVars.map(variable => {
+          const key = variable.replace(/[{}]/g, '');
+          return messageBodyVariables[key];
+        });
+
+        bodyComponent.example = {
+          body_text: msgBodyVars.length === 1 ? exampleValues[0] : [exampleValues]
+        };
+      }
+
+      components.push(bodyComponent);
+
+      // Carousel component
+      const carouselComponent: any = {
+        type: 'carousel',
+        cards: cards.map(card => {
+          const cardComponents: any[] = [];
+
+          // Header component
+          cardComponents.push({
+            type: 'header',
+            format: card.headerMediaType.toLowerCase(),
+            example: {
+              header_handle: [card.headerMediaHandle]
+            }
+          });
+
+          // Body component (optional)
+          if (card.bodyText && card.bodyText.trim()) {
+            const cardBodyComponent: any = {
+              type: 'body',
+              text: card.bodyText
+            };
+
+            const cardBodyVars = extractVariables(card.bodyText);
+            if (cardBodyVars.length > 0) {
+              const exampleValues = cardBodyVars.map(variable => {
+                const key = variable.replace(/[{}]/g, '');
+                return card.bodyVariables[key];
+              });
+
+              cardBodyComponent.example = {
+                body_text: cardBodyVars.length === 1 ? exampleValues[0] : [exampleValues]
+              };
+            }
+
+            cardComponents.push(cardBodyComponent);
+          }
+
+          // Buttons component
+          if (card.buttons.length > 0) {
+            const buttonsComponent: any = {
+              type: 'buttons',
+              buttons: card.buttons.map(button => {
+                const btnData: any = {
+                  type: button.type.toLowerCase(),
+                  text: button.text
+                };
+
+                if (button.type === 'URL') {
+                  btnData.url = button.url;
+                  if (button.url?.includes('{{1}}') && button.urlVariable) {
+                    btnData.example = [button.urlVariable];
+                  }
+                } else if (button.type === 'PHONE_NUMBER') {
+                  btnData.phone_number = button.phone_number;
+                }
+
+                return btnData;
+              })
+            };
+
+            cardComponents.push(buttonsComponent);
+          }
+
+          return {
+            components: cardComponents
+          };
+        })
+      };
+
+      components.push(carouselComponent);
+
+      const carouselData = {
+        name: templateName.toLowerCase().replace(/\s+/g, '_'),
+        language: language,
+        category: 'MARKETING',
+        components
+      };
+
+      console.log('Carousel template data:', JSON.stringify(carouselData, null, 2));
+
+      await onComplete(carouselData);
+    } catch (error) {
+      console.error('Error creating carousel:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create carousel template');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const messageBodyVars = extractVariables(messageBody);
+  const currentCardBodyVars = extractVariables(currentCard.bodyText);
 
   return (
     <div className="space-y-6">
@@ -289,25 +509,61 @@ export default function CarouselTemplateCreator({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription className="text-xs">
-          Carousel templates allow 2-10 cards with images/videos. All cards must have the same structure.
+          Carousel templates: 2-10 cards with images/videos. All cards must have the same structure. Use variables like {`{{1}}`}, {`{{2}}`} for dynamic content.
         </AlertDescription>
       </Alert>
 
       {/* Message Body */}
-      <div className="space-y-2">
-        <Label htmlFor="message-body">Message Body (appears above carousel) *</Label>
-        <Textarea
-          id="message-body"
-          placeholder="Check out these amazing products! {{1}}"
-          value={messageBody}
-          onChange={(e) => setMessageBody(e.target.value)}
-          rows={3}
-          maxLength={1024}
-        />
-        <p className="text-xs text-muted-foreground">
-          This message appears above the carousel cards
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Message Body (appears above carousel) *</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Textarea
+              id="message-body"
+              placeholder="Check out these amazing products {{1}}! Use code {{2}} for discount."
+              value={messageBody}
+              onChange={(e) => handleMessageBodyChange(e.target.value)}
+              rows={3}
+              maxLength={1024}
+            />
+            <p className="text-xs text-muted-foreground">
+              {messageBody.length}/1024 characters • Use {`{{1}}`}, {`{{2}}`}, etc. for variables
+            </p>
+          </div>
+
+          {/* Message Body Variable Examples */}
+          {messageBodyVars.length > 0 && (
+            <div className="space-y-3 pt-3 border-t">
+              <Label className="text-sm font-medium">Variable Examples</Label>
+              <div className="grid gap-3">
+                {messageBodyVars.map((variable) => {
+                  const key = variable.replace(/[{}]/g, '');
+                  return (
+                    <div key={variable} className="space-y-2">
+                      <Label className="text-sm">
+                        Variable {key}
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          {variable}
+                        </Badge>
+                      </Label>
+                      <Input
+                        placeholder={`Example value for ${variable}`}
+                        value={messageBodyVariables[key] || ''}
+                        onChange={(e) => setMessageBodyVariables(prev => ({
+                          ...prev,
+                          [key]: e.target.value
+                        }))}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Card Navigation */}
       <div className="flex items-center justify-between">
@@ -354,7 +610,14 @@ export default function CarouselTemplateCreator({
       {/* Current Card Editor */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Card {currentCardIndex + 1}</CardTitle>
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span>Card {currentCardIndex + 1}</span>
+            {currentCard.headerMediaHandle && (
+              <Badge variant="outline" className="text-xs text-green-600">
+                ✓ Media Uploaded
+              </Badge>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Media Type Selection */}
@@ -370,6 +633,7 @@ export default function CarouselTemplateCreator({
                   headerMediaPreview: ''
                 });
               }}
+              disabled={currentCardIndex > 0}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -389,6 +653,11 @@ export default function CarouselTemplateCreator({
                 </SelectItem>
               </SelectContent>
             </Select>
+            {currentCardIndex > 0 && (
+              <p className="text-xs text-muted-foreground">
+                All cards must use same media type as Card 1
+              </p>
+            )}
           </div>
 
           {/* Media Upload */}
@@ -424,6 +693,9 @@ export default function CarouselTemplateCreator({
                     {currentCard.headerMediaHandle && (
                       <span className="text-xs text-green-600">✓ Uploaded</span>
                     )}
+                    {isUploadingMedia && (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    )}
                   </div>
                   <Button
                     type="button"
@@ -434,6 +706,7 @@ export default function CarouselTemplateCreator({
                       headerMediaHandle: '',
                       headerMediaPreview: ''
                     })}
+                    disabled={isUploadingMedia}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -447,10 +720,22 @@ export default function CarouselTemplateCreator({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingMedia}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload {currentCard.headerMediaType}
+                {isUploadingMedia ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload {currentCard.headerMediaType}
+                  </>
+                )}
               </Button>
             )}
+            <p className="text-xs text-muted-foreground">
+              {currentCard.headerMediaType === 'IMAGE' ? 'JPG, PNG • Max 5MB' : 'MP4 • Max 16MB'}
+            </p>
           </div>
 
           {/* Body Text */}
@@ -462,16 +747,48 @@ export default function CarouselTemplateCreator({
               id={`body-${currentCardIndex}`}
               placeholder="Product description with {{1}} variable"
               value={currentCard.bodyText}
-              onChange={(e) => updateCard(currentCardIndex, { bodyText: e.target.value })}
+              onChange={(e) => handleCardBodyChange(e.target.value)}
               rows={3}
+              maxLength={160}
             />
             <p className="text-xs text-muted-foreground">
-              All cards must have same structure - if one has body text, all must
+              {currentCard.bodyText.length}/160 characters • All cards must have same structure
             </p>
           </div>
 
+          {/* Card Body Variable Examples */}
+          {currentCardBodyVars.length > 0 && (
+            <div className="space-y-3 pt-3 border-t">
+              <Label className="text-sm font-medium">Card Body Variable Examples</Label>
+              <div className="grid gap-3">
+                {currentCardBodyVars.map((variable) => {
+                  const key = variable.replace(/[{}]/g, '');
+                  return (
+                    <div key={variable} className="space-y-2">
+                      <Label className="text-sm">
+                        Variable {key}
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          {variable}
+                        </Badge>
+                      </Label>
+                      <Input
+                        placeholder={`Example value for ${variable}`}
+                        value={currentCard.bodyVariables[key] || ''}
+                        onChange={(e) => {
+                          const newVariables = { ...currentCard.bodyVariables };
+                          newVariables[key] = e.target.value;
+                          updateCard(currentCardIndex, { bodyVariables: newVariables });
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Buttons */}
-          <div className="space-y-3">
+          <div className="space-y-3 pt-3 border-t">
             <div className="flex items-center justify-between">
               <Label>Buttons (Max 2 per card)</Label>
               {currentCard.buttons.length < 2 && (
@@ -525,18 +842,21 @@ export default function CarouselTemplateCreator({
                         onChange={(e) => updateButton(btnIndex, { url: e.target.value })}
                       />
                       {button.url?.includes('{{1}}') && (
-                        <Input
-                          placeholder="Example value for {{1}}"
-                          value={button.urlVariable || ''}
-                          onChange={(e) => updateButton(btnIndex, { urlVariable: e.target.value })}
-                        />
+                        <div className="space-y-2">
+                          <Label className="text-xs">URL Variable Example</Label>
+                          <Input
+                            placeholder="Example: product-123"
+                            value={button.urlVariable || ''}
+                            onChange={(e) => updateButton(btnIndex, { urlVariable: e.target.value })}
+                          />
+                        </div>
                       )}
                     </>
                   )}
 
                   {button.type === 'PHONE_NUMBER' && (
                     <Input
-                      placeholder="15551234567 (no + sign)"
+                      placeholder="+15551234567"
                       value={button.phone_number || ''}
                       onChange={(e) => updateButton(btnIndex, { phone_number: e.target.value })}
                     />
@@ -550,7 +870,7 @@ export default function CarouselTemplateCreator({
 
       {/* Validation Warnings */}
       {cards.some(c => !c.headerMediaHandle) && (
-        <Alert variant="destructive">
+        <Alert variant="warning">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-xs">
             All cards must have media uploaded before creating the template
@@ -560,11 +880,18 @@ export default function CarouselTemplateCreator({
 
       {/* Actions */}
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button onClick={handleComplete}>
-          Create Carousel Template
+        <Button onClick={handleComplete} disabled={isSubmitting || isUploadingMedia}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Creating Template...
+            </>
+          ) : (
+            'Create Carousel Template'
+          )}
         </Button>
       </div>
     </div>

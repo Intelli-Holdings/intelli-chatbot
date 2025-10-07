@@ -24,6 +24,7 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 import { DefaultTemplate } from '@/data/default-templates';
+import Image from 'next/image';
 
 interface CustomizeTemplateDialogProps {
   template: DefaultTemplate | null;
@@ -418,15 +419,20 @@ export function CustomizeTemplateDialog({
         const originalComponent = template.components?.find(c => c.type === component.type);
         
         if (component.type === 'BODY') {
-          if (bodyVariables.length > 0) {
-            const bodyValues = bodyVariables.map(variable => {
+          // Get all variables from the body text in the component
+          const componentBodyVariables = extractVariables(component.text);
+          
+          if (componentBodyVariables.length > 0) {
+            // Create example values for all variables in the body
+            const bodyValues = componentBodyVariables.map(variable => {
               const key = variable.replace(/[{}]/g, '');
               return customizations.variables[key] || `Sample ${key}`;
             });
 
             if (!component.example) component.example = {};
             component.example.body_text = [bodyValues];
-          } else if ((template.category === 'MARKETING' || template.category === 'UTILITY') && originalComponent?.example) {
+          } else if (originalComponent?.example) {
+            // No variables but original has example - preserve it
             if (!component.example) component.example = {};
             component.example = { ...originalComponent.example };
           }
@@ -588,7 +594,7 @@ export function CustomizeTemplateDialog({
                       <Card className="p-3">
                         <div className="text-xs font-medium mb-2">Preview</div>
                         {mediaRequirement.format === 'IMAGE' && (
-                          <img
+                          <Image
                             src={customizations.mediaPreview}
                             alt="Preview"
                             className="w-full max-h-48 object-contain rounded"
@@ -718,7 +724,7 @@ export function CustomizeTemplateDialog({
                             {mediaRequirement.required && customizations.mediaPreview && (
                               <div className="bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
                                 {mediaRequirement.format === 'IMAGE' && (
-                                  <img
+                                  <Image
                                     src={customizations.mediaPreview}
                                     alt="Header"
                                     className="w-full max-h-32 object-cover"

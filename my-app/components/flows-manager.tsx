@@ -32,6 +32,13 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface FlowManagerProps {
@@ -48,17 +55,42 @@ interface MetaFlow {
   updated_time?: string;
 }
 
+interface FlowScreen {
+  id: string;
+  title: string;
+  terminal?: boolean;
+}
+
+interface FlowDetails {
+  id: string;
+  name: string;
+  status: string;
+  json_version?: string;
+  data_api_version?: string;
+  screens?: FlowScreen[];
+}
+
 export default function FlowManager({ appService }: FlowManagerProps) {
   const [flows, setFlows] = useState<MetaFlow[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<MetaFlow | null>(null);
+  const [flowDetails, setFlowDetails] = useState<FlowDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [senderNumber, setSenderNumber] = useState('');
+  const [recipientNumber, setRecipientNumber] = useState('');
+  const [selectedScreen, setSelectedScreen] = useState('');
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     fetchFlows();
   }, []);
+
+  useEffect(() => {
+    if (appService?.phone_number) {
+      setSenderNumber(appService.phone_number);
+    }
+  }, [appService]);
 
   const fetchFlows = async () => {
     if (!appService?.whatsapp_business_account_id || !appService?.access_token) {
@@ -87,9 +119,70 @@ export default function FlowManager({ appService }: FlowManagerProps) {
     }
   };
 
+  const fetchFlowDetails = async (flowId: string) => {
+    if (!appService?.access_token) {
+      toast.error('Access token not available');
+      return null;
+    }
+
+    setLoadingDetails(true);
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/v21.0/${flowId}?fields=id,name,status,json_version,data_api_version,preview.invalidate(false),categories&access_token=${appService.access_token}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch flow details');
+      }
+
+      const data = await response.json();
+      
+      // Parse the preview to get screens
+      let screens: FlowScreen[] = [];
+      if (data.preview?.preview) {
+        try {
+          const previewData = JSON.parse(data.preview.preview);
+          if (previewData.screens && Array.isArray(previewData.screens)) {
+            screens = previewData.screens.map((screen: any) => ({
+              id: screen.id,
+              title: screen.title || screen.id,
+              terminal: screen.terminal
+            }));
+          }
+        } catch (e) {
+          console.error('Error parsing preview:', e);
+        }
+      }
+
+      const details: FlowDetails = {
+        id: data.id,
+        name: data.name,
+        status: data.status,
+        json_version: data.json_version,
+        data_api_version: data.data_api_version,
+        screens
+      };
+
+      setFlowDetails(details);
+      
+      // Auto-select first screen
+      if (screens.length > 0) {
+        setSelectedScreen(screens[0].id);
+      }
+      
+      return details;
+    } catch (error) {
+      console.error('Error fetching flow details:', error);
+      toast.error('Failed to load flow details');
+      return null;
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   const handleSendFlow = async () => {
-    if (!phoneNumber.trim()) {
-      toast.error('Please enter a phone number');
+    if (!recipientNumber.trim()) {
+      toast.error('Please enter a recipient phone number');
       return;
     }
 
@@ -98,12 +191,16 @@ export default function FlowManager({ appService }: FlowManagerProps) {
       return;
     }
 
+    if (!selectedScreen) {
+      toast.error('Please select a starting screen');
+      return;
+    }
+
     setSending(true);
     try {
-      // Send message with flow
       const messageData = {
         messaging_product: 'whatsapp',
-        to: phoneNumber,
+        to: recipientNumber,
         type: 'interactive',
         interactive: {
           type: 'flow',
@@ -118,12 +215,12 @@ export default function FlowManager({ appService }: FlowManagerProps) {
             name: 'flow',
             parameters: {
               flow_message_version: '3',
-              flow_token: 'UNIQUE_FLOW_TOKEN',
+              flow_token: `FLOW_TOKEN_${Date.now()}`,
               flow_id: selectedFlow.id,
               flow_cta: 'Open Form',
               flow_action: 'navigate',
               flow_action_payload: {
-                screen: 'SCREEN_1'
+                screen: selectedScreen
               }
             }
           }
@@ -149,13 +246,19 @@ export default function FlowManager({ appService }: FlowManagerProps) {
 
       toast.success('Flow sent successfully!');
       setSendDialogOpen(false);
-      setPhoneNumber('');
+      setRecipientNumber('');
     } catch (error) {
       console.error('Error sending flow:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send flow');
     } finally {
       setSending(false);
     }
+  };
+
+  const handleOpenSendDialog = async (flow: MetaFlow) => {
+    setSelectedFlow(flow);
+    setSendDialogOpen(true);
+    await fetchFlowDetails(flow.id);
   };
 
   const getStatusIcon = (status: string) => {
@@ -180,6 +283,11 @@ export default function FlowManager({ appService }: FlowManagerProps) {
     return variants[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const getViewUrl = (flowId: string) => {
+    if (!appService?.whatsapp_business_account_id) return '#';
+    return `https://business.facebook.com/latest/whatsapp_manager/flows?business_id=${appService.whatsapp_business_account_id}&tab=flows&nav_ref=whatsapp_manager&asset_id=${flowId}`;
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6">
@@ -190,6 +298,10 @@ export default function FlowManager({ appService }: FlowManagerProps) {
               Manage and send your WhatsApp Flows
             </p>
           </div>
+          <Button onClick={fetchFlows} variant="outline" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
         {!appService?.whatsapp_business_account_id && (
@@ -217,7 +329,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
             </div>
             <Button asChild>
               <a
-                href="https://business.facebook.com/"
+                href={`https://business.facebook.com/latest/whatsapp_manager/flows?business_id=${appService?.whatsapp_business_account_id || ''}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -282,7 +394,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
                       asChild
                     >
                       <a
-                        href={`https://business.facebook.com/wa/manage/flows/${flow.id}`}
+                        href={getViewUrl(flow.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -294,10 +406,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
                       size="sm"
                       className="flex-1"
                       disabled={flow.status !== 'PUBLISHED'}
-                      onClick={() => {
-                        setSelectedFlow(flow);
-                        setSendDialogOpen(true);
-                      }}
+                      onClick={() => handleOpenSendDialog(flow)}
                     >
                       <Send className="h-3 w-3 mr-1" />
                       Send
@@ -312,11 +421,11 @@ export default function FlowManager({ appService }: FlowManagerProps) {
 
       {/* Send Flow Dialog */}
       <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Send Flow</DialogTitle>
             <DialogDescription>
-              Send {selectedFlow?.name} to a WhatsApp number
+              Test the Flow experience by sending it to your phone number
             </DialogDescription>
           </DialogHeader>
           
@@ -324,59 +433,91 @@ export default function FlowManager({ appService }: FlowManagerProps) {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                The recipient will receive an interactive message with a button to open the flow.
+                The message will be subject to limits and pricing. Make sure you are within the 24-hour customer service window to receive the message.
               </AlertDescription>
             </Alert>
 
             <div>
-              <Label htmlFor="phone">Recipient Phone Number</Label>
+              <Label htmlFor="sender">Sender number</Label>
               <Input
-                id="phone"
-                placeholder="254712345678 (no + sign)"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                id="sender"
+                value={senderNumber}
+                disabled
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="recipient">Recipient number</Label>
+              <Input
+                id="recipient"
+                placeholder="Enter phone number"
+                value={recipientNumber}
+                onChange={(e) => setRecipientNumber(e.target.value)}
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Include country code without the + sign
+                Include country code (e.g., 254712345678)
               </p>
             </div>
 
-            <div className="bg-muted p-3 rounded-lg">
-              <div className="text-xs font-medium mb-2">Preview:</div>
-              <div className="bg-white p-3 rounded border space-y-2">
-                <div className="font-semibold text-sm">Complete this form</div>
-                <div className="text-sm text-gray-600">
-                  Please complete the {selectedFlow?.name} form.
+            <div>
+              <Label htmlFor="screen">First screen</Label>
+              {loadingDetails ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Loading screens...</span>
                 </div>
-                <Button size="sm" className="w-full" disabled>
-                  Open Form
-                </Button>
-              </div>
+              ) : flowDetails?.screens && flowDetails.screens.length > 0 ? (
+                <Select value={selectedScreen} onValueChange={setSelectedScreen}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select a screen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {flowDetails.screens.map((screen) => (
+                      <SelectItem key={screen.id} value={screen.id}>
+                        {screen.title}
+                        {screen.terminal && (
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            Terminal
+                          </Badge>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Alert className="mt-1">
+                  <AlertDescription className="text-xs">
+                    No screens found for this flow
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => {
                 setSendDialogOpen(false);
-                setPhoneNumber('');
+                setRecipientNumber('');
+                setFlowDetails(null);
               }}
             >
               Cancel
             </Button>
-            <Button onClick={handleSendFlow} disabled={sending}>
+            <Button 
+              onClick={handleSendFlow} 
+              disabled={sending || !selectedScreen || !recipientNumber}
+            >
               {sending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Sending...
                 </>
               ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Flow
-                </>
+                'Send'
               )}
             </Button>
           </DialogFooter>
