@@ -87,7 +87,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       return { hasMedia: false, isVariable: false, format: undefined, isLocation: false };
     }
 
-    // Check if it's a location header
+    // Check if it's a location header (always variable - requires location data when sending)
     if (headerComponent.format === 'LOCATION') {
       return {
         hasMedia: false,
@@ -102,15 +102,10 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       return { hasMedia: false, isVariable: false, format: undefined, isLocation: false };
     }
 
-    // Check if header has variables (example parameters)
-    const hasVariables = !!(
-      headerComponent.example?.header_handle?.length || 
-      headerComponent.example?.header_text?.length
-    );
 
     return {
       hasMedia: true,
-      isVariable: hasVariables,
+      isVariable: false, // Media headers are fixed - use template's pre-uploaded media
       format: headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT',
       isLocation: false
     };
@@ -240,12 +235,6 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
     const headerInfo = getHeaderMediaInfo();
     
-    // Only require media upload if template has VARIABLE media
-    if (headerInfo.isVariable && !headerMediaHandle) {
-      toast.error(`Please upload ${headerInfo.format?.toLowerCase()} for the template header`);
-      return;
-    }
-
     // Validate location data if template has location header
     if (headerInfo.isLocation && !validateLocationData()) {
       return;
@@ -273,41 +262,9 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
           ]
         });
       }
-      // Add media header component ONLY if template has VARIABLE media
-      else if (headerInfo.isVariable && headerMediaHandle) {
-        const headerComponent: any = {
-          type: "header",
-          parameters: []
-        };
-
-        if (headerInfo.format === 'IMAGE') {
-          headerComponent.parameters.push({
-            type: "image",
-            image: {
-              id: headerMediaHandle
-            }
-          });
-        } else if (headerInfo.format === 'VIDEO') {
-          headerComponent.parameters.push({
-            type: "video",
-            video: {
-              id: headerMediaHandle
-            }
-          });
-        } else if (headerInfo.format === 'DOCUMENT') {
-          headerComponent.parameters.push({
-            type: "document",
-            document: {
-              id: headerMediaHandle,
-              filename: headerMediaFile?.name || "document.pdf"
-            }
-          });
-        }
-
-        components.push(headerComponent);
-      }
-      // If template has FIXED media (no variables), we don't add header component
-      // The media is already part of the template definition
+      
+      // Note: For IMAGE/VIDEO/DOCUMENT headers, we DON'T add a header component
+      // The template will automatically use its pre-uploaded media from the template definition
 
       // Add body component if there are variables
       if (variables.length > 0) {
@@ -636,7 +593,6 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               disabled={
                 isSending || 
                 template.status !== 'APPROVED' || 
-                (headerInfo.isVariable && !headerMediaHandle) ||
                 (headerInfo.isLocation && (!locationData.latitude || !locationData.longitude || !locationData.name || !locationData.address))
               }
             >

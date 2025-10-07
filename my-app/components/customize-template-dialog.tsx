@@ -20,7 +20,8 @@ import {
   Info,
   Loader2,
   Plus,
-  Trash2
+  Trash2,
+  Link as LinkIcon
 } from 'lucide-react';
 import { DefaultTemplate } from '@/data/default-templates';
 
@@ -35,6 +36,7 @@ interface CustomizeTemplateDialogProps {
 
 interface TemplateCustomizations {
   variables: { [key: string]: string };
+  urlButtonVariables: { [key: string]: string };
   mediaFile?: File;
   mediaPreview?: string;
 }
@@ -45,22 +47,21 @@ interface MediaRequirement {
   component: any;
 }
 
-// File size limits and accepted formats
 const MEDIA_LIMITS = {
   IMAGE: {
-    maxSize: 5 * 1024 * 1024, // 5MB
+    maxSize: 5 * 1024 * 1024,
     formats: ['.jpg', '.jpeg', '.png'],
     mimeTypes: ['image/jpeg', 'image/png'],
     accept: 'image/jpeg,image/png'
   },
   VIDEO: {
-    maxSize: 16 * 1024 * 1024, // 16MB
+    maxSize: 16 * 1024 * 1024,
     formats: ['.mp4'],
     mimeTypes: ['video/mp4'],
     accept: 'video/mp4'
   },
   DOCUMENT: {
-    maxSize: 100 * 1024 * 1024, // 100MB
+    maxSize: 100 * 1024 * 1024,
     formats: ['.pdf'],
     mimeTypes: ['application/pdf'],
     accept: 'application/pdf'
@@ -77,6 +78,7 @@ export function CustomizeTemplateDialog({
 }: CustomizeTemplateDialogProps) {
   const [customizations, setCustomizations] = useState<TemplateCustomizations>({
     variables: {},
+    urlButtonVariables: {},
     mediaFile: undefined,
     mediaPreview: undefined
   });
@@ -84,12 +86,12 @@ export function CustomizeTemplateDialog({
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset customizations when template changes
   useEffect(() => {
     if (template) {
       const variables: { [key: string]: string } = {};
+      const urlButtonVariables: { [key: string]: string } = {};
       
-      // Extract all variables from all components
+      // Extract body/header variables
       template.components?.forEach(component => {
         if (component.text) {
           const matches = component.text.match(/\{\{(\d+)\}\}/g) || [];
@@ -102,8 +104,21 @@ export function CustomizeTemplateDialog({
         }
       });
 
+      // Extract URL button variables separately
+      const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
+      buttonsComponent?.buttons?.forEach((button, buttonIndex) => {
+        if (button.type === 'URL' && button.url?.includes('{{')) {
+          const matches = button.url.match(/\{\{(\d+)\}\}/g) || [];
+          matches.forEach(match => {
+            const key = `url_button_${buttonIndex}_${match.replace(/[{}]/g, '')}`;
+            urlButtonVariables[key] = '';
+          });
+        }
+      });
+
       setCustomizations({
         variables,
+        urlButtonVariables,
         mediaFile: undefined,
         mediaPreview: undefined
       });
@@ -112,7 +127,6 @@ export function CustomizeTemplateDialog({
 
   if (!template) return null;
 
-  // Utility: extract and sort variable tokens like ['{{1}}','{{2}}'] from a given text
   const extractVariables = (text?: string): string[] => {
     if (!text) return [];
     const matches = text.match(/\{\{(\d+)\}\}/g) || [];
@@ -124,7 +138,6 @@ export function CustomizeTemplateDialog({
     });
   };
 
-  // Check if template requires media
   const getMediaRequirement = (): MediaRequirement => {
     const headerComponent = template.components?.find(c => c.type === 'HEADER');
     
@@ -146,38 +159,61 @@ export function CustomizeTemplateDialog({
 
   const mediaRequirement = getMediaRequirement();
 
-  // Extract all variables from template text
   const getAllVariables = () => {
-    const variables: string[] = [];
+    const bodyVariables: string[] = [];
+    const urlButtonVariables: Array<{variable: string, buttonIndex: number, buttonText: string}> = [];
     
     template.components?.forEach(component => {
-      if (component.text) {
+      if (component.type === 'BODY' && component.text) {
         const matches = component.text.match(/\{\{(\d+)\}\}/g) || [];
         matches.forEach(match => {
-          if (!variables.includes(match)) {
-            variables.push(match);
+          if (!bodyVariables.includes(match)) {
+            bodyVariables.push(match);
+          }
+        });
+      }
+      
+      if (component.type === 'HEADER' && component.format === 'TEXT' && component.text) {
+        const matches = component.text.match(/\{\{(\d+)\}\}/g) || [];
+        matches.forEach(match => {
+          if (!bodyVariables.includes(match)) {
+            bodyVariables.push(match);
           }
         });
       }
     });
 
-    return variables.sort((a, b) => {
-      const aNum = parseInt(a.replace(/[{}]/g, ''));
-      const bNum = parseInt(b.replace(/[{}]/g, ''));
-      return aNum - bNum;
+    const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
+    buttonsComponent?.buttons?.forEach((button, index) => {
+      if (button.type === 'URL' && button.url?.includes('{{')) {
+        const matches = button.url.match(/\{\{(\d+)\}\}/g) || [];
+        matches.forEach(match => {
+          urlButtonVariables.push({
+            variable: match,
+            buttonIndex: index,
+            buttonText: button.text
+          });
+        });
+      }
     });
+
+    return {
+      bodyVariables: bodyVariables.sort((a, b) => {
+        const aNum = parseInt(a.replace(/[{}]/g, ''));
+        const bNum = parseInt(b.replace(/[{}]/g, ''));
+        return aNum - bNum;
+      }),
+      urlButtonVariables
+    };
   };
 
-  const allVariables = getAllVariables();
-
-  // Also compute component-specific variables
+  const variableData = getAllVariables();
   const bodyText = template.components?.find(c => c.type === 'BODY')?.text || '';
   const headerComponent = template.components?.find(c => c.type === 'HEADER');
   const headerText = headerComponent?.format === 'TEXT' ? (headerComponent.text || '') : '';
   const bodyVariables = extractVariables(bodyText);
   const headerVariables = extractVariables(headerText);
 
-  // Handle variable input change
   const updateVariable = (variableKey: string, value: string) => {
     setCustomizations(prev => ({
       ...prev,
@@ -188,28 +224,34 @@ export function CustomizeTemplateDialog({
     }));
   };
 
-  // Handle file upload
+  const updateUrlButtonVariable = (key: string, value: string) => {
+    setCustomizations(prev => ({
+      ...prev,
+      urlButtonVariables: {
+        ...prev.urlButtonVariables,
+        [key]: value
+      }
+    }));
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const limits = MEDIA_LIMITS[mediaRequirement.format];
     
-    // Check file type
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!limits.formats.includes(fileExtension)) {
       toast.error(`Invalid file format. Accepted formats: ${limits.formats.join(', ')}`);
       return;
     }
 
-    // Check file size
     if (file.size > limits.maxSize) {
       const maxSizeMB = limits.maxSize / (1024 * 1024);
       toast.error(`File size exceeds ${maxSizeMB}MB limit`);
       return;
     }
 
-    // Create preview URL for images and videos
     let previewUrl = "";
     if (mediaRequirement.format === 'IMAGE' || mediaRequirement.format === 'VIDEO') {
       previewUrl = URL.createObjectURL(file);
@@ -224,7 +266,6 @@ export function CustomizeTemplateDialog({
     toast.success(`${file.name} uploaded successfully`);
   };
 
-  // Remove uploaded file
   const removeUploadedFile = () => {
     if (customizations.mediaPreview) {
       URL.revokeObjectURL(customizations.mediaPreview);
@@ -241,88 +282,86 @@ export function CustomizeTemplateDialog({
     }
   };
 
+  const uploadMediaToMeta = async (file: File): Promise<string> => {
+    if (!appService) {
+      throw new Error('App service not provided');
+    }
 
-  // Upload file to Meta's Resumable Upload API and get media handle
-const uploadMediaToMeta = async (file: File): Promise<string> => {
-  if (!appService) {
-    throw new Error('App service not provided');
-  }
+    if (!appService.access_token || appService.access_token === 'undefined') {
+      console.error('Invalid access token in appService:', appService);
+      throw new Error('Valid access token not available');
+    }
 
-  if (!appService.access_token || appService.access_token === 'undefined') {
-    console.error('Invalid access token in appService:', appService);
-    throw new Error('Valid access token not available');
-  }
+    try {
+      setIsUploadingMedia(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('accessToken', appService.access_token);
 
-  try {
-    setIsUploadingMedia(true);
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('accessToken', appService.access_token);
+      const response = await fetch('/api/whatsapp/upload-media', {
+        method: 'POST',
+        body: formData
+      });
 
-    console.log('Uploading media to Resumable Upload API...', {
-      fileName: file.name,
-      fileSize: file.size
-    });
-
-    const response = await fetch('/api/whatsapp/upload-media', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let error;
-      try {
-        error = JSON.parse(errorText);
-      } catch {
-        error = { error: errorText };
+      if (!response.ok) {
+        const errorText = await response.text();
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText };
+        }
+        console.error('Upload failed:', error);
+        throw new Error(error.error || 'Failed to upload media');
       }
-      console.error('Upload failed:', error);
-      throw new Error(error.error || 'Failed to upload media');
-    }
 
-    const data = await response.json();
-    
-    console.log('Media upload response:', data);
-    console.log('Media handle:', data.handle);
-    
-    if (!data.handle) {
-      throw new Error('No media handle received from upload');
+      const data = await response.json();
+      
+      if (!data.handle) {
+        throw new Error('No media handle received from upload');
+      }
+      
+      return data.handle;
+    } catch (error) {
+      console.error('Meta upload error:', error);
+      throw error;
+    } finally {
+      setIsUploadingMedia(false);
     }
-    
-    return data.handle;
-  } catch (error) {
-    console.error('Meta upload error:', error);
-    throw error;
-  } finally {
-    setIsUploadingMedia(false);
-  }
-}
+  };
 
-  // Handle form submission
   const handleSubmit = async () => {
-    // Validate required fields
     if (mediaRequirement.required && !customizations.mediaFile) {
       toast.error('Media file is required for this template');
       return;
     }
 
-    // Validate all variables are filled
-    const emptyVariables = allVariables.filter(variable => {
+    // Validate body/header variables
+    const emptyBodyVars = variableData.bodyVariables.filter(variable => {
       const key = variable.replace(/[{}]/g, '');
       return !customizations.variables[key]?.trim();
     });
 
-    if (emptyVariables.length > 0) {
-      toast.error('Please fill in all template variables');
+    if (emptyBodyVars.length > 0) {
+      toast.error('Please fill in all message variables');
+      return;
+    }
+
+    // Validate URL button variables
+    const emptyUrlVars = variableData.urlButtonVariables.filter(({ variable, buttonIndex }) => {
+      const key = `url_button_${buttonIndex}_${variable.replace(/[{}]/g, '')}`;
+      return !customizations.urlButtonVariables[key]?.trim();
+    });
+
+    if (emptyUrlVars.length > 0) {
+      toast.error('Please fill in all button URL parameters');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Handle media upload if required
       let headerMediaHandle = null;
       
       if (mediaRequirement.required && customizations.mediaFile) {
@@ -338,7 +377,6 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
         }
       }
 
-      // Determine header type/text/variables from template
       let headerType: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' = 'NONE';
       let headerTextForTemplate: string | undefined = undefined;
       let headerVariablesForTemplate: string[] | undefined = undefined;
@@ -353,7 +391,6 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
         }
       }
       
-      // Prepare template data for the template creator
       const templateInputData = {
         name: template.name,
         category: template.category,
@@ -363,46 +400,39 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
         headerType: headerType === 'NONE' ? (mediaRequirement.required ? mediaRequirement.format : 'NONE') : headerType,
         headerText: headerTextForTemplate,
         headerVariables: headerVariablesForTemplate,
-        headerMediaHandle, // Always use handle from upload API response
+        headerMediaHandle,
         body: (template.category === 'AUTHENTICATION' && bodyVariables.length > 0) 
           ? '' 
           : bodyText,
         bodyVariables: bodyVariables,
         footer: template.components?.find(c => c.type === 'FOOTER')?.text || '',
-        buttonType: template.components?.find(c => c.type === 'BUTTONS') ? 'QUICK_REPLY' : 'NONE',
+        buttonType: template.components?.find(c => c.type === 'BUTTONS') ? 'CALL_TO_ACTION' : 'NONE',
         buttons: template.components?.find(c => c.type === 'BUTTONS')?.buttons || [],
-        // Add customization values
         customVariableValues: customizations.variables
       };
 
-      // Use the template creation handler
       const formattedTemplate = TemplateCreationHandler.createTemplate(templateInputData);
 
-      // Override examples with actual customized values, preserving original examples for marketing templates
+      // Format examples correctly
       formattedTemplate.components = formattedTemplate.components.map(component => {
-        // Get the original component from the template to preserve existing examples
         const originalComponent = template.components?.find(c => c.type === component.type);
         
         if (component.type === 'BODY') {
           if (bodyVariables.length > 0) {
-            // If body has variables, replace example values with actual customized values
             const bodyValues = bodyVariables.map(variable => {
               const key = variable.replace(/[{}]/g, '');
               return customizations.variables[key] || `Sample ${key}`;
             });
 
             if (!component.example) component.example = {};
-            // Meta requires body_text examples to be nested arrays: [["value1", "value2"]]
             component.example.body_text = [bodyValues];
           } else if ((template.category === 'MARKETING' || template.category === 'UTILITY') && originalComponent?.example) {
-            // For marketing/utility templates without variables, preserve the original example
             if (!component.example) component.example = {};
             component.example = { ...originalComponent.example };
           }
         }
 
         if (component.type === 'HEADER' && component.format === 'TEXT' && headerVariables.length > 0) {
-          // For header text variables, the example is a flat array of strings
           const headerValues = headerVariables.map(variable => {
             const key = variable.replace(/[{}]/g, '');
             return customizations.variables[key] || `Sample ${key}`;
@@ -413,12 +443,12 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
         }
 
         if (component.type === 'BUTTONS') {
-          component.buttons = component.buttons?.map((button: any) => {
+          component.buttons = component.buttons?.map((button: any, btnIndex: number) => {
             if (button.type === 'URL' && button.url?.includes('{{')) {
               const urlVariable = (button.url.match(/\{\{(\d+)\}\}/g) || [])[0];
               if (urlVariable) {
-                const key = urlVariable.replace(/[{}]/g, '');
-                const exampleValue = customizations.variables[key] || 'default-url-value';
+                const key = `url_button_${btnIndex}_${urlVariable.replace(/[{}]/g, '')}`;
+                const exampleValue = customizations.urlButtonVariables[key] || 'default-value';
                 button.example = [exampleValue];
               }
             }
@@ -433,7 +463,6 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
         const success = await onSubmit(formattedTemplate, customizations);
         if (success) {
           onClose();
-          // Clean up preview URLs
           if (customizations.mediaPreview) {
             URL.revokeObjectURL(customizations.mediaPreview);
           }
@@ -450,18 +479,31 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
     }
   };
 
-  // Preview template with filled variables
-  const getPreviewText = (text: string) => {
+  const getPreviewText = (text: string, isUrlButton: boolean = false, buttonIndex?: number) => {
     if (!text) return '';
     
     let result = text;
-    allVariables.forEach(variable => {
-      const key = variable.replace(/[{}]/g, '');
-      const value = customizations.variables[key];
-      if (value) {
-        result = result.replace(variable, value);
-      }
-    });
+    
+    if (isUrlButton && buttonIndex !== undefined) {
+      const matches = text.match(/\{\{(\d+)\}\}/g) || [];
+      matches.forEach(variable => {
+        const key = `url_button_${buttonIndex}_${variable.replace(/[{}]/g, '')}`;
+        const value = customizations.urlButtonVariables[key];
+        if (value) {
+          result = result.replace(variable, value);
+        } else {
+          result = result.replace(variable, `[URL Param]`);
+        }
+      });
+    } else {
+      variableData.bodyVariables.forEach(variable => {
+        const key = variable.replace(/[{}]/g, '');
+        const value = customizations.variables[key];
+        if (value) {
+          result = result.replace(variable, value);
+        }
+      });
+    }
     
     return result;
   };
@@ -474,9 +516,7 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Customization Form */}
           <div className="space-y-6">
-            {/* Media Upload Section */}
             {mediaRequirement.required && (
               <Card>
                 <CardHeader>
@@ -544,19 +584,15 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
                       </Button>
                     )}
 
-                    {/* Media Preview */}
                     {customizations.mediaPreview && (
                       <Card className="p-3">
                         <div className="text-xs font-medium mb-2">Preview</div>
                         {mediaRequirement.format === 'IMAGE' && (
-                          <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={customizations.mediaPreview}
-                              alt="Preview"
-                              className="w-full max-h-48 object-contain rounded"
-                            />
-                          </>
+                          <img
+                            src={customizations.mediaPreview}
+                            alt="Preview"
+                            className="w-full max-h-48 object-contain rounded"
+                          />
                         )}
                         {mediaRequirement.format === 'VIDEO' && (
                           <video
@@ -578,22 +614,21 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
               </Card>
             )}
 
-            {/* Variables Section */}
-            {allVariables.length > 0 && (
+            {variableData.bodyVariables.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Template Variables</CardTitle>
+                  <CardTitle className="text-lg">Message Variables</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Alert>
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      Fill in the values for dynamic variables in your template.
+                      These variables will be used in your message body and header.
                     </AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {allVariables.map((variable) => {
+                    {variableData.bodyVariables.map((variable) => {
                       const key = variable.replace(/[{}]/g, '');
                       
                       return (
@@ -605,6 +640,7 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
                             </Badge>
                           </Label>
                           <Input                        
+                            placeholder={`Enter value for ${variable}`}
                             value={customizations.variables[key] || ''}
                             onChange={(e) => updateVariable(key, e.target.value)}
                           />
@@ -615,9 +651,53 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
                 </CardContent>
               </Card>
             )}
+
+            {variableData.urlButtonVariables.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <LinkIcon className="h-5 w-5" />
+                    Button URL Parameters
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      These parameters will be appended to button URLs.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {variableData.urlButtonVariables.map(({ variable, buttonIndex, buttonText }) => {
+                      const key = `url_button_${buttonIndex}_${variable.replace(/[{}]/g, '')}`;
+                      const button = template.components?.find(c => c.type === 'BUTTONS')?.buttons?.[buttonIndex];
+                      
+                      return (
+                        <div key={key} className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {buttonText} - URL Parameter
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {variable}
+                            </Badge>
+                          </Label>
+                          <Input                        
+                            placeholder={`Enter URL parameter value`}
+                            value={customizations.urlButtonVariables[key] || ''}
+                            onChange={(e) => updateUrlButtonVariable(key, e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Will be appended to: {button?.url}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Template Preview */}
           <div className="space-y-4">
             <Card>
               <CardHeader>
@@ -638,14 +718,11 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
                             {mediaRequirement.required && customizations.mediaPreview && (
                               <div className="bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
                                 {mediaRequirement.format === 'IMAGE' && (
-                                  <>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                      src={customizations.mediaPreview}
-                                      alt="Header"
-                                      className="w-full max-h-32 object-cover"
-                                    />
-                                  </>
+                                  <img
+                                    src={customizations.mediaPreview}
+                                    alt="Header"
+                                    className="w-full max-h-32 object-cover"
+                                  />
                                 )}
                                 {mediaRequirement.format === 'VIDEO' && (
                                   <video
@@ -688,6 +765,11 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
                                 <span className="text-blue-600 dark:text-blue-400 font-medium">
                                   {button.text}
                                 </span>
+                                {button.type === 'URL' && button.url && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {getPreviewText(button.url, true, buttonIndex)}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -705,7 +787,6 @@ const uploadMediaToMeta = async (file: File): Promise<string> => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
             Cancel
