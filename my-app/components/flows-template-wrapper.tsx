@@ -34,7 +34,7 @@ export default function FlowsTemplateWrapper({
   onBack,
   onSubmit
 }: FlowsTemplateWrapperProps) {
-  const [flowDetails, setFlowDetails] = useState<FlowDetails | null>(null);
+  const [loading, setLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   
   const fetchFlowDetails = async (flowId: string): Promise<FlowDetails | null> => {
