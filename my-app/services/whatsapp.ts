@@ -29,11 +29,12 @@ interface WhatsAppTemplate {
 }
 
 interface TemplateComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS' | 'CAROUSEL';
   format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
   text?: string;
   example?: any;
   buttons?: any[];
+  cards?: any[];
 }
 
 interface WhatsAppApiResponse<T> {
@@ -205,11 +206,9 @@ export class WhatsAppService {
             const mediaHandle = component.example.header_handle[0];
             
             formattedComponent.example = {
-              header_handle: [mediaHandle] // Always use uploadData.h from upload API response
+              header_handle: [mediaHandle]
             };
           } else {
-            // This should not happen in normal flow - media headers without handles
-            // should trigger the customization dialog where users upload media
             throw new Error(`Media header component (${component.format}) requires a media handle. Please upload media first.`);
           }
         }
@@ -234,19 +233,46 @@ export class WhatsAppService {
         formattedComponent.text = component.text;
       }
 
+      // Handle CAROUSEL component
+      if (component.type === 'CAROUSEL' && component.cards) {
+        formattedComponent.cards = component.cards;
+      }
+
       // Handle BUTTONS component
       if (component.type === 'BUTTONS' && component.buttons) {
         formattedComponent.buttons = component.buttons.map((button: any) => {
           const formattedButton: any = {
-            type: button.type,
+            type: button.type.toLowerCase(), // Convert to lowercase for Meta API
             text: button.text
           };
 
-          if (button.type === 'PHONE_NUMBER' && button.phone_number) {
-            formattedButton.phone_number = button.phone_number;
+          // Handle FLOW buttons - CRITICAL: Preserve all fields
+          if (button.type === 'FLOW' || button.type === 'flow') {
+            formattedButton.type = 'flow';
+            // MUST preserve these fields for Flow buttons
+            if (button.flow_id) {
+              formattedButton.flow_id = button.flow_id;
+            }
+            if (button.flow_action) {
+              formattedButton.flow_action = button.flow_action;
+            }
+            if (button.navigate_screen) {
+              formattedButton.navigate_screen = button.navigate_screen;
+            }
+            return formattedButton;
           }
 
-          if (button.type === 'URL') {
+          // Handle PHONE_NUMBER buttons
+          if (button.type === 'PHONE_NUMBER' || button.type === 'phone_number') {
+            formattedButton.type = 'phone_number';
+            if (button.phone_number) {
+              formattedButton.phone_number = button.phone_number;
+            }
+          }
+
+          // Handle URL buttons
+          if (button.type === 'URL' || button.type === 'url') {
+            formattedButton.type = 'url';
             if (button.url) {
               formattedButton.url = button.url;
               
@@ -258,12 +284,14 @@ export class WhatsAppService {
             }
           }
 
-          if (button.type === 'QUICK_REPLY') {
-            // Quick reply buttons don't need additional properties
+          // Handle QUICK_REPLY buttons
+          if (button.type === 'QUICK_REPLY' || button.type === 'quick_reply') {
+            formattedButton.type = 'quick_reply';
           }
 
           // Handle OTP buttons for authentication templates
-          if (button.type === 'OTP') {
+          if (button.type === 'OTP' || button.type === 'otp') {
+            formattedButton.type = 'otp';
             formattedButton.otp_type = button.otp_type || 'COPY_CODE';
             if (button.otp_type === 'ONE_TAP') {
               formattedButton.autofill_text = button.autofill_text || 'Autofill';
@@ -290,8 +318,6 @@ export class WhatsAppService {
       }
 
       const apiUrl = `/api/channels/whatsapp/org/${organizationId}`;
-      
-   
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -570,7 +596,7 @@ export class WhatsAppService {
       template: {
         name: templateName,
         language: {
-          code: languageCode // Use the language code as provided
+          code: languageCode
         }
       }
     };
