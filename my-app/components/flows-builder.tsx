@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Save,
   ChevronLeft,
@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 import type { FlowJSON } from '@/types/flows';
 
 interface FlowsBuilderProps {
-  onComplete: (flowJSON: FlowJSON, flowId: string) => Promise<boolean>;
+  onComplete: (flowId: string, selectedScreenId: string) => Promise<boolean>;
   onBack: () => void;
   templateName: string;
   category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
@@ -70,84 +70,94 @@ export default function FlowsBuilder({
     }
   }, [selectedFlowId]);
 
-  const fetchMetaFlows = async () => {
-    if (!appService?.whatsapp_business_account_id || !appService?.access_token) {
-      toast.error('WhatsApp Business Account not configured');
-      return;
+  const fetchMetaFlows = useCallback(async () => {
+  if (!appService?.whatsapp_business_account_id || !appService?.access_token) {
+    toast.error('WhatsApp Business Account not configured');
+    return;
+  }
+
+  setLoadingFlows(true);
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v21.0/${appService.whatsapp_business_account_id}/flows?fields=id,name,status,categories&access_token=${appService.access_token}`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch flows');
     }
 
-    setLoadingFlows(true);
-    try {
-      const response = await fetch(
-        `https://graph.facebook.com/v21.0/${appService.whatsapp_business_account_id}/flows?fields=id,name,status,categories&access_token=${appService.access_token}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch flows');
-      }
-
-      const data = await response.json();
-      const publishedFlows = (data.data || []).filter((flow: MetaFlow) => flow.status === 'PUBLISHED');
-      
-      setAvailableFlows(publishedFlows);
-      
-      if (publishedFlows.length > 0) {
-        setSelectedFlowId(publishedFlows[0].id);
-        toast.success(`Found ${publishedFlows.length} published flow(s)`);
-      } else {
-        toast.info('No published flows found. Publish a flow in Meta Business Manager first.');
-      }
-    } catch (error) {
-      console.error('Error fetching flows:', error);
-      toast.error('Failed to load flows from Meta');
-    } finally {
-      setLoadingFlows(false);
+    const data = await response.json();
+    const publishedFlows = (data.data || []).filter((flow: MetaFlow) => flow.status === 'PUBLISHED');
+    
+    setAvailableFlows(publishedFlows);
+    
+    if (publishedFlows.length > 0) {
+      setSelectedFlowId(publishedFlows[0].id);
+      toast.success(`Found ${publishedFlows.length} published flow(s)`);
+    } else {
+      toast.info('No published flows found. Publish a flow in Meta Business Manager first.');
     }
-  };
+  } catch (error) {
+    console.error('Error fetching flows:', error);
+    toast.error('Failed to load flows from Meta');
+  } finally {
+    setLoadingFlows(false);
+  }
+}, [appService]);
 
-  const fetchFlowScreens = async (flowId: string) => {
-    if (!appService?.access_token) return;
+const fetchFlowScreens = useCallback(async (flowId: string) => {
+  if (!appService?.access_token) return;
 
-    setLoadingScreens(true);
-    try {
-      const response = await fetch(
-        `https://graph.facebook.com/v21.0/${flowId}?fields=id,name,preview.invalidate(false)&access_token=${appService.access_token}`
-      );
+  setLoadingScreens(true);
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v21.0/${flowId}?fields=id,name,preview.invalidate(false)&access_token=${appService.access_token}`
+    );
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch flow details');
-      }
+    if (!response.ok) {
+      throw new Error('Failed to fetch flow details');
+    }
 
-      const data = await response.json();
-      
-      // Parse screens from preview
-      let screens: FlowScreen[] = [];
-      if (data.preview?.preview) {
-        try {
-          const previewData = JSON.parse(data.preview.preview);
-          if (previewData.screens && Array.isArray(previewData.screens)) {
-            screens = previewData.screens.map((screen: any) => ({
-              id: screen.id,
-              title: screen.title || screen.id,
-              terminal: screen.terminal
-            }));
-          }
-        } catch (e) {
-          console.error('Error parsing preview:', e);
+    const data = await response.json();
+    
+    // Parse screens from preview
+    let screens: FlowScreen[] = [];
+    if (data.preview?.preview) {
+      try {
+        const previewData = JSON.parse(data.preview.preview);
+        if (previewData.screens && Array.isArray(previewData.screens)) {
+          screens = previewData.screens.map((screen: any) => ({
+            id: screen.id,
+            title: screen.title || screen.id,
+            terminal: screen.terminal
+          }));
         }
+      } catch (e) {
+        console.error('Error parsing preview:', e);
       }
-
-      setFlowScreens(screens);
-      if (screens.length > 0) {
-        setSelectedScreenId(screens[0].id);
-      }
-    } catch (error) {
-      console.error('Error fetching flow screens:', error);
-      toast.error('Failed to load flow screens');
-    } finally {
-      setLoadingScreens(false);
     }
-  };
+
+    setFlowScreens(screens);
+    if (screens.length > 0) {
+      setSelectedScreenId(screens[0].id);
+    }
+  } catch (error) {
+    console.error('Error fetching flow screens:', error);
+    toast.error('Failed to load flow screens');
+  } finally {
+    setLoadingScreens(false);
+  }
+}, [appService]);
+
+useEffect(() => {
+  fetchMetaFlows();
+}, [fetchMetaFlows]);
+
+useEffect(() => {
+  if (selectedFlowId) {
+    fetchFlowScreens(selectedFlowId);
+  }
+}, [selectedFlowId, fetchFlowScreens]);
 
   const handleSave = async () => {
     if (!selectedFlowId) {
@@ -163,22 +173,10 @@ export default function FlowsBuilder({
     setIsSubmitting(true);
 
     try {
-      // Create a dummy flowJSON since the actual flow exists in Meta
-      const flowJSON: FlowJSON = {
-        version: '7.2',
-        screens: flowScreens.map(screen => ({
-          id: screen.id,
-          title: screen.title,
-          terminal: screen.terminal || false,
-          data: {},
-          layout: {
-            type: 'SingleColumnLayout',
-            children: []
-          }
-        }))
-      };
+      
 
-      await onComplete(flowJSON, selectedFlowId);
+      // Pass selectedScreenId as third parameter
+      await onComplete(selectedFlowId, selectedScreenId);
     } catch (error) {
       console.error('Error creating template:', error);
       toast.error('Failed to create flow template');
