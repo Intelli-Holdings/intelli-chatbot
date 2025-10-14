@@ -21,7 +21,8 @@ import {
   Loader2,
   Plus,
   Trash2,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Phone as PhoneIcon
 } from 'lucide-react';
 import { DefaultTemplate } from '@/data/default-templates';
 
@@ -37,6 +38,8 @@ interface CustomizeTemplateDialogProps {
 interface TemplateCustomizations {
   variables: { [key: string]: string };
   urlButtonVariables: { [key: string]: string };
+  phoneNumbers: { [key: string]: string }; // NEW: Store custom phone numbers
+  buttonUrls: { [key: string]: string }; // NEW: Store custom URLs
   mediaFile?: File;
   mediaPreview?: string;
 }
@@ -79,6 +82,8 @@ export function CustomizeTemplateDialog({
   const [customizations, setCustomizations] = useState<TemplateCustomizations>({
     variables: {},
     urlButtonVariables: {},
+    phoneNumbers: {},
+    buttonUrls: {},
     mediaFile: undefined,
     mediaPreview: undefined
   });
@@ -90,6 +95,8 @@ export function CustomizeTemplateDialog({
     if (template) {
       const variables: { [key: string]: string } = {};
       const urlButtonVariables: { [key: string]: string } = {};
+      const phoneNumbers: { [key: string]: string } = {};
+      const buttonUrls: { [key: string]: string } = {};
       
       // Extract body/header variables
       template.components?.forEach(component => {
@@ -104,21 +111,36 @@ export function CustomizeTemplateDialog({
         }
       });
 
-      // Extract URL button variables separately
+      // Extract button information
       const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
       buttonsComponent?.buttons?.forEach((button, buttonIndex) => {
-        if (button.type === 'URL' && button.url?.includes('{{')) {
-          const matches = button.url.match(/\{\{(\d+)\}\}/g) || [];
-          matches.forEach(match => {
-            const key = `url_button_${buttonIndex}_${match.replace(/[{}]/g, '')}`;
-            urlButtonVariables[key] = '';
-          });
+        // Phone number buttons
+        if (button.type === 'PHONE_NUMBER') {
+          const key = `phone_${buttonIndex}`;
+          phoneNumbers[key] = button.phone_number || '';
+        }
+        
+        // URL buttons
+        if (button.type === 'URL') {
+          const urlKey = `url_${buttonIndex}`;
+          buttonUrls[urlKey] = button.url || '';
+          
+          // URL variables
+          if (button.url?.includes('{{')) {
+            const matches = button.url.match(/\{\{(\d+)\}\}/g) || [];
+            matches.forEach(match => {
+              const key = `url_button_${buttonIndex}_${match.replace(/[{}]/g, '')}`;
+              urlButtonVariables[key] = '';
+            });
+          }
         }
       });
 
       setCustomizations({
         variables,
         urlButtonVariables,
+        phoneNumbers,
+        buttonUrls,
         mediaFile: undefined,
         mediaPreview: undefined
       });
@@ -214,6 +236,11 @@ export function CustomizeTemplateDialog({
   const bodyVariables = extractVariables(bodyText);
   const headerVariables = extractVariables(headerText);
 
+  // Get buttons for customization
+  const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
+  const phoneButtons = buttonsComponent?.buttons?.filter(b => b.type === 'PHONE_NUMBER') || [];
+  const urlButtons = buttonsComponent?.buttons?.filter(b => b.type === 'URL') || [];
+
   const updateVariable = (variableKey: string, value: string) => {
     setCustomizations(prev => ({
       ...prev,
@@ -229,6 +256,28 @@ export function CustomizeTemplateDialog({
       ...prev,
       urlButtonVariables: {
         ...prev.urlButtonVariables,
+        [key]: value
+      }
+    }));
+  };
+
+  const updatePhoneNumber = (key: string, value: string) => {
+    // Auto-format phone number
+    let cleanValue = value.replace(/\s/g, '');
+    setCustomizations(prev => ({
+      ...prev,
+      phoneNumbers: {
+        ...prev.phoneNumbers,
+        [key]: cleanValue
+      }
+    }));
+  };
+
+  const updateButtonUrl = (key: string, value: string) => {
+    setCustomizations(prev => ({
+      ...prev,
+      buttonUrls: {
+        ...prev.buttonUrls,
         [key]: value
       }
     }));
@@ -359,6 +408,30 @@ export function CustomizeTemplateDialog({
       return;
     }
 
+    // Validate phone numbers
+    buttonsComponent?.buttons?.forEach((button, index) => {
+      if (button.type === 'PHONE_NUMBER') {
+        const key = `phone_${index}`;
+        const phoneNumber = customizations.phoneNumbers[key];
+        if (!phoneNumber || !phoneNumber.trim()) {
+          toast.error(`Please enter phone number for "${button.text}" button`);
+          return;
+        }
+      }
+    });
+
+    // Validate button URLs
+    buttonsComponent?.buttons?.forEach((button, index) => {
+      if (button.type === 'URL') {
+        const key = `url_${index}`;
+        const url = customizations.buttonUrls[key];
+        if (!url || !url.trim()) {
+          toast.error(`Please enter URL for "${button.text}" button`);
+          return;
+        }
+      }
+    });
+
     setIsSubmitting(true);
 
     try {
@@ -390,6 +463,28 @@ export function CustomizeTemplateDialog({
           headerType = headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT';
         }
       }
+
+      // Apply custom phone numbers and URLs to buttons
+      const customizedButtons = buttonsComponent?.buttons?.map((button, index) => {
+        const customButton = { ...button };
+        
+        if (button.type === 'PHONE_NUMBER') {
+          const key = `phone_${index}`;
+          let phoneNumber = customizations.phoneNumbers[key] || button.phone_number || '';
+          // Ensure E.164 format
+          if (phoneNumber && !phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber;
+          }
+          customButton.phone_number = phoneNumber;
+        }
+        
+        if (button.type === 'URL') {
+          const key = `url_${index}`;
+          customButton.url = customizations.buttonUrls[key] || button.url || '';
+        }
+        
+        return customButton;
+      }) || [];
       
       const templateInputData = {
         name: template.name,
@@ -407,40 +502,30 @@ export function CustomizeTemplateDialog({
         bodyVariables: bodyVariables,
         footer: template.components?.find(c => c.type === 'FOOTER')?.text || '',
         buttonType: template.components?.find(c => c.type === 'BUTTONS') ? 'CALL_TO_ACTION' : 'NONE',
-        buttons: template.components?.find(c => c.type === 'BUTTONS')?.buttons || [],
+        buttons: customizedButtons, // Use customized buttons
         customVariableValues: customizations.variables
       };
 
       const formattedTemplate = TemplateCreationHandler.createTemplate(templateInputData);
 
       // CRITICAL SAFETY NET: Ensure examples are in correct Meta API format
-      // This provides a second layer of validation in case template-creator has issues
       formattedTemplate.components = formattedTemplate.components.map(component => {
         const originalComponent = template.components?.find(c => c.type === component.type);
         
         if (component.type === 'BODY') {
-          // Get all variables from the body text
           const componentBodyVariables = extractVariables(component.text);
           
-          // Always initialize example object for BODY component
           if (!component.example) component.example = {};
           
           if (componentBodyVariables.length > 0) {
-            // Create example values for all variables
             const bodyValues = componentBodyVariables.map(variable => {
               const key = variable.replace(/[{}]/g, '');
               return customizations.variables[key] || `Sample ${key}`;
             });
             
             // CRITICAL: body_text must be array of arrays [[value1, value2, ...]]
-            // Ensure it's nested even if template-creator already did this
-            if (Array.isArray(component.example.body_text) && !Array.isArray(component.example.body_text[0])) {
-              component.example.body_text = [component.example.body_text];
-            } else if (!component.example.body_text) {
-              component.example.body_text = [bodyValues];
-            }
+            component.example.body_text = [bodyValues];
           } else if (originalComponent?.example?.body_text) {
-            // No variables but original has example - ensure correct format
             const originalExample = originalComponent.example.body_text;
             if (Array.isArray(originalExample[0])) {
               component.example.body_text = originalExample;
@@ -448,7 +533,6 @@ export function CustomizeTemplateDialog({
               component.example.body_text = [originalExample];
             }
           } else {
-            // No variables and no original example - set empty nested array
             component.example.body_text = [[]];
           }
         }
@@ -461,14 +545,11 @@ export function CustomizeTemplateDialog({
             });
 
             if (!component.example) component.example = {};
-            // CRITICAL: header_text is just array [val1, val2] NOT nested
             component.example.header_text = headerValues;
           }
           
-          // Handle media headers
           if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format || '')) {
             if (!component.example) component.example = {};
-            // For media headers, header_handle is array [handle]
             if (headerMediaHandle) {
               component.example.header_handle = [headerMediaHandle];
             } else if (originalComponent?.example?.header_handle) {
@@ -481,7 +562,6 @@ export function CustomizeTemplateDialog({
 
         if (component.type === 'BUTTONS' && component.buttons) {
           component.buttons = component.buttons.map((button: any, btnIndex: number) => {
-            // CRITICAL: Ensure button types are uppercase
             if (button.type) {
               button.type = button.type.toUpperCase();
             }
@@ -491,10 +571,17 @@ export function CustomizeTemplateDialog({
               if (urlVariable) {
                 const key = `url_button_${btnIndex}_${urlVariable.replace(/[{}]/g, '')}`;
                 const exampleValue = customizations.urlButtonVariables[key] || 'default-value';
-                // URL button examples are simple array [value]
                 button.example = [exampleValue];
               }
             }
+
+            // CRITICAL: Ensure phone numbers have E.164 format
+            if (button.type === 'PHONE_NUMBER' && button.phone_number) {
+              if (!button.phone_number.startsWith('+')) {
+                button.phone_number = '+' + button.phone_number;
+              }
+            }
+            
             return button;
           });
         }
@@ -502,7 +589,6 @@ export function CustomizeTemplateDialog({
         return component;
       });
 
-      // Log the final template for debugging
       console.log('Final template being sent to API:', JSON.stringify(formattedTemplate, null, 2));
 
       try {
@@ -556,12 +642,13 @@ export function CustomizeTemplateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Customize Template: {template.name}</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Customization Fields */}
           <div className="space-y-6">
             {mediaRequirement.required && (
               <Card>
@@ -698,12 +785,115 @@ export function CustomizeTemplateDialog({
               </Card>
             )}
 
+            {/* NEW: Phone Number Customization */}
+            {phoneButtons.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <PhoneIcon className="h-5 w-5" />
+                    Phone Numbers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Customize phone numbers for call buttons. Must be in E.164 format (e.g., +15551234567).
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {phoneButtons.map((button, index) => {
+                      const actualIndex = buttonsComponent?.buttons?.findIndex(b => b === button) ?? index;
+                      const key = `phone_${actualIndex}`;
+                      
+                      return (
+                        <div key={key} className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {button.text} Button
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              Phone
+                            </Badge>
+                          </Label>
+                          <Input
+                            type="tel"
+                            placeholder="+15551234567"
+                            value={customizations.phoneNumbers[key] || ''}
+                            onChange={(e) => updatePhoneNumber(key, e.target.value)}
+                            onBlur={(e) => {
+                              let value = e.target.value.trim();
+                              if (value && !value.startsWith('+')) {
+                                value = '+' + value;
+                                updatePhoneNumber(key, value);
+                              }
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            E.164 format required. The + will be added automatically if missing.
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* NEW: URL Customization */}
+            {urlButtons.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <LinkIcon className="h-5 w-5" />
+                    Button URLs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Customize the URLs for your link buttons.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {urlButtons.map((button, index) => {
+                      const actualIndex = buttonsComponent?.buttons?.findIndex(b => b === button) ?? index;
+                      const key = `url_${actualIndex}`;
+                      
+                      return (
+                        <div key={key} className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {button.text} Button
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              URL
+                            </Badge>
+                          </Label>
+                          <Input
+                            type="url"
+                            placeholder="https://example.com"
+                            value={customizations.buttonUrls[key] || ''}
+                            onChange={(e) => updateButtonUrl(key, e.target.value)}
+                          />
+                          {button.url?.includes('{{') && (
+                            <p className="text-xs text-blue-600">
+                              Note: This URL contains variables. Fill them below.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {variableData.urlButtonVariables.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <LinkIcon className="h-5 w-5" />
-                    Button URL Parameters
+                    URL Parameters
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -722,18 +912,18 @@ export function CustomizeTemplateDialog({
                       return (
                         <div key={key} className="space-y-2">
                           <Label className="text-sm font-medium">
-                            {buttonText} - URL Parameter
+                            {buttonText} - Parameter
                             <Badge variant="outline" className="ml-2 text-xs">
                               {variable}
                             </Badge>
                           </Label>
                           <Input                        
-                            placeholder={`Enter URL parameter value`}
+                            placeholder={`Enter parameter value`}
                             value={customizations.urlButtonVariables[key] || ''}
                             onChange={(e) => updateUrlButtonVariable(key, e.target.value)}
                           />
                           <p className="text-xs text-muted-foreground">
-                            Will be appended to: {button?.url}
+                            Current URL: {button?.url}
                           </p>
                         </div>
                       );
@@ -744,85 +934,126 @@ export function CustomizeTemplateDialog({
             )}
           </div>
 
+          {/* Right Column - WhatsApp-Style Preview */}
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Template Preview</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  WhatsApp Preview
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-                  <div className="space-y-3">
-                    {template.components?.map((component, index) => (
-                      <div key={index}>
-                        {component.type === 'HEADER' && (
-                          <div className="space-y-2">
-                            {component.format === 'TEXT' && component.text && (
-                              <div className="font-semibold text-sm">
+                {/* WhatsApp chat background */}
+                <div className="bg-[#e5ddd5] dark:bg-gray-800 p-4 rounded-lg min-h-[400px]">
+                  {/* Message bubble - right side (business sending) */}
+                  <div className="flex justify-end mb-2">
+                    <div className="max-w-[85%]">
+                      <div className="bg-[#dcf8c6] dark:bg-green-900 rounded-lg shadow-md p-3 space-y-2">
+                        {/* Header */}
+                        {template.components?.map((component, index) => (
+                          <div key={index}>
+                            {component.type === 'HEADER' && (
+                              <div className="space-y-2">
+                                {component.format === 'TEXT' && component.text && (
+                                  <div className="font-semibold text-sm">
+                                    {getPreviewText(component.text)}
+                                  </div>
+                                )}
+                                {mediaRequirement.required && customizations.mediaPreview && (
+                                  <div className="rounded-md overflow-hidden -mx-1 -mt-1 mb-2">
+                                    {mediaRequirement.format === 'IMAGE' && (
+                                      <img
+                                        src={customizations.mediaPreview}
+                                        alt="Header"
+                                        className="w-full max-h-48 object-cover"
+                                      />
+                                    )}
+                                    {mediaRequirement.format === 'VIDEO' && (
+                                      <video
+                                        src={customizations.mediaPreview}
+                                        className="w-full max-h-48 object-cover"
+                                        muted
+                                      />
+                                    )}
+                                  </div>
+                                )}
+                                {mediaRequirement.required && !customizations.mediaPreview && (
+                                  <div className="bg-gray-200 dark:bg-gray-700 rounded-md p-8 flex items-center justify-center -mx-1 -mt-1 mb-2">
+                                    {mediaRequirement.format === 'IMAGE' && <ImageIcon className="h-8 w-8 text-muted-foreground" />}
+                                    {mediaRequirement.format === 'VIDEO' && <Video className="h-8 w-8 text-muted-foreground" />}
+                                    {mediaRequirement.format === 'DOCUMENT' && <FileText className="h-8 w-8 text-muted-foreground" />}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {component.type === 'BODY' && component.text && (
+                              <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
                                 {getPreviewText(component.text)}
                               </div>
                             )}
-                            {mediaRequirement.required && customizations.mediaPreview && (
-                              <div className="bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
-                                {mediaRequirement.format === 'IMAGE' && (
-                                  <img
-                                    src={customizations.mediaPreview}
-                                    alt="Header"
-                                    className="w-full max-h-32 object-cover"
-                                  />
-                                )}
-                                {mediaRequirement.format === 'VIDEO' && (
-                                  <video
-                                    src={customizations.mediaPreview}
-                                    className="w-full max-h-32 object-cover"
-                                    muted
-                                  />
-                                )}
+
+                            {component.type === 'FOOTER' && component.text && (
+                              <div className="text-xs text-gray-600 dark:text-gray-400 pt-1">
+                                {component.text}
                               </div>
                             )}
-                            {mediaRequirement.required && !customizations.mediaPreview && (
-                              <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-8 flex items-center justify-center">
-                                {mediaRequirement.format === 'IMAGE' && <ImageIcon className="h-8 w-8 text-muted-foreground" />}
-                                {mediaRequirement.format === 'VIDEO' && <Video className="h-8 w-8 text-muted-foreground" />}
-                                {mediaRequirement.format === 'DOCUMENT' && <FileText className="h-8 w-8 text-muted-foreground" />}
+
+                            {component.type === 'BUTTONS' && component.buttons && (
+                              <div className="pt-2 space-y-1">
+                                {component.buttons.map((button: any, buttonIndex: number) => {
+                                  let displayUrl = button.url || '';
+                                  let displayPhone = button.phone_number || '';
+                                  
+                                  // Get custom values
+                                  if (button.type === 'PHONE_NUMBER') {
+                                    const key = `phone_${buttonIndex}`;
+                                    displayPhone = customizations.phoneNumbers[key] || displayPhone;
+                                  }
+                                  
+                                  if (button.type === 'URL') {
+                                    const key = `url_${buttonIndex}`;
+                                    displayUrl = customizations.buttonUrls[key] || displayUrl;
+                                    displayUrl = getPreviewText(displayUrl, true, buttonIndex);
+                                  }
+                                  
+                                  return (
+                                    <div 
+                                      key={buttonIndex}
+                                      className="border-t border-gray-300 dark:border-gray-600 px-3 py-2 text-center text-sm bg-white/50 dark:bg-black/20"
+                                    >
+                                      <span className="text-[#00a5f4] dark:text-blue-400 font-medium flex items-center justify-center gap-2">
+                                        {button.type === 'PHONE_NUMBER' && <PhoneIcon className="h-3 w-3" />}
+                                        {button.type === 'URL' && <LinkIcon className="h-3 w-3" />}
+                                        {button.text}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
-                        )}
+                        ))}
 
-                        {component.type === 'BODY' && component.text && (
-                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                            {getPreviewText(component.text)}
-                          </div>
-                        )}
-
-                        {component.type === 'FOOTER' && component.text && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-                            {component.text}
-                          </div>
-                        )}
-
-                        {component.type === 'BUTTONS' && component.buttons && (
-                          <div className="pt-2 space-y-1">
-                            {component.buttons.map((button: any, buttonIndex: number) => (
-                              <div 
-                                key={buttonIndex}
-                                className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-center text-sm bg-gray-50 dark:bg-gray-800"
-                              >
-                                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                  {button.text}
-                                </span>
-                               
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {/* WhatsApp message timestamp */}
+                        <div className="flex justify-end items-center gap-1 pt-1">
+                          <span className="text-[10px] text-gray-600 dark:text-gray-400">
+                            {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" viewBox="0 0 16 15" fill="none">
+                            <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="currentColor"/>
+                          </svg>
+                        </div>
                       </div>
-                    ))}
+                    </div>
                   </div>
+                </div>
 
-                  <div className="flex justify-end mt-3">
-                    <span className="text-xs text-gray-400">Template Preview</span>
-                  </div>
+                <div className="mt-4 text-xs text-muted-foreground space-y-1">
+                  <p>• This preview shows how your message will appear in WhatsApp</p>
+                  <p>• Messages from businesses appear on the right (green bubble)</p>
+                  <p>• Customize all fields on the left to see changes</p>
                 </div>
               </CardContent>
             </Card>

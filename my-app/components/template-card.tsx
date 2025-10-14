@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DefaultTemplate } from "@/data/default-templates"
 import { Eye, Plus, Sparkles, MessageCircle, FileText, Image as ImageIcon, Video, MapPin, Phone, Link, ChevronRight, NotebookPen } from "lucide-react"
-import { GearIcon } from "@radix-ui/react-icons"
 
 interface TemplateCardProps {
   template: DefaultTemplate
@@ -53,7 +52,13 @@ export function TemplateCard({ template, onPreview, onCreate, isCreating }: Temp
       return component.text && /\{\{\d+\}\}/.test(component.text);
     });
 
-    return hasVariables || false;
+    // Check for customizable buttons
+    const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
+    const hasCustomizableButtons = buttonsComponent?.buttons?.some(button => 
+      button.type === 'PHONE_NUMBER' || button.type === 'URL'
+    );
+
+    return hasVariables || hasCustomizableButtons || false;
   };
 
   const needsCustomization = requiresCustomization();
@@ -91,62 +96,71 @@ export function TemplateCard({ template, onPreview, onCreate, isCreating }: Temp
     }
 
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3 shadow-sm">
-        {/* WhatsApp-style message bubble */}
-        <div className="space-y-2">
-          {/* Header */}
-          {headerComponent && (
-            <div className="space-y-1">
-              {headerComponent.format === 'TEXT' && headerComponent.text && (
-                <div className="font-semibold text-sm">
-                  {formatText(headerComponent.text)}
+      <div className="bg-[#e5ddd5] dark:bg-gray-800 p-3 rounded-lg min-h-[200px]">
+        {/* Message bubble - right side (business sending) */}
+        <div className="flex justify-end">
+          <div className="max-w-[85%]">
+            <div className="bg-[#dcf8c6] dark:bg-green-900 rounded-lg shadow-sm p-2.5 space-y-2">
+              {/* Header */}
+              {headerComponent && (
+                <div className="space-y-1">
+                  {headerComponent.format === 'TEXT' && headerComponent.text && (
+                    <div className="font-semibold text-xs">
+                      {formatText(headerComponent.text)}
+                    </div>
+                  )}
+                  {headerComponent.format && headerComponent.format !== 'TEXT' && (
+                    <div className="bg-gray-200 dark:bg-gray-700 rounded-md p-6 flex items-center justify-center -mx-1 -mt-1 mb-1">
+                      {getHeaderIcon(headerComponent)}
+                    </div>
+                  )}
                 </div>
               )}
-              {headerComponent.format && headerComponent.format !== 'TEXT' && (
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-8 flex items-center justify-center">
-                  {getHeaderIcon(headerComponent)}
+
+              {/* Body */}
+              {bodyComponent && bodyComponent.text && (
+                <div className="text-xs text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                  {formatText(bodyComponent.text)}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Body */}
-          {bodyComponent && bodyComponent.text && (
-            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-              {formatText(bodyComponent.text)}
-            </div>
-          )}
-
-          {/* Footer */}
-          {footerComponent && footerComponent.text && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-              {footerComponent.text}
-            </div>
-          )}
-
-          {/* Buttons */}
-          {buttonsComponent && buttonsComponent.buttons && (
-            <div className="pt-2 space-y-1">
-              {buttonsComponent.buttons.map((button: any, index: number) => (
-                <div 
-                  key={index}
-                  className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-center text-sm flex items-center justify-center gap-2 bg-gray-50 dark:bg-gray-800"
-                >
-                  {button.type === 'PHONE_NUMBER' && <Phone className="h-3 w-3" />}
-                  {button.type === 'URL' && <Link className="h-3 w-3" />}
-                  {button.type === 'QUICK_REPLY' && <ChevronRight className="h-3 w-3" />}
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">
-                    {button.text}
-                  </span>
+              {/* Footer */}
+              {footerComponent && footerComponent.text && (
+                <div className="text-[10px] text-gray-600 dark:text-gray-400 pt-1">
+                  {footerComponent.text}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              )}
 
-        {/* Message metadata (WhatsApp style) */}
-        <div className="flex justify-end mt-2">
-          <span className="text-xs text-gray-400">Template Preview</span>
+              {/* Buttons */}
+              {buttonsComponent && buttonsComponent.buttons && (
+                <div className="pt-1 space-y-1">
+                  {buttonsComponent.buttons.map((button: any, index: number) => (
+                    <div 
+                      key={index}
+                      className="border-t border-gray-300 dark:border-gray-600 px-2 py-1.5 text-center text-xs flex items-center justify-center gap-1.5 bg-white/50 dark:bg-black/20"
+                    >
+                      {button.type === 'PHONE_NUMBER' && <Phone className="h-3 w-3 text-[#00a5f4] dark:text-blue-400" />}
+                      {button.type === 'URL' && <Link className="h-3 w-3 text-[#00a5f4] dark:text-blue-400" />}
+                      {button.type === 'QUICK_REPLY' && <ChevronRight className="h-3 w-3 text-[#00a5f4] dark:text-blue-400" />}
+                      <span className="text-[#00a5f4] dark:text-blue-400 font-medium">
+                        {button.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* WhatsApp message timestamp */}
+              <div className="flex justify-end items-center gap-0.5 pt-0.5">
+                <span className="text-[9px] text-gray-600 dark:text-gray-400">
+                  {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <svg className="w-3 h-3 text-gray-600 dark:text-gray-400" viewBox="0 0 16 15" fill="none">
+                  <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="currentColor"/>
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -179,15 +193,6 @@ export function TemplateCard({ template, onPreview, onCreate, isCreating }: Temp
 
       {/* Action Buttons */}
       <div className="flex gap-2 pt-3 border-t p-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => onPreview(template)}
-          className="flex-1"
-        >
-          <Eye className="h-4 w-4 mr-1.5" />
-          Preview
-        </Button>
         <Button 
           size="sm" 
           onClick={() => onCreate(template)}

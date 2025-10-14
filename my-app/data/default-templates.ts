@@ -37,14 +37,14 @@ export const defaultTemplates: DefaultTemplate[] = [
     "components": [
       {
         "type": "HEADER",
-        "format": "DOCUMENT",
+        "format": "IMAGE",
         "example": {
           "header_handle": [""]
         }
       },
       {
         "type": "BODY",
-        "text": "Thank you for your order, {{1}}! Your order number is #{{2}}. Tap the PDF linked above to view your receipt. If you have any questions, please use the buttons below to contact support. Thanks again!",
+        "text": "Thank you for your order, {{1}}! Your order number is #{{2}}. Tap the Image above to view your receipt. If you have any questions, please use the buttons below to contact support. Thanks again!",
         "example": {
           "body_text": [
             [
@@ -59,7 +59,7 @@ export const defaultTemplates: DefaultTemplate[] = [
           {
             "type": "PHONE_NUMBER",
             "text": "Call",
-            "phone_number": "16467043595"
+            "phone_number": "+16467043595"
           },
           {
             "type": "URL",

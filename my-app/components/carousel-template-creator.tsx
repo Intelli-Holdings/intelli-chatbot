@@ -285,6 +285,12 @@ export default function CarouselTemplateCreator({
       return false;
     }
 
+    // Message body should not be just spaces or special characters
+    if (!/[a-zA-Z0-9]/.test(messageBody)) {
+      toast.error('Message body must contain alphanumeric characters');
+      return false;
+    }
+
     // Check message body variables have example values
     const msgBodyVars = extractVariables(messageBody);
     for (const variable of msgBodyVars) {
@@ -295,10 +301,23 @@ export default function CarouselTemplateCreator({
       }
     }
 
+    // Validate minimum number of cards
+    if (cards.length < 2) {
+      toast.error('Minimum 2 cards required for carousel template');
+      return false;
+    }
+
     // Check all cards have media
     for (let i = 0; i < cards.length; i++) {
       if (!cards[i].headerMediaHandle) {
         toast.error(`Card ${i + 1}: Media upload required`);
+        setCurrentCardIndex(i);
+        return false;
+      }
+      
+      // Validate media handle format
+      if (!cards[i].headerMediaHandle.includes(':')) {
+        toast.error(`Card ${i + 1}: Invalid media handle format`);
         setCurrentCardIndex(i);
         return false;
       }
@@ -336,7 +355,7 @@ export default function CarouselTemplateCreator({
       }
     }
 
-    // Validate buttons
+    // Validate buttons thoroughly
     for (let i = 0; i < cards.length; i++) {
       for (let j = 0; j < cards[i].buttons.length; j++) {
         const button = cards[i].buttons[j];
@@ -347,9 +366,32 @@ export default function CarouselTemplateCreator({
           return false;
         }
 
+        if (button.text.trim().length > 25) {
+          toast.error(`Card ${i + 1}, Button ${j + 1}: Button text exceeds 25 characters`);
+          setCurrentCardIndex(i);
+          return false;
+        }
+
         if (button.type === 'URL') {
           if (!button.url || !button.url.trim()) {
             toast.error(`Card ${i + 1}, Button ${j + 1}: URL is required`);
+            setCurrentCardIndex(i);
+            return false;
+          }
+          
+          // Validate URL format
+          try {
+            const urlToValidate = button.url.replace('{{1}}', 'test');
+            new URL(urlToValidate);
+          } catch {
+            toast.error(`Card ${i + 1}, Button ${j + 1}: Invalid URL format`);
+            setCurrentCardIndex(i);
+            return false;
+          }
+          
+          // Check if URL is complete (not truncated)
+          if (button.url.length > 2000) {
+            toast.error(`Card ${i + 1}, Button ${j + 1}: URL exceeds 2000 characters`);
             setCurrentCardIndex(i);
             return false;
           }
@@ -366,6 +408,13 @@ export default function CarouselTemplateCreator({
         if (button.type === 'PHONE_NUMBER') {
           if (!button.phone_number || !button.phone_number.trim()) {
             toast.error(`Card ${i + 1}, Button ${j + 1}: Phone number is required`);
+            setCurrentCardIndex(i);
+            return false;
+          }
+          
+          // Validate phone number format (should start with +)
+          if (!button.phone_number.startsWith('+')) {
+            toast.error(`Card ${i + 1}, Button ${j + 1}: Phone number must start with +`);
             setCurrentCardIndex(i);
             return false;
           }
@@ -400,9 +449,10 @@ export default function CarouselTemplateCreator({
           return messageBodyVariables[key].trim(); // Ensure trimmed
         });
 
-        // According to Meta docs: if single variable, use string; else use array of arrays
+        // CRITICAL: Meta requires ARRAY OF ARRAYS format for body_text examples
+        // Even for single variable, wrap in nested array
         bodyComponent.example = {
-          body_text: msgBodyVars.length === 1 ? exampleValues[0] : [exampleValues]
+          body_text: [exampleValues]
         };
       }
 
@@ -438,8 +488,9 @@ export default function CarouselTemplateCreator({
                 return card.bodyVariables[key].trim();
               });
 
+              // CRITICAL: Always use nested array format [exampleValues] for card body too
               cardBodyComponent.example = {
-                body_text: cardBodyVars.length === 1 ? exampleValues[0] : [exampleValues]
+                body_text: [exampleValues]
               };
             }
 
@@ -487,13 +538,38 @@ export default function CarouselTemplateCreator({
         components
       };
 
+      // Comprehensive validation logging
+      console.log('=== CAROUSEL TEMPLATE VALIDATION ===');
+      console.log('✅ Template Name:', carouselData.name);
+      console.log('✅ Language:', carouselData.language);
+      console.log('✅ Category:', carouselData.category);
+      console.log('✅ Number of components:', components.length);
+      console.log('✅ First component type:', components[0].type);
+      console.log('✅ Message body present:', !!components[0].text);
+      console.log('✅ Message body content:', `"${components[0].text}"`);
+      console.log('✅ Message body length:', components[0].text.length);
+      console.log('✅ Has message body example:', !!components[0].example);
+      console.log('✅ Number of carousel cards:', components[1]?.cards?.length);
+      console.log('=== FULL TEMPLATE DATA ===');
       console.log('Carousel template data:', JSON.stringify(carouselData, null, 2));
+      console.log('=== END VALIDATION ===');
 
-      // Log validation check before sending
-      console.log('✅ Validation passed - Message body present:', !!messageBody.trim());
-      console.log('✅ Message body content:', messageBody.trim());
-
-      await onComplete(carouselData);
+      try {
+        await onComplete(carouselData);
+      } catch (error: any) {
+        console.error('❌ Template creation error:', error);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error details:', error);
+        
+        // Try to extract meaningful error from response
+        if (error.response) {
+          console.error('❌ API Response:', error.response);
+          console.error('❌ API Status:', error.response.status);
+          console.error('❌ API Data:', error.response.data);
+        }
+        
+        throw error;
+      }
     } catch (error) {
       console.error('Error creating carousel:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create carousel template');
@@ -530,7 +606,7 @@ export default function CarouselTemplateCreator({
       </Alert>
 
       {/* Message Body - CRITICAL SECTION */}
-      <Card className={!isMessageBodyValid ? 'border-2 border-red-300 bg-red-50/50' : 'border-2 border-green-300 bg-green-50/50'}>
+      <Card className='border-1 border-gray-100'>
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-between">
             <span className="flex items-center gap-2">
@@ -545,11 +621,11 @@ export default function CarouselTemplateCreator({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert variant={!isMessageBodyValid ? "destructive" : "default"}>
+          <Alert variant={!isMessageBodyValid ? "warning" : "default"}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-xs">
               {!isMessageBodyValid 
-                ? '⚠️ This field is REQUIRED by Meta. Enter at least 10 characters. This text will appear at the top, before your carousel cards.'
+                ? '⚠️ This field is required. Enter at least 10 characters.'
                 : '✅ Message body is valid. This text will appear above your carousel cards.'}
             </AlertDescription>
           </Alert>
@@ -563,7 +639,7 @@ export default function CarouselTemplateCreator({
               rows={4}
               maxLength={1024}
               required
-              className={!isMessageBodyValid ? 'border-red-300 focus:border-red-500' : 'border-green-300'}
+              className={!isMessageBodyValid ? 'border-yellow-300 focus:border-yellow-500' : 'border-green-300'}
             />
             <div className="flex justify-between items-center">
               <p className="text-xs text-muted-foreground">
@@ -610,16 +686,6 @@ export default function CarouselTemplateCreator({
           )}
         </CardContent>
       </Card>
-
-      {/* Warning if message body not filled */}
-      {!canProceedToCards && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Complete the message body first!</strong> Meta requires a message body (min 10 characters) that appears above the carousel. Fill in the section above to continue.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Card Navigation - disabled if message body not valid */}
       <div className="flex items-center justify-between">
@@ -930,7 +996,7 @@ export default function CarouselTemplateCreator({
 
       {/* Validation Warnings */}
       {!isMessageBodyValid && (
-        <Alert variant="destructive">
+        <Alert variant="info">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <strong>⚠️ Message body must be completed first!</strong> Meta API requires a message body (min 10 characters) before creating carousel templates.
@@ -939,7 +1005,7 @@ export default function CarouselTemplateCreator({
       )}
 
       {cards.some(c => !c.headerMediaHandle) && (
-        <Alert variant="warning">
+        <Alert variant="info">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-xs">
             All cards must have media uploaded before creating the template
