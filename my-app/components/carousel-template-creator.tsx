@@ -14,7 +14,6 @@ import {
   Info, Image as ImageIcon, Video, Trash2, AlertCircle, Loader2 
 } from 'lucide-react';
 import { toast } from 'sonner';
-import Image from 'next/image';
 
 interface CarouselCard {
   id: string;
@@ -274,9 +273,15 @@ export default function CarouselTemplateCreator({
   };
 
   const validateCarousel = (): boolean => {
-    // Check message body
+    // CRITICAL: Check message body (appears above carousel) - REQUIRED by Meta API
     if (!messageBody || !messageBody.trim()) {
-      toast.error('Message body is required');
+      toast.error('❌ Message body is required! This text appears above the carousel.');
+      return false;
+    }
+
+    // Message body must have meaningful content (at least 10 characters)
+    if (messageBody.trim().length < 10) {
+      toast.error('Message body must be at least 10 characters long');
       return false;
     }
 
@@ -380,25 +385,28 @@ export default function CarouselTemplateCreator({
       // Build components array according to Meta's API format
       const components: any[] = [];
 
-      // Body component with variables
+      // CRITICAL: Body component MUST be first and is REQUIRED by Meta API
+      // This is the main message that appears ABOVE the carousel
       const bodyComponent: any = {
         type: 'body',
-        text: messageBody
+        text: messageBody.trim() // Ensure trimmed
       };
 
-      // Add message body variable examples
+      // Add message body variable examples (if any)
       const msgBodyVars = extractVariables(messageBody);
       if (msgBodyVars.length > 0) {
         const exampleValues = msgBodyVars.map(variable => {
           const key = variable.replace(/[{}]/g, '');
-          return messageBodyVariables[key];
+          return messageBodyVariables[key].trim(); // Ensure trimmed
         });
 
+        // According to Meta docs: if single variable, use string; else use array of arrays
         bodyComponent.example = {
           body_text: msgBodyVars.length === 1 ? exampleValues[0] : [exampleValues]
         };
       }
 
+      // Add body component first (REQUIRED)
       components.push(bodyComponent);
 
       // Carousel component
@@ -407,7 +415,7 @@ export default function CarouselTemplateCreator({
         cards: cards.map(card => {
           const cardComponents: any[] = [];
 
-          // Header component
+          // Header component (image/video)
           cardComponents.push({
             type: 'header',
             format: card.headerMediaType.toLowerCase(),
@@ -416,18 +424,18 @@ export default function CarouselTemplateCreator({
             }
           });
 
-          // Body component (optional)
+          // Body component (optional for cards)
           if (card.bodyText && card.bodyText.trim()) {
             const cardBodyComponent: any = {
               type: 'body',
-              text: card.bodyText
+              text: card.bodyText.trim()
             };
 
             const cardBodyVars = extractVariables(card.bodyText);
             if (cardBodyVars.length > 0) {
               const exampleValues = cardBodyVars.map(variable => {
                 const key = variable.replace(/[{}]/g, '');
-                return card.bodyVariables[key];
+                return card.bodyVariables[key].trim();
               });
 
               cardBodyComponent.example = {
@@ -445,16 +453,16 @@ export default function CarouselTemplateCreator({
               buttons: card.buttons.map(button => {
                 const btnData: any = {
                   type: button.type.toLowerCase(),
-                  text: button.text
+                  text: button.text.trim()
                 };
 
                 if (button.type === 'URL') {
-                  btnData.url = button.url;
+                  btnData.url = button.url?.trim();
                   if (button.url?.includes('{{1}}') && button.urlVariable) {
-                    btnData.example = [button.urlVariable];
+                    btnData.example = [button.urlVariable.trim()];
                   }
                 } else if (button.type === 'PHONE_NUMBER') {
-                  btnData.phone_number = button.phone_number;
+                  btnData.phone_number = button.phone_number?.trim();
                 }
 
                 return btnData;
@@ -481,6 +489,10 @@ export default function CarouselTemplateCreator({
 
       console.log('Carousel template data:', JSON.stringify(carouselData, null, 2));
 
+      // Log validation check before sending
+      console.log('✅ Validation passed - Message body present:', !!messageBody.trim());
+      console.log('✅ Message body content:', messageBody.trim());
+
       await onComplete(carouselData);
     } catch (error) {
       console.error('Error creating carousel:', error);
@@ -492,6 +504,10 @@ export default function CarouselTemplateCreator({
 
   const messageBodyVars = extractVariables(messageBody);
   const currentCardBodyVars = extractVariables(currentCard.bodyText);
+  
+  // Check if message body is filled (for UI feedback)
+  const isMessageBodyValid = messageBody.trim().length >= 10;
+  const canProceedToCards = isMessageBodyValid;
 
   return (
     <div className="space-y-6">
@@ -509,44 +525,72 @@ export default function CarouselTemplateCreator({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription className="text-xs">
-          Carousel templates: 2-10 cards with images/videos. All cards must have the same structure. Use variables like {`{{1}}`}, {`{{2}}`} for dynamic content.
+          <strong>Important:</strong> Carousel templates require a message body that appears ABOVE the carousel. This is different from the individual card body text. Min 2-10 cards, all cards must have same structure.
         </AlertDescription>
       </Alert>
 
-      {/* Message Body */}
-      <Card>
+      {/* Message Body - CRITICAL SECTION */}
+      <Card className={!isMessageBodyValid ? 'border-2 border-red-300 bg-red-50/50' : 'border-2 border-green-300 bg-green-50/50'}>
         <CardHeader>
-          <CardTitle className="text-lg">Message Body (appears above carousel) *</CardTitle>
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              📝 Message Body (Required - Appears Above Carousel)
+              <span className="text-red-500">*</span>
+            </span>
+            {isMessageBodyValid && (
+              <Badge variant="outline" className="text-green-600 bg-green-100">
+                ✓ Valid
+              </Badge>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert variant={!isMessageBodyValid ? "destructive" : "default"}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              {!isMessageBodyValid 
+                ? '⚠️ This field is REQUIRED by Meta. Enter at least 10 characters. This text will appear at the top, before your carousel cards.'
+                : '✅ Message body is valid. This text will appear above your carousel cards.'}
+            </AlertDescription>
+          </Alert>
+
           <div className="space-y-2">
             <Textarea
               id="message-body"
-              placeholder="Check out these amazing products {{1}}! Use code {{2}} for discount."
+              placeholder="Rare succulents for sale! {{1}}, add these unique plants to your collection. Use code {{2}} for discount!"
               value={messageBody}
               onChange={(e) => handleMessageBodyChange(e.target.value)}
-              rows={3}
+              rows={4}
               maxLength={1024}
+              required
+              className={!isMessageBodyValid ? 'border-red-300 focus:border-red-500' : 'border-green-300'}
             />
-            <p className="text-xs text-muted-foreground">
-              {messageBody.length}/1024 characters • Use {`{{1}}`}, {`{{2}}`}, etc. for variables
-            </p>
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-muted-foreground">
+                Use {`{{1}}`}, {`{{2}}`}, etc. for variables
+              </p>
+              <p className={`text-xs font-medium ${messageBody.length < 10 ? 'text-red-500' : messageBody.length > 900 ? 'text-orange-500' : 'text-green-600'}`}>
+                {messageBody.length}/1024 characters {messageBody.length < 10 && '(min 10 required)'}
+              </p>
+            </div>
           </div>
 
           {/* Message Body Variable Examples */}
           {messageBodyVars.length > 0 && (
             <div className="space-y-3 pt-3 border-t">
-              <Label className="text-sm font-medium">Variable Examples</Label>
+              <Label className="text-sm font-medium">Variable Examples (Required)</Label>
               <div className="grid gap-3">
                 {messageBodyVars.map((variable) => {
                   const key = variable.replace(/[{}]/g, '');
+                  const hasValue = messageBodyVariables[key]?.trim();
                   return (
                     <div key={variable} className="space-y-2">
-                      <Label className="text-sm">
+                      <Label className="text-sm flex items-center gap-2">
                         Variable {key}
-                        <Badge variant="outline" className="ml-2 text-xs">
+                        <Badge variant="outline" className="text-xs">
                           {variable}
                         </Badge>
+                        {!hasValue && <span className="text-red-500 text-xs">* Required</span>}
                       </Label>
                       <Input
                         placeholder={`Example value for ${variable}`}
@@ -555,6 +599,8 @@ export default function CarouselTemplateCreator({
                           ...prev,
                           [key]: e.target.value
                         }))}
+                        required
+                        className={!hasValue ? 'border-red-300' : ''}
                       />
                     </div>
                   );
@@ -565,7 +611,17 @@ export default function CarouselTemplateCreator({
         </CardContent>
       </Card>
 
-      {/* Card Navigation */}
+      {/* Warning if message body not filled */}
+      {!canProceedToCards && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Complete the message body first!</strong> Meta requires a message body (min 10 characters) that appears above the carousel. Fill in the section above to continue.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Card Navigation - disabled if message body not valid */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Label>Card {currentCardIndex + 1} of {cards.length}</Label>
@@ -573,7 +629,7 @@ export default function CarouselTemplateCreator({
             variant="outline"
             size="sm"
             onClick={() => setCurrentCardIndex(Math.max(0, currentCardIndex - 1))}
-            disabled={currentCardIndex === 0}
+            disabled={currentCardIndex === 0 || !canProceedToCards}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -581,7 +637,7 @@ export default function CarouselTemplateCreator({
             variant="outline"
             size="sm"
             onClick={() => setCurrentCardIndex(Math.min(cards.length - 1, currentCardIndex + 1))}
-            disabled={currentCardIndex === cards.length - 1}
+            disabled={currentCardIndex === cards.length - 1 || !canProceedToCards}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -589,7 +645,12 @@ export default function CarouselTemplateCreator({
         
         <div className="flex gap-2">
           {cards.length < 10 && (
-            <Button variant="outline" size="sm" onClick={addCard}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={addCard}
+              disabled={!canProceedToCards}
+            >
               <Plus className="h-4 w-4 mr-1" />
               Add Card
             </Button>
@@ -599,6 +660,7 @@ export default function CarouselTemplateCreator({
               variant="destructive" 
               size="sm" 
               onClick={() => removeCard(currentCardIndex)}
+              disabled={!canProceedToCards}
             >
               <Trash2 className="h-4 w-4 mr-1" />
               Remove
@@ -608,10 +670,10 @@ export default function CarouselTemplateCreator({
       </div>
 
       {/* Current Card Editor */}
-      <Card>
+      <Card className={!canProceedToCards ? 'opacity-50 pointer-events-none' : ''}>
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-between">
-            <span>Card {currentCardIndex + 1}</span>
+            <span>Card {currentCardIndex + 1} Content</span>
             {currentCard.headerMediaHandle && (
               <Badge variant="outline" className="text-xs text-green-600">
                 ✓ Media Uploaded
@@ -674,12 +736,10 @@ export default function CarouselTemplateCreator({
             {currentCard.headerMediaFile ? (
               <div className="space-y-2">
                 {currentCard.headerMediaPreview && currentCard.headerMediaType === 'IMAGE' && (
-                  <Image 
+                  <img 
                     src={currentCard.headerMediaPreview} 
                     alt="Preview" 
                     className="w-full h-48 object-cover rounded-lg"
-                    width={400}
-                    height={200}
                   />
                 )}
                 <div className="flex items-center justify-between p-3 border rounded-lg">
@@ -745,14 +805,14 @@ export default function CarouselTemplateCreator({
             </Label>
             <Textarea
               id={`body-${currentCardIndex}`}
-              placeholder="Product description with {{1}} variable"
+              placeholder="Add a touch of elegance with {{1}} succulent"
               value={currentCard.bodyText}
               onChange={(e) => handleCardBodyChange(e.target.value)}
               rows={3}
               maxLength={160}
             />
             <p className="text-xs text-muted-foreground">
-              {currentCard.bodyText.length}/160 characters • All cards must have same structure
+              {currentCard.bodyText.length}/160 characters • If one card has body text, all must have it
             </p>
           </div>
 
@@ -845,7 +905,7 @@ export default function CarouselTemplateCreator({
                         <div className="space-y-2">
                           <Label className="text-xs">URL Variable Example</Label>
                           <Input
-                            placeholder="Example: product-123"
+                            placeholder="Example: blue-elf"
                             value={button.urlVariable || ''}
                             onChange={(e) => updateButton(btnIndex, { urlVariable: e.target.value })}
                           />
@@ -869,6 +929,15 @@ export default function CarouselTemplateCreator({
       </Card>
 
       {/* Validation Warnings */}
+      {!isMessageBodyValid && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>⚠️ Message body must be completed first!</strong> Meta API requires a message body (min 10 characters) before creating carousel templates.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {cards.some(c => !c.headerMediaHandle) && (
         <Alert variant="warning">
           <AlertCircle className="h-4 w-4" />
@@ -883,7 +952,10 @@ export default function CarouselTemplateCreator({
         <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button onClick={handleComplete} disabled={isSubmitting || isUploadingMedia}>
+        <Button 
+          onClick={handleComplete} 
+          disabled={isSubmitting || isUploadingMedia || !isMessageBodyValid}
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
