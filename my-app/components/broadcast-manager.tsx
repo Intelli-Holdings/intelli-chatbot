@@ -742,12 +742,19 @@ export default function BroadcastManager({
                   <SelectTrigger id="template-select">
                     <SelectValue placeholder="Choose a template" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px]">
                     {approvedTemplates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
-                        {template.name} ({template.category})
-                        {hasLocationHeader(template) && " 📍"}
-                      </SelectItem>
+                        <div className="flex items-center gap-2">
+                          <span>{template.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {template.category}
+                          </Badge>
+                          {hasLocationHeader(template) && (
+                              <span className="text-sm">📍</span>
+                            )}
+                          </div>
+                        </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -910,19 +917,36 @@ export default function BroadcastManager({
           </CardContent>
         </Card>
 
-        {/* WhatsApp Preview */}
-        <Card className="p-0 overflow-hidden">
-          <CardContent className="p-0">
-            {selectedTemplate ? (
-              renderWhatsAppPreview(selectedTemplate)
-            ) : (
-              <div className="text-center p-12 text-muted-foreground bg-gray-50">
-                <MessageSquare className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                Select a template to see preview
+        {/* WhatsApp Preview - Sticky with scroll */}
+        <div className="lg:sticky lg:top-6 h-fit">
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <span>Live Preview</span>
+                {selectedTemplate && (
+                  <Badge variant="outline" className="text-xs">
+                    {selectedTemplate.name}
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-[600px] overflow-y-auto">
+                {selectedTemplate ? (
+                  renderWhatsAppPreview(selectedTemplate)
+                ) : (
+                  <div className="text-center p-12 text-muted-foreground bg-gray-50">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <p className="font-medium mb-1">No template selected</p>
+                    <p className="text-sm">
+                      Select a template to see the preview
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Template Preview Dialog */}
