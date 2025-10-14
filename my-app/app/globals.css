@@ -2,6 +2,7 @@
 @import "slick-carousel/slick/slick-theme.css";
 @import 'katex/dist/katex.min.css';
 @import "react-phone-number-input/style.css";
+@import 'reactflow/dist/style.css';
 
 @tailwind base;
 @tailwind components;

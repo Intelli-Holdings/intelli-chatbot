@@ -170,8 +170,12 @@ export class WhatsAppService {
     return variations;
   }
 
- 
-   static formatTemplateComponents(components: any[]): any[] {
+  /**
+   * Format template components for Meta API
+   * CRITICAL: This method must preserve the exact format from template-creator.ts
+   * DO NOT modify examples, button types, or array structures
+   */
+  static formatTemplateComponents(components: any[]): any[] {
     return components.map(component => {
       const formattedComponent: any = {
         type: component.type
@@ -193,11 +197,10 @@ export class WhatsAppService {
         if (component.format === 'TEXT' && component.text) {
           formattedComponent.text = component.text;
           
-          // Add example if the text contains variables
-          const variableMatches = component.text.match(/\{\{(\d+)\}\}/g);
-          if (variableMatches) {
+          // CRITICAL: Preserve existing example if provided
+          if (component.example?.header_text) {
             formattedComponent.example = {
-              header_text: variableMatches.map(() => '')
+              header_text: component.example.header_text
             };
           }
         } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format)) {
@@ -215,15 +218,38 @@ export class WhatsAppService {
       }
 
       // Handle BODY component
-      if (component.type === 'BODY' && component.text) {
-        formattedComponent.text = component.text;
+      // CRITICAL: Preserve the exact example format from template-creator.ts
+      if (component.type === 'BODY') {
+        if (component.text) {
+          formattedComponent.text = component.text;
+        }
         
-        // Extract variables and create proper example structure
-        const variableMatches = component.text.match(/\{\{(\d+)\}\}/g);
-        if (variableMatches && variableMatches.length > 0) {
-          const exampleValues = variableMatches.map((_: any, index: number) => `value${index + 1}`);
+        // CRITICAL: Preserve existing example exactly as provided
+        // DO NOT regenerate or modify the example values
+        if (component.example?.body_text) {
+          // Ensure body_text is in nested array format [[...]]
+          const bodyText = component.example.body_text;
+          
+          // If it's already nested correctly, use as-is
+          if (Array.isArray(bodyText) && Array.isArray(bodyText[0])) {
+            formattedComponent.example = {
+              body_text: bodyText
+            };
+          } else if (Array.isArray(bodyText)) {
+            // If it's a flat array, nest it
+            formattedComponent.example = {
+              body_text: [bodyText]
+            };
+          } else {
+            // Fallback to empty nested array
+            formattedComponent.example = {
+              body_text: [[]]
+            };
+          }
+        } else {
+          // If no example provided, create empty nested array
           formattedComponent.example = {
-            body_text: exampleValues
+            body_text: [[]]
           };
         }
       }
@@ -239,16 +265,20 @@ export class WhatsAppService {
       }
 
       // Handle BUTTONS component
+      // CRITICAL: Button types MUST remain uppercase for Meta API
       if (component.type === 'BUTTONS' && component.buttons) {
         formattedComponent.buttons = component.buttons.map((button: any) => {
+          // CRITICAL FIX: Keep button types in UPPERCASE (Meta API accepts both, but we standardize on uppercase)
+          // Normalize the type to uppercase for consistency
+          const buttonType = button.type.toString().toUpperCase();
+          
           const formattedButton: any = {
-            type: button.type.toLowerCase(), // Convert to lowercase for Meta API
+            type: buttonType,
             text: button.text
           };
 
           // Handle FLOW buttons - CRITICAL: Preserve all fields
-          if (button.type === 'FLOW' || button.type === 'flow') {
-            formattedButton.type = 'flow';
+          if (buttonType === 'FLOW') {
             // MUST preserve these fields for Flow buttons
             if (button.flow_id) {
               formattedButton.flow_id = button.flow_id;
@@ -263,36 +293,38 @@ export class WhatsAppService {
           }
 
           // Handle PHONE_NUMBER buttons
-          if (button.type === 'PHONE_NUMBER' || button.type === 'phone_number') {
-            formattedButton.type = 'phone_number';
+          if (buttonType === 'PHONE_NUMBER') {
             if (button.phone_number) {
               formattedButton.phone_number = button.phone_number;
             }
           }
 
           // Handle URL buttons
-          if (button.type === 'URL' || button.type === 'url') {
-            formattedButton.type = 'url';
+          if (buttonType === 'URL') {
             if (button.url) {
               formattedButton.url = button.url;
               
-              // Check for dynamic URL parameters
-              const urlVariables = button.url.match(/\{\{(\d+)\}\}/g);
-              if (urlVariables) {
-                formattedButton.example = urlVariables.map(() => 'parameter');
+              // CRITICAL: Preserve existing example if provided
+              if (button.example && Array.isArray(button.example)) {
+                formattedButton.example = button.example;
               }
             }
           }
 
           // Handle QUICK_REPLY buttons
-          if (button.type === 'QUICK_REPLY' || button.type === 'quick_reply') {
-            formattedButton.type = 'quick_reply';
+          if (buttonType === 'QUICK_REPLY') {
+            // Quick reply buttons only need type and text
           }
 
           // Handle OTP buttons for authentication templates
-          if (button.type === 'OTP' || button.type === 'otp') {
-            formattedButton.type = 'otp';
-            formattedButton.otp_type = button.otp_type || 'COPY_CODE';
+          if (buttonType === 'OTP' || buttonType === 'COPY_CODE') {
+            formattedButton.type = 'COPY_CODE';
+            if (button.otp_type) {
+              formattedButton.otp_type = button.otp_type;
+            }
+            if (button.example) {
+              formattedButton.example = button.example;
+            }
             if (button.otp_type === 'ONE_TAP') {
               formattedButton.autofill_text = button.autofill_text || 'Autofill';
               formattedButton.package_name = button.package_name || 'com.example.app';
@@ -370,6 +402,7 @@ export class WhatsAppService {
 
   /**
    * Create a new WhatsApp template with proper formatting
+   * CRITICAL: This method must NOT modify the template structure
    */
   static async createTemplate(
     appService: AppService,
@@ -387,6 +420,14 @@ export class WhatsAppService {
         category: templateData.category || 'UTILITY',
         components: this.formatTemplateComponents(templateData.components || [])
       };
+
+      // Add authentication-specific fields if present
+      if (templateData.add_security_recommendation !== undefined) {
+        (formattedData as any).add_security_recommendation = templateData.add_security_recommendation;
+      }
+      if (templateData.code_expiration_minutes !== undefined) {
+        (formattedData as any).code_expiration_minutes = templateData.code_expiration_minutes;
+      }
 
       console.log('Creating template with formatted data:', JSON.stringify(formattedData, null, 2));
       

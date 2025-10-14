@@ -31,88 +31,97 @@ export interface DefaultTemplate {
 export const defaultTemplates: DefaultTemplate[] = [
   // UTILITY TEMPLATES
   {
-    id: 'customer-support',
-    name: 'Customer Support Response',
-    category: 'UTILITY',
-    description: 'Respond to customer support inquiries',
-    language: 'en_US',
-    components: [
+    "name": "order_confirmation",
+    "language": "en_US",
+    "category": "UTILITY",
+    "components": [
       {
-        type: 'BODY',
-        text: 'Hi {{1}}, thank you for contacting our support team.\n\nTicket ID: {{2}}\nIssue: {{3}}\n\nOur team is reviewing your request and will get back to you within 24 hours.',
-        example: {
-          body_text: [['John Doe', 'TICKET-789', 'Product inquiry']]
+        "type": "HEADER",
+        "format": "DOCUMENT",
+        "example": {
+          "header_handle": [""]
         }
       },
       {
-        type: 'BUTTONS',
-        buttons: [
+        "type": "BODY",
+        "text": "Thank you for your order, {{1}}! Your order number is #{{2}}. Tap the PDF linked above to view your receipt. If you have any questions, please use the buttons below to contact support. Thanks again!",
+        "example": {
+          "body_text": [
+            [
+              "Mark", "860198-230332"
+            ]
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
           {
-            type: 'PHONE_NUMBER',
-            text: 'Call Support',
-            phone_number: '254114567890'
+            "type": "PHONE_NUMBER",
+            "text": "Call",
+            "phone_number": "16467043595"
           },
           {
-            type: 'URL',
-            text: 'View Ticket',
-            url: 'https://support.example.com/ticket/{{1}}',
-            example: ['TICKET-789']
+            "type": "URL",
+            "text": "Contact Support",
+            "url": "https://www.examplesite.com/support"
           }
         ]
       }
     ],
-    preview: {
-      body: 'Hi John Doe, thank you for contacting our support team.\n\nTicket ID: TICKET-789\nIssue: Product inquiry\n\nOur team is reviewing your request and will get back to you within 24 hours.',
-      buttons: ['Call Support', 'View Ticket']
-    }
+    id: "",
+    description: ""
   },
 
   // MARKETING TEMPLATES
   {
-    id: 'seasonal-sale',
-    name: 'Seasonal Sale',
-    category: 'MARKETING',
-    description: 'Promote seasonal sales and discounts',
-    language: 'en_US',
-    components: [
+    "name": "limited_time_offer_tuscan_getaway",
+    "language": "en_US",
+    "category": "MARKETING",
+    "components": [
       {
-        type: 'HEADER',
-        format: 'IMAGE',
-        example: {
-          header_handle: ['']
+        "type": "HEADER",
+        "format": "IMAGE",
+        "example": {
+          "header_handle": [""]
         }
       },
       {
-        type: 'BODY',
-        text: 'Hi {{1}}! Our {{2}} Sale is here!\n\nEnjoy {{3}}% off on all products. Use code: {{4}} at checkout.\n\nHurry! Offer valid only until {{5}}.',
-        example: {
-          body_text: [['John', 'Summer', '25', 'SALE25', 'March 31']]
+        "type": "BODY",
+        "text": "Hi {{1}}! For a limited time only you can get our {{2}} for as low as {{3}}. Tap the Offer Details button for more information.",
+        "example": {
+          "body_text": [
+            [
+              "Mark", "Tuscan Getaway package", "800"
+            ]
+          ]
         }
       },
       {
-        type: 'FOOTER',
-        text: 'Reply STOP to unsubscribe'
+        "type": "FOOTER",
+        "text": "Offer valid until May 31, 2023"
       },
       {
-        type: 'BUTTONS',
-        buttons: [
+        "type": "BUTTONS",
+        "buttons": [
           {
-            type: 'URL',
-            text: 'Shop Now',
-            url: 'https://example.com/sale'
+            "type": "PHONE_NUMBER",
+            "text": "Call",
+            "phone_number": "15550051310"
           },
           {
-            type: 'QUICK_REPLY',
-            text: 'Unsubscribe'
+            "type": "URL",
+            "text": "Shop Now",
+            "url": "https://www.shopify.com/shop?promo={{1}}",
+            "example": [
+              "summer2023"
+            ]
           }
         ]
       }
     ],
-    preview: {
-      body: 'Hi John! Our Summer Sale is here!\n\nEnjoy 25% off on all products. Use code: SALE25 at checkout.\n\nHurry! Offer valid only until March 31.',
-      footer: 'Reply STOP to unsubscribe',
-      buttons: ['Shop Now', 'Unsubscribe']
-    }
+    id: "",
+    description: ""
   },
 
   // AUTHENTICATION TEMPLATES

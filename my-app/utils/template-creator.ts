@@ -1,6 +1,12 @@
 /**
  * WhatsApp Template Creator Utility - Updated with Carousel and Flows support
  * Follows Meta's official documentation for template creation
+ * 
+ * CRITICAL FIXES:
+ * - Button types forced to UPPERCASE
+ * - body_text always uses nested array format [[ ]]
+ * - header_handle uses array format [ ]
+ * - Matches working Postman examples exactly
  */
 
 export interface TemplateComponent {
@@ -141,6 +147,11 @@ export class TemplateCreationHandler {
         bodyComponent.example = {
           body_text: [bodyVariables.map((_, i) => `value${i + 1}`)]
         }
+      } else {
+        // CRITICAL FIX: Even without variables, include empty example
+        bodyComponent.example = {
+          body_text: [[]]
+        }
       }
 
       components.push(bodyComponent)
@@ -173,6 +184,11 @@ export class TemplateCreationHandler {
             bodyComp.example = {
               body_text: [bodyVariables.map((_, i) => `value${i + 1}`)]
             }
+          } else {
+            // CRITICAL FIX: Empty example for non-variable body
+            bodyComp.example = {
+              body_text: [[]]
+            }
           }
 
           cardComponents.push(bodyComp)
@@ -184,16 +200,16 @@ export class TemplateCreationHandler {
             type: 'BUTTONS',
             buttons: card.buttons.map((btn: any) => {
               const button: any = {
-                type: btn.type,
+                type: btn.type.toUpperCase(), // CRITICAL FIX: Force uppercase
                 text: btn.text
               }
 
-              if (btn.type === 'URL') {
+              if (btn.type.toUpperCase() === 'URL') {
                 button.url = btn.url
                 if (btn.url?.includes('{{1}}') && btn.urlVariable) {
                   button.example = [btn.urlVariable]
                 }
-              } else if (btn.type === 'PHONE_NUMBER') {
+              } else if (btn.type.toUpperCase() === 'PHONE_NUMBER') {
                 button.phone_number = btn.phone_number
               }
 
@@ -260,6 +276,7 @@ export class TemplateCreationHandler {
             }
           })
           
+          // CRITICAL FIX: header_text is simple array, NOT nested
           headerComponent.example = {
             header_text: exampleValues
           }
@@ -274,6 +291,7 @@ export class TemplateCreationHandler {
           throw new Error(`Media handle is required for ${headerType} header. Please upload media first.`)
         }
 
+        // CRITICAL FIX: header_handle must be array format
         return {
           type: 'HEADER',
           format: headerType as any,
@@ -295,6 +313,7 @@ export class TemplateCreationHandler {
 
   /**
    * Creates body component with proper variable examples
+   * CRITICAL: body_text must ALWAYS be nested array format [[ ]]
    */
   private static createBodyComponent(templateData: any): TemplateComponent {
     const { body, bodyVariables, customVariableValues, category } = templateData
@@ -319,13 +338,14 @@ export class TemplateCreationHandler {
         return `Sample${i + 1}`
       })
       
+      // CRITICAL FIX: body_text must be nested array [[val1, val2, ...]]
       bodyComponent.example = {
         body_text: [exampleValues],
       }
-    } else if (category === 'MARKETING' || category === 'UTILITY') {
-      const exampleText = body?.substring(0, 60) || 'Sample message'
+    } else {
+      // CRITICAL FIX: Templates without variables need empty nested array [[]]
       bodyComponent.example = {
-        body_text: [[exampleText]]
+        body_text: [[]]
       }
     }
 
@@ -358,6 +378,7 @@ export class TemplateCreationHandler {
 
   /**
    * Creates buttons component with proper validation
+   * CRITICAL: Button types must be UPPERCASE
    */
   private static createButtonsComponent(templateData: any): TemplateComponent | null {
     const { buttonType, buttons, category } = templateData
@@ -375,7 +396,7 @@ export class TemplateCreationHandler {
 
     if (category === 'AUTHENTICATION') {
       if (formattedButtons.length !== 1 || formattedButtons[0].type !== 'OTP') {
-        const otpButton = buttons.find((b: any) => b.type === 'OTP')
+        const otpButton = buttons.find((b: any) => b.type === 'OTP' || b.type === 'otp')
         if (otpButton) {
           formattedButtons = [{
             type: 'OTP',
@@ -402,9 +423,13 @@ export class TemplateCreationHandler {
 
   /**
    * Formats individual button according to Meta specs
+   * CRITICAL: All button types MUST be UPPERCASE
    */
   private static formatButton(button: any, buttonType: string, category: string): TemplateButton | null {
-    switch (button.type) {
+    // CRITICAL FIX: Normalize button type to uppercase for comparison
+    const buttonTypeUpper = button.type?.toString().toUpperCase()
+    
+    switch (buttonTypeUpper) {
       case 'QUICK_REPLY':
         return {
           type: 'QUICK_REPLY',
@@ -438,7 +463,8 @@ export class TemplateCreationHandler {
             exampleValue = button.example || 'USR789'
           }
           
-          urlButton.example = [exampleValue]
+          // CRITICAL FIX: Ensure example is always array format
+          urlButton.example = Array.isArray(exampleValue) ? exampleValue : [exampleValue]
         }
 
         return urlButton
@@ -463,21 +489,20 @@ export class TemplateCreationHandler {
         return flowButton
 
       case 'OTP':
+      case 'COPY_CODE':
         if (category === 'AUTHENTICATION') {
           return {
             type: 'COPY_CODE',
-            example: '123456'
+            example: button.example || '123456'
           }
         }
-        return null
-
-      case 'COPY_CODE':
         return {
           type: 'COPY_CODE',
           example: button.example || 'EXAMPLE_CODE',
         }
 
       default:
+        console.warn(`Unknown button type: ${button.type}`)
         return null
     }
   }

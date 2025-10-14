@@ -24,7 +24,6 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 import { DefaultTemplate } from '@/data/default-templates';
-import Image from 'next/image';
 
 interface CustomizeTemplateDialogProps {
   template: DefaultTemplate | null;
@@ -414,47 +413,85 @@ export function CustomizeTemplateDialog({
 
       const formattedTemplate = TemplateCreationHandler.createTemplate(templateInputData);
 
-      // Format examples correctly
+      // CRITICAL SAFETY NET: Ensure examples are in correct Meta API format
+      // This provides a second layer of validation in case template-creator has issues
       formattedTemplate.components = formattedTemplate.components.map(component => {
         const originalComponent = template.components?.find(c => c.type === component.type);
         
         if (component.type === 'BODY') {
-          // Get all variables from the body text in the component
+          // Get all variables from the body text
           const componentBodyVariables = extractVariables(component.text);
           
+          // Always initialize example object for BODY component
+          if (!component.example) component.example = {};
+          
           if (componentBodyVariables.length > 0) {
-            // Create example values for all variables in the body
+            // Create example values for all variables
             const bodyValues = componentBodyVariables.map(variable => {
+              const key = variable.replace(/[{}]/g, '');
+              return customizations.variables[key] || `Sample ${key}`;
+            });
+            
+            // CRITICAL: body_text must be array of arrays [[value1, value2, ...]]
+            // Ensure it's nested even if template-creator already did this
+            if (Array.isArray(component.example.body_text) && !Array.isArray(component.example.body_text[0])) {
+              component.example.body_text = [component.example.body_text];
+            } else if (!component.example.body_text) {
+              component.example.body_text = [bodyValues];
+            }
+          } else if (originalComponent?.example?.body_text) {
+            // No variables but original has example - ensure correct format
+            const originalExample = originalComponent.example.body_text;
+            if (Array.isArray(originalExample[0])) {
+              component.example.body_text = originalExample;
+            } else {
+              component.example.body_text = [originalExample];
+            }
+          } else {
+            // No variables and no original example - set empty nested array
+            component.example.body_text = [[]];
+          }
+        }
+
+        if (component.type === 'HEADER') {
+          if (component.format === 'TEXT' && headerVariables.length > 0) {
+            const headerValues = headerVariables.map(variable => {
               const key = variable.replace(/[{}]/g, '');
               return customizations.variables[key] || `Sample ${key}`;
             });
 
             if (!component.example) component.example = {};
-            component.example.body_text = [bodyValues];
-          } else if (originalComponent?.example) {
-            // No variables but original has example - preserve it
+            // CRITICAL: header_text is just array [val1, val2] NOT nested
+            component.example.header_text = headerValues;
+          }
+          
+          // Handle media headers
+          if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format || '')) {
             if (!component.example) component.example = {};
-            component.example = { ...originalComponent.example };
+            // For media headers, header_handle is array [handle]
+            if (headerMediaHandle) {
+              component.example.header_handle = [headerMediaHandle];
+            } else if (originalComponent?.example?.header_handle) {
+              component.example.header_handle = originalComponent.example.header_handle;
+            } else {
+              component.example.header_handle = [''];
+            }
           }
         }
 
-        if (component.type === 'HEADER' && component.format === 'TEXT' && headerVariables.length > 0) {
-          const headerValues = headerVariables.map(variable => {
-            const key = variable.replace(/[{}]/g, '');
-            return customizations.variables[key] || `Sample ${key}`;
-          });
-
-          if (!component.example) component.example = {};
-          component.example.header_text = headerValues;
-        }
-
-        if (component.type === 'BUTTONS') {
-          component.buttons = component.buttons?.map((button: any, btnIndex: number) => {
+        if (component.type === 'BUTTONS' && component.buttons) {
+          component.buttons = component.buttons.map((button: any, btnIndex: number) => {
+            // CRITICAL: Ensure button types are uppercase
+            if (button.type) {
+              button.type = button.type.toUpperCase();
+            }
+            
             if (button.type === 'URL' && button.url?.includes('{{')) {
               const urlVariable = (button.url.match(/\{\{(\d+)\}\}/g) || [])[0];
               if (urlVariable) {
                 const key = `url_button_${btnIndex}_${urlVariable.replace(/[{}]/g, '')}`;
                 const exampleValue = customizations.urlButtonVariables[key] || 'default-value';
+                // URL button examples are simple array [value]
                 button.example = [exampleValue];
               }
             }
@@ -464,6 +501,9 @@ export function CustomizeTemplateDialog({
 
         return component;
       });
+
+      // Log the final template for debugging
+      console.log('Final template being sent to API:', JSON.stringify(formattedTemplate, null, 2));
 
       try {
         const success = await onSubmit(formattedTemplate, customizations);
@@ -594,7 +634,7 @@ export function CustomizeTemplateDialog({
                       <Card className="p-3">
                         <div className="text-xs font-medium mb-2">Preview</div>
                         {mediaRequirement.format === 'IMAGE' && (
-                          <Image
+                          <img
                             src={customizations.mediaPreview}
                             alt="Preview"
                             className="w-full max-h-48 object-contain rounded"
@@ -724,7 +764,7 @@ export function CustomizeTemplateDialog({
                             {mediaRequirement.required && customizations.mediaPreview && (
                               <div className="bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
                                 {mediaRequirement.format === 'IMAGE' && (
-                                  <Image
+                                  <img
                                     src={customizations.mediaPreview}
                                     alt="Header"
                                     className="w-full max-h-32 object-cover"
@@ -771,11 +811,7 @@ export function CustomizeTemplateDialog({
                                 <span className="text-blue-600 dark:text-blue-400 font-medium">
                                   {button.text}
                                 </span>
-                                {button.type === 'URL' && button.url && (
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    {getPreviewText(button.url, true, buttonIndex)}
-                                  </div>
-                                )}
+                               
                               </div>
                             ))}
                           </div>
