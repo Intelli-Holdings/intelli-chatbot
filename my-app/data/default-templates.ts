@@ -11,12 +11,17 @@ export interface DefaultTemplate {
     format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
     text?: string;
     example?: any;
+    add_security_recommendation?: boolean;
+    code_expiration_minutes?: number;
     buttons?: Array<{
       type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'OTP';
-      text: string;
+      text?: string;
       url?: string;
       phone_number?: string;
-      otp_type?: 'COPY_CODE';
+      otp_type?: 'COPY_CODE' | 'ONE_TAP' | 'ZERO_TAP';
+      autofill_text?: string;
+      package_name?: string;
+      signature_hash?: string;
       example?: string[];
     }>;
   }>;
@@ -59,18 +64,18 @@ export const defaultTemplates: DefaultTemplate[] = [
           {
             "type": "PHONE_NUMBER",
             "text": "Call",
-            "phone_number": "+16467043595"
+            "phone_number": "16467043595"
           },
           {
             "type": "URL",
             "text": "Contact Support",
-            "url": "https://www.examplesite.com/support"
+            "url": "https://www.example.com/support"
           }
         ]
       }
     ],
     id: "",
-    description: ""
+    description: "Order confirmation with receipt and support options"
   },
 
   // MARKETING TEMPLATES
@@ -121,39 +126,45 @@ export const defaultTemplates: DefaultTemplate[] = [
       }
     ],
     id: "",
-    description: ""
+    description: "Limited time promotional offer with image header"
   },
 
   // AUTHENTICATION TEMPLATES
   {
-    id: 'transaction-authentication',
-    name: 'Transaction Authentication',
+    id: 'authentication-copy-code',
+    name: 'authentication_copy_code',
     category: 'AUTHENTICATION',
-    description: 'Require users to authenticate a transaction',
+    description: 'Authentication template with copy code button',
     language: 'en_US',
-    add_security_recommendation: true,
-    code_expiration_minutes: 5,
     components: [
       {
         type: 'BODY',
-        text: 'Approve transaction:\n\nMerchant: {{1}}\nAmount: {{2}}\n\nCode: {{3}}\n\nExpires in 5 minutes.',
+        text: "Approve transaction:\n\nMerchant: {{1}}\nAmount: {{2}}\n\nCode: {{3}}\n\nExpires in 5 minutes.",
+        add_security_recommendation: true,
         example: {
-          body_text: [['Amazon', '$99.99', '123456']]
+    
+          body_text: [['123456']]
         }
       },
       {
-        type: 'BUTTONS',
-        buttons: [
+        type: 'FOOTER',
+        // Code expiration is controlled via minutes on FOOTER for auth templates
+        code_expiration_minutes: 5
+      },
+      {
+        "type": 'BUTTONS',
+        "buttons": [
           {
-            type: 'OTP',
-            text: 'Copy Code',
-            otp_type: 'COPY_CODE'
+            "type": 'OTP',
+            "otp_type": 'COPY_CODE',
+            "text": 'Copy Code'
           }
         ]
       }
     ],
     preview: {
-      body: 'Approve transaction:\n\nMerchant: Amazon\nAmount: $99.99\n\nCode: 123456\n\nExpires in 5 minutes.',
+      body: 'For your security, use the code provided to complete authentication.',
+      footer: 'This code expires in 5 minutes.',
       buttons: ['Copy Code']
     }
   },

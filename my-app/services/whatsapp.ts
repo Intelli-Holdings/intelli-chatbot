@@ -92,17 +92,16 @@ interface ConversationAnalyticsResponse {
   };
   id: string;
 }
-
 interface PhoneNumberLimit {
-  phone_number: string;
-  name: string;
-  country: string;
-  business_initiated_conversations: number;
-  limit: number;
-  quality_rating?: string;
-}
+     phone_number: string;
+     name: string;
+     quality_rating?: string;
+     limit: number;
+     business_initiated_conversations?: number;
+     country?: string;
+   }
 
-const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v22.0';
+const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v23.0';
 
 // Language code mappings for WhatsApp templates
 const LANGUAGE_CODES: Record<string, string[]> = {
@@ -128,20 +127,20 @@ export class WhatsAppService {
     if (!handle || typeof handle !== 'string') {
       return false;
     }
-  
+
     // Check for placeholder values
-    if (handle === 'DYNAMIC_HANDLE_FROM_UPLOAD' || 
-        handle.includes('...') || 
-        handle.includes('sample') || 
-        handle.includes('example')) {
+    if (handle === 'DYNAMIC_HANDLE_FROM_UPLOAD' ||
+      handle.includes('...') ||
+      handle.includes('sample') ||
+      handle.includes('example')) {
       return false;
     }
-  
+
     // More flexible validation for different handle formats
     if (handle.length < 5) {
       return false;
     }
-  
+
     const handlePattern = /^[a-zA-Z0-9:_\-+/=]+$/;
     return handlePattern.test(handle);
   }
@@ -151,7 +150,7 @@ export class WhatsAppService {
    */
   static getLanguageVariations(code: string): string[] {
     const variations: string[] = [code]; // Start with the original code
-    
+
     // Add common variations
     if (code === 'en') {
       variations.push('en_US', 'en_GB');
@@ -160,13 +159,13 @@ export class WhatsAppService {
     } else if (code === 'en_GB') {
       variations.push('en', 'en_US');
     }
-    
+
     // For other languages, add the base and common regional variants
     const baseCode = code.split('_')[0];
     if (baseCode !== code && !variations.includes(baseCode)) {
       variations.push(baseCode);
     }
-    
+
     return variations;
   }
 
@@ -175,7 +174,7 @@ export class WhatsAppService {
    * CRITICAL: This method must preserve the exact format from template-creator.ts
    * DO NOT modify examples, button types, or array structures
    */
-  static formatTemplateComponents(components: any[]): any[] {
+static formatTemplateComponents(components: any[]): any[] {
     return components.map(component => {
       const formattedComponent: any = {
         type: component.type
@@ -186,17 +185,17 @@ export class WhatsAppService {
         if (component.format) {
           formattedComponent.format = component.format;
         }
-        
+
         // Handle LOCATION header - no example or parameters needed at creation time
         if (component.format === 'LOCATION') {
           // Location headers are created with just type and format
           // The actual location data is provided when sending the message
           return formattedComponent;
         }
-        
+
         if (component.format === 'TEXT' && component.text) {
           formattedComponent.text = component.text;
-          
+
           // CRITICAL: Preserve existing example if provided
           if (component.example?.header_text) {
             formattedComponent.example = {
@@ -207,7 +206,7 @@ export class WhatsAppService {
           // For media headers, use the provided media handle from upload API response
           if (component.example?.header_handle?.[0]) {
             const mediaHandle = component.example.header_handle[0];
-            
+
             formattedComponent.example = {
               header_handle: [mediaHandle]
             };
@@ -223,13 +222,18 @@ export class WhatsAppService {
         if (component.text) {
           formattedComponent.text = component.text;
         }
-        
+
+        // Authentication-specific fields
+        if (component.add_security_recommendation !== undefined) {
+          formattedComponent.add_security_recommendation = component.add_security_recommendation;
+        }
+
         // CRITICAL: Preserve existing example exactly as provided
         // DO NOT regenerate or modify the example values
         if (component.example?.body_text) {
           // Ensure body_text is in nested array format [[...]]
           const bodyText = component.example.body_text;
-          
+
           // If it's already nested correctly, use as-is
           if (Array.isArray(bodyText) && Array.isArray(bodyText[0])) {
             formattedComponent.example = {
@@ -247,7 +251,8 @@ export class WhatsAppService {
             };
           }
         } else {
-          // If no example provided, create empty nested array
+          // CRITICAL: Always include example.body_text, even for auth templates
+          // Meta API requires this field even when empty
           formattedComponent.example = {
             body_text: [[]]
           };
@@ -255,8 +260,16 @@ export class WhatsAppService {
       }
 
       // Handle FOOTER component
-      if (component.type === 'FOOTER' && component.text) {
-        formattedComponent.text = component.text;
+      if (component.type === 'FOOTER') {
+        // For authentication templates, code_expiration_minutes
+        if (component.code_expiration_minutes !== undefined) {
+          formattedComponent.code_expiration_minutes = component.code_expiration_minutes;
+        }
+        
+        // For regular templates, text
+        if (component.text) {
+          formattedComponent.text = component.text;
+        }
       }
 
       // Handle CAROUSEL component
@@ -271,7 +284,7 @@ export class WhatsAppService {
           // CRITICAL FIX: Keep button types in UPPERCASE (Meta API accepts both, but we standardize on uppercase)
           // Normalize the type to uppercase for consistency
           const buttonType = button.type.toString().toUpperCase();
-          
+
           const formattedButton: any = {
             type: buttonType,
             text: button.text
@@ -303,7 +316,7 @@ export class WhatsAppService {
           if (buttonType === 'URL') {
             if (button.url) {
               formattedButton.url = button.url;
-              
+
               // CRITICAL: Preserve existing example if provided
               if (button.example && Array.isArray(button.example)) {
                 formattedButton.example = button.example;
@@ -318,18 +331,26 @@ export class WhatsAppService {
 
           // Handle OTP buttons for authentication templates
           if (buttonType === 'OTP' || buttonType === 'COPY_CODE') {
-            formattedButton.type = 'COPY_CODE';
+            formattedButton.type = 'OTP'; // CRITICAL FIX: Keep as OTP, not COPY_CODE
+
             if (button.otp_type) {
               formattedButton.otp_type = button.otp_type;
             }
-            if (button.example) {
-              formattedButton.example = button.example;
-            }
+
+            // For ONE_TAP buttons, include additional fields
             if (button.otp_type === 'ONE_TAP') {
-              formattedButton.autofill_text = button.autofill_text || 'Autofill';
-              formattedButton.package_name = button.package_name || 'com.example.app';
-              formattedButton.signature_hash = button.signature_hash || 'K8a/AINcGX7';
+              if (button.autofill_text) {
+                formattedButton.autofill_text = button.autofill_text;
+              }
+              if (button.package_name) {
+                formattedButton.package_name = button.package_name;
+              }
+              if (button.signature_hash) {
+                formattedButton.signature_hash = button.signature_hash;
+              }
             }
+
+            return formattedButton;
           }
 
           return formattedButton;
@@ -357,14 +378,14 @@ export class WhatsAppService {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch app services: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       const services = Array.isArray(data) ? data : (data.appServices || data || []);
-    
+
       return services;
     } catch (error) {
       console.error('Error fetching app services:', error);
@@ -421,16 +442,8 @@ export class WhatsAppService {
         components: this.formatTemplateComponents(templateData.components || [])
       };
 
-      // Add authentication-specific fields if present
-      if (templateData.add_security_recommendation !== undefined) {
-        (formattedData as any).add_security_recommendation = templateData.add_security_recommendation;
-      }
-      if (templateData.code_expiration_minutes !== undefined) {
-        (formattedData as any).code_expiration_minutes = templateData.code_expiration_minutes;
-      }
-
       console.log('Creating template with formatted data:', JSON.stringify(formattedData, null, 2));
-      
+
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates`,
         {
@@ -444,12 +457,12 @@ export class WhatsAppService {
       );
 
       const responseData = await response.json();
-      
+
       if (!response.ok) {
         console.error('Template creation failed:', responseData);
-        const errorMessage = responseData.error?.message || 
-                           responseData.error?.error_user_msg || 
-                           'Failed to create template';
+        const errorMessage = responseData.error?.message ||
+          responseData.error?.error_user_msg ||
+          'Failed to create template';
         throw new Error(errorMessage);
       }
 
@@ -477,7 +490,7 @@ export class WhatsAppService {
         category: templateData.category,
         components: this.formatTemplateComponents(templateData.components || [])
       };
-      
+
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${templateId}`,
         {
@@ -513,7 +526,7 @@ export class WhatsAppService {
       if (!appService.access_token) {
         throw new Error('Access token is required for Meta Graph API calls');
       }
-      
+
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates?name=${templateName}`,
         {
@@ -561,7 +574,7 @@ export class WhatsAppService {
       // Try sending with the original language code first
       let lastError: any;
       const languageVariations = this.getLanguageVariations(messageData.template.language.code);
-      
+
       for (const languageCode of languageVariations) {
         try {
           // Update the language code for this attempt
@@ -574,7 +587,7 @@ export class WhatsAppService {
           };
 
           console.log(`Attempting to send with language code: ${languageCode}`);
-          
+
           const response = await fetch(
             `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
             {
@@ -588,15 +601,15 @@ export class WhatsAppService {
           );
 
           const responseData = await response.json();
-          
+
           if (response.ok) {
             console.log(`Successfully sent with language code: ${languageCode}`);
             return responseData;
           } else {
             lastError = responseData;
             // If it's not a language/translation error, don't try other variations
-            if (!responseData.error?.message?.includes('translation') && 
-                !responseData.error?.message?.includes('Template name does not exist')) {
+            if (!responseData.error?.message?.includes('translation') &&
+              !responseData.error?.message?.includes('Template name does not exist')) {
               break;
             }
             console.log(`Failed with language code ${languageCode}:`, responseData.error?.message);
@@ -710,7 +723,7 @@ export class WhatsAppService {
       }
 
       const fieldsParam = `conversation_analytics.start(${startTimestamp}).end(${endTimestamp}).granularity(${granularity}).metric_types([${metricTypes.map(t => `"${t}"`).join(',')}]).dimensions([${dimensions.map(d => `"${d}"`).join(',')}])`;
-      
+
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}?fields=${encodeURIComponent(fieldsParam)}`,
         {
@@ -762,7 +775,7 @@ export class WhatsAppService {
       }
 
       const phoneNumbersData = await response.json();
-      
+
       return phoneNumbersData.data?.map((phone: any) => ({
         phone_number: phone.display_phone_number || phone.phone_number,
         name: phone.verified_name || 'Unknown',
@@ -809,7 +822,7 @@ export class WhatsAppService {
         return country;
       }
     }
-    
+
     return 'Unknown';
   }
 
@@ -846,10 +859,10 @@ export class WhatsAppService {
   }
 }
 
-export type { 
-  AppService, 
-  WhatsAppTemplate, 
-  WhatsAppApiResponse, 
+export type {
+  AppService,
+  WhatsAppTemplate,
+  WhatsAppApiResponse,
   TemplateComponent,
   AnalyticsDataPoint,
   ConversationAnalyticsDataPoint,
