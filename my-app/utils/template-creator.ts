@@ -6,6 +6,8 @@
  * - Button types forced to UPPERCASE
  * - body_text always uses nested array format [[ ]]
  * - header_handle uses array format [ ]
+ * - Authentication templates: no custom body text, fields in components
+ * - OTP button type stays as 'OTP', not 'COPY_CODE'
  * - Matches working Postman examples exactly
  */
 
@@ -16,6 +18,8 @@ export interface TemplateComponent {
   example?: any
   buttons?: TemplateButton[]
   cards?: CarouselCard[]
+  add_security_recommendation?: boolean
+  code_expiration_minutes?: number
 }
 
 export interface CarouselCard {
@@ -45,8 +49,6 @@ export interface TemplateData {
   name: string
   language: string
   category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION'
-  add_security_recommendation?: boolean
-  code_expiration_minutes?: number
   components: TemplateComponent[]
 }
 
@@ -75,7 +77,16 @@ export class TemplateCreationHandler {
     components.push(bodyComponent)
 
     // Add footer component
-    if (templateData.category !== 'AUTHENTICATION') {
+    if (templateData.category === 'AUTHENTICATION') {
+      // Authentication templates use FOOTER for code expiration
+      if (templateData.code_expiration_minutes) {
+        const footerComponent: TemplateComponent = {
+          type: 'FOOTER',
+          code_expiration_minutes: templateData.code_expiration_minutes
+        }
+        components.push(footerComponent)
+      }
+    } else {
       if (templateData.footer?.trim()) {
         const footerComponent = this.createFooterComponent(templateData.footer, templateData.category)
         if (footerComponent) {
@@ -107,14 +118,8 @@ export class TemplateCreationHandler {
       components
     }
 
-    if (templateData.category === 'AUTHENTICATION') {
-      if (templateData.add_security_recommendation) {
-        result.add_security_recommendation = true
-      }
-      if (templateData.code_expiration_minutes) {
-        result.code_expiration_minutes = templateData.code_expiration_minutes
-      }
-    }
+    // CRITICAL: Do NOT add auth fields at template level
+    // They are now in the BODY and FOOTER components
 
     return result
   }
@@ -314,6 +319,7 @@ export class TemplateCreationHandler {
   /**
    * Creates body component with proper variable examples
    * CRITICAL: body_text must ALWAYS be nested array format [[ ]]
+   * CRITICAL: Authentication templates cannot have custom body text but need empty example
    */
   private static createBodyComponent(templateData: any): TemplateComponent {
     const { body, bodyVariables, customVariableValues, category } = templateData
@@ -322,6 +328,23 @@ export class TemplateCreationHandler {
       type: 'BODY',
     }
 
+    // AUTHENTICATION TEMPLATES: Special handling
+    if (category === 'AUTHENTICATION') {
+      // Add security recommendation if requested
+      if (templateData.add_security_recommendation) {
+        bodyComponent.add_security_recommendation = true
+      }
+
+      // Provide a prefilled sample value for the preset auth text ({{1}})
+      bodyComponent.example = {
+        body_text: [['123456']]
+      }
+
+      // Do NOT include text field - Meta uses preset text
+      return bodyComponent
+    }
+
+    // NON-AUTHENTICATION TEMPLATES: Include text and examples
     const hasVariables = bodyVariables?.length > 0
 
     if (hasVariables) {
@@ -349,9 +372,7 @@ export class TemplateCreationHandler {
       }
     }
 
-    if (category !== 'AUTHENTICATION' || !hasVariables) {
-      bodyComponent.text = body
-    }
+    bodyComponent.text = body
 
     return bodyComponent
   }
@@ -401,7 +422,7 @@ export class TemplateCreationHandler {
           formattedButtons = [{
             type: 'OTP',
             text: otpButton.text || 'Copy Code',
-            otp_type: 'COPY_CODE'
+            otp_type: otpButton.otp_type || 'COPY_CODE'
           }]
         } else {
           formattedButtons = [{
@@ -424,6 +445,7 @@ export class TemplateCreationHandler {
   /**
    * Formats individual button according to Meta specs
    * CRITICAL: All button types MUST be UPPERCASE
+   * CRITICAL: OTP buttons must stay as type 'OTP', not 'COPY_CODE'
    */
   private static formatButton(button: any, buttonType: string, category: string): TemplateButton | null {
     // CRITICAL FIX: Normalize button type to uppercase for comparison
@@ -490,15 +512,11 @@ export class TemplateCreationHandler {
 
       case 'OTP':
       case 'COPY_CODE':
-        if (category === 'AUTHENTICATION') {
-          return {
-            type: 'COPY_CODE',
-            example: button.example || '123456'
-          }
-        }
+        // CRITICAL FIX: Keep type as 'OTP' for Meta API
         return {
-          type: 'COPY_CODE',
-          example: button.example || 'EXAMPLE_CODE',
+          type: 'OTP',
+          text: button.text || 'Copy Code',
+          otp_type: button.otp_type || 'COPY_CODE'
         }
 
       default:

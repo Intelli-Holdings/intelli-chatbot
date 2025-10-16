@@ -213,7 +213,7 @@ export function CustomizeTemplateDialog({
           urlButtonVariables.push({
             variable: match,
             buttonIndex: index,
-            buttonText: button.text
+            buttonText: button.text || 'Button'
           });
         });
       }
@@ -514,15 +514,23 @@ export function CustomizeTemplateDialog({
         
         if (component.type === 'BODY') {
           const componentBodyVariables = extractVariables(component.text);
-          
+
           if (!component.example) component.example = {};
-          
-          if (componentBodyVariables.length > 0) {
+
+          // AUTHENTICATION: Preserve original prefilled examples if provided; otherwise use empty [[]]
+          if (template.category === 'AUTHENTICATION') {
+            const orig = originalComponent?.example?.body_text;
+            if (orig && Array.isArray(orig) && Array.isArray(orig[0]) && orig[0].length > 0) {
+              component.example.body_text = orig;
+            } else {
+              component.example.body_text = [[]];
+            }
+          } else if (componentBodyVariables.length > 0) {
             const bodyValues = componentBodyVariables.map(variable => {
               const key = variable.replace(/[{}]/g, '');
               return customizations.variables[key] || `Sample ${key}`;
             });
-            
+
             // CRITICAL: body_text must be array of arrays [[value1, value2, ...]]
             component.example.body_text = [bodyValues];
           } else if (originalComponent?.example?.body_text) {

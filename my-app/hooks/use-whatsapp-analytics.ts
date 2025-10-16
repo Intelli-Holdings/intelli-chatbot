@@ -7,6 +7,23 @@ import {
   type PhoneNumberLimit 
 } from '@/services/whatsapp';
 
+export interface PhoneNumberProfile {
+  id: string;
+  display_phone_number: string;
+  display_name?: string;
+  verified_name?: string;
+  quality_rating?: string;
+  messaging_limit?: {
+    max: number;
+    tier?: string;
+  };
+  code_verification_status?: string;
+  status?: string;
+  current_limit?: number;
+  business_initiated_conversations?: number;
+  country?: string;
+}
+
 export interface ConversationBreakdown {
   category: string;
   conversations: number;
@@ -21,7 +38,7 @@ export interface AnalyticsSummary {
   totalSent: number;
   totalDelivered: number;
   totalRead: number;
-  phoneNumberLimits: PhoneNumberLimit[];
+  phoneNumberProfiles: PhoneNumberProfile[];
   conversationBreakdown: ConversationBreakdown[];
 }
 
@@ -78,6 +95,7 @@ export const useWhatsAppAnalytics = (
       '44': 'GB',
       '91': 'IN',
       '221': 'SN',
+      '256': 'UG', // Uganda
       // Add more country codes as needed
     };
 
@@ -87,6 +105,14 @@ export const useWhatsAppAnalytics = (
       }
     }
     return 'US'; // Default
+  }, []);
+
+  // Helper function to determine messaging tier based on limit
+  const determineMessagingTier = useCallback((limit: number): string => {
+    if (limit >= 100000) return 'TIER_4';
+    if (limit >= 10000) return 'TIER_3';
+    if (limit >= 1000) return 'TIER_2';
+    return 'TIER_1';
   }, []);
 
   const fetchAnalytics = useCallback(async () => {
@@ -109,21 +135,25 @@ export const useWhatsAppAnalytics = (
     setError(null);
 
     try {
-      // Fetch conversation analytics using direct API calls for better accuracy
-      const conversationsUrl = `https://graph.facebook.com/v18.0/${appService.whatsapp_business_account_id}`;
+      const graphApiVersion = 'v18.0';
+      const wabaId = appService.whatsapp_business_account_id;
+      const accessToken = appService.access_token;
+
+      // Fetch conversation analytics
+      const conversationsUrl = `https://graph.facebook.com/${graphApiVersion}/${wabaId}`;
       const conversationsParams = new URLSearchParams({
-        access_token: appService.access_token,
+        access_token: accessToken,
         fields: `conversation_analytics.start(${timeRangeInDays}).end(0).granularity(DAILY).phone_numbers(ALL).dimensions(CONVERSATION_CATEGORY,CONVERSATION_TYPE,COUNTRY,PHONE)`,
       });
 
-      // Fetch phone number limits and current usage with additional fields
-      const phoneNumbersUrl = `https://graph.facebook.com/v18.0/${appService.whatsapp_business_account_id}/phone_numbers`;
+      // Fetch phone numbers with detailed profile information
+      const phoneNumbersUrl = `https://graph.facebook.com/${graphApiVersion}/${wabaId}/phone_numbers`;
       const phoneNumbersParams = new URLSearchParams({
-        access_token: appService.access_token,
+        access_token: accessToken,
         fields: 'id,display_phone_number,verified_name,quality_rating,messaging_limit,current_limit,status'
       });
 
-      // Also fetch messaging analytics for sent/delivered stats
+      // Fetch messaging analytics
       const endTime = Math.floor(Date.now() / 1000);
       const startTime = endTime - (timeRangeInDays * 24 * 60 * 60);
 
@@ -158,7 +188,7 @@ export const useWhatsAppAnalytics = (
               businessInitiatedConversations += conversations;
             }
 
-            // Calculate approximate charges using improved pricing model
+            // Calculate approximate charges
             const cost = calculateConversationCost(
               item.conversation_category,
               item.conversation_type,
@@ -195,74 +225,93 @@ export const useWhatsAppAnalytics = (
         });
       }
 
-      // Process phone number limits with per-phone business-initiated conversations
-      let phoneNumberLimitsData: PhoneNumberLimit[] = [];
-      if (phoneNumbersResponse.status === 'fulfilled') {
-        const phoneNumbersData = await phoneNumbersResponse.value.json();
-        
-        // Log the phone numbers response for debugging
-        console.log('Phone numbers API response:', phoneNumbersData);
-        
+      // Process phone number profiles with enhanced data
+      let phoneNumberProfiles: PhoneNumberProfile[] = [];
+      const phoneNumbersData: any = phoneNumbersResponse.status === 'fulfilled' 
+        ? await phoneNumbersResponse.value.json() 
+        : null;
+
+      if (phoneNumbersData?.data) {
         // Create a map of business-initiated conversations per phone number
         const phoneConversationMap: { [phoneNumber: string]: number } = {};
         
-        // Use the already parsed conversationsData instead of parsing again
-        if (conversationsData) {
-          console.log('Conversations API response structure:', {
-            hasConversationAnalytics: !!conversationsData?.conversation_analytics,
-            hasData: !!conversationsData?.conversation_analytics?.data,
-            dataLength: conversationsData?.conversation_analytics?.data?.length || 0
+        if (conversationsData?.conversation_analytics?.data) {
+          conversationsData.conversation_analytics.data.forEach((item: any) => {
+            if (item.conversation_type === 'BUSINESS_INITIATED' && item.phone) {
+              const conversations = parseInt(item.conversation || 0);
+              phoneConversationMap[item.phone] = (phoneConversationMap[item.phone] || 0) + conversations;
+            }
           });
-          
-          if (conversationsData?.conversation_analytics?.data) {
-            conversationsData.conversation_analytics.data.forEach((item: any) => {
-              console.log('Processing conversation item:', {
-                type: item.conversation_type,
-                phone: item.phone,
-                conversations: item.conversation,
-                category: item.conversation_category
-              });
-              
-              if (item.conversation_type === 'BUSINESS_INITIATED' && item.phone) {
-                const conversations = parseInt(item.conversation || 0);
-                phoneConversationMap[item.phone] = (phoneConversationMap[item.phone] || 0) + conversations;
-              }
-            });
-          }
         }
-        
-        console.log('Phone conversation map:', phoneConversationMap);
-        
-        phoneNumberLimitsData = phoneNumbersData?.data?.map((phone: any) => {
-          const phoneNumber = phone.display_phone_number;
-          const businessInitiatedForPhone = phoneConversationMap[phoneNumber] || 0;
-          
-          console.log(`Processing phone ${phoneNumber}:`, {
-            name: phone.verified_name,
-            limit: phone.messaging_limit?.max,
-            businessInitiated: businessInitiatedForPhone,
-            qualityRating: phone.quality_rating
-          });
-          
-          return {
-            phone_number: phoneNumber,
-            name: phone.verified_name || 'Unknown',
-            quality_rating: phone.quality_rating || 'UNKNOWN',
-            limit: phone.messaging_limit?.max || 250,
-            business_initiated_conversations: businessInitiatedForPhone,
-            country: extractCountryFromPhoneNumber(phoneNumber)
-          };
-        }) || [];
+
+        // Fetch additional profile data for each phone number
+        const phoneProfilePromises = phoneNumbersData.data.map(async (phone: any) => {
+          try {
+            // Fetch detailed profile information for each phone number
+            const phoneDetailUrl = `https://graph.facebook.com/${graphApiVersion}/${phone.id}`;
+            const phoneDetailParams = new URLSearchParams({
+              access_token: accessToken,
+              fields: 'id,display_name,display_phone_number,quality_rating,code_verification_status,verified_name,messaging_limit,status,current_limit'
+            });
+
+            const phoneDetailResponse = await fetch(`${phoneDetailUrl}?${phoneDetailParams}`);
+            const phoneDetail = await phoneDetailResponse.json();
+
+            const phoneNumber = phoneDetail.display_phone_number || phone.display_phone_number;
+            const limit = phoneDetail.messaging_limit?.max || phone.messaging_limit?.max || 250;
+
+            return {
+              id: phoneDetail.id || phone.id,
+              display_phone_number: phoneNumber,
+              display_name: phoneDetail.display_name,
+              verified_name: phoneDetail.verified_name || phone.verified_name,
+              quality_rating: phoneDetail.quality_rating || phone.quality_rating || 'UNKNOWN',
+              messaging_limit: {
+                max: limit,
+                tier: determineMessagingTier(limit)
+              },
+              code_verification_status: phoneDetail.code_verification_status,
+              status: phoneDetail.status || phone.status || 'ACTIVE',
+              current_limit: phoneDetail.current_limit || phone.current_limit,
+              business_initiated_conversations: phoneConversationMap[phoneNumber] || 0,
+              country: extractCountryFromPhoneNumber(phoneNumber)
+            } as PhoneNumberProfile;
+          } catch (error) {
+            console.warn(`Failed to fetch details for phone ${phone.id}:`, error);
+            // Return basic data if detailed fetch fails
+            const phoneNumber = phone.display_phone_number;
+            const limit = phone.messaging_limit?.max || 250;
+            return {
+              id: phone.id,
+              display_phone_number: phoneNumber,
+              verified_name: phone.verified_name,
+              quality_rating: phone.quality_rating || 'UNKNOWN',
+              messaging_limit: {
+                max: limit,
+                tier: determineMessagingTier(limit)
+              },
+              status: phone.status || 'ACTIVE',
+              business_initiated_conversations: phoneConversationMap[phoneNumber] || 0,
+              country: extractCountryFromPhoneNumber(phoneNumber)
+            } as PhoneNumberProfile;
+          }
+        });
+
+        phoneNumberProfiles = await Promise.all(phoneProfilePromises);
       } else {
-        console.warn('Phone numbers fetch failed, using fallback data');
         // Fallback to app service data if phone numbers fetch fails
-        phoneNumberLimitsData = [{
-          phone_number: appService.phone_number || 'Unknown',
-          name: appService.name || 'WhatsApp Business',
+        phoneNumberProfiles = [{
+          id: 'fallback',
+          display_phone_number: appService.phone_number || 'Unknown',
+          verified_name: appService.name || 'WhatsApp Business',
           country: 'Unknown',
           business_initiated_conversations: businessInitiatedConversations,
-          limit: 250,
-          quality_rating: 'UNKNOWN'
+          messaging_limit: {
+            max: 250,
+            tier: 'TIER_1'
+          },
+          quality_rating: 'UNKNOWN',
+          status: 'ACTIVE'
         }];
       }
 
@@ -270,45 +319,15 @@ export const useWhatsAppAnalytics = (
         totalConversations,
         freeTierConversations,
         businessInitiatedConversations,
-        approximateCharges: Math.round(approximateCharges * 100) / 100, // Round to 2 decimal places
+        approximateCharges: Math.round(approximateCharges * 100) / 100,
         totalSent,
         totalDelivered,
-        totalRead: 0, // Not available in current API structure
-        phoneNumberLimits: phoneNumberLimitsData,
+        totalRead: 0,
+        phoneNumberProfiles,
         conversationBreakdown
       };
 
       setAnalytics(analyticsSummary);
-
-      // Log any partial failures for debugging
-      if (conversationsResponse.status === 'rejected') {
-        console.warn('Failed to fetch conversation analytics:', conversationsResponse.reason);
-      } else {
-        console.log('Conversation analytics fetched successfully');
-      }
-      
-      if (phoneNumbersResponse.status === 'rejected') {
-        console.warn('Failed to fetch phone number limits:', phoneNumbersResponse.reason);
-      } else {
-        console.log('Phone number data fetched successfully');
-      }
-      
-      if (messagingResponse.status === 'rejected') {
-        console.warn('Failed to fetch messaging analytics:', messagingResponse.reason);
-      } else {
-        console.log('Messaging analytics fetched successfully');
-      }
-
-      // Log the final analytics summary for debugging
-      console.log('Final analytics summary:', {
-        totalConversations,
-        freeTierConversations,
-        businessInitiatedConversations,
-        totalSent,
-        totalDelivered,
-        phoneNumberCount: phoneNumberLimitsData.length,
-        conversationBreakdownCount: conversationBreakdown.length
-      });
 
     } catch (err) {
       let errorMessage = 'Failed to fetch analytics';
@@ -330,7 +349,7 @@ export const useWhatsAppAnalytics = (
     } finally {
       setLoading(false);
     }
-  }, [appService, timeRangeInDays, calculateConversationCost, extractCountryFromPhoneNumber]);
+  }, [appService, timeRangeInDays, calculateConversationCost, extractCountryFromPhoneNumber, determineMessagingTier]);
 
   useEffect(() => {
     fetchAnalytics();
