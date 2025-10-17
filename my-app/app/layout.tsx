@@ -1,3 +1,4 @@
+import LocaleHtml from '@/components/LocaleHtml'
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "@/app/globals.css";
@@ -124,6 +125,7 @@ export default function RootLayout({
           <SignedOut></SignedOut>
           <SignedIn></SignedIn>
           <body className={inter.className}>
+               <LocaleHtml />
                <ConsentGate /> {/* renders MetaPixel only after consent */}
           <AttentionBadge />
             <PostHogPageView />

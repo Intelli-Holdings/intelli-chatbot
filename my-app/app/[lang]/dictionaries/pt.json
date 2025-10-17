@@ -1,0 +1,8 @@
+{
+  "common": {
+    "hello": "Olá",
+    "welcome": "Bem-vindo ao Intelli",
+    "switch_language": "Idioma",
+    "current_time": "Hora atual"
+  }
+}

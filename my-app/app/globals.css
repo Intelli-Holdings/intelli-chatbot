@@ -144,3 +144,5 @@
   animation: shine 1.5s ease-in-out;
 }
 
+/* rtl helper: toggled by HtmlLangDir */
+.rtl * { direction: rtl; }

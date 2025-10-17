@@ -1,0 +1,8 @@
+{
+  "common": {
+    "hello": "Hallo",
+    "welcome": "Welkom bij Intelli",
+    "switch_language": "Taal",
+    "current_time": "Huidige tijd"
+  }
+}
