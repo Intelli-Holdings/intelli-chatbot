@@ -60,7 +60,7 @@ const MessagingTierBadge = ({ tier }: { tier?: string }) => {
         return { label: '10K/day', color: 'bg-green-100 text-green-800 border-green-200' }
       case 'TIER_1':
       default:
-        return { label: '1K/day', color: 'bg-gray-100 text-gray-800 border-gray-200' }
+        return { label: '2K/day', color: 'bg-gray-100 text-gray-800 border-gray-200' }
     }
   }
 
@@ -400,22 +400,7 @@ export default function OverviewPage() {
                                 </h5>
                                 <Info className="h-4 w-4 text-muted-foreground" />
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {analytics?.totalConversations || 0} conversations
-                                started/30d
-                              </p>
-                              <Progress
-                                value={
-                                  analytics
-                                    ? Math.min(
-                                        (analytics.totalConversations / 1000) *
-                                          100,
-                                        100
-                                      )
-                                    : 0
-                                }
-                                className="mt-2 h-2"
-                              />
+                             
                               <Button
                                 variant="link"
                                 className="mt-1 h-auto p-0 text-sm"
