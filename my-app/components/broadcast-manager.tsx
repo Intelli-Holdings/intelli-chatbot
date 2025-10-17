@@ -882,7 +882,7 @@ export default function BroadcastManager({
                       <div className="space-y-2">
                         <Alert>
                           <AlertDescription className="text-sm">
-                            This template's existing media will be used automatically.
+                            This template&apos;s existing media will be used automatically.
                           </AlertDescription>
                         </Alert>
                         <Button
@@ -996,7 +996,7 @@ export default function BroadcastManager({
                             }}
                             className="w-full"
                           >
-                            Use Template's Original Media
+                            Use Template&apos;s Original Media
                           </Button>
                         )}
                       </div>
