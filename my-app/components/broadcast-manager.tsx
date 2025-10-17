@@ -15,6 +15,9 @@ import {
   Search,
   BookOpenCheck,
   MapPin,
+  Image as ImageIcon,
+  Upload,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,22 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import Link from "next/link";
-
-interface WhatsAppTemplate {
-  id: string;
-  name: string;
-  status: string;
-  category: string;
-  language: string;
-  components?: any[];
-}
-
-interface AppService {
-  id: number;
-  phone_number: string;
-  whatsapp_business_account_id?: string;
-  access_token?: string;
-}
+import { WhatsAppService, type WhatsAppTemplate, type AppService } from "@/services/whatsapp";
 
 interface BroadcastManagerProps {
   appService: AppService;
@@ -74,7 +62,8 @@ interface BroadcastManagerProps {
       longitude: string;
       name: string;
       address: string;
-    }
+    },
+    mediaHandle?: string
   ) => Promise<boolean>;
   loading: boolean;
 }
@@ -98,6 +87,12 @@ export default function BroadcastManager({
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [previewTemplate, setPreviewTemplate] =
     useState<WhatsAppTemplate | null>(null);
+
+  // Media handling state
+  const [mediaHandle, setMediaHandle] = useState<string | null>(null);
+  const [useCustomMedia, setUseCustomMedia] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [mediaFileInput, setMediaFileInput] = useState<File | null>(null);
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
   const approvedTemplates = templates.filter((t) => t.status === "APPROVED");
@@ -124,24 +119,52 @@ export default function BroadcastManager({
     const hasLocation = template.components?.some(
       (c) =>
         c.type === "HEADER" &&
-        (c.format === "location" || c.format === "LOCATION")
+        (c.format?.toUpperCase() === "LOCATION")
     );
     return hasLocation;
   };
 
-  const handleTemplateSelect = (templateId: string) => {
+  const handleTemplateSelect = async (templateId: string) => {
     setSelectedTemplateId(templateId);
     const template = templates.find((t) => t.id === templateId);
+
     if (template) {
       const templateParams = getTemplateParameters(template);
       setParameters(new Array(templateParams.length).fill(""));
-      // Reset location data
+
+      // Reset states
       setLocationData({
         latitude: "",
         longitude: "",
         name: "",
         address: "",
       });
+      setMediaHandle(null);
+      setUseCustomMedia(false);
+      setMediaFileInput(null);
+
+      // Fetch media handle for templates with media headers
+      if (WhatsAppService.hasMediaHeader(template)) {
+        try {
+          const templateDetails = await WhatsAppService.fetchTemplateDetails(
+            appService,
+            templateId
+          );
+          const existingHandle = WhatsAppService.extractMediaHandle(templateDetails);
+
+          if (existingHandle) {
+            setMediaHandle(existingHandle);
+            toast.success("Template media loaded from Meta");
+          } else {
+            toast.info("No media found. You can upload new media.");
+            setUseCustomMedia(true);
+          }
+        } catch (error) {
+          console.error("Failed to fetch template media:", error);
+          toast.warning("Couldn't fetch template media. You can upload new media.");
+          setUseCustomMedia(true);
+        }
+      }
     }
   };
 
@@ -161,9 +184,68 @@ export default function BroadcastManager({
     }));
   };
 
+  // Media upload handler
+  const handleMediaUpload = async () => {
+    if (!mediaFileInput || !appService?.access_token) {
+      toast.error("Missing file or access token");
+      return;
+    }
+
+    setUploadingMedia(true);
+    try {
+      const result = await WhatsAppService.uploadMediaToMeta(
+        mediaFileInput,
+        appService.access_token
+      );
+
+      setMediaHandle(result.handle);
+      toast.success("Media uploaded successfully to Meta!");
+    } catch (error) {
+      console.error("Media upload failed:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to upload media"
+      );
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  // Helper functions for media
+  const getAcceptedFileTypes = (mediaType: string): string => {
+    switch (mediaType) {
+      case "IMAGE":
+        return "image/jpeg,image/jpg,image/png";
+      case "VIDEO":
+        return "video/mp4,video/3gpp";
+      case "DOCUMENT":
+        return "application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
+      default:
+        return "*";
+    }
+  };
+
+  const getMediaTypeHelperText = (mediaType: string): string => {
+    switch (mediaType) {
+      case "IMAGE":
+        return "Supported: JPG, PNG (max 5MB)";
+      case "VIDEO":
+        return "Supported: MP4, 3GPP (max 16MB)";
+      case "DOCUMENT":
+        return "Supported: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX (max 100MB)";
+      default:
+        return "Upload your file";
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!selectedTemplate || !phoneNumber.trim()) {
       toast.error("Please select a template and enter a phone number");
+      return;
+    }
+
+    // Validate media for templates with media headers
+    if (WhatsAppService.hasMediaHeader(selectedTemplate) && !mediaHandle) {
+      toast.error("Please upload media or use template's existing media");
       return;
     }
 
@@ -184,13 +266,14 @@ export default function BroadcastManager({
 
     setIsSending(true);
     try {
-      // Pass location data if template has location header
+      // Pass location data and media handle
       const success = await onSendTest(
         selectedTemplate.name,
         phoneNumber,
         parameters,
         selectedTemplate.language,
-        hasLocationHeader(selectedTemplate) ? locationData : undefined
+        hasLocationHeader(selectedTemplate) ? locationData : undefined,
+        mediaHandle || undefined
       );
 
       if (success) {
@@ -203,6 +286,9 @@ export default function BroadcastManager({
           name: "",
           address: "",
         });
+        setMediaHandle(null);
+        setUseCustomMedia(false);
+        setMediaFileInput(null);
       }
     } catch (error) {
       toast.error("Failed to send test message");
@@ -254,7 +340,7 @@ export default function BroadcastManager({
       (c) => c.type === "BUTTONS"
     );
     const displayParams = customParams || parameters;
-    const hasLocation = headerComponent?.format === "location";
+    const hasLocation = headerComponent?.format?.toUpperCase() === "LOCATION";
 
     return (
       <div className="w-full rounded-lg overflow-hidden shadow-xl">
@@ -776,6 +862,147 @@ export default function BroadcastManager({
                     233 for Ghana)
                   </p>
                 </div>
+
+                {/* Media Upload Section */}
+                {selectedTemplate && WhatsAppService.hasMediaHeader(selectedTemplate) && (
+                  <div className="space-y-3 p-4 border-2 rounded-lg bg-blue-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-blue-900 font-medium">
+                        <ImageIcon className="w-5 h-5" />
+                        {WhatsAppService.getMediaType(selectedTemplate)} Header
+                      </div>
+                      {mediaHandle && !useCustomMedia && (
+                        <Badge variant="outline" className="bg-green-100 text-green-800">
+                          ✓ Media Loaded from Template
+                        </Badge>
+                      )}
+                    </div>
+
+                    {!useCustomMedia && mediaHandle ? (
+                      <div className="space-y-2">
+                        <Alert>
+                          <AlertDescription className="text-sm">
+                            This template's existing media will be used automatically.
+                          </AlertDescription>
+                        </Alert>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUseCustomMedia(true)}
+                          className="w-full"
+                        >
+                          Upload Different Media
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                          <Label
+                            htmlFor="media-upload"
+                            className="flex flex-col items-center justify-center py-8 px-4 cursor-pointer"
+                          >
+                            <ImageIcon className="w-8 h-8 text-gray-400 mb-3" />
+                            <div className="text-center mb-2">
+                              <span className="text-sm font-medium text-gray-700">
+                                Drag and drop files
+                              </span>
+                              <div className="text-sm text-blue-600 hover:text-blue-700">
+                                Or choose file on your device
+                              </div>
+                            </div>
+                            <Input
+                              id="media-upload"
+                              type="file"
+                              accept={getAcceptedFileTypes(WhatsAppService.getMediaType(selectedTemplate))}
+                              onChange={(e) => setMediaFileInput(e.target.files?.[0] || null)}
+                              disabled={uploadingMedia}
+                              className="hidden"
+                            />
+                          </Label>
+
+                          {!mediaFileInput && (
+                            <div className="px-4 pb-4">
+                              <div className="flex items-center gap-2 text-red-600 text-sm mb-2">
+                                <div className="w-4 h-4 rounded-full border-2 border-red-600 flex items-center justify-center">
+                                  <span className="text-xs">✕</span>
+                                </div>
+                                <span>An {WhatsAppService.getMediaType(selectedTemplate).toLowerCase()} must be selected</span>
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                {getMediaTypeHelperText(WhatsAppService.getMediaType(selectedTemplate))}
+                              </div>
+                            </div>
+                          )}
+
+                          {mediaFileInput && !mediaHandle && (
+                            <div className="px-4 pb-4 border-t border-gray-200">
+                              <div className="flex items-center justify-between py-3">
+                                <div className="flex items-center gap-2">
+                                  <ImageIcon className="w-5 h-5 text-blue-600" />
+                                  <span className="text-sm font-medium text-gray-700">
+                                    {mediaFileInput.name}
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setMediaFileInput(null)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  ✕
+                                </Button>
+                              </div>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={handleMediaUpload}
+                                disabled={uploadingMedia}
+                                className="w-full"
+                              >
+                                {uploadingMedia ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    Uploading to Meta...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Upload to Meta
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {mediaHandle && useCustomMedia && (
+                          <Alert className="bg-green-50 border-green-200">
+                            <AlertDescription className="text-sm text-green-800 flex items-center gap-2">
+                              <div className="w-4 h-4 rounded-full bg-green-600 flex items-center justify-center text-white text-xs">
+                                ✓
+                              </div>
+                              Media uploaded successfully and ready to use
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        {!mediaHandle && useCustomMedia && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setUseCustomMedia(false);
+                              handleTemplateSelect(selectedTemplateId);
+                            }}
+                            className="w-full"
+                          >
+                            Use Template's Original Media
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Location Header Fields */}
                 {hasLocationHeader(selectedTemplate) && (

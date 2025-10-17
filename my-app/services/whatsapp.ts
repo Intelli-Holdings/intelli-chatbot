@@ -790,6 +790,79 @@ static formatTemplateComponents(components: any[]): any[] {
   }
 
   /**
+   * Fetch phone numbers from Meta Graph API with comprehensive details
+   * Uses the dedicated phone_numbers endpoint with extensive field list
+   */
+  static async fetchPhoneNumbers(appService: AppService): Promise<any[]> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.whatsapp_business_account_id) {
+        throw new Error('WhatsApp Business Account ID is required');
+      }
+
+      // Comprehensive field list for phone numbers
+      const fields = [
+        'id',
+        'display_phone_number',
+        'phone_number',
+        'verified_name',
+        'display_name',
+        'name',
+        'quality_rating',
+        'quality_score',
+        'messaging_limit_tier',
+        'tier',
+        'current_limit',
+        'max_daily_conversation_per_phone',
+        'code_verification_status',
+        'verification_status',
+        'name_status',
+        'new_name_status',
+        'certificate',
+        'account_mode',
+        'is_official_business_account',
+        'certificate_status',
+        'platform_type',
+        'throughput',
+        'webhook_configuration',
+      ].join(',');
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/phone_numbers?fields=${fields}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch phone numbers: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📱 Phone Numbers Response:', data);
+        if (data.data && data.data.length > 0) {
+          console.log('📋 Available fields:', Object.keys(data.data[0]));
+        }
+      }
+
+      return data.data || [];
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Helper function to extract country from phone number
    */
   private static getCountryFromPhoneNumber(phoneNumber: string): string {
@@ -856,6 +929,147 @@ static formatTemplateComponents(components: any[]): any[] {
       console.error('Error fetching WABA info:', error);
       throw error;
     }
+  }
+
+  /**
+   * Fetch template details including media handles
+   */
+  static async fetchTemplateDetails(
+    appService: AppService,
+    templateId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const url = `https://graph.facebook.com/${META_API_VERSION}/${templateId}`;
+      const params = new URLSearchParams({
+        fields: 'id,name,components,language,status',
+        access_token: appService.access_token
+      });
+
+      const response = await fetch(`${url}?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch template details: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching template details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract media handle from template components
+   * Returns the media handle/URL or null if not found
+   */
+  static extractMediaHandle(template: any): string | null {
+    const headerComponent = template.components?.find(
+      (c: any) => c.type === "HEADER" &&
+      ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format?.toUpperCase())
+    );
+
+    const handle = headerComponent?.example?.header_handle?.[0];
+
+    if (!handle) {
+      return null;
+    }
+
+    // Return the handle regardless of whether it's a URL or ID
+    // The buildMediaParameter function will determine how to use it
+    return handle;
+  }
+
+  /**
+   * Check if a string is a URL
+   */
+  static isUrl(str: string): boolean {
+    try {
+      const url = new URL(str);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Upload media using the API endpoint
+   */
+  static async uploadMediaToMeta(
+    file: File,
+    accessToken: string
+  ): Promise<{ handle: string; fileType: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('accessToken', accessToken);
+
+      const response = await fetch('/api/whatsapp/upload-media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload media');
+      }
+
+      const data = await response.json();
+      return {
+        handle: data.handle,
+        fileType: data.fileType
+      };
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if template has media header
+   */
+  static hasMediaHeader(template: WhatsAppTemplate): boolean {
+    return template.components?.some(
+      (c) => c.type === "HEADER" &&
+      ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format?.toUpperCase() || '')
+    ) || false;
+  }
+
+  /**
+   * Get media type from template
+   */
+  static getMediaType(template: WhatsAppTemplate): string {
+    const header = template.components?.find((c) => c.type === "HEADER");
+    return header?.format?.toUpperCase() || "";
+  }
+
+  /**
+   * Build media parameter object for sending messages
+   * Automatically detects if the handle is a URL or ID and formats accordingly
+   */
+  static buildMediaParameter(mediaType: string, mediaHandle: string): any {
+    const type = mediaType.toLowerCase();
+    const parameter: any = { type };
+
+    // Check if the handle is a URL or a media ID
+    if (this.isUrl(mediaHandle)) {
+      // Use 'link' for URLs (from template media)
+      parameter[type] = { link: mediaHandle };
+    } else {
+      // Use 'id' for media IDs (from uploaded media)
+      parameter[type] = { id: mediaHandle };
+    }
+
+    return parameter;
   }
 }
 

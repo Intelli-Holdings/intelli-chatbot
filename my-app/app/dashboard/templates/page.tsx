@@ -369,15 +369,14 @@ export default function TemplatesPage() {
   );
 
   // Send test template function
-  // Replace the sendTestTemplate function in your page.tsx (around line 369-409)
-
 const sendTestTemplate = useCallback(
   async (
     templateName: string,
     phoneNumber: string,
     parameters: string[],
     languageCode: string,
-    locationData?: { latitude: string; longitude: string; name: string; address: string }
+    locationData?: { latitude: string; longitude: string; name: string; address: string },
+    mediaHandle?: string
   ): Promise<boolean> => {
     if (!selectedAppService?.phone_number_id) {
       toast.error("Phone number ID not available");
@@ -399,8 +398,19 @@ const sendTestTemplate = useCallback(
       // Build components array
       const components: any[] = [];
 
-      // Add location header component if location data is provided
-      if (locationData && locationData.latitude && locationData.longitude && locationData.name && locationData.address) {
+      // 1. Add media header component if media handle is provided
+      if (mediaHandle) {
+        const template = templates.find(t => t.name === templateName);
+        if (template) {
+          const mediaType = WhatsAppService.getMediaType(template);
+          components.push({
+            type: "header",
+            parameters: [WhatsAppService.buildMediaParameter(mediaType, mediaHandle)]
+          });
+        }
+      }
+      // 2. Add location header component if location data is provided
+      else if (locationData && locationData.latitude && locationData.longitude && locationData.name && locationData.address) {
         components.push({
           type: "header",
           parameters: [
@@ -417,7 +427,7 @@ const sendTestTemplate = useCallback(
         });
       }
 
-      // Add body parameters if there are any
+      // 3. Add body parameters if there are any
       if (parameters.length > 0) {
         components.push({
           type: "body",
@@ -446,7 +456,7 @@ const sendTestTemplate = useCallback(
       throw err;
     }
   },
-  [selectedAppService]
+  [selectedAppService, templates]
 );
 
   // Effects
