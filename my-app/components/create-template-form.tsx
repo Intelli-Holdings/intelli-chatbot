@@ -4,7 +4,7 @@ import type React from "react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { TemplateCreationHandler } from "@/utils/template-creator";
-import CarouselTemplateCreator from "@/components/carousel-template-creator";
+import SimpleCarouselCreator from "@/components/simple-carousel-creator";
 import FlowsTemplateWrapper from "@/components/flows-template-wrapper";
 import Image from "next/image";
 
@@ -423,7 +423,11 @@ export default function CreateTemplateForm({
   };
 
   const handleSubmit = async () => {
-    if (!templateData.body.trim()) {
+    // Skip body validation for carousel and flow templates - they have their own validation
+    // Carousel/Flow body is in their respective data structures, not templateData.body
+    const skipBodyValidation = ["carousel", "flows"].includes(templateData.subcategory);
+
+    if (!skipBodyValidation && !templateData.body.trim()) {
       toast.error("Message body is required");
       return;
     }
@@ -750,10 +754,28 @@ export default function CreateTemplateForm({
         <>
           {/* Carousel Template Flow */}
           {templateData.subcategory === "carousel" ? (
-            <CarouselTemplateCreator
-              onComplete={(carouselData) => {
-                setTemplateData((prev) => ({ ...prev, carouselData }));
-                handleSubmit();
+            <SimpleCarouselCreator
+              onComplete={async (carouselData) => {
+                // CRITICAL: Don't use setState + handleSubmit because setState is async
+                // Instead, directly submit with the carouselData
+                const updatedTemplateData = { ...templateData, carouselData };
+
+                // Call the template creation directly
+                setIsSubmitting(true);
+                try {
+                  const formattedTemplate = TemplateCreationHandler.createTemplate(updatedTemplateData);
+                  const success = await onSubmit(formattedTemplate);
+
+                  if (success) {
+                    toast.success("Template created successfully!");
+                    onClose();
+                  }
+                } catch (error) {
+                  console.error("Template creation error:", error);
+                  toast.error(error instanceof Error ? error.message : "Failed to create template");
+                } finally {
+                  setIsSubmitting(false);
+                }
               }}
               onBack={() => setStep(1)}
               appService={appService}
