@@ -126,10 +126,23 @@ export class TemplateCreationHandler {
 
   /**
    * Creates a carousel template
+   * CRITICAL: Carousel templates should NOT have FOOTER added automatically
    */
   private static createCarouselTemplate(templateData: any): TemplateData {
     const { name, language, carouselData } = templateData
 
+    // CRITICAL: If carouselData already has components (from SimpleCarouselCreator),
+    // just return it directly - don't rebuild or modify
+    if (carouselData?.components) {
+      return {
+        name: carouselData.name || this.sanitizeTemplateName(name),
+        language: carouselData.language || language || 'en_US',
+        category: carouselData.category || 'MARKETING',
+        components: carouselData.components  // Return as-is, no modifications
+      };
+    }
+
+    // Legacy code for building carousel from raw data
     if (!carouselData?.cards || carouselData.cards.length < 2) {
       throw new Error('Carousel templates require at least 2 cards')
     }
@@ -148,16 +161,13 @@ export class TemplateCreationHandler {
         text: carouselData.messageBody
       }
 
+      // Only add example if there are variables
       if (bodyVariables.length > 0) {
         bodyComponent.example = {
           body_text: [bodyVariables.map((_, i) => `value${i + 1}`)]
         }
-      } else {
-        // CRITICAL FIX: Even without variables, include empty example
-        bodyComponent.example = {
-          body_text: [[]]
-        }
       }
+      // If no variables, omit example field entirely (per Meta API docs)
 
       components.push(bodyComponent)
     }
