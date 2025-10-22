@@ -380,7 +380,7 @@ useEffect(() => {
                     )}
                   </>
                 ) : (
-                  <Alert variant="destructive">
+                  <Alert variant="warning">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       No screens found in this flow. Please ensure the flow is properly configured in Meta Business Manager.
