@@ -60,16 +60,6 @@ export default function FlowsBuilder({
   const [loadingScreens, setLoadingScreens] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchMetaFlows();
-  }, []);
-
-  useEffect(() => {
-    if (selectedFlowId) {
-      fetchFlowScreens(selectedFlowId);
-    }
-  }, [selectedFlowId]);
-
   const fetchMetaFlows = useCallback(async () => {
   if (!appService?.whatsapp_business_account_id || !appService?.access_token) {
     toast.error('WhatsApp Business Account not configured');
@@ -173,13 +163,10 @@ useEffect(() => {
     setIsSubmitting(true);
 
     try {
-      
-
       // Pass selectedScreenId as third parameter
       await onComplete(selectedFlowId, selectedScreenId);
     } catch (error) {
-      console.error('Error creating template:', error);
-      toast.error('Failed to create flow template');
+      toast.error(error instanceof Error ? error.message : 'Failed to create flow template');
     } finally {
       setIsSubmitting(false);
     }
@@ -356,7 +343,9 @@ useEffect(() => {
                   <>
                     <Select value={selectedScreenId} onValueChange={setSelectedScreenId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select starting screen" />
+                        <SelectValue placeholder="Select starting screen">
+                          {selectedScreenId && flowScreens.find(s => s.id === selectedScreenId)?.title}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {flowScreens.map(screen => (
@@ -374,15 +363,24 @@ useEffect(() => {
                       </SelectContent>
                     </Select>
 
-                    <Alert>
-                      <CheckCircle className="h-4 w-4" />
-                      <AlertDescription className="text-xs">
-                        Found {flowScreens.length} screen(s) in this flow. Users will start at &quot;{flowScreens.find(s => s.id === selectedScreenId)?.title || 'selected screen'}&quot;.
-                      </AlertDescription>
-                    </Alert>
+                    {selectedScreenId && (
+                      <div className="space-y-2">
+                        <Alert>
+                          <CheckCircle className="h-4 w-4" />
+                          <AlertDescription className="text-xs">
+                            Found {flowScreens.length} screen(s) in this flow.
+                          </AlertDescription>
+                        </Alert>
+                        <div className="text-sm p-3 bg-blue-50 rounded-md border border-blue-200">
+                          <div className="font-medium text-blue-900 mb-1">Starting Screen:</div>
+                          <div className="text-blue-700">{flowScreens.find(s => s.id === selectedScreenId)?.title}</div>
+                          <div className="text-xs text-blue-600 mt-1">ID: {selectedScreenId}</div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
-                  <Alert variant="destructive">
+                  <Alert variant="warning">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       No screens found in this flow. Please ensure the flow is properly configured in Meta Business Manager.
