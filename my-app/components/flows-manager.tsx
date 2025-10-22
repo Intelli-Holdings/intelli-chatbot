@@ -215,12 +215,13 @@ export default function FlowManager({ appService }: FlowManagerProps) {
             name: 'flow',
             parameters: {
               flow_message_version: '3',
-              flow_token: `FLOW_TOKEN_${Date.now()}`,
+              flow_token: `flow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               flow_id: selectedFlow.id,
               flow_cta: 'Open Form',
               flow_action: 'navigate',
               flow_action_payload: {
-                screen: selectedScreen
+                screen: selectedScreen,
+                data: {}
               }
             }
           }
@@ -244,11 +245,18 @@ export default function FlowManager({ appService }: FlowManagerProps) {
         throw new Error(error.error?.message || 'Failed to send flow');
       }
 
-      toast.success('Flow sent successfully!');
+      const result = await response.json();
+
+      toast.success('Flow message queued successfully', {
+        description: `The flow has been sent to ${recipientNumber}. Check your phone for the interactive message.`,
+        duration: 5000,
+      });
+
       setSendDialogOpen(false);
       setRecipientNumber('');
+      setSelectedScreen('');
+      setFlowDetails(null);
     } catch (error) {
-      console.error('Error sending flow:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send flow');
     } finally {
       setSending(false);
@@ -469,27 +477,36 @@ export default function FlowManager({ appService }: FlowManagerProps) {
                   <span className="text-sm text-muted-foreground">Loading screens...</span>
                 </div>
               ) : flowDetails?.screens && flowDetails.screens.length > 0 ? (
-                <Select value={selectedScreen} onValueChange={setSelectedScreen}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select a screen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {flowDetails.screens.map((screen) => (
-                      <SelectItem key={screen.id} value={screen.id}>
-                        {screen.title}
-                        {screen.terminal && (
-                          <Badge variant="outline" className="ml-2 text-xs">
-                            Terminal
-                          </Badge>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="mt-1">
+                  <Select value={selectedScreen} onValueChange={setSelectedScreen}>
+                    <SelectTrigger id="screen">
+                      <SelectValue placeholder="Select a screen">
+                        {selectedScreen && flowDetails.screens.find(s => s.id === selectedScreen)?.title}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {flowDetails.screens.map((screen) => (
+                        <SelectItem key={screen.id} value={screen.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{screen.title}</span>
+                            {screen.terminal && (
+                              <Badge variant="outline" className="text-xs">
+                                Terminal
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Screen ID: {selectedScreen}
+                  </p>
+                </div>
               ) : (
                 <Alert className="mt-1">
                   <AlertDescription className="text-xs">
-                    No screens found for this flow
+                    No screens found for this flow. Make sure the flow is published.
                   </AlertDescription>
                 </Alert>
               )}

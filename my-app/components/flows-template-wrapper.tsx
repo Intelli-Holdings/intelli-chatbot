@@ -58,19 +58,15 @@ export default function FlowsTemplateWrapper({
         ]
       };
 
-      // Log for debugging
-      console.log('Flow template data:', JSON.stringify(templateData, null, 2));
-
       // Submit the template
       const success = await onSubmit(templateData);
       
       if (success) {
         toast.success('Flow template created! Ensure your Flow is published in Meta Business Manager.');
       }
-      
+
       return success;
     } catch (error) {
-      console.error('Error creating flow template:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create flow template');
       return false;
     }

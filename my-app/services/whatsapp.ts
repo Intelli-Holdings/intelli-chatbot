@@ -217,46 +217,52 @@ static formatTemplateComponents(components: any[]): any[] {
       }
 
       // Handle BODY component
-      // CRITICAL: Preserve the exact example format from template-creator.ts
       if (component.type === 'BODY') {
-        if (component.text) {
-          formattedComponent.text = component.text;
-        }
-
-        // Authentication-specific fields
+        // CRITICAL: text field is REQUIRED by Meta API for non-authentication templates
+        // Authentication templates don't need text field (they use preset templates)
         if (component.add_security_recommendation !== undefined) {
+          // Authentication template - don't include text field
           formattedComponent.add_security_recommendation = component.add_security_recommendation;
+        } else {
+          // Non-authentication template - MUST have text field
+          if (component.text !== undefined && component.text !== null && component.text !== '') {
+            formattedComponent.text = component.text;
+          } else {
+            throw new Error('BODY component requires a text field for non-authentication templates');
+          }
         }
 
-        // CRITICAL: Preserve existing example exactly as provided
-        // DO NOT regenerate or modify the example values
+        // Handle example for body text variables
         if (component.example?.body_text) {
-          // Ensure body_text is in nested array format [[...]]
           const bodyText = component.example.body_text;
 
-          // If it's already nested correctly, use as-is
-          if (Array.isArray(bodyText) && Array.isArray(bodyText[0])) {
-            formattedComponent.example = {
-              body_text: bodyText
-            };
-          } else if (Array.isArray(bodyText)) {
-            // If it's a flat array, nest it
-            formattedComponent.example = {
-              body_text: [bodyText]
-            };
-          } else {
-            // Fallback to empty nested array
-            formattedComponent.example = {
-              body_text: [[]]
-            };
+          // Ensure body_text is in nested array format [[...]] and NOT EMPTY
+          if (Array.isArray(bodyText) && bodyText.length > 0) {
+            // Check if it's nested and has content
+            if (Array.isArray(bodyText[0])) {
+              // Only add if inner array has content
+              if (bodyText[0].length > 0) {
+                formattedComponent.example = {
+                  body_text: bodyText
+                };
+              }
+            } else {
+              // Flat array with content
+              if (bodyText.length > 0) {
+                formattedComponent.example = {
+                  body_text: [bodyText]
+                };
+              }
+            }
           }
-        } else {
-          // CRITICAL: Always include example.body_text, even for auth templates
-          // Meta API requires this field even when empty
+        } else if (component.text && /\{\{\d+\}\}/.test(component.text)) {
+          // Only add example if template has variables
+          const varCount = (component.text.match(/\{\{\d+\}\}/g) || []).length;
           formattedComponent.example = {
-            body_text: [[]]
+            body_text: [Array(varCount).fill('Sample text')]
           };
         }
+        // If no variables and no example provided, don't include example field at all
       }
 
       // Handle FOOTER component
@@ -274,7 +280,107 @@ static formatTemplateComponents(components: any[]): any[] {
 
       // Handle CAROUSEL component
       if (component.type === 'CAROUSEL' && component.cards) {
-        formattedComponent.cards = component.cards;
+        formattedComponent.cards = component.cards.map((card: any) => {
+          const formattedCard: any = {
+            components: []
+          };
+
+          // Process each component in the card
+          if (card.components && Array.isArray(card.components)) {
+            formattedCard.components = card.components.map((cardComponent: any) => {
+              const formattedCardComponent: any = {
+                type: cardComponent.type
+              };
+
+              // Handle HEADER component in card
+              if (cardComponent.type === 'HEADER' || cardComponent.type === 'header') {
+                formattedCardComponent.type = 'header';
+
+                if (cardComponent.format) {
+                  formattedCardComponent.format = cardComponent.format.toLowerCase();
+                }
+
+                // For product cards
+                if (cardComponent.format === 'product' || cardComponent.format === 'PRODUCT') {
+                  formattedCardComponent.format = 'product';
+                }
+                // For media cards (image/video)
+                else if (['image', 'IMAGE', 'video', 'VIDEO'].includes(cardComponent.format)) {
+                  formattedCardComponent.format = cardComponent.format.toLowerCase();
+
+                  // Include media handle example
+                  if (cardComponent.example?.header_handle) {
+                    formattedCardComponent.example = {
+                      header_handle: cardComponent.example.header_handle
+                    };
+                  }
+                }
+              }
+
+              // Handle BODY component in card (optional for carousel cards)
+              if (cardComponent.type === 'BODY' || cardComponent.type === 'body') {
+                formattedCardComponent.type = 'body';
+
+                if (cardComponent.text) {
+                  formattedCardComponent.text = cardComponent.text;
+                }
+
+                if (cardComponent.example?.body_text) {
+                  formattedCardComponent.example = {
+                    body_text: cardComponent.example.body_text
+                  };
+                }
+              }
+
+              // Handle BUTTONS component in card
+              if (cardComponent.type === 'BUTTONS' || cardComponent.type === 'buttons') {
+                formattedCardComponent.type = 'buttons';
+
+                if (cardComponent.buttons && Array.isArray(cardComponent.buttons)) {
+                  formattedCardComponent.buttons = cardComponent.buttons.map((btn: any) => {
+                    const buttonType = btn.type.toString().toLowerCase();
+                    const formattedButton: any = {
+                      type: buttonType,
+                      text: btn.text
+                    };
+
+                    // Handle SPM (Single Product Message) button - for product cards
+                    if (buttonType === 'spm') {
+                      formattedButton.type = 'spm';
+                    }
+                    // Handle quick_reply buttons
+                    else if (buttonType === 'quick_reply') {
+                      formattedButton.type = 'quick_reply';
+                    }
+                    // Handle URL buttons with variable support
+                    else if (buttonType === 'url') {
+                      formattedButton.type = 'url';
+                      if (btn.url) {
+                        formattedButton.url = btn.url;
+                      }
+                      if (btn.example && Array.isArray(btn.example)) {
+                        formattedButton.example = btn.example;
+                      }
+                    }
+                    // Handle phone_number buttons
+                    else if (buttonType === 'phone_number') {
+                      formattedButton.type = 'phone_number';
+                      if (btn.phone_number) {
+                        formattedButton.phone_number = btn.phone_number;
+                      }
+                    }
+
+                    return formattedButton;
+                  });
+                }
+              }
+
+              return formattedCardComponent;
+            });
+          }
+
+          return formattedCard;
+        });
       }
 
       // Handle BUTTONS component
@@ -442,8 +548,6 @@ static formatTemplateComponents(components: any[]): any[] {
         components: this.formatTemplateComponents(templateData.components || [])
       };
 
-      console.log('Creating template with formatted data:', JSON.stringify(formattedData, null, 2));
-
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates`,
         {
@@ -459,7 +563,6 @@ static formatTemplateComponents(components: any[]): any[] {
       const responseData = await response.json();
 
       if (!response.ok) {
-        console.error('Template creation failed:', responseData);
         const errorMessage = responseData.error?.message ||
           responseData.error?.error_user_msg ||
           'Failed to create template';
@@ -468,7 +571,6 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return responseData;
     } catch (error) {
-      console.error('Error creating WhatsApp template:', error);
       throw error;
     }
   }
@@ -564,20 +666,14 @@ static formatTemplateComponents(components: any[]): any[] {
 
       // Ensure language code is provided - use exact match with template
       if (!messageData.template?.language?.code) {
-        // Default to en_US if no language code is provided
         messageData.template.language = { code: 'en_US' };
       }
 
-      console.log('Sending message with template:', messageData.template.name, 'language:', messageData.template.language.code);
-      console.log('Sending message:', JSON.stringify(messageData, null, 2));
-
-      // Try sending with the original language code first
       let lastError: any;
       const languageVariations = this.getLanguageVariations(messageData.template.language.code);
 
       for (const languageCode of languageVariations) {
         try {
-          // Update the language code for this attempt
           const attemptData = {
             ...messageData,
             template: {
@@ -585,8 +681,6 @@ static formatTemplateComponents(components: any[]): any[] {
               language: { code: languageCode }
             }
           };
-
-          console.log(`Attempting to send with language code: ${languageCode}`);
 
           const response = await fetch(
             `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
@@ -603,25 +697,19 @@ static formatTemplateComponents(components: any[]): any[] {
           const responseData = await response.json();
 
           if (response.ok) {
-            console.log(`Successfully sent with language code: ${languageCode}`);
             return responseData;
           } else {
             lastError = responseData;
-            // If it's not a language/translation error, don't try other variations
             if (!responseData.error?.message?.includes('translation') &&
               !responseData.error?.message?.includes('Template name does not exist')) {
               break;
             }
-            console.log(`Failed with language code ${languageCode}:`, responseData.error?.message);
           }
         } catch (error) {
           lastError = error;
-          console.log(`Network error with language code ${languageCode}:`, error);
         }
       }
 
-      // If we get here, all attempts failed
-      console.error('All language variations failed. Last error:', lastError);
       if (lastError?.error?.message) {
         throw new Error(`Failed to send message: ${lastError.error.message}`);
       } else {
@@ -847,14 +935,6 @@ static formatTemplateComponents(components: any[]): any[] {
       }
 
       const data = await response.json();
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📱 Phone Numbers Response:', data);
-        if (data.data && data.data.length > 0) {
-          console.log('📋 Available fields:', Object.keys(data.data[0]));
-        }
-      }
-
       return data.data || [];
     } catch (error) {
       console.error('Error fetching phone numbers:', error);
@@ -1045,6 +1125,32 @@ static formatTemplateComponents(components: any[]): any[] {
   }
 
   /**
+   * Check if template is a carousel template
+   */
+  static isCarouselTemplate(template: WhatsAppTemplate): boolean {
+    return template.components?.some((c) => c.type === "CAROUSEL") || false;
+  }
+
+  /**
+   * Get carousel type (media or product)
+   */
+  static getCarouselType(template: WhatsAppTemplate): 'media' | 'product' | null {
+    const carouselComponent = template.components?.find((c) => c.type === "CAROUSEL");
+    if (!carouselComponent?.cards || carouselComponent.cards.length === 0) return null;
+
+    const firstCard = carouselComponent.cards[0];
+    const headerComponent = firstCard?.components?.find((c: any) => c.type === "HEADER" || c.type === "header");
+
+    if (headerComponent?.format === 'product' || headerComponent?.format === 'PRODUCT') {
+      return 'product';
+    } else if (['image', 'IMAGE', 'video', 'VIDEO'].includes(headerComponent?.format)) {
+      return 'media';
+    }
+
+    return null;
+  }
+
+  /**
    * Get media type from template
    */
   static getMediaType(template: WhatsAppTemplate): string {
@@ -1070,6 +1176,76 @@ static formatTemplateComponents(components: any[]): any[] {
     }
 
     return parameter;
+  }
+
+  /**
+   * Check message status by message ID
+   * This helps debug why messages aren't being delivered
+   */
+  static async getMessageStatus(
+    appService: AppService,
+    messageId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${messageId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch message status: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching message status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get quality rating and messaging limits for debugging delivery issues
+   */
+  static async getPhoneNumberQuality(
+    appService: AppService
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}?fields=quality_rating,messaging_limit_tier,is_official_business_account,account_mode,name_status,code_verification_status`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch phone number quality: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching phone number quality:', error);
+      throw error;
+    }
   }
 }
 

@@ -65,6 +65,12 @@ interface BroadcastManagerProps {
     },
     mediaHandle?: string
   ) => Promise<boolean>;
+  onSendCarousel?: (
+    templateName: string,
+    phoneNumber: string,
+    languageCode: string,
+    cardMediaHandles: string[]
+  ) => Promise<boolean>;
   loading: boolean;
 }
 
@@ -72,6 +78,7 @@ export default function BroadcastManager({
   appService,
   templates,
   onSendTest,
+  onSendCarousel,
   loading,
 }: BroadcastManagerProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -93,6 +100,10 @@ export default function BroadcastManager({
   const [useCustomMedia, setUseCustomMedia] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [mediaFileInput, setMediaFileInput] = useState<File | null>(null);
+
+  // Carousel media handling state
+  const [carouselMediaHandles, setCarouselMediaHandles] = useState<string[]>([]);
+  const [carouselMediaFiles, setCarouselMediaFiles] = useState<(File | null)[]>([]);
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
   const approvedTemplates = templates.filter((t) => t.status === "APPROVED");
@@ -160,7 +171,6 @@ export default function BroadcastManager({
             setUseCustomMedia(true);
           }
         } catch (error) {
-          console.error("Failed to fetch template media:", error);
           toast.warning("Couldn't fetch template media. You can upload new media.");
           setUseCustomMedia(true);
         }
@@ -201,7 +211,6 @@ export default function BroadcastManager({
       setMediaHandle(result.handle);
       toast.success("Media uploaded successfully to Meta!");
     } catch (error) {
-      console.error("Media upload failed:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to upload media"
       );
@@ -243,6 +252,54 @@ export default function BroadcastManager({
       return;
     }
 
+    // Check if this is a carousel template
+    const isCarousel = WhatsAppService.isCarouselTemplate(selectedTemplate);
+
+    if (isCarousel) {
+      // Handle carousel template sending
+      const carouselComponent = selectedTemplate.components?.find(c => c.type === 'CAROUSEL');
+      const cardCount = carouselComponent?.cards?.length || 0;
+
+      if (carouselMediaHandles.length !== cardCount) {
+        toast.error(`Please provide media for all ${cardCount} carousel cards`);
+        return;
+      }
+
+      // Check that all carousel media handles are set
+      if (carouselMediaHandles.some(h => !h || h.trim() === '')) {
+        toast.error("All carousel cards must have media uploaded");
+        return;
+      }
+
+      setIsSending(true);
+      try {
+        if (!onSendCarousel) {
+          toast.error("Carousel sending is not supported");
+          return;
+        }
+
+        const success = await onSendCarousel(
+          selectedTemplate.name,
+          phoneNumber,
+          selectedTemplate.language,
+          carouselMediaHandles
+        );
+
+        if (success) {
+          toast.success("Carousel message sent successfully!");
+          setPhoneNumber("");
+          setCarouselMediaHandles([]);
+          setCarouselMediaFiles([]);
+        }
+      } catch (error) {
+        console.error("Error sending carousel:", error);
+      } finally {
+        setIsSending(false);
+      }
+      return;
+    }
+
+    // Regular template handling
     // Validate media for templates with media headers
     if (WhatsAppService.hasMediaHeader(selectedTemplate) && !mediaHandle) {
       toast.error("Please upload media or use template's existing media");
@@ -1003,6 +1060,153 @@ export default function BroadcastManager({
                     )}
                   </div>
                 )}
+
+                {/* Carousel Media Upload Section */}
+                {selectedTemplate && WhatsAppService.isCarouselTemplate(selectedTemplate) && (() => {
+                  const carouselComponent = selectedTemplate.components?.find(c => c.type === 'CAROUSEL');
+                  const cardCount = carouselComponent?.cards?.length || 0;
+
+                  const handleCarouselMediaSelect = async (index: number, file: File) => {
+                    // Update file in state
+                    const newFiles = [...carouselMediaFiles];
+                    newFiles[index] = file;
+                    setCarouselMediaFiles(newFiles);
+
+                    // Upload to Meta using Media API (returns media ID for sending)
+                    setUploadingMedia(true);
+                    try {
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      formData.append('accessToken', appService.access_token);
+                      formData.append('phoneNumberId', appService.phone_number_id);
+                      formData.append('uploadType', 'media'); // Use Media API, not resumable upload
+
+                      const response = await fetch('/api/whatsapp/upload-media', {
+                        method: 'POST',
+                        body: formData,
+                      });
+
+                      if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Upload failed');
+                      }
+
+                      const data = await response.json();
+
+                      // Update media ID in state (not handle, but ID)
+                      const newHandles = [...carouselMediaHandles];
+                      newHandles[index] = data.id; // Media ID for sending messages
+                      setCarouselMediaHandles(newHandles);
+
+                      toast.success(`Card ${index + 1} media uploaded successfully!`);
+                    } catch (error) {
+                      toast.error(error instanceof Error ? error.message : 'Failed to upload media');
+                      // Clear the file on error
+                      const newFiles = [...carouselMediaFiles];
+                      newFiles[index] = null;
+                      setCarouselMediaFiles(newFiles);
+                    } finally {
+                      setUploadingMedia(false);
+                    }
+                  };
+
+                  return (
+                    <div className="space-y-3 p-4 border-2 rounded-lg bg-purple-50">
+                      <div className="flex items-center gap-2 text-purple-900 font-medium">
+                        <ImageIcon className="w-5 h-5" />
+                        Carousel Media ({cardCount} cards)
+                      </div>
+                      <p className="text-sm text-purple-700">
+                        Upload media for each carousel card.
+                      </p>
+
+                      {Array.from({ length: cardCount }).map((_, index) => {
+                        const cardFile = carouselMediaFiles[index];
+                        const cardHandle = carouselMediaHandles[index];
+                        const cardHeader = carouselComponent?.cards?.[index]?.components?.find((c: any) => c.type === 'HEADER' || c.type === 'header');
+                        const mediaType = cardHeader?.format?.toUpperCase() || 'IMAGE';
+
+                        return (
+                          <div key={index} className="space-y-2 p-3 bg-white rounded-lg border">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-medium">
+                                Card {index + 1} - {mediaType} *
+                              </Label>
+                              {cardHandle && (
+                                <Badge variant="outline" className="text-green-600">
+                                  ✓ Uploaded
+                                </Badge>
+                              )}
+                            </div>
+
+                            {!cardFile ? (
+                              <div
+                                className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-purple-400 transition-colors"
+                                onClick={() => {
+                                  const input = document.createElement('input');
+                                  input.type = 'file';
+                                  input.accept = mediaType === 'IMAGE' ? 'image/jpeg,image/png,image/jpg' : 'video/mp4';
+                                  input.onchange = (e) => {
+                                    const file = (e.target as HTMLInputElement).files?.[0];
+                                    if (file) handleCarouselMediaSelect(index, file);
+                                  };
+                                  input.click();
+                                }}
+                              >
+                                <Upload className="h-6 w-6 mx-auto mb-2 text-purple-500" />
+                                <p className="text-sm text-purple-700">
+                                  Click to upload {mediaType.toLowerCase()}
+                                </p>
+                                <p className="text-xs text-purple-600 mt-1">
+                                  {mediaType === 'IMAGE' ? 'JPG, PNG (max 5MB)' : 'MP4 (max 16MB)'}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between p-2 bg-purple-100 rounded">
+                                  <span className="text-sm text-purple-900 truncate">
+                                    {cardFile.name}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const newFiles = [...carouselMediaFiles];
+                                      newFiles[index] = null;
+                                      setCarouselMediaFiles(newFiles);
+                                      const newHandles = [...carouselMediaHandles];
+                                      newHandles[index] = '';
+                                      setCarouselMediaHandles(newHandles);
+                                    }}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    ✕
+                                  </Button>
+                                </div>
+                                {cardHandle && (
+                                  <Alert className="bg-green-50 border-green-200">
+                                    <AlertDescription className="text-xs text-green-800">
+                                      ✓ Ready to send
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {uploadingMedia && (
+                        <Alert className="bg-blue-50 border-blue-200">
+                          <AlertDescription className="text-sm text-blue-800 flex items-center gap-2">
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Uploading media to Meta...
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Location Header Fields */}
                 {hasLocationHeader(selectedTemplate) && (
