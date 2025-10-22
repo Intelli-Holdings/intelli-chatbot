@@ -437,8 +437,8 @@ export default function CarouselTemplateCreator({
       // CRITICAL: Body component MUST be first and is REQUIRED by Meta API
       // This is the main message that appears ABOVE the carousel
       const bodyComponent: any = {
-        type: 'body',
-        text: messageBody.trim() // Ensure trimmed
+        type: 'BODY',
+        text: messageBody.trim()
       };
 
       // Add message body variable examples (if any)
@@ -461,13 +461,13 @@ export default function CarouselTemplateCreator({
 
       // Carousel component
       const carouselComponent: any = {
-        type: 'carousel',
+        type: 'CAROUSEL',
         cards: cards.map(card => {
           const cardComponents: any[] = [];
 
           // Header component (image/video)
           cardComponents.push({
-            type: 'header',
+            type: 'HEADER',
             format: card.headerMediaType.toLowerCase(),
             example: {
               header_handle: [card.headerMediaHandle]
@@ -477,7 +477,7 @@ export default function CarouselTemplateCreator({
           // Body component (optional for cards)
           if (card.bodyText && card.bodyText.trim()) {
             const cardBodyComponent: any = {
-              type: 'body',
+              type: 'BODY',
               text: card.bodyText.trim()
             };
 
@@ -500,7 +500,7 @@ export default function CarouselTemplateCreator({
           // Buttons component
           if (card.buttons.length > 0) {
             const buttonsComponent: any = {
-              type: 'buttons',
+              type: 'BUTTONS',
               buttons: card.buttons.map(button => {
                 const btnData: any = {
                   type: button.type.toLowerCase(),
@@ -538,40 +538,8 @@ export default function CarouselTemplateCreator({
         components
       };
 
-      // Comprehensive validation logging
-      console.log('=== CAROUSEL TEMPLATE VALIDATION ===');
-      console.log('✅ Template Name:', carouselData.name);
-      console.log('✅ Language:', carouselData.language);
-      console.log('✅ Category:', carouselData.category);
-      console.log('✅ Number of components:', components.length);
-      console.log('✅ First component type:', components[0].type);
-      console.log('✅ Message body present:', !!components[0].text);
-      console.log('✅ Message body content:', `"${components[0].text}"`);
-      console.log('✅ Message body length:', components[0].text.length);
-      console.log('✅ Has message body example:', !!components[0].example);
-      console.log('✅ Number of carousel cards:', components[1]?.cards?.length);
-      console.log('=== FULL TEMPLATE DATA ===');
-      console.log('Carousel template data:', JSON.stringify(carouselData, null, 2));
-      console.log('=== END VALIDATION ===');
-
-      try {
-        await onComplete(carouselData);
-      } catch (error: any) {
-        console.error('❌ Template creation error:', error);
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error details:', error);
-        
-        // Try to extract meaningful error from response
-        if (error.response) {
-          console.error('❌ API Response:', error.response);
-          console.error('❌ API Status:', error.response.status);
-          console.error('❌ API Data:', error.response.data);
-        }
-        
-        throw error;
-      }
+      await onComplete(carouselData);
     } catch (error) {
-      console.error('Error creating carousel:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create carousel template');
     } finally {
       setIsSubmitting(false);
