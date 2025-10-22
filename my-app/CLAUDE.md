@@ -120,7 +120,7 @@ export async function POST(request: Request) { }
 
 **Backend Integration**:
 - Primary: `NEXT_PUBLIC_API_BASE_URL` (https://backend.intelliconcierge.com)
-- Dev: `NEXT_PUBLIC_DEV_API_BASE_URL`
+- Dev: `NEXT_PUBLIC_API_BASE_URL`
 - Test: `NEXT_PUBLIC_TEST_API_BASE_URL`
 - Local: `NEXT_PUBLIC_LOCAL_API_BASE_URL`
 
