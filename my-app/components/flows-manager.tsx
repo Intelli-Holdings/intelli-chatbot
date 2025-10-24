@@ -518,7 +518,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-xs">
-                      Enter your flow's starting screen ID. Leave empty to use default "FIRST_ENTRY_SCREEN"
+                      Enter your flow&apos;s starting screen ID. Leave empty to use default &apos;FIRST_ENTRY_SCREEN&apos;
                     </AlertDescription>
                   </Alert>
                   {manualScreenId && (
@@ -709,7 +709,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                The starting screen will be specified when you send this template to users. You don't need to select it during template creation.
+                The starting screen will be specified when you send this template to users. You don&apos;t need to select it during template creation.
               </AlertDescription>
             </Alert>
           </div>
