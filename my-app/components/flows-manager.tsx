@@ -1,26 +1,28 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Eye, 
-  Send, 
-  RefreshCw, 
+import {
+  Eye,
+  Send,
+  RefreshCw,
   Loader2,
   ExternalLink,
   Calendar,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Plus,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
+import {
+  Card,
+  CardContent,
+  CardHeader,
   CardTitle,
-  CardDescription 
+  CardDescription
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -39,48 +41,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { WhatsAppService, type WhatsAppFlow, type FlowDetails } from '@/services/whatsapp';
 
 interface FlowManagerProps {
   appService: any;
 }
 
-interface MetaFlow {
-  id: string;
-  name: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'DEPRECATED';
-  categories: string[];
-  validation_errors?: any[];
-  created_time?: string;
-  updated_time?: string;
-}
-
-interface FlowScreen {
-  id: string;
-  title: string;
-  terminal?: boolean;
-}
-
-interface FlowDetails {
-  id: string;
-  name: string;
-  status: string;
-  json_version?: string;
-  data_api_version?: string;
-  screens?: FlowScreen[];
-}
-
 export default function FlowManager({ appService }: FlowManagerProps) {
-  const [flows, setFlows] = useState<MetaFlow[]>([]);
+  const [activeTab, setActiveTab] = useState<'manage' | 'create-template' | 'send'>('manage');
+  const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedFlow, setSelectedFlow] = useState<MetaFlow | null>(null);
+  const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
   const [flowDetails, setFlowDetails] = useState<FlowDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Send flow dialog state
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [senderNumber, setSenderNumber] = useState('');
   const [recipientNumber, setRecipientNumber] = useState('');
   const [selectedScreen, setSelectedScreen] = useState('');
+  const [manualScreenId, setManualScreenId] = useState('');
+  const [useManualScreenId, setUseManualScreenId] = useState(false);
   const [sending, setSending] = useState(false);
+
+  // Create template dialog state
+  const [createTemplateDialogOpen, setCreateTemplateDialogOpen] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateBodyText, setTemplateBodyText] = useState('');
+  const [templateButtonText, setTemplateButtonText] = useState('Open Form');
+  const [templateCategory, setTemplateCategory] = useState<'MARKETING' | 'UTILITY'>('UTILITY');
+  const [templateLanguage, setTemplateLanguage] = useState('en_US');
+  const [creatingTemplate, setCreatingTemplate] = useState(false);
 
   useEffect(() => {
     fetchFlows();
@@ -100,20 +93,12 @@ export default function FlowManager({ appService }: FlowManagerProps) {
 
     setLoading(true);
     try {
-      const response = await fetch(
-        `https://graph.facebook.com/v21.0/${appService.whatsapp_business_account_id}/flows?fields=id,name,status,categories,validation_errors,created_time,updated_time&access_token=${appService.access_token}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch flows');
-      }
-
-      const data = await response.json();
-      setFlows(data.data || []);
-      toast.success(`Loaded ${data.data?.length || 0} flows`);
+      const flowsData = await WhatsAppService.fetchFlows(appService);
+      setFlows(flowsData);
+      toast.success(`Loaded ${flowsData.length} flow(s)`);
     } catch (error) {
       console.error('Error fetching flows:', error);
-      toast.error('Failed to load flows');
+      toast.error(error instanceof Error ? error.message : 'Failed to load flows');
     } finally {
       setLoading(false);
     }
@@ -127,53 +112,18 @@ export default function FlowManager({ appService }: FlowManagerProps) {
 
     setLoadingDetails(true);
     try {
-      const response = await fetch(
-        `https://graph.facebook.com/v21.0/${flowId}?fields=id,name,status,json_version,data_api_version,preview.invalidate(false),categories&access_token=${appService.access_token}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch flow details');
-      }
-
-      const data = await response.json();
-      
-      // Parse the preview to get screens
-      let screens: FlowScreen[] = [];
-      if (data.preview?.preview) {
-        try {
-          const previewData = JSON.parse(data.preview.preview);
-          if (previewData.screens && Array.isArray(previewData.screens)) {
-            screens = previewData.screens.map((screen: any) => ({
-              id: screen.id,
-              title: screen.title || screen.id,
-              terminal: screen.terminal
-            }));
-          }
-        } catch (e) {
-          console.error('Error parsing preview:', e);
-        }
-      }
-
-      const details: FlowDetails = {
-        id: data.id,
-        name: data.name,
-        status: data.status,
-        json_version: data.json_version,
-        data_api_version: data.data_api_version,
-        screens
-      };
-
+      const details = await WhatsAppService.fetchFlowDetails(appService, flowId);
       setFlowDetails(details);
-      
+
       // Auto-select first screen
-      if (screens.length > 0) {
-        setSelectedScreen(screens[0].id);
+      if (details.screens && details.screens.length > 0) {
+        setSelectedScreen(details.screens[0].id);
       }
-      
+
       return details;
     } catch (error) {
       console.error('Error fetching flow details:', error);
-      toast.error('Failed to load flow details');
+      toast.error(error instanceof Error ? error.message : 'Failed to load flow details');
       return null;
     } finally {
       setLoadingDetails(false);
@@ -191,82 +141,146 @@ export default function FlowManager({ appService }: FlowManagerProps) {
       return;
     }
 
-    if (!selectedScreen) {
-      toast.error('Please select a starting screen');
-      return;
+    // Determine which screen ID to use
+    let screenId = '';
+    if (useManualScreenId) {
+      screenId = manualScreenId.trim() || 'FIRST_ENTRY_SCREEN';
+    } else if (selectedScreen) {
+      screenId = selectedScreen;
+    } else {
+      // Default to FIRST_ENTRY_SCREEN if no screen selected
+      screenId = 'FIRST_ENTRY_SCREEN';
     }
 
     setSending(true);
     try {
-      const messageData = {
-        messaging_product: 'whatsapp',
-        to: recipientNumber,
-        type: 'interactive',
-        interactive: {
-          type: 'flow',
-          header: {
-            type: 'text',
-            text: 'Complete this form'
-          },
-          body: {
-            text: `Please complete the ${selectedFlow.name} form.`
-          },
-          action: {
-            name: 'flow',
-            parameters: {
-              flow_message_version: '3',
-              flow_token: `flow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              flow_id: selectedFlow.id,
-              flow_cta: 'Open Form',
-              flow_action: 'navigate',
-              flow_action_payload: {
-                screen: selectedScreen,
-                data: {}
-              }
-            }
-          }
-        }
-      };
-
-      const response = await fetch(
-        `https://graph.facebook.com/v21.0/${appService.phone_number_id}/messages`,
+      await WhatsAppService.sendInteractiveFlowMessage(
+        appService,
+        recipientNumber,
+        selectedFlow.id,
         {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${appService.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(messageData)
+          headerText: 'Complete this form',
+          bodyText: `Please complete the ${selectedFlow.name} form.`,
+          buttonText: 'Open Form',
+          flowToken: `flow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          flowAction: 'navigate',
+          screen: screenId
+          // Note: flowData omitted - will only be added if it's a non-empty object
         }
       );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to send flow');
-      }
-
-      const result = await response.json();
-
       toast.success('Flow message queued successfully', {
-        description: `The flow has been sent to ${recipientNumber}. Check your phone for the interactive message.`,
+        description: `The flow has been sent to ${recipientNumber} with screen: ${screenId}`,
         duration: 5000,
       });
 
       setSendDialogOpen(false);
       setRecipientNumber('');
       setSelectedScreen('');
+      setManualScreenId('');
+      setUseManualScreenId(false);
       setFlowDetails(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send flow');
+      // Extract error message and details
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send flow';
+      const errorDetails = (error as any).details;
+
+      // Show toast with error details if available
+      if (errorDetails) {
+        toast.error('Failed to send flow', {
+          description: errorDetails,
+          duration: 7000,
+        });
+      } else {
+        toast.error(errorMessage, {
+          duration: 5000,
+        });
+      }
+
+      // Also log the full error for debugging
+      console.error('Flow send error:', error);
     } finally {
       setSending(false);
     }
   };
 
-  const handleOpenSendDialog = async (flow: MetaFlow) => {
+  const handleCreateTemplate = async () => {
+    if (!templateName.trim()) {
+      toast.error('Please enter a template name');
+      return;
+    }
+
+    if (!templateBodyText.trim()) {
+      toast.error('Please enter body text');
+      return;
+    }
+
+    if (!selectedFlow) {
+      toast.error('No flow selected');
+      return;
+    }
+
+    setCreatingTemplate(true);
+    try {
+      // Note: navigate_screen is NOT supported when creating templates
+      // The screen is specified when SENDING the template, not when creating it
+      const result = await WhatsAppService.createFlowTemplate(appService, {
+        name: templateName,
+        language: templateLanguage,
+        category: templateCategory,
+        bodyText: templateBodyText,
+        flowId: selectedFlow.id,
+        flowAction: 'navigate',
+        buttonText: templateButtonText
+        // navigateScreen is omitted - will be specified when sending
+      });
+
+      toast.success('Flow template created successfully!', {
+        description: `Template "${templateName}" is pending approval and will be available once Meta approves it.`,
+        duration: 5000,
+      });
+
+      setCreateTemplateDialogOpen(false);
+      setTemplateName('');
+      setTemplateBodyText('');
+      setTemplateButtonText('Open Form');
+      setSelectedFlow(null);
+      setFlowDetails(null);
+    } catch (error) {
+      // Extract error message and details
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create template';
+      const errorDetails = (error as any).details;
+
+      // Show toast with error details if available
+      if (errorDetails) {
+        toast.error('Failed to create template', {
+          description: errorDetails,
+          duration: 7000,
+        });
+      } else {
+        toast.error(errorMessage, {
+          duration: 5000,
+        });
+      }
+
+      // Also log the full error for debugging
+      console.error('Template creation error:', error);
+    } finally {
+      setCreatingTemplate(false);
+    }
+  };
+
+  const handleOpenSendDialog = async (flow: WhatsAppFlow) => {
     setSelectedFlow(flow);
     setSendDialogOpen(true);
     await fetchFlowDetails(flow.id);
+  };
+
+  const handleOpenCreateTemplateDialog = async (flow: WhatsAppFlow) => {
+    setSelectedFlow(flow);
+    setCreateTemplateDialogOpen(true);
+    // Note: No need to fetch flow details for template creation
+    // Screens are only needed when SENDING the template
   };
 
   const getStatusIcon = (status: string) => {
@@ -387,37 +401,42 @@ export default function FlowManager({ appService }: FlowManagerProps) {
                     </Alert>
                   )}
 
-                  {flow.updated_time && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      Updated {new Date(flow.updated_time).toLocaleDateString()}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      asChild
-                    >
-                      <a
-                        href={getViewUrl(flow.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                  <div className="flex flex-col gap-2 pt-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        asChild
                       >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
-                      </a>
-                    </Button>
+                        <a
+                          href={getViewUrl(flow.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </a>
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        disabled={flow.status !== 'PUBLISHED'}
+                        onClick={() => handleOpenSendDialog(flow)}
+                      >
+                        <Send className="h-3 w-3 mr-1" />
+                        Send
+                      </Button>
+                    </div>
                     <Button
+                      variant="secondary"
                       size="sm"
-                      className="flex-1"
+                      className="w-full"
                       disabled={flow.status !== 'PUBLISHED'}
-                      onClick={() => handleOpenSendDialog(flow)}
+                      onClick={() => handleOpenCreateTemplateDialog(flow)}
                     >
-                      <Send className="h-3 w-3 mr-1" />
-                      Send
+                      <FileText className="h-3 w-3 mr-1" />
+                      Create Template
                     </Button>
                   </div>
                 </div>
@@ -470,11 +489,48 @@ export default function FlowManager({ appService }: FlowManagerProps) {
             </div>
 
             <div>
-              <Label htmlFor="screen">First screen</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="screen">First screen</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setUseManualScreenId(!useManualScreenId)}
+                  className="h-6 text-xs"
+                >
+                  {useManualScreenId ? 'Use Dropdown' : 'Enter Manually'}
+                </Button>
+              </div>
+
               {loadingDetails ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   <span className="text-sm text-muted-foreground">Loading screens...</span>
+                </div>
+              ) : useManualScreenId ? (
+                <div className="mt-1 space-y-2">
+                  <Input
+                    id="manualScreen"
+                    placeholder="Enter screen ID (e.g., WELCOME_SCREEN)"
+                    value={manualScreenId}
+                    onChange={(e) => setManualScreenId(e.target.value)}
+                  />
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      Enter your flow's starting screen ID. Leave empty to use default "FIRST_ENTRY_SCREEN"
+                    </AlertDescription>
+                  </Alert>
+                  {manualScreenId && (
+                    <p className="text-xs text-muted-foreground">
+                      Will use: <code className="bg-muted px-1 py-0.5 rounded">{manualScreenId}</code>
+                    </p>
+                  )}
+                  {!manualScreenId && (
+                    <p className="text-xs text-muted-foreground">
+                      Will use default: <code className="bg-muted px-1 py-0.5 rounded">FIRST_ENTRY_SCREEN</code>
+                    </p>
+                  )}
                 </div>
               ) : flowDetails?.screens && flowDetails.screens.length > 0 ? (
                 <div className="mt-1">
@@ -504,11 +560,26 @@ export default function FlowManager({ appService }: FlowManagerProps) {
                   </p>
                 </div>
               ) : (
-                <Alert className="mt-1">
-                  <AlertDescription className="text-xs">
-                    No screens found for this flow. Make sure the flow is published.
-                  </AlertDescription>
-                </Alert>
+                <div className="mt-1 space-y-2">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      No screens found. You can still send the flow using the default screen or enter manually.
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setUseManualScreenId(true)}
+                    className="w-full"
+                  >
+                    Enter Screen ID Manually
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Or leave as-is to use: <code className="bg-muted px-1 py-0.5 rounded">FIRST_ENTRY_SCREEN</code>
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -524,9 +595,9 @@ export default function FlowManager({ appService }: FlowManagerProps) {
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleSendFlow} 
-              disabled={sending || !selectedScreen || !recipientNumber}
+            <Button
+              onClick={handleSendFlow}
+              disabled={sending || !recipientNumber}
             >
               {sending ? (
                 <>
@@ -535,6 +606,141 @@ export default function FlowManager({ appService }: FlowManagerProps) {
                 </>
               ) : (
                 'Send'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Template Dialog */}
+      <Dialog open={createTemplateDialogOpen} onOpenChange={setCreateTemplateDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Flow Template</DialogTitle>
+            <DialogDescription>
+              Create a message template that includes this Flow as a button
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                This will create a business-initiated message template with a Flow button. The template will need Meta approval before you can use it.
+              </AlertDescription>
+            </Alert>
+
+            {selectedFlow && (
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="text-sm font-medium">{selectedFlow.name}</div>
+                <div className="text-xs text-muted-foreground">Flow ID: {selectedFlow.id}</div>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="templateName">Template Name</Label>
+              <Input
+                id="templateName"
+                placeholder="e.g., appointment_booking"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Use lowercase letters, numbers, and underscores only
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select value={templateCategory} onValueChange={(v: any) => setTemplateCategory(v)}>
+                <SelectTrigger id="category" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UTILITY">Utility</SelectItem>
+                  <SelectItem value="MARKETING">Marketing</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="language">Language</Label>
+              <Select value={templateLanguage} onValueChange={setTemplateLanguage}>
+                <SelectTrigger id="language" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en_US">English (US)</SelectItem>
+                  <SelectItem value="en_GB">English (UK)</SelectItem>
+                  <SelectItem value="es">Spanish</SelectItem>
+                  <SelectItem value="fr">French</SelectItem>
+                  <SelectItem value="de">German</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="bodyText">Body Text</Label>
+              <Input
+                id="bodyText"
+                placeholder="e.g., Book your appointment by completing the form"
+                value={templateBodyText}
+                onChange={(e) => setTemplateBodyText(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="buttonText">Button Text</Label>
+              <Input
+                id="buttonText"
+                placeholder="e.g., Open Form"
+                value={templateButtonText}
+                onChange={(e) => setTemplateButtonText(e.target.value)}
+                className="mt-1"
+                maxLength={30}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Maximum 30 characters
+              </p>
+            </div>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                The starting screen will be specified when you send this template to users. You don't need to select it during template creation.
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreateTemplateDialogOpen(false);
+                setTemplateName('');
+                setTemplateBodyText('');
+                setTemplateButtonText('Open Form');
+                setSelectedFlow(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateTemplate}
+              disabled={creatingTemplate || !templateName || !templateBodyText}
+            >
+              {creatingTemplate ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Template
+                </>
               )}
             </Button>
           </DialogFooter>
