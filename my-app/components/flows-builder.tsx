@@ -40,24 +40,15 @@ interface MetaFlow {
   categories: string[];
 }
 
-interface FlowScreen {
-  id: string;
-  title: string;
-  terminal?: boolean;
-}
-
-export default function FlowsBuilder({ 
-  onComplete, 
-  onBack, 
+export default function FlowsBuilder({
+  onComplete,
+  onBack,
   templateName,
-  appService 
+  appService
 }: FlowsBuilderProps) {
   const [selectedFlowId, setSelectedFlowId] = useState('');
   const [availableFlows, setAvailableFlows] = useState<MetaFlow[]>([]);
-  const [flowScreens, setFlowScreens] = useState<FlowScreen[]>([]);
-  const [selectedScreenId, setSelectedScreenId] = useState('');
   const [loadingFlows, setLoadingFlows] = useState(false);
-  const [loadingScreens, setLoadingScreens] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchMetaFlows = useCallback(async () => {
@@ -95,59 +86,9 @@ export default function FlowsBuilder({
   }
 }, [appService]);
 
-const fetchFlowScreens = useCallback(async (flowId: string) => {
-  if (!appService?.access_token) return;
-
-  setLoadingScreens(true);
-  try {
-    const response = await fetch(
-      `https://graph.facebook.com/v21.0/${flowId}?fields=id,name,preview.invalidate(false)&access_token=${appService.access_token}`
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch flow details');
-    }
-
-    const data = await response.json();
-    
-    // Parse screens from preview
-    let screens: FlowScreen[] = [];
-    if (data.preview?.preview) {
-      try {
-        const previewData = JSON.parse(data.preview.preview);
-        if (previewData.screens && Array.isArray(previewData.screens)) {
-          screens = previewData.screens.map((screen: any) => ({
-            id: screen.id,
-            title: screen.title || screen.id,
-            terminal: screen.terminal
-          }));
-        }
-      } catch (e) {
-        console.error('Error parsing preview:', e);
-      }
-    }
-
-    setFlowScreens(screens);
-    if (screens.length > 0) {
-      setSelectedScreenId(screens[0].id);
-    }
-  } catch (error) {
-    console.error('Error fetching flow screens:', error);
-    toast.error('Failed to load flow screens');
-  } finally {
-    setLoadingScreens(false);
-  }
-}, [appService]);
-
 useEffect(() => {
   fetchMetaFlows();
 }, [fetchMetaFlows]);
-
-useEffect(() => {
-  if (selectedFlowId) {
-    fetchFlowScreens(selectedFlowId);
-  }
-}, [selectedFlowId, fetchFlowScreens]);
 
   const handleSave = async () => {
     if (!selectedFlowId) {
@@ -155,16 +96,12 @@ useEffect(() => {
       return;
     }
 
-    if (!selectedScreenId) {
-      toast.error('Please select a starting screen');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      // Pass selectedScreenId as third parameter
-      await onComplete(selectedFlowId, selectedScreenId);
+      // Note: Screen is NOT required for template creation
+      // The screen is specified when SENDING the template, not when creating it
+      await onComplete(selectedFlowId, '');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create flow template');
     } finally {
@@ -186,14 +123,14 @@ useEffect(() => {
             </Button>
             <div>
               <h2 className="text-lg font-semibold">{templateName}</h2>
-              <p className="text-sm text-muted-foreground">Select Flow & Starting Screen</p>
+              <p className="text-sm text-muted-foreground">Select Flow for Template</p>
             </div>
           </div>
           
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             size="lg"
-            disabled={isSubmitting || !selectedFlowId || !selectedScreenId}
+            disabled={isSubmitting || !selectedFlowId}
           >
             {isSubmitting ? (
               <>
@@ -216,14 +153,14 @@ useEffect(() => {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Select an existing published Flow from Meta Business Manager. The template will reference this flow and allow users to start from a specific screen.
+              Select an existing published Flow from Meta Business Manager. The template will include a button to open this flow. The starting screen will be specified when you send the template to users.
             </AlertDescription>
           </Alert>
 
           {/* Flow Selection Card */}
           <Card>
             <CardHeader>
-              <CardTitle>1. Select Flow</CardTitle>
+              <CardTitle>Select Flow</CardTitle>
               <CardDescription>
                 Choose a published flow from your Meta Business account
               </CardDescription>
@@ -324,75 +261,8 @@ useEffect(() => {
             </CardContent>
           </Card>
 
-          {/* Screen Selection Card */}
-          {selectedFlowId && (
-            <Card>
-              <CardHeader>
-                <CardTitle>2. Select Starting Screen</CardTitle>
-                <CardDescription>
-                  Choose which screen users will see first when they open the flow
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {loadingScreens ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-sm text-muted-foreground">Loading screens...</span>
-                  </div>
-                ) : flowScreens.length > 0 ? (
-                  <>
-                    <Select value={selectedScreenId} onValueChange={setSelectedScreenId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select starting screen">
-                          {selectedScreenId && flowScreens.find(s => s.id === selectedScreenId)?.title}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {flowScreens.map(screen => (
-                          <SelectItem key={screen.id} value={screen.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{screen.title}</span>
-                              {screen.terminal && (
-                                <Badge variant="outline" className="text-xs">
-                                  Terminal
-                                </Badge>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {selectedScreenId && (
-                      <div className="space-y-2">
-                        <Alert>
-                          <CheckCircle className="h-4 w-4" />
-                          <AlertDescription className="text-xs">
-                            Found {flowScreens.length} screen(s) in this flow.
-                          </AlertDescription>
-                        </Alert>
-                        <div className="text-sm p-3 bg-blue-50 rounded-md border border-blue-200">
-                          <div className="font-medium text-blue-900 mb-1">Starting Screen:</div>
-                          <div className="text-blue-700">{flowScreens.find(s => s.id === selectedScreenId)?.title}</div>
-                          <div className="text-xs text-blue-600 mt-1">ID: {selectedScreenId}</div>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <Alert variant="warning">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      No screens found in this flow. Please ensure the flow is properly configured in Meta Business Manager.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           {/* Summary Card */}
-          {selectedFlowId && selectedScreenId && (
+          {selectedFlowId && (
             <Card className="border-green-200 bg-green-50">
               <CardHeader>
                 <CardTitle className="text-green-900">Ready to Create</CardTitle>
@@ -408,8 +278,8 @@ useEffect(() => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Starting Screen:</span>
-                  <span className="font-medium">
-                    {flowScreens.find(s => s.id === selectedScreenId)?.title}
+                  <span className="font-medium text-xs">
+                    Specified when sending template
                   </span>
                 </div>
               </CardContent>
