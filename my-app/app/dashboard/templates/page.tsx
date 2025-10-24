@@ -93,7 +93,7 @@ export default function TemplatesPage() {
   const fetchAppServices = useCallback(async () => {
     if (!organizationId) {
       setServicesError(
-        "Organization ID not available. Please ensure you are logged in and have an active organization."
+        "Organization ID not available. Please ensure you have created an organization."
       );
       return;
     }
@@ -139,7 +139,7 @@ export default function TemplatesPage() {
       if (err instanceof Error) {
         if (err.message.includes("Failed to fetch")) {
           errorMessage =
-            "Unable to connect to the API server. Please ensure the backend service is running.";
+            "Unable to connect to the API server. Please ensure the your network connection is stable.";
         } else {
           errorMessage = err.message;
         }
