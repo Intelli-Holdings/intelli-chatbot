@@ -101,6 +101,42 @@ interface PhoneNumberLimit {
      country?: string;
    }
 
+// WhatsApp Flow interfaces
+interface WhatsAppFlow {
+  id: string;
+  name: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'DEPRECATED';
+  categories: string[];
+  validation_errors?: any[];
+  created_time?: string;
+  updated_time?: string;
+  json_version?: string;
+  data_api_version?: string;
+}
+
+interface FlowScreen {
+  id: string;
+  title: string;
+  terminal?: boolean;
+  success?: boolean;
+  data?: any;
+}
+
+interface FlowDetails extends WhatsAppFlow {
+  screens?: FlowScreen[];
+  preview?: any;
+}
+
+interface FlowMessagePayload {
+  flow_id: string;
+  flow_token?: string;
+  flow_action?: 'navigate' | 'data_exchange';
+  flow_action_payload?: {
+    screen?: string;
+    data?: Record<string, any>;
+  };
+}
+
 const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v23.0';
 
 // Language code mappings for WhatsApp templates
@@ -120,6 +156,52 @@ const LANGUAGE_CODES: Record<string, string[]> = {
 };
 
 export class WhatsAppService {
+  /**
+   * Extract detailed error message from Meta API response
+   * Includes error_data.details, error_user_msg, and error_user_title if available
+   */
+  static extractErrorMessage(error: any): { message: string; details?: string } {
+    if (!error) {
+      return { message: 'Unknown error occurred' };
+    }
+
+    let message = 'An error occurred';
+    let details: string | undefined;
+
+    // Handle Meta API error response structure
+    if (error.error) {
+      // Try to get the most user-friendly message first
+      message = error.error.error_user_title ||
+                error.error.error_user_msg ||
+                error.error.message ||
+                message;
+
+      // Extract additional details from multiple possible sources
+      if (error.error.error_data?.details) {
+        details = error.error.error_data.details;
+      }
+      // If no error_data.details, try error_user_msg as details (if not already used as message)
+      else if (error.error.error_user_msg && error.error.error_user_title) {
+        details = error.error.error_user_msg;
+        message = error.error.error_user_title;
+      }
+      // Fallback to error_user_msg if available
+      else if (error.error.error_user_msg) {
+        details = error.error.error_user_msg;
+      }
+    }
+    // Handle Error object
+    else if (error instanceof Error) {
+      message = error.message;
+    }
+    // Handle string error
+    else if (typeof error === 'string') {
+      message = error;
+    }
+
+    return { message, details };
+  }
+
   /**
    * Validates that a media handle is properly formatted and not a placeholder
    */
@@ -1247,6 +1329,583 @@ static formatTemplateComponents(components: any[]): any[] {
       throw error;
     }
   }
+
+  // ============================================================================
+  // WHATSAPP FLOWS METHODS
+  // ============================================================================
+
+  /**
+   * Fetch all WhatsApp Flows for a business account
+   */
+  static async fetchFlows(appService: AppService): Promise<WhatsAppFlow[]> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.whatsapp_business_account_id) {
+        throw new Error('WhatsApp Business Account ID is required');
+      }
+
+      // Note: created_time and updated_time are not available fields for WhatsAppFlow
+      // Only use supported fields: id, name, status, categories, validation_errors
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/flows?fields=id,name,status,categories,validation_errors`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch flows: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error('Error fetching WhatsApp Flows:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch detailed information about a specific Flow including screens
+   */
+  static async fetchFlowDetails(
+    appService: AppService,
+    flowId: string
+  ): Promise<FlowDetails> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      // Fetch flow with preview to get screens
+      // Note: created_time and updated_time are not available on WhatsAppFlow node
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${flowId}?fields=id,name,status,categories,validation_errors,preview.invalidate(false)`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch flow details: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Parse screens from preview
+      let screens: FlowScreen[] = [];
+      if (data.preview?.preview) {
+        try {
+          const previewData = JSON.parse(data.preview.preview);
+
+          // The preview structure is: { version, screens: [...] }
+          if (previewData.screens && Array.isArray(previewData.screens)) {
+            screens = previewData.screens.map((screen: any) => ({
+              id: screen.id,
+              title: screen.title || screen.id,
+              terminal: screen.terminal || false,
+              success: screen.success,
+              data: screen.data
+            }));
+          }
+        } catch (e) {
+          console.error('Error parsing flow preview:', e);
+          console.error('Preview data:', data.preview?.preview);
+        }
+      }
+
+      // If no screens found from preview, try fetching from assets endpoint
+      if (screens.length === 0) {
+        console.warn('No preview data found, trying assets endpoint for flow:', flowId);
+
+        try {
+          const flowJSON = await this.getFlowJSON(appService, flowId);
+          if (flowJSON?.screens && Array.isArray(flowJSON.screens)) {
+            screens = flowJSON.screens.map((screen: any) => ({
+              id: screen.id,
+              title: screen.title || screen.id,
+              terminal: screen.terminal || false,
+              success: screen.success,
+              data: screen.data
+            }));
+            console.log(`Found ${screens.length} screens from assets endpoint`);
+          }
+        } catch (assetError) {
+          console.error('Error fetching from assets endpoint:', assetError);
+        }
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        status: data.status,
+        categories: data.categories || [],
+        validation_errors: data.validation_errors,
+        screens
+      };
+    } catch (error) {
+      console.error('Error fetching flow details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a message template with a Flow button
+   * This creates a business-initiated message template that includes a Flow
+   */
+  static async createFlowTemplate(
+    appService: AppService,
+    templateData: {
+      name: string;
+      language: string;
+      category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+      bodyText: string;
+      flowId: string;
+      flowAction?: 'navigate' | 'data_exchange';
+      navigateScreen?: string;
+      buttonText?: string;
+    }
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.whatsapp_business_account_id) {
+        throw new Error('WhatsApp Business Account ID is required');
+      }
+
+      // Format template name
+      const templateName = templateData.name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+      // Build template components
+      // Check if body text has variables ({{1}}, {{2}}, etc.)
+      const variableMatches = templateData.bodyText.match(/\{\{\d+\}\}/g);
+      const hasVariables = variableMatches && variableMatches.length > 0;
+
+      const bodyComponent: any = {
+        type: 'BODY',
+        text: templateData.bodyText
+      };
+
+      // Meta ALWAYS requires example field for BODY component
+      if (hasVariables) {
+        // For templates WITH variables: provide sample values
+        const exampleValues = variableMatches!.map((_, idx) => `Sample ${idx + 1}`);
+        bodyComponent.example = {
+          body_text: [exampleValues]  // Nested array: [[val1, val2, ...]]
+        };
+      } else {
+        // For templates WITHOUT variables: provide empty nested array
+        bodyComponent.example = {
+          body_text: [[]]  // Empty nested array required by Meta
+        };
+      }
+
+      const components: any[] = [
+        bodyComponent,
+        {
+          type: 'BUTTONS',
+          buttons: [
+            {
+              type: 'FLOW',
+              text: templateData.buttonText || 'Open Flow',
+              flow_id: templateData.flowId,
+              flow_action: templateData.flowAction || 'navigate'
+              // Note: navigate_screen is NOT supported in template creation
+              // The screen is specified when SENDING the template, not when creating it
+            }
+          ]
+        }
+      ];
+
+      const payload = {
+        name: templateName,
+        language: templateData.language,
+        category: templateData.category,
+        components
+      };
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        // Extract detailed error information
+        const errorInfo = this.extractErrorMessage(responseData);
+
+        // Create a comprehensive error message
+        let errorMessage = errorInfo.message;
+        if (errorInfo.details) {
+          errorMessage = `${errorInfo.message}\n\nDetails: ${errorInfo.details}`;
+        }
+
+        // Create error with both message and details for better handling
+        const error: any = new Error(errorMessage);
+        error.details = errorInfo.details;
+        error.apiResponse = responseData;
+
+        throw error;
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error('Error creating flow template:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send a template message with a Flow (business-initiated)
+   */
+  static async sendFlowTemplate(
+    appService: AppService,
+    recipientNumber: string,
+    templateName: string,
+    languageCode: string,
+    flowToken?: string,
+    flowActionData?: Record<string, any>
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.phone_number_id) {
+        throw new Error('Phone number ID is required');
+      }
+
+      const messageData: any = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: recipientNumber,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: {
+            code: languageCode
+          }
+        }
+      };
+
+      // Add flow button parameters if provided
+      if (flowToken || flowActionData) {
+        messageData.template.components = [
+          {
+            type: 'button',
+            sub_type: 'flow',
+            index: '0',
+            parameters: [
+              {
+                type: 'action',
+                action: {
+                  ...(flowToken && { flow_token: flowToken }),
+                  ...(flowActionData && { flow_action_data: flowActionData })
+                }
+              }
+            ]
+          }
+        ];
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(messageData),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        // Extract detailed error information
+        const errorInfo = this.extractErrorMessage(responseData);
+
+        // Create a comprehensive error message
+        let errorMessage = errorInfo.message;
+        if (errorInfo.details) {
+          errorMessage = `${errorInfo.message}\n\nDetails: ${errorInfo.details}`;
+        }
+
+        // Create error with both message and details for better handling
+        const error: any = new Error(errorMessage);
+        error.details = errorInfo.details;
+        error.apiResponse = responseData;
+
+        throw error;
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error('Error sending flow template:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send an interactive Flow message (user-initiated conversation)
+   * This is for sending Flows in response to user messages within 24-hour window
+   */
+  static async sendInteractiveFlowMessage(
+    appService: AppService,
+    recipientNumber: string,
+    flowId: string,
+    options: {
+      headerText?: string;
+      bodyText: string;
+      footerText?: string;
+      buttonText: string;
+      flowToken?: string;
+      flowAction?: 'navigate' | 'data_exchange';
+      screen?: string;
+      flowData?: Record<string, any>;
+      mode?: 'draft' | 'published';
+    }
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.phone_number_id) {
+        throw new Error('Phone number ID is required');
+      }
+
+      const messageData: any = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: recipientNumber,
+        type: 'interactive',
+        interactive: {
+          type: 'flow',
+          body: {
+            text: options.bodyText
+          },
+          action: {
+            name: 'flow',
+            parameters: {
+              flow_message_version: '3',
+              flow_id: flowId,
+              flow_cta: options.buttonText,
+              mode: options.mode || 'published',
+              ...(options.flowToken && { flow_token: options.flowToken }),
+              ...(options.flowAction && { flow_action: options.flowAction })
+            }
+          }
+        }
+      };
+
+      // Add optional header
+      if (options.headerText) {
+        messageData.interactive.header = {
+          type: 'text',
+          text: options.headerText
+        };
+      }
+
+      // Add optional footer
+      if (options.footerText) {
+        messageData.interactive.footer = {
+          text: options.footerText
+        };
+      }
+
+      // Add flow action payload if screen or data is provided
+      // IMPORTANT: data must be a non-empty object or omitted entirely
+      if (options.screen || (options.flowData && Object.keys(options.flowData).length > 0)) {
+        const payload: any = {};
+
+        if (options.screen) {
+          payload.screen = options.screen;
+        }
+
+        // Only add data if it's a non-empty object
+        if (options.flowData && Object.keys(options.flowData).length > 0) {
+          payload.data = options.flowData;
+        }
+
+        messageData.interactive.action.parameters.flow_action_payload = payload;
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(messageData),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        // Extract detailed error information
+        const errorInfo = this.extractErrorMessage(responseData);
+
+        // Create a comprehensive error message
+        let errorMessage = errorInfo.message;
+        if (errorInfo.details) {
+          errorMessage = `${errorInfo.message}\n\nDetails: ${errorInfo.details}`;
+        }
+
+        // Create error with both message and details for better handling
+        const error: any = new Error(errorMessage);
+        error.details = errorInfo.details;
+        error.apiResponse = responseData;
+
+        throw error;
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error('Error sending interactive flow message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Publish a draft Flow
+   */
+  static async publishFlow(
+    appService: AppService,
+    flowId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${flowId}/publish`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to publish flow: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error publishing flow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deprecate a published Flow
+   */
+  static async deprecateFlow(
+    appService: AppService,
+    flowId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${flowId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to deprecate flow: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error deprecating flow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Helper method to get flow JSON directly (for debugging)
+   * This can help diagnose why screens aren't showing up
+   */
+  static async getFlowJSON(
+    appService: AppService,
+    flowId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${flowId}/assets`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch flow JSON: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // The flow JSON is in data.data[0] if it exists
+      if (data.data && data.data.length > 0) {
+        return JSON.parse(data.data[0].flow_json);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching flow JSON:', error);
+      throw error;
+    }
+  }
 }
 
 export type {
@@ -1258,5 +1917,9 @@ export type {
   ConversationAnalyticsDataPoint,
   MessagingAnalyticsResponse,
   ConversationAnalyticsResponse,
-  PhoneNumberLimit
+  PhoneNumberLimit,
+  WhatsAppFlow,
+  FlowScreen,
+  FlowDetails,
+  FlowMessagePayload
 };
