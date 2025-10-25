@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,11 +18,27 @@ import { Send, X, Loader } from 'lucide-react';
 import { toast } from "sonner";
 import { DeploymentDialog } from "@/components/deployment-dialog";
 import { WidgetCommunication } from "@/components/widget-communication";
+import useActiveOrganizationId from "@/hooks/use-organization-id";
+
+interface Assistant {
+  id: number;
+  name: string;
+  prompt: string;
+  assistant_id: string;
+  organization: string;
+  organization_id: string;
+  type: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function Workground() {
   const [widgetKey, setWidgetKey] = useState<string>("");
   const [showDeploymentDialog, setShowDeploymentDialog] = useState<boolean>(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  // Use the hook to auto-select organization
+  const organizationId = useActiveOrganizationId();
 
   const { userMemberships, isLoaded } = useOrganizationList({
     userMemberships: { infinite: true },
@@ -42,11 +58,10 @@ export default function Workground() {
   };
 
   const [loading, setLoading] = useState<boolean>(false);
+  const [isLoadingAssistants, setIsLoadingAssistants] = useState<boolean>(true);
   const [selectedOrganizationId, setSelectedOrganizationId] =
     useState<string>("");
-  const [assistants, setAssistants] = useState<{ id: string; name: string }[]>(
-    []
-  );
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedAssistantId, setSelectedAssistantId] = useState<string>("");
   const [websiteUrl, setWebsiteUrl] = useState<string>(
     "https://yourwebsite.com"
@@ -64,42 +79,109 @@ export default function Workground() {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState<boolean>(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Auto-select organization when it's loaded
   useEffect(() => {
-    if (isLoaded && userMemberships.data.length > 0) {
-      setSelectedOrganizationId(userMemberships.data[0].organization.id);
+    if (organizationId) {
+      setSelectedOrganizationId(organizationId);
     }
-  }, [isLoaded, userMemberships.data]);
+  }, [organizationId]);
 
-  useEffect(() => {
-    if (selectedOrganizationId) {
-      fetchAssistants(selectedOrganizationId);
-    }
-  }, [selectedOrganizationId]);  
+  // Improved fetchAssistants function with validation and error handling
+  const fetchAssistants = useCallback(async () => {
+    if (!selectedOrganizationId) return;
 
-  const fetchAssistants = async (organizationId: string) => {
+    setIsLoadingAssistants(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`
-      );
-      if (!response.ok) throw new Error("Failed to fetch assistants");
-      const data = await response.json();
-      setAssistants(
-        data.map((assistant: any) => ({
-          id: assistant.assistant_id,
-          name: assistant.name,
-        }))
-      );
+      console.log(`[Workground] Fetching assistants via API route for org: ${selectedOrganizationId}`);
+      const response = await fetch(`/api/assistants/${selectedOrganizationId}`);
+
+      console.log(`[Workground] API route response status: ${response.status}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast.info("No assistants found. Create one to get started.");
+          setAssistants([]);
+          return;
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data: Assistant[] = await response.json();
+      console.log(`[Workground] Successfully fetched ${data.length} assistants`);
+
+      if (!Array.isArray(data)) {
+        console.error("[Workground] API response is not an array:", data);
+        throw new Error("Invalid response format: expected array of assistants");
+      }
+
+      const validatedAssistants = data.filter((assistant) => {
+        const isValid =
+          assistant &&
+          typeof assistant.id === "number" &&
+          typeof assistant.name === "string" &&
+          typeof assistant.assistant_id === "string" &&
+          typeof assistant.organization === "string" &&
+          typeof assistant.prompt === "string";
+
+        if (!isValid) {
+          console.warn("[Workground] Invalid assistant object:", assistant);
+        }
+
+        return isValid;
+      });
+
+      console.log(`[Workground] Validated ${validatedAssistants.length} out of ${data.length} assistants`);
+      setAssistants(validatedAssistants);
+
+      // Auto-select the first assistant if available
+      if (validatedAssistants.length > 0 && !selectedAssistantId) {
+        setSelectedAssistantId(validatedAssistants[0].assistant_id);
+        console.log(`[Workground] Auto-selected first assistant: ${validatedAssistants[0].name}`);
+      }
+
+      if (validatedAssistants.length === 0) {
+        toast.info("No valid assistants found. Create one to get started.");
+      }
     } catch (error) {
-      console.error("Error fetching assistants:", error);
+      console.error("[Workground] Error fetching assistants:", error);
+      toast.error(`Failed to fetch assistants: ${error instanceof Error ? error.message : "Unknown error"}`);
       setAssistants([]);
-      toast.info("Selected organisation does not have any assistants. Please create assistant to get started.");
+    } finally {
+      setIsLoadingAssistants(false);
     }
-  };
+  }, [selectedOrganizationId, selectedAssistantId]);
+
+  useEffect(() => {
+    fetchAssistants();
+  }, [fetchAssistants]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!selectedOrganizationId) {
+      toast.error("Organization is required. Please wait for it to load.");
+      return;
+    }
+
+    if (!selectedAssistantId) {
+      toast.error("Please select an assistant.");
+      return;
+    }
+
+    if (!widgetName.trim()) {
+      toast.error("Widget name is required.");
+      return;
+    }
+
+    if (!websiteUrl.trim()) {
+      toast.error("Website URL is required.");
+      return;
+    }
+
     setLoading(true);
-  
+
     const formData = new FormData();
     formData.append("organization_id", selectedOrganizationId);
     formData.append("assistant_id", selectedAssistantId);
@@ -107,28 +189,38 @@ export default function Workground() {
     formData.append("website_url", websiteUrl);
     formData.append("brand_color", brandColor);
     formData.append("greeting_message", greetingMessage);
-    
+
     // Append the actual image file if it exists
     if (avatarFile) {
       formData.append("avatar_url", avatarFile);
     }
-    
-    console.log("Payload being sent to the backend:", formData);
+
+    // Log FormData contents properly
+    console.log("[Workground] Payload being sent to API:");
+    for (const [key, value] of Array.from(formData.entries())) {
+      console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+    }
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/`, {
+      console.log("[Workground] Creating widget via API route");
+      const response = await fetch("/api/widgets", {
         method: "POST",
         body: formData,
       });
-  
-      if (!response.ok) throw new Error("Failed to create widget");
-  
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
-      setWidgetKey(data.widget_key); 
+      console.log("[Workground] Widget created successfully:", data.widget_key);
+      setWidgetKey(data.widget_key);
       toast.success("Website Widget created successfully!");
-      setShowDeploymentDialog(true); 
+      setShowDeploymentDialog(true);
     } catch (error) {
-      console.error("Error submitting widget:", error);
-      toast.error("Failed to create widget. Please try again.");
+      console.error("[Workground] Error submitting widget:", error);
+      toast.error(`Failed to create widget: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -154,31 +246,49 @@ export default function Workground() {
             Create a Website Widget
           </h2>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Organization
-            </label>
-            <Select
-              value={selectedOrganizationId}
-              onValueChange={setSelectedOrganizationId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select an organization" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {userMemberships?.data?.map((membership) => (
-                    <SelectItem
-                      key={membership.organization.id}
-                      value={membership.organization.id}
-                    >
-                      {membership.organization.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Show loading state while organization is being fetched */}
+          {!selectedOrganizationId && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+              <div className="flex items-center space-x-2">
+                <Loader className="animate-spin h-4 w-4 text-blue-600" />
+                <span className="text-sm text-blue-600">Loading organization...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Organization Selection - Only show if user has multiple organizations */}
+          {userMemberships?.data && userMemberships.data.length > 1 && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Organization
+              </label>
+              <Select
+                value={selectedOrganizationId}
+                onValueChange={setSelectedOrganizationId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {userMemberships.data.map((membership) => (
+                      <SelectItem
+                        key={membership.organization.id}
+                        value={membership.organization.id}
+                      >
+                        {membership.organization.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Hidden field to show selected organization if only one exists */}
+          {userMemberships?.data && userMemberships.data.length === 1 && (
+            <input type="hidden" value={selectedOrganizationId} />
+          )}
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
@@ -187,14 +297,15 @@ export default function Workground() {
             <Select
               value={selectedAssistantId}
               onValueChange={setSelectedAssistantId}
+              disabled={isLoadingAssistants}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Choose an assistant" />
+                <SelectValue placeholder={isLoadingAssistants ? "Loading assistants..." : "Choose an assistant"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   {assistants.map((assistant) => (
-                    <SelectItem key={assistant.id} value={assistant.id}>
+                    <SelectItem key={assistant.assistant_id} value={assistant.assistant_id}>
                       {assistant.name}
                     </SelectItem>
                   ))}
@@ -272,12 +383,25 @@ export default function Workground() {
             onChange={setGreetingMessage}
           />
 
-          <Button type="submit" className="w-full bg-blue-600 bg-blue-600 hover:bg-blue-700" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 bg-blue-600 hover:bg-blue-700"
+            disabled={loading || !selectedOrganizationId || !selectedAssistantId || isLoadingAssistants}
+          >
             {loading ? (
               <div className="flex items-center justify-center space-x-2">
                 <Loader className="animate-spin h-5 w-5" />
                 <span>Creating Widget...</span>
               </div>
+            ) : isLoadingAssistants ? (
+              <div className="flex items-center justify-center space-x-2">
+                <Loader className="animate-spin h-5 w-5" />
+                <span>Loading Assistants...</span>
+              </div>
+            ) : !selectedOrganizationId ? (
+              "Waiting for Organization..."
+            ) : !selectedAssistantId ? (
+              "Select an Assistant"
             ) : (
               "Create Widget"
             )}
