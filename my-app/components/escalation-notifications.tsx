@@ -53,7 +53,7 @@ export default function EscalationNotifications() {
           })),
         )
       } catch (error) {
-        console.error("Error fetching organization users:", error)
+        // Failed to fetch organization users
       }
     }
   }, [organization])
@@ -82,7 +82,7 @@ export default function EscalationNotifications() {
         notifications.map((notif) => (notif.id === notificationId ? { ...notif, assignedTo: userId } : notif)),
       )
     } catch (error) {
-      console.error("Error assigning notification:", error)
+      // Failed to assign notification
     }
   }
 
@@ -104,7 +104,7 @@ export default function EscalationNotifications() {
         notifications.map((notif) => (notif.id === notificationId ? { ...notif, resolved: true } : notif)),
       )
     } catch (error) {
-      console.error("Error resolving notification:", error)
+      // Failed to resolve notification
     }
   }
 
@@ -117,7 +117,7 @@ export default function EscalationNotifications() {
       const assignedNotifications = await response.json()
       setNotifications(assignedNotifications)
     } catch (error) {
-      console.error("Error fetching assigned notifications:", error)
+      // Failed to fetch assigned notifications
     }
   }
 

@@ -428,7 +428,7 @@ const Widgets = () => {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-[480px] rounded-xl">
             <DialogHeader className="space-y-2">
-              <DialogTitle className="text-xl font-semibold">Edit Widget</DialogTitle>
+              <DialogTitle className="text-xl font-semibold">Update Widget</DialogTitle>
               <DialogDescription className="text-sm">
                 Update your widget configuration and appearance settings.
               </DialogDescription>
@@ -513,7 +513,7 @@ const Widgets = () => {
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Saving...
+                      Updating...
                     </>
                   ) : (
                     "Save Changes"
