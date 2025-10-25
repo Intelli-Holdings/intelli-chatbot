@@ -30,15 +30,27 @@ export function DeploymentDialog({
   useEffect(() => {
     const fetchEmbeddingCode = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/widget/${widgetKey}/embedding-code/`
-        );
-        if (!response.ok) throw new Error("Failed to fetch embedding code");
+        console.log(`[DeploymentDialog] Fetching embedding code for widget: ${widgetKey}`);
+
+        // Use API route to avoid CORS issues
+        const response = await fetch(`/api/widgets/embedding/${widgetKey}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to fetch embedding code");
+        }
+
         const data = await response.json();
+        console.log("[DeploymentDialog] Successfully fetched embedding code");
         setEmbeddingCode(data.embedding_code);
       } catch (error) {
-        console.error("Error fetching embedding code:", error);
-        toast.error("Failed to fetch embedding code");
+        console.error("[DeploymentDialog] Error fetching embedding code:", error);
+        toast.error(`Failed to fetch embedding code: ${error instanceof Error ? error.message : "Unknown error"}`);
       } finally {
         setIsLoading(false);
       }
