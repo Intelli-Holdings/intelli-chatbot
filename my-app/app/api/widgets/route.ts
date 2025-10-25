@@ -1,31 +1,58 @@
-import { NextResponse } from 'next/server';
-import { createWidget } from '@/lib/widgets';
-import { CreateWidgetData, convertToBackendFormat, convertToFrontendFormat } from '@/types/widget';
+import { type NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+export async function POST(request: NextRequest) {
   try {
-    const body: CreateWidgetData = await request.json();
-    
-    // Basic validation
-    const requiredFields = ['organizationId', 'assistantId', 'websiteUrl', 'widgetName'];
+    console.log("[API] Creating new widget");
+
+    // Get the FormData from the request
+    const formData = await request.formData();
+
+    // Validate required fields
+    const requiredFields = ["organization_id", "assistant_id", "website_url", "widget_name"];
     for (const field of requiredFields) {
-      if (!body[field as keyof CreateWidgetData]) {
-        return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
+      if (!formData.has(field)) {
+        return NextResponse.json(
+          { error: `Missing required field: ${field}` },
+          { status: 400 }
+        );
       }
     }
 
-    // Convert to backend format before sending to the API
-    const backendData = convertToBackendFormat(body);
-    
-    // Make the API call with converted data
-    const response = await createWidget(backendData);
-    
-    // Convert the response back to frontend format
-    const frontendResponse = convertToFrontendFormat(response);
+    // Log FormData contents for debugging
+    console.log("[API] Widget creation payload:");
+    for (const [key, value] of Array.from(formData.entries())) {
+      console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+    }
 
-    return NextResponse.json(frontendResponse);
+    // Forward the FormData to the backend
+    const response = await fetch(`${API_BASE_URL}/widgets/`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[API] Backend error: ${response.status} - ${errorText}`);
+      return NextResponse.json(
+        { error: `Failed to create widget: ${response.statusText}` },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    console.log("[API] Successfully created widget:", data.widget_key);
+
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Error creating widget:', error);
-    return NextResponse.json({ error: 'Failed to create widget' }, { status: 500 });
+    console.error("[API] Error creating widget:", error);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }
