@@ -1,20 +1,19 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, MessageSquarePlus, MoreVertical } from "lucide-react"
+import { Search, MessageSquarePlus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { format, parseISO } from "date-fns"
+import { format, parseISO, isToday, isYesterday, isThisWeek, differenceInHours } from "date-fns"
 import type { Conversation } from "./types"
 import { ChatListSkeleton, LoadMoreIndicator } from "@/components/loading-progress"
 
 interface ChatSidebarProps {
   conversations: Conversation[]
   onSelectConversation: (conversation: Conversation) => void
+  selectedConversationId?: number | null
   loading?: boolean
   hasMore?: boolean
   loadMore?: () => void
@@ -31,18 +30,42 @@ const formatNumber = (number: number): string => {
   }
 }
 
-export default function ChatSidebar({ 
+const formatTimestamp = (dateString: string): string => {
+  const date = parseISO(dateString)
+  const now = new Date()
+
+  // Within last 24 hours or today - show HH:MM
+  if (isToday(date) || differenceInHours(now, date) < 24) {
+    return format(date, "HH:mm")
+  }
+
+  // Yesterday
+  if (isYesterday(date)) {
+    return "Yesterday"
+  }
+
+  // Within the past week - show day of week
+  if (isThisWeek(date, { weekStartsOn: 1 })) {
+    return format(date, "EEEE") // Full day name (e.g., "Monday")
+  }
+
+  // Older messages - show DD/MM/YYYY
+  return format(date, "dd/MM/yyyy")
+}
+
+export default function ChatSidebar({
   conversations = [], // Provide default empty array
   onSelectConversation,
+  selectedConversationId = null, // Added default value for selected conversation
   loading = false,
   hasMore = false,
   loadMore,
-  isLoadingMore = false
+  isLoadingMore = false,
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const scrollRef = useRef<HTMLDivElement>(null)
-  
+
   // Handle infinite scroll
   useEffect(() => {
     const scrollElement = scrollRef.current
@@ -56,10 +79,10 @@ export default function ChatSidebar({
       }
     }
 
-    scrollElement.addEventListener('scroll', handleScroll)
-    return () => scrollElement.removeEventListener('scroll', handleScroll)
+    scrollElement.addEventListener("scroll", handleScroll)
+    return () => scrollElement.removeEventListener("scroll", handleScroll)
   }, [hasMore, loadMore, isLoadingMore])
-  
+
   // Filter conversations based on search term and active tab
   const filteredConversations = conversations.filter((conversation) => {
     // Handle search filtering
@@ -67,19 +90,23 @@ export default function ChatSidebar({
       const searchTerms = searchTerm.toLowerCase().split(" ")
       const customerName = conversation.customer_name ? conversation.customer_name.toLowerCase() : ""
       const customerNumber = conversation.customer_number ? conversation.customer_number.toLowerCase() : ""
-      
-      if (!searchTerms.every((term: string) => 
-        customerName.includes(term) || customerNumber.includes(term)
-      )) {
+
+      if (!searchTerms.every((term: string) => customerName.includes(term) || customerNumber.includes(term))) {
         return false
       }
     }
-    
+
     // Handle tab filtering (placeholder logic - implement as needed)
     if (activeTab === "unread") {
       return (conversation.unread_messages || 0) > 0
-    }     
+    }
     return true
+  })
+
+  const sortedConversations = [...filteredConversations].sort((a, b) => {
+    const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0
+    const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0
+    return dateB - dateA // Descending order (newest first)
   })
 
   return (
@@ -98,7 +125,6 @@ export default function ChatSidebar({
           </Button>
         </div>
         */}
-        
       </div>
 
       <div className="p-2">
@@ -137,18 +163,19 @@ export default function ChatSidebar({
       <div ref={scrollRef} className="overflow-y-auto flex-1">
         {loading ? (
           <ChatListSkeleton count={8} />
-        ) : filteredConversations.length > 0 ? (
+        ) : sortedConversations.length > 0 ? (
           <>
-            {filteredConversations.map((conversation) => {
-              const lastMessage = conversation.messages && conversation.messages.length > 0
-                ? conversation.messages[conversation.messages.length - 1]?.content || "Open chat to see messages"
-                : "Select chat to view messages"
+            {sortedConversations.map((conversation) => {
+              const lastMessage =
+                conversation.messages && conversation.messages.length > 0
+                  ? conversation.messages[conversation.messages.length - 1]?.content || "Open chat to see messages"
+                  : "Select chat to view messages"
               const unreadCount = conversation.unread_messages || 0
               const displayName = conversation.customer_name || conversation.customer_number || "Unknown"
-              const time = conversation.updated_at 
-                ? format(parseISO(conversation.updated_at), "h:mm a")
-                : ""
-              
+              const time = conversation.updated_at ? formatTimestamp(conversation.updated_at) : ""
+
+              const isSelected = selectedConversationId === conversation.id
+
               return (
                 <div
                   key={conversation.id}
@@ -156,20 +183,24 @@ export default function ChatSidebar({
                     onSelectConversation(conversation)
                   }}
                   className={cn(
-                    "flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-100 border-b border-gray-100 transition-colors duration-150",
-                   
+                    "flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition-all duration-150",
+                    isSelected
+                      ? "bg-gradient-to-r from-blue-50 to-blue-100/50 border-l-4 border-l-blue-500"
+                      : "hover:bg-gray-100",
                   )}
                 >
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={`/placeholder.svg?height=40&width=40`} alt={displayName} />
+                    <AvatarImage src={`/generic-placeholder-graphic.png?height=40&width=40`} alt={displayName} />
                     <AvatarFallback className="bg-blue-500 text-white">
                       {displayName.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center">
-                      <span className="font-medium text-gray-900 truncate">{displayName}</span>
-                      <span className="text-xs text-gray-500">{time}</span>
+                      <span className={cn("font-medium truncate", isSelected ? "text-blue-700" : "text-gray-900")}>
+                        {displayName}
+                      </span>
+                      <span className={cn("text-xs", isSelected ? "text-blue-600" : "text-gray-500")}>{time}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-gray-600 truncate">{lastMessage}</p>
@@ -186,7 +217,7 @@ export default function ChatSidebar({
                 </div>
               )
             })}
-            
+
             {/* Loading more indicator */}
             {isLoadingMore && <LoadMoreIndicator />}
           </>
@@ -196,13 +227,10 @@ export default function ChatSidebar({
               <MessageSquarePlus className="h-12 w-12 mx-auto" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No conversations yet</h3>
-            <p className="text-gray-500 text-sm">
-              Conversations will appear here when customers start chatting
-            </p>
+            <p className="text-gray-500 text-sm">Conversations will appear here when customers start chatting</p>
           </div>
         )}
       </div>
     </div>
   )
 }
-
