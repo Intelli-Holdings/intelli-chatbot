@@ -17,6 +17,7 @@ export interface ChatSession {
 
 // Interface for the main NotificationMessage object
 export interface NotificationMessage {
+  organization_id: any
   id: number
   escalation_event: EscalationEvent
   assignee: string | null
