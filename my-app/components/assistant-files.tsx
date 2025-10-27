@@ -158,6 +158,60 @@ export function AssistantFiles() {
     }
   }, [organizationId, fetchAssistants]);
 
+  // Fetch files for selected assistant
+  const fetchFiles = useCallback(async () => {
+    if (!selectedAssistant) return;
+
+    setIsLoadingFiles(true);
+    try {
+      const response = await fileManagerAPI.getFiles(selectedAssistant);
+      setFileList(response.results);
+    } catch (error) {
+      console.error("Error fetching files:", error);
+      toast.error("Failed to fetch files. Please try again.");
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  }, [selectedAssistant]);
+
+  // Fetch file statistics for selected assistant
+  const fetchFileStats = useCallback(async () => {
+    if (!selectedAssistant) return;
+
+    setIsLoadingStats(true);
+    try {
+      const stats = await fileManagerAPI.getFileStatistics(selectedAssistant);
+      setFileStats(stats);
+    } catch (error) {
+      console.error("Error fetching file statistics:", error);
+      toast.error("Failed to fetch file statistics. Please try again.");
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [selectedAssistant]);
+
+  // Fetch file versions
+  const fetchFileVersions = async (fileId: number) => {
+    setIsLoadingVersions(true);
+    try {
+      const versions = await fileManagerAPI.getFileVersions(fileId);
+      setFileVersions(versions);
+    } catch (error) {
+      console.error("Error fetching file versions:", error);
+      toast.error("Failed to fetch file versions. Please try again.");
+    } finally {
+      setIsLoadingVersions(false);
+    }
+  };
+
+  // Fetch files and stats when selected assistant changes
+  React.useEffect(() => {
+    if (selectedAssistant) {
+      fetchFiles();
+      fetchFileStats();
+    }
+  }, [selectedAssistant, fetchFiles, fetchFileStats]);
+
   // Handle file removal
   const removeFile = (index: number) => {
     setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
