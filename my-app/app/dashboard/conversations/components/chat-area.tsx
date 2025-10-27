@@ -10,7 +10,7 @@ import { format, parseISO, isToday, isYesterday } from "date-fns"
 import ConversationHeader from "./conversationsHeader"
 import { ScrollToBottomButton } from "@/app/dashboard/conversations/components/scroll-to-bottom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Download, FolderDown, File, FileImage, Music, Video, FileText, ChevronDown, ChevronUp, Send } from "lucide-react"
+import { Download, FolderDown, File, FileImage, Music, Video, FileText, ChevronDown, ChevronUp } from "lucide-react"
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from "@/utils/exportUtils"
 import "./message-bubble.css"
 import ResolveReminder from "@/components/resolve-reminder"
@@ -18,12 +18,14 @@ import { WebSocketHandler } from "@/components/websocket-handler"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { ReactionPicker } from "@/components/reaction-picker"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
   conversation: Conversation | null
   conversations: Conversation[]
   phoneNumber: string
+  organizationId?: string
   fetchMessages?: (conversationId: string) => Promise<Conversation["messages"]>
 }
 
@@ -35,7 +37,7 @@ interface MediaPreviewState {
   filename?: string
 }
 
-export default function ChatArea({ conversation, conversations, phoneNumber, fetchMessages }: ConversationViewProps) {
+export default function ChatArea({ conversation, conversations, phoneNumber, organizationId, fetchMessages }: ConversationViewProps) {
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const [message, setMessage] = useState("")
@@ -55,9 +57,113 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement>(null)
+  const [hoveredMessageId, setHoveredMessageId] = useState<number | null>(null)
   const { toast } = useToast()
   const router = useRouter()
   const params = useParams()
+
+  const handleReactionSelect = async (message: ChatMessage, emoji: string, currentReaction?: string) => {
+    if (!conversation) return
+
+    // Check if message has WhatsApp message ID
+    if (!message.whatsapp_message_id) {
+      toast({
+        description: "Cannot react to this message - WhatsApp message ID not found",
+        variant: "destructive",
+        duration: 3000,
+      })
+      return
+    }
+
+    // Check if organizationId is available
+    if (!organizationId) {
+      toast({
+        description: "Organization ID is required to send reactions",
+        variant: "destructive",
+        duration: 3000,
+      })
+      return
+    }
+
+    // If clicking the same emoji, remove the reaction
+    const isRemoving = currentReaction === emoji
+    const newEmoji = isRemoving ? "" : emoji
+
+    // Optimistic update
+    setCurrentMessages((prev) =>
+      (prev || []).map((msg) =>
+        msg.id === message.id
+          ? {
+              ...msg,
+              reaction: newEmoji ? { emoji: newEmoji, created_at: new Date().toISOString() } : undefined,
+            }
+          : msg,
+      ),
+    )
+
+    try {
+      // Send reaction to WhatsApp API
+      const response = await fetch("/api/whatsapp/reactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipientNumber: conversation.customer_number || conversation.recipient_id,
+          messageId: message.whatsapp_message_id,
+          emoji: newEmoji,
+          organizationId,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("WhatsApp API error:", errorData)
+        throw new Error(errorData.error || "Failed to send reaction")
+      }
+
+      toast({
+        description: isRemoving ? "Reaction removed" : "Reaction sent",
+        duration: 2000,
+      })
+    } catch (error) {
+      console.error("Failed to send reaction:", error)
+
+      // Revert optimistic update on error
+      setCurrentMessages((prev) =>
+        (prev || []).map((msg) =>
+          msg.id === message.id
+            ? {
+                ...msg,
+                reaction: currentReaction
+                  ? { emoji: currentReaction, created_at: new Date().toISOString() }
+                  : undefined,
+              }
+            : msg,
+        ),
+      )
+
+      toast({
+        description: error instanceof Error ? error.message : "Failed to send reaction. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
+  }
+
+  const renderReaction = (message: ChatMessage) => {
+    if (!message.reaction?.emoji) return null
+
+    return (
+      <button
+        className="message-reaction"
+        title={`Reacted with ${message.reaction.emoji}. Click to change or remove.`}
+        onClick={() => handleReactionSelect(message, message.reaction!.emoji, message.reaction!.emoji)}
+      >
+        {message.reaction.emoji}
+      </button>
+    )
+  }
 
   // Set initial messages when conversation changes
   useEffect(() => {
@@ -74,11 +180,9 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
           try {
             const messages = await fetchMessages(conversation.customer_number || conversation.recipient_id)
             setCurrentMessages(messages)
-            setLastMessageId(
-              (messages?.length ?? 0) > 0 ? Math.max(...(messages ?? []).map((msg) => msg.id)) : null,
-            )
+            setLastMessageId((messages?.length ?? 0) > 0 ? Math.max(...(messages ?? []).map((msg) => msg.id)) : null)
           } catch (error) {
-            console.error('Failed to fetch messages for conversation:', error)
+            console.error("Failed to fetch messages for conversation:", error)
             setCurrentMessages([])
             setLastMessageId(null)
           }
@@ -89,12 +193,43 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
         setCurrentMessages([])
         setLastMessageId(null)
       }
-      
+
       // Reset initial load flag when conversation changes
       setIsInitialLoad(true)
       setTimeout(() => setIsInitialLoad(false), 500)
     }
   }, [conversation, fetchMessages])
+
+  // Reset unread messages when conversation is viewed (mimicking WhatsApp Web behavior)
+  useEffect(() => {
+    if (conversation && (conversation.unread_messages || 0) > 0) {
+      // Add a small delay to ensure the user has actually "viewed" the conversation
+      const resetTimer = setTimeout(async () => {
+        try {
+          await fetch(`/api/appservice/reset/unread_messages/${phoneNumber}/${conversation.customer_number}/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+
+          // Dispatch a custom event to notify other components that unread count has been reset
+          window.dispatchEvent(
+            new CustomEvent("unreadMessagesReset", {
+              detail: {
+                customerNumber: conversation.customer_number,
+                phoneNumber: phoneNumber,
+              },
+            }),
+          )
+        } catch (error) {
+          console.error("Failed to reset unread messages:", error)
+        }
+      }, 1000) // 1 second delay to ensure user has viewed the chat
+
+      return () => clearTimeout(resetTimer)
+    }
+  }, [conversation, phoneNumber])
 
   // Listen for AI support changes from the header component
   useEffect(() => {
@@ -127,7 +262,6 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
         setLastMessageId(newMessage.id)
         setShouldAutoScroll(true)
       }
-      
     }
 
     window.addEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
@@ -145,7 +279,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
 
     return () => {
       window.removeEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
-      window.removeEventListener("websocketConnectionChange", handleConnectionChange as EventListener)
+      window.removeEventListener("websocketConnectionChange", handleConnectionChange as unknown as EventListener)
     }
   }, [])
 
@@ -189,13 +323,12 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
 
             console.log(`Fetched ${actualNewMessages.length} new messages`)
             toast({
-              description: `${actualNewMessages.length} new message${actualNewMessages.length > 1 ? 's' : ''} received`,
+              description: `${actualNewMessages.length} new message${actualNewMessages.length > 1 ? "s" : ""} received`,
               duration: 2000,
             })
           }
         }
       }
-
     } catch (error) {
       console.error("Error fetching new messages:", error)
       toast({
@@ -228,26 +361,22 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
     }
   }, [conversation, fetchMessages, isAiSupport, refreshMessages])
 
-
   // Optimistic UI update on message send
-  const handleMessageSent = useCallback(
-    (newMessageContent: string) => {
-      const optimisticMessage = {
-        id: Date.now(),
-        answer: newMessageContent,
-        sender: "customer",
-        created_at: new Date().toISOString(),
-        read: false,
-        content: null,
-        media: null,
-        type: "text",
-      }
-      setCurrentMessages((prev) => [...(prev || []), optimisticMessage])
-      setLastMessageId(optimisticMessage.id)
-      setShouldAutoScroll(true)
-    },
-    [],
-  )
+  const handleMessageSent = useCallback((newMessageContent: string) => {
+    const optimisticMessage = {
+      id: Date.now(),
+      answer: newMessageContent,
+      sender: "customer",
+      created_at: new Date().toISOString(),
+      read: false,
+      content: null,
+      media: null,
+      type: "text",
+    }
+    setCurrentMessages((prev) => [...(prev || []), optimisticMessage])
+    setLastMessageId(optimisticMessage.id)
+    setShouldAutoScroll(true)
+  }, [])
 
   if (!conversation) {
     return (
@@ -259,12 +388,11 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
 
   const groupMessagesByDate = (messages: Conversation["messages"]) => {
     const groups: { [key: string]: Conversation["messages"] } = {}
-    
+
     // Sort messages by created_at to ensure chronological order
-    const sortedMessages = messages?.sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    ) || []
-    
+    const sortedMessages =
+      messages?.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) || []
+
     sortedMessages.forEach((message) => {
       const date = format(parseISO(message.created_at), "yyyy-MM-dd")
       if (!groups[date]) {
@@ -422,75 +550,126 @@ export default function ChatArea({ conversation, conversations, phoneNumber, fet
           {Object.entries(groupedMessages)
             .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
             .map(([date, messages]) => (
-            <div className="" key={date}>
-              {renderDateSeparator(date)}
-              {(messages ?? []).map((message) => (
-                <div key={message.id} className="flex flex-col mb-4">
-                  {message.content && (
-                    <div
-                      className={`message-bubble message-customer ${
-                        !expandedMessages.includes(message.id) ? "collapsed" : ""
-                      }`}
-                    >
-                      <div className="message-tail message-tail-left" />
-                      <div className="text-sm">{formatMessage(message.content)}</div>
-                      <span className="text-[10px] text-white/80 mt-1 block">
-                        {format(parseISO(message.created_at), "h:mm a")}
-                      </span>
-                    </div>
-                  )}
-                  {message.answer && (
-                    <div
-                      className={`message-bubble ${message.sender === "ai" ? "message-assistant" : "message-human"}`}
-                    >
+              <div className="" key={date}>
+                {renderDateSeparator(date)}
+                {(messages ?? []).map((message) => (
+                  <div key={message.id} className="flex flex-col mb-4">
+                    {message.content && (
                       <div
-                        className={`message-tail ${
-                          message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
-                        }`}
-                      />
-                      <div className="text-sm">{formatMessage(message.answer)}</div>
-                      <span
-                        className={`text-[10px] ${
-                          message.sender === "ai" ? "text-black/60" : "text-white/80"
-                        } mt-1 block`}
+                        className={cn(
+                          "message-bubble message-customer group",
+                          !expandedMessages.includes(message.id) && "collapsed",
+                          message.reaction?.emoji && "has-reaction",
+                        )}
+                        onMouseEnter={() => setHoveredMessageId(message.id)}
+                        onMouseLeave={() => setHoveredMessageId(null)}
                       >
-                        {format(parseISO(message.created_at), "h:mm a")} - {message.sender === "ai" ? "AI" : "Human"}
-                        {message.pending && " (sending...)"}
-                      </span>
-                    </div>
-                  )}
-                  {message.media && (
-                    <div className="message-bubble message-customer">
-                      <div className="message-tail message-tail-left" />
-                      <div className="text-sm cursor-pointer" onClick={() => {}}>
-                        <div className="max-w-xs rounded-lg overflow-hidden shadow">
-                          {message.type === "image" ? (
-                            <Image
-                              src={message.media || "/placeholder.svg"}
-                              alt="Image"
-                              className="w-full h-auto rounded-lg"
+                        <div className="message-tail message-tail-left" />
+                        <div className="text-sm">{formatMessage(message.content)}</div>
+                        <span className="text-[10px] text-white/80 mt-1 block">
+                          {format(parseISO(message.created_at), "h:mm a")}
+                        </span>
+                        {renderReaction(message)}
+                        {message.whatsapp_message_id && (
+                          <div className="absolute -top-3 right-2">
+                            <ReactionPicker
+                              onReactionSelect={(emoji) =>
+                                handleReactionSelect(message, emoji, message.reaction?.emoji)
+                              }
+                              currentReaction={message.reaction?.emoji}
                             />
-                          ) : (
-                            <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
-                              {getFileIcon(message.type)}
-                              <span className="text-sm truncate">Attachment</span>
-                            </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-[10px] text-white/80 mt-1 block">
-                        {format(parseISO(message.created_at), "h:mm a")}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
+                    )}
+                    {message.answer && (
+                      <div
+                        className={cn(
+                          "message-bubble group",
+                          message.sender === "ai" ? "message-assistant" : "message-human",
+                          message.reaction?.emoji && "has-reaction",
+                        )}
+                        onMouseEnter={() => setHoveredMessageId(message.id)}
+                        onMouseLeave={() => setHoveredMessageId(null)}
+                      >
+                        <div
+                          className={`message-tail ${
+                            message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
+                          }`}
+                        />
+                        <div className="text-sm">{formatMessage(message.answer)}</div>
+                        <span
+                          className={`text-[10px] ${
+                            message.sender === "ai" ? "text-black/60" : "text-white/80"
+                          } mt-1 block`}
+                        >
+                          {format(parseISO(message.created_at), "h:mm a")} - {message.sender === "ai" ? "AI" : "Human"}
+                          {message.pending && " (sending...)"}
+                        </span>
+                        {renderReaction(message)}
+                        {message.whatsapp_message_id && (
+                          <div className="absolute -top-3 right-2">
+                            <ReactionPicker
+                              onReactionSelect={(emoji) =>
+                                handleReactionSelect(message, emoji, message.reaction?.emoji)
+                              }
+                              currentReaction={message.reaction?.emoji}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {message.media && (
+                      <div
+                        className={cn(
+                          "message-bubble message-customer group",
+                          message.reaction?.emoji && "has-reaction",
+                        )}
+                        onMouseEnter={() => setHoveredMessageId(message.id)}
+                        onMouseLeave={() => setHoveredMessageId(null)}
+                      >
+                        <div className="message-tail message-tail-left" />
+                        <div className="text-sm cursor-pointer" onClick={() => {}}>
+                          <div className="max-w-xs rounded-lg overflow-hidden shadow">
+                            {message.type === "image" ? (
+                              <Image
+                                src={message.media || "/placeholder.svg"}
+                                alt="Image"
+                                className="w-full h-auto rounded-lg"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
+                                {getFileIcon(message.type)}
+                                <span className="text-sm truncate">Attachment</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-white/80 mt-1 block">
+                          {format(parseISO(message.created_at), "h:mm a")}
+                        </span>
+                        {renderReaction(message)}
+                        {message.whatsapp_message_id && (
+                          <div className="absolute -top-3 right-2">
+                            <ReactionPicker
+                              onReactionSelect={(emoji) =>
+                                handleReactionSelect(message, emoji, message.reaction?.emoji)
+                              }
+                              currentReaction={message.reaction?.emoji}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
           {(currentMessages?.length ?? 0) === 0 && (
             <div className="flex items-center justify-center h-40">
-               <span className="px-4 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">No Messages Yet</span>
-
+              <span className="px-4 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">
+                No Messages Yet
+              </span>
             </div>
           )}
           <div className="h-4" ref={dummyRef} />

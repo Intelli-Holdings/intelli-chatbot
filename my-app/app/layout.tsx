@@ -8,6 +8,11 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import AttentionBadge from "@/components/AttentionBadge";
 import Script from "next/script";
 
+// Meta Pixel Imports
+import MetaPixel from "@/components/MetaPixel"
+import FBPageView from "@/components/PageView"
+import ConsentGate from "@/components/consent-gate";
+import ConsentBanner from "@/components/consent-card";
 
 
 // Onborda
@@ -102,7 +107,6 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <head>
 <Script async src="https://www.googletagmanager.com/gtag/js?id=G-2V9CBMTJHN"></Script>
-
 <Script id="google-analytics" strategy="lazyOnload">
   {
     `
@@ -120,6 +124,7 @@ export default function RootLayout({
           <SignedOut></SignedOut>
           <SignedIn></SignedIn>
           <body className={inter.className}>
+               <ConsentGate /> {/* renders MetaPixel only after consent */}
           <AttentionBadge />
             <PostHogPageView />
             <AptabaseProvider appKey="A-US-3705920924">
@@ -129,7 +134,8 @@ export default function RootLayout({
             </OnboardingProvider>
             </NextStepProvider>
             </AptabaseProvider>
-            <ToastProvider />         
+            <ToastProvider />
+            <Toaster />         
           </body>          
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />

@@ -7,6 +7,7 @@ import useActiveOrganizationId from "./use-organization-id"
 import { useUser } from "@clerk/nextjs"
 import { NotificationContextType } from "@/types/notification"
 import { Facebook, MessageSquare, Mail, Globe, Bell } from "lucide-react"
+import Image from "next/image"
 
 interface PaginatedResponse {
   count: number
@@ -117,6 +118,27 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const wsRef = useRef<WebSocket | null>(null)
   const pingIntervalRef = useRef<number | null>(null)
   const reconnectTimeoutRef = useRef<number | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Initialize notification sound
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio('/notification-sound.mp3')
+      audioRef.current.volume = 0.5 // Set volume to 50%
+    }
+  }, [])
+
+  // Function to play notification sound
+  const playNotificationSound = useCallback(() => {
+    if (audioRef.current) {
+      // Reset audio to beginning in case it's already playing
+      audioRef.current.currentTime = 0
+      // Play sound and catch any errors (e.g., user hasn't interacted with page yet)
+      audioRef.current.play().catch(() => {
+        // Silently fail if browser blocks autoplay
+      })
+    }
+  }, [])
 
   // Fetch all historical notifications with pagination
   const fetchHistoricalNotifications = useCallback(async () => {
@@ -146,7 +168,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch notifications')
-      console.error('Error fetching historical notifications:', err)
     } finally {
       setIsLoading(false)
     }
@@ -168,7 +189,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setAssignedNotifications(data.results)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch assigned notifications')
-      console.error('Error fetching assigned notifications:', err)
     } finally {
       setIsLoading(false)
     }
@@ -187,7 +207,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setUnreadCount(unread)
       }
     } catch (err) {
-      console.error('Error reading notifications from localStorage:', err)
+      // Failed to read notifications from localStorage
     }
   }, [storageKey, lastReadKey])
 
@@ -199,19 +219,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     ws.onopen = () => {
       setIsConnected(true)
-      // Ping every 30s
-      pingIntervalRef.current = window.setInterval(() => ws.send(JSON.stringify({ type: 'ping' })), 30000)
+      // Ping every 30 minutes to keep connection alive
+      pingIntervalRef.current = window.setInterval(() => ws.send(JSON.stringify({ type: 'ping' })), 1800000)
     }
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        console.log("WebSocket message received:", data)
+       
 
         const payload = data.message || data // Extract actual notification
 
         if (payload.type === "connection_established") {
-          console.log("Connection established with notification service")
+         
         } else if (payload.type === "notification") {
           // Add new notification to state
           setNotifications(prev => {
@@ -223,6 +243,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           // Increment unread count
           setUnreadCount(prev => prev + 1)
 
+          // Play notification sound
+          playNotificationSound()
+
           // Get channel info using the helper function
           const channelInfo = getChannelInfo(payload.channel)
 
@@ -231,7 +254,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             <div className="flex items-start gap-3">
               <div className={`mt-1 flex-shrink-0 h-8 w-8 rounded-full ${channelInfo.bgColor} flex items-center justify-center ${channelInfo.textColor}`}>
                 {typeof channelInfo.icon === "string" ? (
-                  <img src={channelInfo.icon} alt={payload.channel} className="h-5 w-5" />
+                  <Image src={channelInfo.icon} alt={payload.channel} width={20} height={20} className="h-5 w-5" />
                 ) : (
                   channelInfo.icon
                 )}
@@ -271,24 +294,23 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             },
           )
         } else if (payload.type === "pong") {
-          console.log("Received pong from server")
+     
         }
       } catch (error) {
-        console.error("Error processing WebSocket message:", error)
+
       }
     }
 
     ws.onclose = () => {
       setIsConnected(false)
-      // Attempt reconnect after 5s
-      reconnectTimeoutRef.current = window.setTimeout(connect, 5000)
+      // Attempt reconnect after 2 minutes
+      reconnectTimeoutRef.current = window.setTimeout(connect, 120000)
     }
 
-    ws.onerror = err => {
-      console.error('WebSocket error', err)
-      ws.close()
+    ws.onerror = () => {
+      // WebSocket error occurred
     }
-  }, [activeOrganizationId])
+  }, [activeOrganizationId, playNotificationSound])
 
   // Initialize and cleanup WebSocket
   useEffect(() => {
@@ -303,11 +325,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Reconnect on network changes
   useEffect(() => {
     const handleOnline = () => {
-      console.log("Network restored, reconnecting WS...")
+    
       connect()
     }
     const handleOffline = () => {
-      console.log("Network lost, WS will reconnect when online.")
+    
       setIsConnected(false)
     }
     window.addEventListener("online", handleOnline)
