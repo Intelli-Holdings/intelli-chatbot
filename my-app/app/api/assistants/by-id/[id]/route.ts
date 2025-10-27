@@ -6,11 +6,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const { id } = params
-  
+
   try {
     if (!id) {
       return NextResponse.json(
-        { error: 'Assistant ID is required' }, 
+        { error: 'Assistant ID is required' },
         { status: 400 }
       )
     }
@@ -26,40 +26,40 @@ export async function DELETE(
         },
       }
     )
-    
+
     console.log('Backend delete response status:', response.status)
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       console.error('Backend delete error:', errorData)
       return NextResponse.json(
-        { error: errorData.detail || 'Failed to delete assistant' }, 
+        { error: errorData.detail || 'Failed to delete assistant' },
         { status: response.status }
       )
     }
-    
+
     // Handle both JSON and non-JSON responses
     const contentType = response.headers.get('content-type');
     let data;
-    
+
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
     } else {
       // If no JSON response, create a success response
       const responseText = await response.text();
-      data = { 
-        success: true, 
+      data = {
+        success: true,
         message: 'Assistant deleted successfully',
         responseText: responseText || 'No response body'
       };
     }
-    
+
     console.log('Assistant deleted successfully:', data)
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error deleting assistant:', error)
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -71,22 +71,22 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   const { id } = params
-  
+
   try {
     if (!id) {
       return NextResponse.json(
-        { error: 'Assistant ID is required' }, 
+        { error: 'Assistant ID is required' },
         { status: 400 }
       )
     }
 
     const body = await request.json()
-    
+
     console.log('Updating assistant ID:', id, 'with data:', body)
-    
+
     // Remove the id from the body since it's in the URL path
     const { id: bodyId, ...updateData } = body
-    
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${id}/`,
       {
@@ -98,40 +98,40 @@ export async function PUT(
         body: JSON.stringify(updateData),
       }
     )
-    
+
     console.log('Backend update response status:', response.status)
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       console.error('Backend update error:', errorData)
       return NextResponse.json(
-        { error: errorData.detail || 'Failed to update assistant' }, 
+        { error: errorData.detail || 'Failed to update assistant' },
         { status: response.status }
       )
     }
-    
+
     // Handle both JSON and non-JSON responses
     const contentType = response.headers.get('content-type');
     let data;
-    
+
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
     } else {
       // If no JSON response, create a success response
       const responseText = await response.text();
-      data = { 
-        success: true, 
+      data = {
+        success: true,
         message: 'Assistant updated successfully',
         responseText: responseText || 'No response body'
       };
     }
-    
+
     console.log('Assistant updated successfully:', data)
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error updating assistant:', error)
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
