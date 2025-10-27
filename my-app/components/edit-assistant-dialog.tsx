@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { useAuth } from "@clerk/nextjs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,7 @@ export function EditAssistantDialog({
   onAssistantUpdated,
   assistants,
 }: EditAssistantDialogProps) {
+  const { getToken } = useAuth()
   const organizationId = useActiveOrganizationId()
   const [name, setName] = useState("")
   const [prompt, setPrompt] = useState("")
@@ -67,6 +69,10 @@ export function EditAssistantDialog({
     setIsLoading(true)
     try {
       console.log(`[v0] Editing assistant ${assistant.id} for organization: ${organizationId}`)
+
+      // Get the session token
+      const token = await getToken()
+
       const response = await fetch(`/api/assistants/${organizationId}/${assistant.id}`, {
         method: "PUT",
         headers: {
