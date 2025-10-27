@@ -81,7 +81,7 @@ export default function EnhancedNotifications() {
         notifications.map((notif) => (notif.id === notificationId ? { ...notif, assignedTo: userEmail } : notif)),
       )
     } catch (error) {
-      console.error("Error assigning notification:", error)
+      // Failed to assign notification
     }
   }
 
@@ -103,7 +103,7 @@ export default function EnhancedNotifications() {
         notifications.map((notif) => (notif.id === notificationId ? { ...notif, resolved: true } : notif)),
       )
     } catch (error) {
-      console.error("Error resolving notification:", error)
+      // Failed to resolve notification
     }
   }
 
@@ -117,7 +117,7 @@ export default function EnhancedNotifications() {
       // Update the state with assigned notifications
       setNotifications(assignedNotifications)
     } catch (error) {
-      console.error("Error fetching assigned notifications:", error)
+      // Failed to fetch assigned notifications
     }
   }
 

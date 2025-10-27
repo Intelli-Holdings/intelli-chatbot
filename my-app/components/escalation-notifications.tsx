@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useOrganization } from "@clerk/nextjs"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -33,23 +33,16 @@ export default function EscalationNotifications() {
   const [searchTerm, setSearchTerm] = useState("")
   const { organization } = useOrganization()
 
-  useEffect(() => {
-    fetchNotifications()
-    if (organization) {
-      fetchOrganizationUsers()
-    }
-  }, [organization])
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     // In a real application, you would fetch notifications from your API
     // For now, we'll use dummy data
     setNotifications([
       { id: "1", message: "Critical system error", timestamp: new Date().toISOString(), resolved: false },
       { id: "2", message: "Database connection lost", timestamp: new Date().toISOString(), resolved: false },
     ])
-  }
+  }, [])
 
-  const fetchOrganizationUsers = async () => {
+  const fetchOrganizationUsers = useCallback(async () => {
     if (organization) {
       try {
         const members = await organization.getMemberships()
@@ -60,10 +53,17 @@ export default function EscalationNotifications() {
           })),
         )
       } catch (error) {
-        console.error("Error fetching organization users:", error)
+        // Failed to fetch organization users
       }
     }
-  }
+  }, [organization])
+
+  useEffect(() => {
+    fetchNotifications()
+    if (organization) {
+      fetchOrganizationUsers()
+    }
+  }, [organization, fetchOrganizationUsers, fetchNotifications])
 
   const assignNotification = async (notificationId: string, userId: string) => {
     try {
@@ -82,7 +82,7 @@ export default function EscalationNotifications() {
         notifications.map((notif) => (notif.id === notificationId ? { ...notif, assignedTo: userId } : notif)),
       )
     } catch (error) {
-      console.error("Error assigning notification:", error)
+      // Failed to assign notification
     }
   }
 
@@ -104,7 +104,7 @@ export default function EscalationNotifications() {
         notifications.map((notif) => (notif.id === notificationId ? { ...notif, resolved: true } : notif)),
       )
     } catch (error) {
-      console.error("Error resolving notification:", error)
+      // Failed to resolve notification
     }
   }
 
@@ -117,7 +117,7 @@ export default function EscalationNotifications() {
       const assignedNotifications = await response.json()
       setNotifications(assignedNotifications)
     } catch (error) {
-      console.error("Error fetching assigned notifications:", error)
+      // Failed to fetch assigned notifications
     }
   }
 

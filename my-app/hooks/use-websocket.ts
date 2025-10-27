@@ -53,12 +53,12 @@ export const useWebSocket = (url: string | null, options: Options) => {
     if (!url || !enabled) return
 
     try {
-      console.log("Connecting to WebSocket:", url)
+
       const socket = new WebSocket(url)
       socketRef.current = socket
 
       socket.onopen = () => {
-        console.log("WebSocket connection established")
+
         setIsConnected(true)
         setError(null)
         reconnectCountRef.current = 0
@@ -67,7 +67,7 @@ export const useWebSocket = (url: string | null, options: Options) => {
 
       socket.onmessage = (event) => {
         try {
-          console.log("WebSocket message received:", event.data)
+   
           const data: WebSocketMessage = JSON.parse(event.data)
           options.onMessage(data)
         } catch (e) {
@@ -82,17 +82,16 @@ export const useWebSocket = (url: string | null, options: Options) => {
       }
 
       socket.onclose = (event) => {
-        console.log("WebSocket connection closed:", event.code, event.reason)
         setIsConnected(false)
         if (event.code === 1000) {
-          console.log("Normal closure")
+   
         } else if (event.code === 1006) {
           console.error("Abnormal closure - possible network issue or server unavailable")
         } else if (event.code === 1008 || event.code === 1011) {
           console.error("Policy violation or internal server error")
         }
         if (enabled && reconnectCountRef.current < reconnectAttempts) {
-          console.log(`Attempting to reconnect (${reconnectCountRef.current + 1}/${reconnectAttempts})...`)
+      
           reconnectCountRef.current += 1
           reconnectTimeoutRef.current = setTimeout(connect, reconnectInterval)
         }
@@ -108,9 +107,6 @@ export const useWebSocket = (url: string | null, options: Options) => {
       console.error("Error creating WebSocket connection:", e)
       setError(e as Event)
       if (enabled && reconnectCountRef.current < reconnectAttempts) {
-        console.log(
-          `Error connecting. Attempting to reconnect (${reconnectCountRef.current + 1}/${reconnectAttempts})...`,
-        )
         reconnectCountRef.current += 1
         reconnectTimeoutRef.current = setTimeout(connect, reconnectInterval)
       }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import {
   Card,
@@ -119,41 +119,9 @@ export function AssistantFiles() {
 
   // Dropzone configuration with enhanced validation
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: (acceptedFiles, rejectedFiles) => {
-      // Validate accepted files
-      const validFiles: File[] = [];
-      
-      acceptedFiles.forEach((file) => {
-        const validation = validateFileUpload(file);
-        if (validation.isValid) {
-          validFiles.push(file);
-        } else {
-          toast.error(`${file.name}: ${validation.error}`);
-        }
-      });
-      
-      // Handle rejected files
-      rejectedFiles.forEach((fileRejection) => {
-        const errorMessages = fileRejection.errors.map(e => e.message).join(', ');
-        toast.error(`${fileRejection.file.name}: ${errorMessages}`);
-      });
-      
-      setFiles((prevFiles) => [...prevFiles, ...validFiles]);
+    onDrop: (acceptedFiles) => {
+      setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
     },
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-powerpoint': ['.ppt'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-      'text/plain': ['.txt'],
-      'text/csv': ['.csv'],
-      'text/markdown': ['.md'],
-      'application/json': ['.json'],
-    },
-    maxSize: 512 * 1024 * 1024, // 512MB
   });
 
   // Fetch assistants from API
@@ -183,65 +151,12 @@ export function AssistantFiles() {
     }
   }, [organizationId]);
 
-  // Fetch files for selected assistant
-  const fetchFiles = useCallback(async () => {
-    if (!selectedAssistant) return;
-
-    setIsLoadingFiles(true);
-    try {
-      const data = await fileManagerAPI.getFiles(selectedAssistant);
-      setFileList(data.results);
-    } catch (error) {
-      console.error("Error fetching files:", error);
-      toast.error("Failed to fetch files. Please try again.");
-    } finally {
-      setIsLoadingFiles(false);
-    }
-  }, [selectedAssistant]);
-
-  // Fetch file statistics
-  const fetchFileStats = useCallback(async () => {
-    if (!selectedAssistant) return;
-
-    setIsLoadingStats(true);
-    try {
-      const data = await fileManagerAPI.getFileStatistics(selectedAssistant);
-      setFileStats(data);
-    } catch (error) {
-      console.error("Error fetching file stats:", error);
-      toast.error("Failed to fetch file statistics. Please try again.");
-    } finally {
-      setIsLoadingStats(false);
-    }
-  }, [selectedAssistant]);
-
-  // Fetch file versions
-  const fetchFileVersions = useCallback(async (fileId: number) => {
-    setIsLoadingVersions(true);
-    try {
-      const data = await fileManagerAPI.getFileVersions(fileId);
-      setFileVersions(data);
-    } catch (error) {
-      console.error("Error fetching file versions:", error);
-      toast.error("Failed to fetch file versions. Please try again.");
-    } finally {
-      setIsLoadingVersions(false);
-    }
-  }, []);
-
-  // Effects
-  useEffect(() => {
+  // Fetch assistants when component mounts
+  React.useEffect(() => {
     if (organizationId) {
       fetchAssistants();
     }
   }, [organizationId, fetchAssistants]);
-
-  useEffect(() => {
-    if (selectedAssistant) {
-      fetchFiles();
-      fetchFileStats();
-    }
-  }, [selectedAssistant, fetchFiles, fetchFileStats]);
 
   // Handle file removal
   const removeFile = (index: number) => {

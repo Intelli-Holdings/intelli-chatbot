@@ -22,32 +22,43 @@ interface ContactsProps {
   phoneNumber: string;
   searchTerm?: string;
 }
+interface ChatSession {
+  customer_name: string
+  customer_number: string
+  id?: string
+  created_at?: string
+}
 
-export function Contacts({ conversations = [], phoneNumber, searchTerm = '' }: ContactsProps) {
+interface ContactsTableProps {
+  contacts: ChatSession[]
+  isLoading: boolean
+  searchTerm?: string
+}
+
+export function Contacts({ contacts: chatSessions = [], searchTerm = "" }: ContactsTableProps) {
+  const [isLoading, setIsLoading] = useState(true)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([])
-  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    setIsLoading(true)
-    // Convert conversations to contacts
-    const whatsappContacts = conversations.map((conversation): Contact => ({
-      id: conversation.id.toString(),
-      name: conversation.customer_name || 'Unknown',
-      email: '',
-      phone: conversation.customer_number || conversation.recipient_id || '',
-      title: '',
-      company: '',
-      dateAdded: conversation.updated_at,
-      source: 'WhatsApp',
-      hasMessaged: true,
-      lastActive: conversation.updated_at,
-      avatar: `https://avatar.vercel.sh/${conversation.customer_name || conversation.customer_number}.png`
-    }))
+    const whatsappContacts = chatSessions.map(
+      (session): Contact => ({
+        id: session.id?.toString() || session.customer_number,
+        name: session.customer_name || "Unknown",
+        email: "",
+        phone: session.customer_number || "",
+        title: "",
+        company: "",
+        dateAdded: session.created_at || new Date().toISOString(),
+        source: "WhatsApp",
+        hasMessaged: true,
+        lastActive: session.created_at || new Date().toISOString(),
+        avatar: `https://avatar.vercel.sh/${session.customer_name || session.customer_number}.png`,
+      }),
+    )
 
     setContacts(whatsappContacts)
-    setIsLoading(false)
-  }, [conversations])
+  }, [chatSessions])
 
   useEffect(() => {
     // Filter contacts based on search term
@@ -68,7 +79,7 @@ export function Contacts({ conversations = [], phoneNumber, searchTerm = '' }: C
     <div className="overflow-x-auto rounded-xl border border-blue-300 shadow-sm">
       <Table className="min-w-full bg-white-100">
         <TableHeader>
-          <TableRow className='bg-blue-50 border-b'>
+          <TableRow className="bg-blue-50 border-b">
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
@@ -80,52 +91,44 @@ export function Contacts({ conversations = [], phoneNumber, searchTerm = '' }: C
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isLoading ? (
-            Array.from({ length: 5 }).map((_, index) => (
-              <ContactSkeleton key={index} />
-            ))
-          ) : (
-            filteredContacts.map((contact) => (
-              <TableRow key={contact.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={contact.avatar} />
-                      <AvatarFallback>{contact.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">{contact.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Added {format(new Date(contact.dateAdded), 'MMM d, yyyy')}
+          {isLoading
+            ? Array.from({ length: 5 }).map((_, index) => <ContactSkeleton key={index} />)
+            : filteredContacts.map((contact) => (
+                <TableRow key={contact.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={contact.avatar || "/placeholder.svg"} />
+                        <AvatarFallback>{contact.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{contact.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Added {format(new Date(contact.dateAdded), "MMM d, yyyy")}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>{contact.email || '-'}</TableCell>
-                <TableCell>+{contact.phone || '-'}</TableCell>
-                <TableCell>{contact.title || '-'}</TableCell>
-                <TableCell>{contact.company || '-'}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={contact.source === 'WhatsApp' ? 'default' : 'secondary'}>
-                      {contact.source}
-                    </Badge>
-                    {contact.hasMessaged && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        Messaged
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {contact.lastActive ? format(new Date(contact.lastActive), 'MMM d, h:mm a') : '-'}
-                </TableCell>
-                <TableCell>
-                  
-                </TableCell>
-              </TableRow>
-            ))
-          )}
+                  </TableCell>
+                  <TableCell>{contact.email || "-"}</TableCell>
+                  <TableCell>+{contact.phone || "-"}</TableCell>
+                  <TableCell>{contact.title || "-"}</TableCell>
+                  <TableCell>{contact.company || "-"}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={contact.source === "WhatsApp" ? "default" : "secondary"}>{contact.source}</Badge>
+                      {contact.hasMessaged && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          Messaged
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {contact.lastActive ? format(new Date(contact.lastActive), "MMM d, h:mm a") : "-"}
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              ))}
         </TableBody>
       </Table>
     </div>

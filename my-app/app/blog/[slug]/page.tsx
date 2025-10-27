@@ -53,19 +53,15 @@ export default function BlogArticlePage() {
         }
 
         const data: ApiResponse = await response.json()
-        
+
         if (data.success && data.items) {
           // Find the article by slug
-          const foundArticle = data.items.find(post => 
-            createSlug(post.title) === slug
-          )
+          const foundArticle = data.items.find((post) => createSlug(post.title) === slug)
 
           if (foundArticle) {
             setArticle(foundArticle)
             // Get related articles (excluding current article)
-            const related = data.items
-              .filter(post => createSlug(post.title) !== slug)
-              .slice(0, 3)
+            const related = data.items.filter((post) => createSlug(post.title) !== slug).slice(0, 3)
             setRelatedArticles(related)
           } else {
             setError("Article not found")
@@ -164,7 +160,9 @@ export default function BlogArticlePage() {
             </Link>
             <div className="text-center py-20">
               <h1 className="text-2xl font-bold text-gray-800 mb-4">Article Not Found</h1>
-              <p className="text-gray-600 mb-8">The article you&apos;re looking for doesn&apos;t exist or has been moved.</p>
+              <p className="text-gray-600 mb-8">
+                The article you&apos;re looking for doesn&apos;t exist or has been moved.
+              </p>
               <Link href="/blog">
                 <Button>Return to Blog</Button>
               </Link>
@@ -291,7 +289,7 @@ export default function BlogArticlePage() {
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
       `}</style>
-      
+
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -314,19 +312,15 @@ export default function BlogArticlePage() {
                   </Badge>
                 ))}
               </div>
-              
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-                {article.title}
-              </h1>
-              
+
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">{article.title}</h1>
+
               <div className="flex items-center gap-6 text-gray-600 border-b border-gray-200 pb-6">
-                {article.author && (
-                  <span className="font-medium">by {article.author}</span>
-                )}
+                {article.author && <span className="font-medium">by {article.author}</span>}
                 {article.pubDate && (
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    <span>{formatDate(article.pubDate, 'long')}</span>
+                    <span>{formatDate(article.pubDate, "long")}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
@@ -339,30 +333,19 @@ export default function BlogArticlePage() {
             {/* Featured Image */}
             {article.thumbnail && (
               <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-12 shadow-2xl">
-                <Image
-                  src={article.thumbnail}
-                  alt={article.title}
-                  fill
-                  className="object-cover"
-                  priority
-                />
+                <Image src={article.thumbnail} alt={article.title} fill className="object-cover" priority />
               </div>
             )}
 
             {/* Article Content */}
             <div className="prose prose-gray max-w-none prose-lg">
-              <div 
-                className="article-content"
-                dangerouslySetInnerHTML={{ __html: article.content }}
-              />
+              <div className="article-content" dangerouslySetInnerHTML={{ __html: article.content }} />
             </div>
 
             {/* Original Article Link */}
             {article.link !== "#" && (
               <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-xl">
-                <p className="text-blue-800 mb-4 font-medium">
-                  Want to engage with this article on Medium?
-                </p>
+                <p className="text-blue-800 mb-4 font-medium">Want to engage with this article on Medium?</p>
                 <Link href={article.link} target="_blank" rel="noopener noreferrer">
                   <Button className="bg-blue-600 hover:bg-blue-700">
                     View on Medium
@@ -380,13 +363,13 @@ export default function BlogArticlePage() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">More Articles</h2>
                 <p className="text-gray-600">Continue reading with these related articles</p>
               </div>
-              
+
               <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
                 {relatedArticles.map((post, index) => (
                   <RelatedArticleCard key={`${post.link}-${index}`} post={post} />
                 ))}
               </div>
-              
+
               <div className="text-center mt-12">
                 <Link href="/blog">
                   <Button variant="outline" size="lg">

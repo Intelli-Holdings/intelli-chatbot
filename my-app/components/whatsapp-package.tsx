@@ -248,7 +248,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
       fetchWhatsAppPackages()
       fetchAssistants()
     }
-  }, [organizationId])
+  }, [organizationId, fetchAssistants, fetchWhatsAppPackages])
 
   useEffect(() => {
     if (editPackage) {
@@ -259,7 +259,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
         access_token: editPackage.access_token,
       })
     }
-  }, [editPackage])
+  }, [editPackage, whatsAppForm])
 
   return (
     <div className="space-y-4">
