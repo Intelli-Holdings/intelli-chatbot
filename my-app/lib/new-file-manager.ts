@@ -27,6 +27,11 @@ export interface FileListResponse {
   results: FileUploadResponse[];
 }
 
+export interface PendingFilesResponse {
+  count: number;
+  files: FileUploadResponse[];
+}
+
 export interface FileStatistics {
   total_files: number;
   total_size_bytes: number;
@@ -134,6 +139,26 @@ export class NewFileManagerAPI {
   }
 
   /**
+   * Update file metadata (used when uploading new versions)
+   */
+  async updateFile(fileId: number, data: Partial<FileUploadResponse>): Promise<FileUploadResponse> {
+    const response = await fetch(`${this.baseUrl}/${fileId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Delete a file
    */
   async deleteFile(fileId: number): Promise<void> {
@@ -156,6 +181,44 @@ export class NewFileManagerAPI {
   async getFileStatistics(assistantId: string): Promise<FileStatistics> {
     const response = await fetch(`${this.baseUrl}/statistics?assistant_id=${assistantId}`, {
       method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get pending and failed files for an assistant
+   */
+  async getPendingFiles(assistantId: string): Promise<PendingFilesResponse> {
+    const response = await fetch(`${this.baseUrl}/pending_files?assistant_id=${assistantId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Retry failed or pending file upload
+   */
+  async retryFileUpload(fileId: number): Promise<FileUploadResponse> {
+    const response = await fetch(`${this.baseUrl}/${fileId}/retry_upload`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -258,12 +321,20 @@ export const getFileTypeIcon = (fileType: string): string => {
     'application/pdf': '📄',
     'application/msword': '📝',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '📝',
-    'application/vnd.ms-excel': '📊',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '📊',
+    'application/vnd.ms-powerpoint': '📊',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '📊',
     'text/plain': '📄',
-    'text/csv': '📊',
     'application/json': '🔧',
     'text/markdown': '📝',
+    'text/html': '🌐',
+    'application/x-python': '🐍',
+    'text/x-python': '🐍',
+    'application/x-sh': '⚙️',
+    'text/x-sh': '⚙️',
+    'application/x-tex': '📐',
+    'text/x-tex': '📐',
+    'application/typescript': '📘',
+    'text/typescript': '📘',
   };
   return typeMap[fileType] || '📎';
 };
@@ -273,14 +344,20 @@ export const validateFileUpload = (file: File): { isValid: boolean; error?: stri
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'text/plain',
-    'text/csv',
     'text/markdown',
     'application/json',
+    'text/html',
+    'application/x-python',
+    'text/x-python',
+    'application/x-sh',
+    'text/x-sh',
+    'application/x-tex',
+    'text/x-tex',
+    'application/typescript',
+    'text/typescript',
   ];
 
   if (!allowedTypes.includes(file.type)) {
@@ -300,14 +377,20 @@ export const isAllowedFileType = (fileType: string): boolean => {
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'text/plain',
-    'text/csv',
     'text/markdown',
     'application/json',
+    'text/html',
+    'application/x-python',
+    'text/x-python',
+    'application/x-sh',
+    'text/x-sh',
+    'application/x-tex',
+    'text/x-tex',
+    'application/typescript',
+    'text/typescript',
   ];
   return allowedTypes.includes(fileType);
 };

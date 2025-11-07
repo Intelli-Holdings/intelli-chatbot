@@ -45,27 +45,29 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { 
-  Upload, 
-  FileText, 
-  X, 
-  Loader2, 
-  Trash2, 
-  Eye, 
+import {
+  Upload,
+  FileText,
+  X,
+  Loader2,
+  Trash2,
+  Eye,
   BarChart3,
   History,
   FileUp,
   AlertCircle,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  RefreshCw
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { 
-  newFileManagerAPI, 
-  type FileUploadResponse, 
+import {
+  newFileManagerAPI,
+  type FileUploadResponse,
   type FileStatistics,
   type BulkUploadResponse,
+  type PendingFilesResponse,
   formatFileSize,
   getFileTypeIcon,
   validateFileUpload,
@@ -114,12 +116,23 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
   const [selectedFileForVersions, setSelectedFileForVersions] = useState<FileUploadResponse | null>(null);
   const [fileVersions, setFileVersions] = useState<FileUploadResponse[]>([]);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+
+  // Pending/failed files states
+  const [pendingFiles, setPendingFiles] = useState<FileUploadResponse[]>([]);
+  const [pendingFilesCount, setPendingFilesCount] = useState(0);
+  const [isLoadingPendingFiles, setIsLoadingPendingFiles] = useState(false);
   
   // Delete confirmation modal states
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeletingFile, setIsDeletingFile] = useState(false);
-  
+
+  // Upload new version modal states
+  const [uploadVersionModalOpen, setUploadVersionModalOpen] = useState(false);
+  const [fileForNewVersion, setFileForNewVersion] = useState<FileUploadResponse | null>(null);
+  const [newVersionFile, setNewVersionFile] = useState<File | null>(null);
+  const [isUploadingVersion, setIsUploadingVersion] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Dropzone configuration with enhanced validation
@@ -149,14 +162,16 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       'application/pdf': ['.pdf'],
       'application/msword': ['.doc'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
       'application/vnd.ms-powerpoint': ['.ppt'],
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
       'text/plain': ['.txt'],
-      'text/csv': ['.csv'],
       'text/markdown': ['.md'],
       'application/json': ['.json'],
+      'text/html': ['.html'],
+      'application/x-python': ['.py'],
+      'application/x-sh': ['.sh'],
+      'application/x-tex': ['.tex'],
+      'application/typescript': ['.ts'],
     },
     maxSize: 512 * 1024 * 1024, // 512MB
   });
@@ -234,6 +249,23 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
     }
   }, []);
 
+  // Fetch pending/failed files
+  const fetchPendingFiles = useCallback(async () => {
+    if (!selectedAssistant) return;
+
+    setIsLoadingPendingFiles(true);
+    try {
+      const data = await newFileManagerAPI.getPendingFiles(selectedAssistant);
+      setPendingFiles(data.files);
+      setPendingFilesCount(data.count);
+    } catch (error) {
+      console.error("Error fetching pending files:", error);
+      toast.error("Failed to fetch pending files. Please try again.");
+    } finally {
+      setIsLoadingPendingFiles(false);
+    }
+  }, [selectedAssistant]);
+
   // Effects
   useEffect(() => {
     if (orgId) {
@@ -245,8 +277,45 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
     if (selectedAssistant) {
       fetchFiles();
       fetchFileStats();
+      fetchPendingFiles();
     }
-  }, [selectedAssistant, fetchFiles, fetchFileStats]);
+  }, [selectedAssistant, fetchFiles, fetchFileStats, fetchPendingFiles]);
+
+  // Auto-retry pending/failed files in background
+  useEffect(() => {
+    if (!selectedAssistant) return;
+
+    // Check for pending/failed files every 60 seconds
+    const retryInterval = setInterval(async () => {
+      try {
+        const response = await newFileManagerAPI.getPendingFiles(selectedAssistant);
+        const filesToRetry = response.files;
+
+        // Retry each pending or failed file in the background
+        for (const file of filesToRetry) {
+          if (file.azure_file_status === 'pending' || file.azure_file_status === 'failed') {
+            try {
+              await newFileManagerAPI.retryFileUpload(file.id);
+              console.log(`Retrying upload for file: ${file.file_name}`);
+            } catch (error) {
+              console.error(`Failed to retry upload for file ${file.file_name}:`, error);
+            }
+          }
+        }
+
+        // Refresh file list if there were pending/failed files
+        if (filesToRetry.length > 0) {
+          fetchFiles();
+          fetchFileStats();
+          fetchPendingFiles();
+        }
+      } catch (error) {
+        console.error("Error checking for pending files:", error);
+      }
+    }, 60000); // Check every 60 seconds
+
+    return () => clearInterval(retryInterval);
+  }, [selectedAssistant, fetchFiles, fetchFileStats, fetchPendingFiles]);
 
   // Handle file removal
   const removeFile = (index: number) => {
@@ -330,10 +399,71 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
     setFileToDelete(null);
   };
 
+  // Handle manual retry for failed/pending files
+  const handleRetryUpload = async (fileId: number, fileName: string) => {
+    try {
+      await newFileManagerAPI.retryFileUpload(fileId);
+      toast.success(`Retrying upload for ${fileName}...`);
+      fetchFiles(); // Refresh file list
+      fetchFileStats(); // Refresh statistics
+    } catch (error) {
+      console.error("Retry error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to retry upload.");
+    }
+  };
+
   // Handle view file versions
   const handleViewVersions = (file: FileUploadResponse) => {
     setSelectedFileForVersions(file);
     fetchFileVersions(file.id);
+  };
+
+  // Handle upload new version - opens upload modal
+  const handleUploadNewVersion = (file: FileUploadResponse) => {
+    setFileForNewVersion(file);
+    setUploadVersionModalOpen(true);
+  };
+
+  // Handle version file selection
+  const handleVersionFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const validation = validateFileUpload(file);
+      if (validation.isValid) {
+        setNewVersionFile(file);
+      } else {
+        toast.error(validation.error || "Invalid file");
+        e.target.value = "";
+      }
+    }
+  };
+
+  // Confirm upload new version
+  const confirmUploadNewVersion = async () => {
+    if (!fileForNewVersion || !newVersionFile) return;
+
+    setIsUploadingVersion(true);
+    try {
+      await newFileManagerAPI.createFileVersion(fileForNewVersion.id, newVersionFile);
+      toast.success("New version uploaded successfully!");
+      fetchFiles(); // Refresh file list
+      fetchFileStats(); // Refresh statistics
+      setUploadVersionModalOpen(false);
+      setFileForNewVersion(null);
+      setNewVersionFile(null);
+    } catch (error) {
+      console.error("Upload version error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to upload new version.");
+    } finally {
+      setIsUploadingVersion(false);
+    }
+  };
+
+  // Cancel upload new version
+  const cancelUploadNewVersion = () => {
+    setUploadVersionModalOpen(false);
+    setFileForNewVersion(null);
+    setNewVersionFile(null);
   };
 
   if (isFetchingAssistants) {
@@ -429,7 +559,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                   <div>
                     <p>Drag and drop files here, or click to select</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Supports: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, JSON (Max: 512MB)
+                      Supports: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, HTML (Max: 512MB)
                     </p>
                   </div>
                 )}
@@ -494,7 +624,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
             <CardHeader>
               <CardTitle>Manage Assistant Files</CardTitle>
               <CardDescription>
-                View, download, and manage files for your assistants.
+                Manage files for your assistants.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -530,6 +660,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                         <TableHead>File</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Size</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Version</TableHead>
                         <TableHead>Uploaded</TableHead>
                         <TableHead>Actions</TableHead>
@@ -538,7 +669,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                     <TableBody>
                       {fileList.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8">
+                          <TableCell colSpan={7} className="text-center py-8">
                             No files found for this assistant.
                           </TableCell>
                         </TableRow>
@@ -557,26 +688,51 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                               </Badge>
                             </TableCell>
                             <TableCell>{formatFileSize(file.file_size)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <FileStatusIcon status={file.azure_file_status} />
+                                <span className="capitalize text-sm">{file.azure_file_status}</span>
+                              </div>
+                            </TableCell>
                             <TableCell>v{file.version}</TableCell>
                             <TableCell>
                               {new Date(file.created_at).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center space-x-1">
+                                {(file.azure_file_status === 'failed' || file.azure_file_status === 'pending') && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRetryUpload(file.id, file.file_name)}
+                                    title="Retry upload"
+                                  >
+                                    <RefreshCw className="h-4 w-4 text-orange-500" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleUploadNewVersion(file)}
+                                  title="Upload new version"
+                                >
+                                  <FileUp className="h-4 w-4" />
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleViewVersions(file)}
+                                  title="View version history"
                                 >
                                   <History className="h-4 w-4" />
                                 </Button>
-                               
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleDeleteFile(file.id, file.file_name)}
+                                  title="Delete file"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-4 w-4 text-red-500" />
                                 </Button>
                               </div>
                             </TableCell>
@@ -672,6 +828,70 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                   <p className="text-muted-foreground">No statistics available.</p>
                 </div>
               )}
+
+              {/* Pending/Failed Files Section */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Pending & Failed Files</h3>
+                  {pendingFilesCount > 0 && (
+                    <Badge variant="warning" className="ml-2">
+                      {pendingFilesCount} file{pendingFilesCount !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </div>
+                {isLoadingPendingFiles ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : pendingFiles.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>File</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Size</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Uploaded</TableHead>
+                       
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingFiles.map((file) => (
+                          <TableRow key={file.id}>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm">{getFileTypeIcon(file.file_type)}</span>
+                                <span className="font-medium">{file.file_name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {file.file_type.split('/')[1]?.toUpperCase() || 'Unknown'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatFileSize(file.file_size)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <FileStatusIcon status={file.azure_file_status} />
+                                <span className="capitalize text-sm">{file.azure_file_status}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(file.created_at).toLocaleDateString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border rounded-md">
+                    <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-2" />
+                    <p className="text-muted-foreground">No pending or failed files!</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -726,7 +946,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
               View all versions of this file.
             </DialogDescription>
           </DialogHeader>
-          
+
           {isLoadingVersions ? (
             <div className="flex items-center justify-center p-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -740,7 +960,6 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                     <TableHead>Size</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Uploaded</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -757,21 +976,70 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                       <TableCell>
                         {new Date(version.created_at).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.open(version.file_url, '_blank')}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload New Version Dialog */}
+      <Dialog open={uploadVersionModalOpen} onOpenChange={setUploadVersionModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload New Version</DialogTitle>
+            <DialogDescription>
+              Upload a new version for &ldquo;{fileForNewVersion?.file_name}&rdquo;
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select File</label>
+              <Input
+                type="file"
+                onChange={handleVersionFileSelect}
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.json,.html,.py,.sh,.tex,.ts"
+              />
+              {newVersionFile && (
+                <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
+                  <span className="text-lg">{getFileTypeIcon(newVersionFile.type)}</span>
+                  <div>
+                    <p className="text-sm font-medium">{newVersionFile.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(newVersionFile.size)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={cancelUploadNewVersion}
+              disabled={isUploadingVersion}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmUploadNewVersion}
+              disabled={isUploadingVersion || !newVersionFile}
+            >
+              {isUploadingVersion ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Upload Version
+                </>
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
