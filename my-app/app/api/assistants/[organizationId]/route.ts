@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
 
 export async function GET(request: NextRequest, { params }: { params: { organizationId: string } }) {
   const { organizationId } = params
@@ -34,5 +35,57 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
   } catch (error) {
     console.error(" Proxy error:", error)
     return NextResponse.json({ error: "Failed to fetch assistants from backend" }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest, { params }: { params: { organizationId: string } }) {
+  const { organizationId } = params
+
+  try {
+    // Get authentication from Clerk
+    const { getToken } = auth()
+    const token = await getToken()
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+
+    console.log(` Creating assistant for organization: ${organizationId}`)
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      },
+    )
+
+    console.log(`Backend response status: ${response.status}`)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error(` Backend error:`, errorData)
+      return NextResponse.json(
+        { error: errorData.detail || 'Failed to create assistant' },
+        { status: response.status },
+      )
+    }
+
+    const data = await response.json()
+    console.log(` Successfully created assistant:`, data)
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error(" Error creating assistant:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
