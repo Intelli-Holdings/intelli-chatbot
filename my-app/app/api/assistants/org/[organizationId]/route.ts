@@ -14,8 +14,6 @@ export async function GET(
     const { getToken } = auth()
     const token = await getToken()
     
-    console.log('Token received:', token ? 'YES (length: ' + token.length + ')' : 'NO')
-    
     if (!token) {
       console.log('=== RETURNING 401 - No token ===')
       return NextResponse.json(
@@ -77,8 +75,6 @@ export async function POST(
     
     const body = await request.json()
     
-    console.log('Creating assistant for organization:', organizationId, 'with data:', body)
-    
     // Ensure the organization ID is in the request body
     const assistantData = {
       ...body,
@@ -108,7 +104,7 @@ export async function POST(
     }
     
     const data = await response.json()
-    console.log('Assistant created successfully:', data)
+    console.log('Assistant created successfully')
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error creating assistant:', error)
@@ -168,7 +164,7 @@ export async function PUT(
       }
     )
     
-    console.log('Backend update response status:', response.status)
+    console.log('Backend update response status')
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -194,7 +190,7 @@ export async function PUT(
       };
     }
     
-    console.log('Assistant updated successfully:', data)
+    console.log('Assistant updated successfully')
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error updating assistant:', error)
@@ -248,7 +244,7 @@ export async function DELETE(
       }
     )
     
-    console.log('Backend delete response status:', response.status)
+    console.log('Backend delete response status')
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -274,7 +270,7 @@ export async function DELETE(
       };
     }
     
-    console.log('Assistant deleted successfully:', data)
+    console.log('Assistant deleted successfully')
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error deleting assistant:', error)

@@ -80,7 +80,6 @@ const Widgets = () => {
   const fetchWidgets = async (orgId: string) => {
     setLoading(true)
     try {
-      console.log(`[Widgets] Fetching widgets for organization: ${orgId}`)
 
       // Add timestamp to prevent browser caching
       const timestamp = new Date().getTime()
@@ -97,8 +96,6 @@ const Widgets = () => {
       }
 
       const data = await response.json()
-      console.log(`[Widgets] Successfully fetched ${data.length || 0} widgets`)
-      console.log("[Widgets] Widget data:", data)
       setWidgets(data)
     } catch (error) {
       console.error("[Widgets] Error fetching widgets:", error)
@@ -136,7 +133,7 @@ const Widgets = () => {
     setWidgetToDelete(null)
 
     try {
-      console.log(`[Widgets] Deleting widget: ${deletedWidget.widget_key}`)
+      console.log(`[Widgets] Deleting widget`)
       const response = await fetch(`/api/widgets/widget/${deletedWidget.widget_key}`, {
         method: "DELETE",
       })
@@ -199,14 +196,8 @@ const Widgets = () => {
       formData.append("avatar_url", avatarFile)
     }
 
-    // Log FormData contents for debugging
-    console.log("[Widgets] Update payload:")
-    for (const [key, value] of Array.from(formData.entries())) {
-      console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value)
-    }
-
     try {
-      console.log(`[Widgets] Updating widget: ${editWidget.widget_key}`)
+      console.log(`[Widgets] Updating widget`)
 
       // Optimistic update: Update widget in UI immediately
       const optimisticWidget = {
@@ -230,7 +221,6 @@ const Widgets = () => {
       }
 
       const updatedData = await response.json()
-      console.log("[Widgets] Widget updated successfully:", updatedData)
 
       toast.success("Widget updated successfully!")
 
@@ -411,7 +401,7 @@ const Widgets = () => {
           </div>
           <p className="text-lg font-semibold text-foreground mb-2">No widgets found</p>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Create your first widget to start building intelligent experiences for your website.
+            Create a widget.
           </p>
         </div>
       )}

@@ -16,16 +16,8 @@ export async function PUT(
       );
     }
 
-    console.log(`[API] Updating widget: ${widgetKey}`);
-
     // Get the FormData from the request
     const formData = await request.formData();
-
-    // Log FormData contents for debugging
-    console.log("[API] Update payload:");
-    for (const [key, value] of Array.from(formData.entries())) {
-      console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
-    }
 
     // Forward the FormData to the backend
     const response = await fetch(
@@ -46,7 +38,7 @@ export async function PUT(
     }
 
     const data = await response.json();
-    console.log(`[API] Successfully updated widget: ${widgetKey}`);
+    console.log(`[API] Successfully updated widget`);
 
     return NextResponse.json(data);
   } catch (error) {
@@ -75,7 +67,7 @@ export async function DELETE(
       );
     }
 
-    console.log(`[API] Deleting widget: ${widgetKey}`);
+    console.log(`[API] Deleting widget`);
 
     // Delete widget from backend
     const response = await fetch(
@@ -106,7 +98,7 @@ export async function DELETE(
       data = { success: true, message: "Widget deleted successfully" };
     }
 
-    console.log(`[API] Successfully deleted widget: ${widgetKey}`);
+    console.log(`[API] Successfully deleted widget`);
 
     return NextResponse.json(data);
   } catch (error) {

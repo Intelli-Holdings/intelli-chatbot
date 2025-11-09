@@ -92,10 +92,7 @@ export default function Workground() {
 
     setIsLoadingAssistants(true);
     try {
-      console.log(`[Workground] Fetching assistants via API route for org: ${selectedOrganizationId}`);
       const response = await fetch(`/api/assistants/${selectedOrganizationId}`);
-
-      console.log(`[Workground] API route response status: ${response.status}`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -108,7 +105,6 @@ export default function Workground() {
       }
 
       const data: Assistant[] = await response.json();
-      console.log(`[Workground] Successfully fetched ${data.length} assistants`);
 
       if (!Array.isArray(data)) {
         console.error("[Workground] API response is not an array:", data);
@@ -131,13 +127,12 @@ export default function Workground() {
         return isValid;
       });
 
-      console.log(`[Workground] Validated ${validatedAssistants.length} out of ${data.length} assistants`);
       setAssistants(validatedAssistants);
 
       // Auto-select the first assistant if available
       if (validatedAssistants.length > 0 && !selectedAssistantId) {
         setSelectedAssistantId(validatedAssistants[0].assistant_id);
-        console.log(`[Workground] Auto-selected first assistant: ${validatedAssistants[0].name}`);
+      
       }
 
       if (validatedAssistants.length === 0) {
@@ -196,13 +191,11 @@ export default function Workground() {
     }
 
     // Log FormData contents properly
-    console.log("[Workground] Payload being sent to API:");
+ 
     for (const [key, value] of Array.from(formData.entries())) {
-      console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
     }
 
     try {
-      console.log("[Workground] Creating widget via API route");
       const response = await fetch("/api/widgets", {
         method: "POST",
         body: formData,
@@ -214,7 +207,6 @@ export default function Workground() {
       }
 
       const data = await response.json();
-      console.log("[Workground] Widget created successfully:", data.widget_key);
       setWidgetKey(data.widget_key);
       toast.success("Website Widget created successfully!");
       setShowDeploymentDialog(true);
