@@ -464,6 +464,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
           phoneNumber={phoneNumber}
           onAiSupportChange={(isActive) => setIsAiSupport(isActive)}
         />
+        
       </div>
 
       {/* Always render WebSocketHandler when conversation exists, regardless of who's handling it */}

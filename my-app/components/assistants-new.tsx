@@ -99,6 +99,9 @@ export default function Assistants() {
     try {
       const response = await fetch(`/api/assistants/${organizationId}/${assistant.id}`, {
         method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
 
       if (!response.ok) throw new Error("Failed to delete assistant")
