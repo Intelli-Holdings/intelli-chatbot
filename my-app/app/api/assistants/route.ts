@@ -5,8 +5,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    console.log('Creating assistant with data:', body)
-    
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`,
       {
@@ -18,7 +16,7 @@ export async function POST(request: NextRequest) {
       }
     )
     
-    console.log('Backend response status:', response.status)
+    console.log('Backend response status')
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -30,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
     
     const data = await response.json()
-    console.log('Assistant created successfully:', data)
+    console.log('Assistant created successfully')
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error creating assistant:', error)

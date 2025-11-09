@@ -68,7 +68,7 @@ export function EditAssistantDialog({
 
     setIsLoading(true)
     try {
-      console.log(`[v0] Editing assistant ${assistant.id} for organization: ${organizationId}`)
+      console.log(`[v0] Editing assistant.`)
 
       // Get the session token
       const token = await getToken()
@@ -89,7 +89,7 @@ export function EditAssistantDialog({
         }),
       })
 
-      console.log(`[v0] Edit assistant response status: ${response.status}`)
+      console.log(`[v0] Edit assistant response status`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -97,7 +97,7 @@ export function EditAssistantDialog({
       }
 
       const updatedData = await response.json()
-      console.log(`[v0] Successfully updated assistant:`, updatedData)
+      console.log(`[v0] Successfully updated assistant`)
 
       const updatedAssistants = assistants.map((a) => (a.id === updatedData.id ? updatedData : a))
 

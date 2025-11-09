@@ -243,7 +243,6 @@ export default function WebsiteConvosPage() {
   const ws = new WebSocket(
     `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
   );
-console.log("ws", ws);
 
   ws.onopen = () => {
     ws.send(JSON.stringify(payload));
@@ -292,7 +291,6 @@ console.log("ws", ws);
       `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
           
     );
-    console.log("ws", ws);
 
     ws.onopen = () => {
       ws.send(JSON.stringify(payload));

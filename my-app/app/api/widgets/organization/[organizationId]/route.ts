@@ -20,8 +20,6 @@ export async function GET(
       );
     }
 
-    console.log(`[API] Fetching widgets for organization: ${organizationId}`);
-
     // Fetch widgets from backend with cache-busting
     const response = await fetch(
       `${API_BASE_URL}/widgets/organization/${organizationId}/all/`,
@@ -44,7 +42,6 @@ export async function GET(
     }
 
     const data = await response.json();
-    console.log(`[API] Successfully fetched ${data.length} widgets`);
 
     // Return with no-cache headers to prevent stale data
     return NextResponse.json(data, {

@@ -5,7 +5,6 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
   const { organizationId } = params
 
   try {
-    console.log(` Proxying request for organization: ${organizationId}`)
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`,
@@ -18,8 +17,6 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
       },
     )
 
-    console.log(`Backend response status: ${response.status}`)
-
     if (!response.ok) {
       console.error(` Backend error: ${response.status} ${response.statusText}`)
       return NextResponse.json(
@@ -29,7 +26,6 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
     }
 
     const data = await response.json()
-    console.log(` Successfully fetched ${data.length} assistants`)
 
     return NextResponse.json(data)
   } catch (error) {
@@ -55,8 +51,6 @@ export async function POST(request: NextRequest, { params }: { params: { organiz
 
     const body = await request.json()
 
-    console.log(` Creating assistant for organization: ${organizationId}`)
-
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`,
       {
@@ -69,7 +63,6 @@ export async function POST(request: NextRequest, { params }: { params: { organiz
       },
     )
 
-    console.log(`Backend response status: ${response.status}`)
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
@@ -81,7 +74,6 @@ export async function POST(request: NextRequest, { params }: { params: { organiz
     }
 
     const data = await response.json()
-    console.log(` Successfully created assistant:`, data)
 
     return NextResponse.json(data)
   } catch (error) {
