@@ -73,7 +73,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
           }),
         )
       } catch (error) {
-        console.error("Error processing WebSocket message:", error)
+
       }
     }
 
