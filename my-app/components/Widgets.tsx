@@ -394,18 +394,6 @@ const Widgets = () => {
         </div>
       )}
 
-      {widgets.length === 0 && !loading && (
-        <div className="text-center py-16 px-4">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-            <Bot className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <p className="text-lg font-semibold text-foreground mb-2">No widgets found</p>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Create a widget.
-          </p>
-        </div>
-      )}
-
       {selectedWidget && (
         <DeploymentDialog
           widgetKey={selectedWidget.key}
