@@ -49,6 +49,7 @@ import {
 } from "lucide-react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { getMetricsSummaryByOrganization, getMetricsByOrganization, type MetricsResponse, type MetricsSnapshot } from "@/lib/metrics-service"
+import Image from "next/image"
 
 const CHART_COLORS = {
   primary: "#3b82f6",
@@ -100,7 +101,7 @@ interface ChannelCardProps {
   messages: number
   escalations: number
   avgResolution: number
-  icon: string
+  icon: string | React.ReactNode
   color: string
 }
 
@@ -109,7 +110,7 @@ const ChannelCard: React.FC<ChannelCardProps> = ({ name, conversations, messages
     <CardHeader className="pb-3">
       <div className="flex items-center justify-between">
         <CardTitle className="text-lg flex items-center gap-2">
-          <span className="text-2xl">{icon}</span>
+          {typeof icon === "string" ? <span className="text-2xl">{icon}</span> : icon}
           {name}
         </CardTitle>
         <Badge style={{ backgroundColor: `${color}20`, color }}>{conversations} conversations</Badge>
@@ -220,7 +221,15 @@ export default function Analytics() {
       messages: latest.conversations_per_channel.channels.whatsapp?.number_of_messages || 0,
       escalations: latest.conversations_per_channel.channels.whatsapp?.number_of_escalations.total || 0,
       avgResolution: latest.conversations_per_channel.channels.whatsapp?.number_of_escalations.average_duration || 0,
-      icon: "💬",
+      icon: (
+        <Image
+          src="/whatsapp.png"
+          alt="WhatsApp"
+          width={20}
+          height={20}
+          className="object-contain"
+        />
+      ),
       color: CHART_COLORS.success,
     },
   ]
@@ -315,9 +324,9 @@ export default function Analytics() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Escalation Status Distribution */}
-            <Card className="lg:col-span-1">
+            <Card>
               <CardHeader>
                 <CardTitle>Escalation Status</CardTitle>
                 <CardDescription>Distribution of current escalations</CardDescription>
@@ -357,7 +366,7 @@ export default function Analytics() {
             </Card>
 
             {/* Conversations Over Time */}
-            <Card className="lg:col-span-2">
+            <Card>
               <CardHeader>
                 <CardTitle>Conversation Trends</CardTitle>
                 <CardDescription>Track conversation volume across all channels</CardDescription>

@@ -20,8 +20,6 @@ export async function GET(
       );
     }
 
-    console.log(`[API] Fetching embedding code for widget: ${widgetKey}`);
-
     // Fetch embedding code from backend
     const response = await fetch(
       `${API_BASE_URL}/widgets/widget/${widgetKey}/embedding-code/`,
@@ -44,7 +42,7 @@ export async function GET(
     }
 
     const data = await response.json();
-    console.log(`[API] Successfully fetched embedding code for widget: ${widgetKey}`);
+    console.log(` Successfully fetched embedding code for widget`);
 
     // Return with no-cache headers to prevent stale data
     return NextResponse.json(data, {
