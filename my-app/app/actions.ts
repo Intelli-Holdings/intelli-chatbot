@@ -25,7 +25,7 @@ export async function takeoverConversation(formData: FormData) {
     phone_number: phoneNumber as string,
   };
 
-  console.log('Taking over conversation:', payload);
+  console.log('Taking over conversation:');
 
   const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/takeover_conversation/`, {
     method: 'POST',
@@ -42,7 +42,7 @@ export async function takeoverConversation(formData: FormData) {
   }
 
   const responseData = await response.json();
-  console.log('Conversation takeover successful:', responseData);
+  console.log('Conversation takeover successful:');
 
   return {
     success: true,
@@ -59,7 +59,7 @@ export async function handoverConversation(formData: FormData) {
     phone_number: phoneNumber as string,
   };
 
-  console.log('Handing over conversation:', payload);
+  console.log('Handing over conversation:');
 
   const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/handover_conversation/`, {
     method: 'POST',
@@ -76,7 +76,7 @@ export async function handoverConversation(formData: FormData) {
   }
 
   const responseData = await response.json();
-  console.log('Conversation handover successful:', responseData);
+  console.log('Conversation handover successful:');
 
 
   return {
@@ -128,7 +128,7 @@ export async function sendMessage(formData: FormData) {
 
 export async function humanSupportMessages(customerNumber: string, phoneNumber: string) {
   const WEBSOCKET_URL = `${WEBSOCKET_BASE_URL}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`;
-  console.log('Connecting to WebSocket for human support:', WEBSOCKET_URL);
+  console.log('Connecting to WebSocket for human support');
 
   const ws = new WebSocket(WEBSOCKET_URL);
 
