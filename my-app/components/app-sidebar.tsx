@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useNotifications } from "@/context/notifications-context";
 import { UserNav } from "@/components/user-nav";
 import { AnnouncementBanner } from "@/components/announcement";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 
 import {
   Sidebar,
@@ -43,13 +44,15 @@ import {
 } from "@/components/ui/sidebar";
 import { size } from "@/app/icon";
 
+type IconComponent = React.ComponentType<{ className?: string }>;
+
 type NavItem = {
   title: string;
   url: string;
-  icon: React.ComponentType;
+  icon: IconComponent;
   showBadge?: boolean;
   hasSubmenu?: boolean;
-  submenuItems?: { title: string; url: string; icon?: string }[];
+  submenuItems?: { title: string; url: string; icon?: string | IconComponent }[];
 };
 
 const data = {
@@ -85,7 +88,7 @@ const data = {
         {
           title: "WhatsApp",
           url: "/dashboard/conversations/whatsapp",
-          icon: "/WhatsApp.svg"
+          icon: WhatsAppIcon
         },
       ]
     },
@@ -128,8 +131,11 @@ const SidebarSubmenuItem = ({
   title: string;
   url: string;
   pathname: string;
-  icon?: string;
+  icon?: string | IconComponent;
 }) => {
+  const IconComp = typeof icon === "function" ? icon : null;
+  const iconPath = typeof icon === "string" ? icon : null;
+
   return (
     <SidebarMenuItem className="ml-6">
       <SidebarMenuButton asChild className="w-full">
@@ -142,9 +148,11 @@ const SidebarSubmenuItem = ({
                 : "transparent"
             )}
           >
-            {icon ? (
+            {IconComp ? (
+              <IconComp className="mr-2 size-4" />
+            ) : iconPath ? (
               <Image
-                src={icon}
+                src={iconPath}
                 alt={title}
                 width={16}
                 height={16}
