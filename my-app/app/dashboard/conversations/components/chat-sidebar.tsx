@@ -166,10 +166,18 @@ export default function ChatSidebar({
         ) : sortedConversations.length > 0 ? (
           <>
             {sortedConversations.map((conversation) => {
-              const lastMessage =
+              let lastMessage =
                 conversation.messages && conversation.messages.length > 0
                   ? conversation.messages[conversation.messages.length - 1]?.content || "Open chat to see messages"
                   : "Select chat to view messages"
+
+              // Clean up media placeholders and show user-friendly text
+              lastMessage = lastMessage.replace(/\[MEDIA_PLACEHOLDER\]/gi, "📎 Media")
+              lastMessage = lastMessage.replace(/\[IMAGE\]\s+\d+(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "📷 Image")
+              lastMessage = lastMessage.replace(/\[AUDIO\]\s+\d+(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "🎵 Audio")
+              lastMessage = lastMessage.replace(/\[VIDEO\]\s+\d+(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "🎥 Video")
+              lastMessage = lastMessage.replace(/\[DOCUMENT\]\s+[^\s]+(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "📄 Document")
+
               const unreadCount = conversation.unread_messages || 0
               const displayName = conversation.customer_name || conversation.customer_number || "Unknown"
               const time = conversation.updated_at ? formatTimestamp(conversation.updated_at) : ""

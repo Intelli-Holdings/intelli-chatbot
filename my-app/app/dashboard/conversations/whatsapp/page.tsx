@@ -211,7 +211,7 @@ export default function WhatsAppConvosPage() {
         content: msg.content,
         answer: msg.answer,
         created_at: msg.created_at,
-        sender: msg.sender || "ai", // Default to 'ai' if sender not specified
+        sender: msg.sender || "ai", 
       }))
 
       // Reverse the messages so that the oldest appear first (latest at bottom)

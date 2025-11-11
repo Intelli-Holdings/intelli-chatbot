@@ -2,8 +2,6 @@
 
 import Image from "next/image"
 import React, { useState, useRef, useEffect } from "react"
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism"
 import data from "@emoji-mart/data"
 import Picker from "@emoji-mart/react"
 
@@ -26,26 +24,43 @@ interface ImagePreviewProps {
 const ImagePreview: React.FC<ImagePreviewProps> = ({ src }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [useImgTag, setUseImgTag] = useState(false)
+
+  const handleImageError = () => {
+    setIsLoading(false)
+    setError(true)
+    // Fallback to native img tag if Next/Image fails
+    setUseImgTag(true)
+  }
 
   return (
-    <div className="relative rounded-md overflow-hidden my-2">
+    <div className="relative rounded-md overflow-hidden my-2 max-w-xs">
       {isLoading && <div className="w-full h-40 bg-gray-200 animate-pulse rounded-md"></div>}
 
-      {error ? (
+      {error && !useImgTag ? (
         <div className="bg-gray-100 p-3 text-sm text-gray-500 rounded border border-gray-200">Unable to load image</div>
+      ) : useImgTag ? (
+        // Fallback to native img tag for Azure Blob Storage
+        <img
+          src={src || "/placeholder.svg"}
+          alt="Shared image"
+          className={`rounded-md object-cover max-w-xs h-auto ${isLoading ? "invisible" : "visible"}`}
+          onLoad={() => setIsLoading(false)}
+          onError={handleImageError}
+          crossOrigin="anonymous"
+        />
       ) : (
+        // Try Next/Image first
         <div className={`${isLoading ? "invisible" : "visible"}`}>
           <Image
             src={src || "/placeholder.svg"}
             alt="Shared image"
             width={300}
             height={200}
-            className="rounded-md object-cover"
+            className="rounded-md object-cover max-w-xs h-auto"
             onLoad={() => setIsLoading(false)}
-            onError={() => {
-              setIsLoading(false)
-              setError(true)
-            }}
+            onError={handleImageError}
+            unoptimized
           />
         </div>
       )}
@@ -229,6 +244,20 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
   )
 }
 
+interface VideoPlayerProps {
+  src: string
+}
+
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
+  return (
+    <div className="my-2 max-w-md rounded-lg overflow-hidden shadow">
+      <video src={src} controls className="w-full h-auto bg-black rounded-lg" controlsList="nodownload">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  )
+}
+
 interface MessageReactionsProps {
   reactions: Record<string, number>
   onAddReaction: (emoji: string) => void
@@ -325,268 +354,172 @@ const processEmojis = (text: string): string => {
   })
 }
 
+/**
+ * Enhanced media type detection for Azure Blob Storage and standard URLs
+ */
+const createMediaUrlRegex = (): RegExp => {
+  const azureBlobPattern =
+    "https?:\\/\\/[a-zA-Z0-9]+\\.blob\\.core\\.windows\\.net\\/[^\\s]+\\.(jpg|jpeg|png|gif|webp|mp3|wav|ogg|m4a|aac|opus|webm|mp4|webm|avi|mov|mkv|flv|wmv|3gp)(\\?[^\\s]*)?"
+  const standardMediaPattern =
+    "https?:\\/\\/[^\\s]+\\.(jpg|jpeg|png|gif|webp|mp3|wav|ogg|m4a|aac|opus|webm|mp4|webm|avi|mov|mkv|flv|wmv|3gp)(\\?[^\\s]*)?"
+  return new RegExp(`(${azureBlobPattern}|${standardMediaPattern})`, "gi")
+}
+
+/**
+ * Detects if a URL is a media file (image, audio, or video)
+ * Supports Azure Blob Storage URLs and standard image/audio/video URLs
+ */
+const getMediaType = (url: string): "image" | "audio" | "video" | null => {
+  if (!url) return null
+
+  const lowerUrl = url.toLowerCase()
+
+  // Image extensions
+  if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(lowerUrl)) {
+    return "image"
+  }
+
+  // Audio extensions
+  if (/\.(mp3|wav|ogg|m4a|aac|opus|webm)(\?|$)/i.test(lowerUrl)) {
+    return "audio"
+  }
+
+  // Video extensions
+  if (/\.(mp4|webm|avi|mov|mkv|flv|wmv|3gp)(\?|$)/i.test(lowerUrl)) {
+    return "video"
+  }
+
+  return null
+}
+
 const processTextWithLinks = (text: string): React.ReactNode[] => {
-  // Add this line near the beginning of processTextWithLinks
   text = processEmojis(text)
+  text = text.replace(/\[MEDIA_PLACEHOLDER\]/gi, "").trim()
 
-  // Image URL regex pattern - detects common image extensions
-  const imageUrlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)(\?[^\s]*)?)/gi
+  // Matches: [AUDIO] Media - https://... OR [AUDIO] 123456 - https://...
+  const audioRegex = /\[AUDIO\]\s+(?:Media|\d+)\s+-\s+(https?:\/\/[^\s]+)/gi
 
-  // Audio URL regex pattern - detects [AUDIO] Media - URL format
-  const audioRegex = /\[AUDIO\]\s+Media\s+-\s+(https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac)(\?[^\s]*)?)/gi
+  // Matches: [IMAGE] 123456 - https://... (with or without URL)
+  const imageUrlRegex =
+    /\[IMAGE\]\s+\d+(?:\s+-\s+(https?:\/\/[^\s]+))?|(?:https?:\/\/[a-zA-Z0-9]+\.blob\.core\.windows\.net\/[^\s]+\.(jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?)/gi
 
-  // Document regex pattern to detect document links
+  // Matches: [VIDEO] 123456 - https://... OR direct video URLs
+  const videoUrlRegex =
+    /\[VIDEO\]\s+\d+(?:\s+-\s+(https?:\/\/[^\s]+))?|(https?:\/\/[^\s]+\.(mp4|avi|mov|mkv|flv|wmv|3gp)(?:\?[^\s]*)?|https?:\/\/[a-zA-Z0-9]+\.blob\.core\.windows\.net\/[^\s]+\.(mp4|avi|mov|mkv|flv|wmv|3gp)(?:\?[^\s]*)?)/gi
+
   const documentRegex =
-    /\[DOCUMENT\]\s+(.*?)(?:\s+-\s+|\s+)(https?:\/\/[^\s]+\.(pdf|xls|xlsx|csv|doc|docx)(\?[^\s]*)?)/gi
+    /\[DOCUMENT\]\s+(.*?)(?:\s+-\s+|\s+)(https?:\/\/[^\s]+\.(pdf|xls|xlsx|csv|doc|docx)(?:\?[^\s]*)?)/gi
 
-  // Regular URL regex
-  const urlRegex = /(https?:\/\/[^\s\]]+|\[([^\]]+)\]$$([^\s$$]+)\))/g
+  const urlRegex = /(https?:\/\/[^\s\]]+|\[([^\]]+)\]\s+([^\s\]]+))/g
 
-  // First check for audio patterns
+  // Process audio matches first (highest priority for both Firebase and Azure)
   const audioMatches = text.match(audioRegex)
   if (audioMatches) {
-    // Create a version of the text where audio patterns are replaced with placeholders
     let processedText = text
     const audioPlayers = audioMatches
-      .map((audioPattern, index) => {
-        // Extract the URL from the audio pattern
-        const urlMatch = audioPattern.match(/\[AUDIO\]\s+Media\s+-\s+(https?:\/\/[^\s]+)/i)
-        if (urlMatch && urlMatch[1]) {
-          const audioUrl = urlMatch[1]
+      .map((match, index) => {
+        const urlMatch = match.match(/https?:\/\/[^\s]+/)
+        const audioUrl = urlMatch ? urlMatch[0] : match
 
-          // Replace the audio pattern with a unique placeholder
-          const placeholder = `__AUDIO_PLACEHOLDER_${index}__`
-          processedText = processedText.replace(audioPattern, placeholder)
-
-          // Create an audio player component
-          return React.createElement(AudioPlayer, { key: `audio-${index}`, src: audioUrl })
-        }
-        return null
+        const placeholder = `__AUDIO_PLACEHOLDER_${index}__`
+        processedText = processedText.replace(match, placeholder)
+        return React.createElement(AudioPlayer, { key: `audio-${index}`, src: audioUrl })
       })
       .filter(Boolean)
 
-    // Split by the placeholders
     const parts = processedText.split(/(__AUDIO_PLACEHOLDER_\d+__)/)
     const result: (string | React.ReactNode)[] = []
 
     parts.forEach((part) => {
-      // Check if this part is a placeholder
       const placeholderMatch = part.match(/__AUDIO_PLACEHOLDER_(\d+)__/)
       if (placeholderMatch) {
         const audioIndex = Number.parseInt(placeholderMatch[1], 10)
-        // Replace placeholder with audio component
         result.push(audioPlayers[audioIndex])
       } else if (part) {
-        // Process the remaining text for images and links
         result.push(part)
       }
     })
 
-    // Process remaining text parts for images and regular links
-    return result.flatMap((item) => {
-      if (typeof item === "string") {
-        // Check for image URLs
-        const imageMatches = item.match(imageUrlRegex)
-        if (imageMatches) {
-          // Create a version of the text where image URLs are replaced with placeholders
-          let imgProcessedText = item
-          const imagePreviews: React.ReactNode[] = []
-
-          imageMatches.forEach((imageUrl, imgIndex) => {
-            // Replace the image URL with a unique placeholder
-            const placeholder = `__IMAGE_PLACEHOLDER_${imgIndex}__`
-            imgProcessedText = imgProcessedText.replace(imageUrl, placeholder)
-
-            // Create an image preview component
-            imagePreviews.push(
-              React.createElement(ImagePreview, { key: `img-${imgIndex}`, src: imageUrl || "/placeholder.svg" }),
-            )
-          })
-
-          // Split by the placeholders
-          const imgParts = imgProcessedText.split(/(__IMAGE_PLACEHOLDER_\d+__)/)
-          const imgResult: (string | React.ReactNode)[] = []
-
-          imgParts.forEach((imgPart) => {
-            // Check if this part is a placeholder
-            const imgPlaceholderMatch = imgPart.match(/__IMAGE_PLACEHOLDER_(\d+)__/)
-            if (imgPlaceholderMatch) {
-              const imageIndex = Number.parseInt(imgPlaceholderMatch[1], 10)
-              // Replace placeholder with image component
-              imgResult.push(imagePreviews[imageIndex])
-            } else if (imgPart) {
-              // Process regular links
-              const linkParts = imgPart.split(urlRegex)
-              imgResult.push(
-                ...linkParts.map((part, idx) => {
-                  if (urlRegex.test(part) && !imageUrlRegex.test(part)) {
-                    const match = part.match(/\[([^\]]+)\]$$([^\s$$]+)\)/)
-                    if (match) {
-                      const [, linkText, url] = match
-                      return React.createElement(
-                        "a",
-                        {
-                          key: idx,
-                          href: url,
-                          target: "_blank",
-                          rel: "noopener noreferrer",
-                          className: "text-blue-500 hover:underline",
-                          title: url,
-                        },
-                        linkText,
-                      )
-                    } else {
-                      return React.createElement(
-                        "a",
-                        {
-                          key: idx,
-                          href: part,
-                          target: "_blank",
-                          rel: "noopener noreferrer",
-                          className: "text-blue-500 hover:underline",
-                          title: part,
-                        },
-                        part,
-                      )
-                    }
-                  }
-                  return part
-                }),
-              )
-            }
-          })
-
-          return imgResult
-        }
-
-        // Process regular links
-        const linkParts = item.split(urlRegex)
-        return linkParts.map((part, idx) => {
-          if (urlRegex.test(part) && !imageUrlRegex.test(part)) {
-            const match = part.match(/\[([^\]]+)\]$$([^\s$$]+)\)/)
-            if (match) {
-              const [, linkText, url] = match
-              return React.createElement(
-                "a",
-                {
-                  key: idx,
-                  href: url,
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                  className: "text-blue-500 hover:underline",
-                  title: url,
-                },
-                linkText,
-              )
-            } else {
-              return React.createElement(
-                "a",
-                {
-                  key: idx,
-                  href: part,
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                  className: "text-blue-500 hover:underline",
-                  title: part,
-                },
-                part,
-              )
-            }
-          }
-          return part
-        })
-      }
-      return item
-    })
+    return result
   }
 
-  // If no audio patterns, check for image URLs
+  // Process image matches second (after audio)
   const imageMatches = text.match(imageUrlRegex)
   if (imageMatches) {
-    // Create a version of the text where image URLs are replaced with placeholders
     let processedText = text
     const imagePreviews: React.ReactNode[] = []
 
-    imageMatches.forEach((imageUrl, index) => {
-      // Replace the image URL with a unique placeholder
-      const placeholder = `__IMAGE_PLACEHOLDER_${index}__`
-      processedText = processedText.replace(imageUrl, placeholder)
-
-      // Create an image preview component
-      imagePreviews.push(
-        React.createElement(ImagePreview, { key: `img-${index}`, src: imageUrl || "/placeholder.svg" }),
-      )
+    imageMatches.forEach((match, index) => {
+      let imgUrl = match
+      if (match.includes("[IMAGE]")) {
+        // Extract URL after the dash if it exists
+        const urlMatch = match.match(/https?:\/\/[^\s]+/)
+        if (urlMatch) {
+          imgUrl = urlMatch[0]
+          const placeholder = `__IMAGE_PLACEHOLDER_${index}__`
+          processedText = processedText.replace(match, placeholder)
+          imagePreviews.push(React.createElement(ImagePreview, { key: `img-${index}`, src: imgUrl }))
+        } else {
+          // [IMAGE] without URL - just remove it from display
+          processedText = processedText.replace(match, "")
+        }
+      } else {
+        // Azure or direct URL format
+        imgUrl = match
+        const placeholder = `__IMAGE_PLACEHOLDER_${index}__`
+        processedText = processedText.replace(match, placeholder)
+        imagePreviews.push(React.createElement(ImagePreview, { key: `img-${index}`, src: imgUrl }))
+      }
     })
 
-    // Split by the placeholders
     const parts = processedText.split(/(__IMAGE_PLACEHOLDER_\d+__)/)
     const result: (string | React.ReactNode)[] = []
 
     parts.forEach((part) => {
-      // Check if this part is a placeholder
       const placeholderMatch = part.match(/__IMAGE_PLACEHOLDER_(\d+)__/)
       if (placeholderMatch) {
         const imageIndex = Number.parseInt(placeholderMatch[1], 10)
-        // Replace placeholder with image component
         result.push(imagePreviews[imageIndex])
       } else if (part) {
-        // Process regular text
         result.push(part)
       }
     })
 
-    // Process remaining text parts for regular links
-    return result.flatMap((item) => {
-      if (typeof item === "string") {
-        // Process regular links in text parts
-        const linkParts = item.split(urlRegex)
-        return linkParts.map((part, idx) => {
-          if (urlRegex.test(part) && !imageUrlRegex.test(part)) {
-            const match = part.match(/\[([^\]]+)\]$$([^\s$$]+)\)/)
-            if (match) {
-              const [, linkText, url] = match
-              return React.createElement(
-                "a",
-                {
-                  key: idx,
-                  href: url,
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                  className: "text-blue-500 hover:underline",
-                  title: url,
-                },
-                linkText,
-              )
-            } else {
-              return React.createElement(
-                "a",
-                {
-                  key: idx,
-                  href: part,
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                  className: "text-blue-500 hover:underline",
-                  title: part,
-                },
-                part,
-              )
-            }
-          }
-          return part
-        })
-      }
-      return item
-    })
+    return result
   }
 
-  // Document regex pattern to detect document links
+  const videoMatches = text.match(videoUrlRegex)
+  if (videoMatches) {
+    let processedText = text
+    const videoPlayers = videoMatches
+      .map((videoUrl, index) => {
+        const placeholder = `__VIDEO_PLACEHOLDER_${index}__`
+        processedText = processedText.replace(videoUrl, placeholder)
+        return React.createElement(VideoPlayer, { key: `video-${index}`, src: videoUrl })
+      })
+      .filter(Boolean)
+
+    const parts = processedText.split(/(__VIDEO_PLACEHOLDER_\d+__)/)
+    const result: (string | React.ReactNode)[] = []
+
+    parts.forEach((part) => {
+      const placeholderMatch = part.match(/__VIDEO_PLACEHOLDER_(\d+)__/)
+      if (placeholderMatch) {
+        const videoIndex = Number.parseInt(placeholderMatch[1], 10)
+        result.push(videoPlayers[videoIndex])
+      } else if (part) {
+        result.push(part)
+      }
+    })
+
+    return result
+  }
+
   const documentMatches = text.match(documentRegex)
   if (documentMatches) {
-    // Create a version of the text where document patterns are replaced with placeholders
     let processedText = text
     const documentAttachments = documentMatches
       .map((docPattern, index) => {
-        // Extract the filename and URL from the document pattern
         const match = docPattern.match(
           /\[DOCUMENT\]\s+(.*?)(?:\s+-\s+|\s+)(https?:\/\/[^\s]+\.(pdf|xls|xlsx|csv|doc|docx)(\?[^\s]*)?)/i,
         )
@@ -595,11 +528,9 @@ const processTextWithLinks = (text: string): React.ReactNode[] => {
           const url = match[2]
           const fileExtension = url.split(".").pop()?.split("?")[0] || ""
 
-          // Replace the document pattern with a unique placeholder
           const placeholder = `__DOCUMENT_PLACEHOLDER_${index}__`
           processedText = processedText.replace(docPattern, placeholder)
 
-          // Create a document attachment component
           return React.createElement(DocumentAttachment, {
             key: `doc-${index}`,
             url: url,
@@ -611,147 +542,64 @@ const processTextWithLinks = (text: string): React.ReactNode[] => {
       })
       .filter(Boolean)
 
-    // Split by the placeholders
     const parts = processedText.split(/(__DOCUMENT_PLACEHOLDER_\d+__)/)
     const result: (string | React.ReactNode)[] = []
 
     parts.forEach((part) => {
-      // Check if this part is a placeholder
       const placeholderMatch = part.match(/__DOCUMENT_PLACEHOLDER_(\d+)__/)
       if (placeholderMatch) {
         const docIndex = Number.parseInt(placeholderMatch[1], 10)
-        // Replace placeholder with document component
         result.push(documentAttachments[docIndex])
       } else if (part) {
-        // Process the remaining text for images and links
-        result.push(part)
+        const linkParts = part.split(urlRegex)
+        result.push(
+          ...linkParts.map((part, idx) => {
+            if (urlRegex.test(part) && !imageUrlRegex.test(part)) {
+              const match = part.match(/\[([^\]]+)\]\s+([^\s\]]+)/)
+              if (match) {
+                const [, linkText, url] = match
+                return React.createElement(
+                  "a",
+                  {
+                    key: idx,
+                    href: url,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    className: "text-blue-500 hover:underline",
+                    title: url,
+                  },
+                  linkText,
+                )
+              } else {
+                return React.createElement(
+                  "a",
+                  {
+                    key: idx,
+                    href: part,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    className: "text-blue-500 hover:underline",
+                    title: part,
+                  },
+                  part,
+                )
+              }
+            }
+            return part
+          }),
+        )
       }
     })
 
-    // Process remaining text parts for images and regular links
-    return result.flatMap((item) => {
-      if (typeof item === "string") {
-        // Check for image URLs
-        const imageMatches = item.match(imageUrlRegex)
-        if (imageMatches) {
-          // Create a version of the text where image URLs are replaced with placeholders
-          let imgProcessedText = item
-          const imagePreviews: React.ReactNode[] = []
-
-          imageMatches.forEach((imageUrl, imgIndex) => {
-            // Replace the image URL with a unique placeholder
-            const placeholder = `__IMAGE_PLACEHOLDER_${imgIndex}__`
-            imgProcessedText = imgProcessedText.replace(imageUrl, placeholder)
-
-            // Create an image preview component
-            imagePreviews.push(
-              React.createElement(ImagePreview, { key: `img-${imgIndex}`, src: imageUrl || "/placeholder.svg" }),
-            )
-          })
-
-          // Split by the placeholders
-          const imgParts = imgProcessedText.split(/(__IMAGE_PLACEHOLDER_\d+__)/)
-          const imgResult: (string | React.ReactNode)[] = []
-
-          imgParts.forEach((imgPart) => {
-            // Check if this part is a placeholder
-            const imgPlaceholderMatch = imgPart.match(/__IMAGE_PLACEHOLDER_(\d+)__/)
-            if (imgPlaceholderMatch) {
-              const imageIndex = Number.parseInt(imgPlaceholderMatch[1], 10)
-              // Replace placeholder with image component
-              imgResult.push(imagePreviews[imageIndex])
-            } else if (imgPart) {
-              // Process regular links
-              const linkParts = imgPart.split(urlRegex)
-              imgResult.push(
-                ...linkParts.map((part, idx) => {
-                  if (urlRegex.test(part) && !imageUrlRegex.test(part)) {
-                    const match = part.match(/\[([^\]]+)\]$$([^\s$$]+)\)/)
-                    if (match) {
-                      const [, linkText, url] = match
-                      return React.createElement(
-                        "a",
-                        {
-                          key: idx,
-                          href: url,
-                          target: "_blank",
-                          rel: "noopener noreferrer",
-                          className: "text-blue-500 hover:underline",
-                          title: url,
-                        },
-                        linkText,
-                      )
-                    } else {
-                      return React.createElement(
-                        "a",
-                        {
-                          key: idx,
-                          href: part,
-                          target: "_blank",
-                          rel: "noopener noreferrer",
-                          className: "text-blue-500 hover:underline",
-                          title: part,
-                        },
-                        part,
-                      )
-                    }
-                  }
-                  return part
-                }),
-              )
-            }
-          })
-
-          return imgResult
-        }
-
-        // Process regular links
-        const linkParts = item.split(urlRegex)
-        return linkParts.map((part, idx) => {
-          if (urlRegex.test(part) && !imageUrlRegex.test(part)) {
-            const match = part.match(/\[([^\]]+)\]$$([^\s$$]+)\)/)
-            if (match) {
-              const [, linkText, url] = match
-              return React.createElement(
-                "a",
-                {
-                  key: idx,
-                  href: url,
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                  className: "text-blue-500 hover:underline",
-                  title: url,
-                },
-                linkText,
-              )
-            } else {
-              return React.createElement(
-                "a",
-                {
-                  key: idx,
-                  href: part,
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                  className: "text-blue-500 hover:underline",
-                  title: part,
-                },
-                part,
-              )
-            }
-          }
-          return part
-        })
-      }
-      return item
-    })
+    return result
   }
 
-  // If no image URLs or audio patterns, process as before
+  // If no media patterns, process as before
   const parts = text.split(urlRegex)
 
   return parts.map((part, index) => {
     if (urlRegex.test(part)) {
-      const match = part.match(/\[([^\]]+)\]$$([^\s$$]+)\)/)
+      const match = part.match(/\[([^\]]+)\]\s+([^\s\]]+)/)
       if (match) {
         const [, linkText, url] = match
         return React.createElement(
@@ -883,7 +731,10 @@ const processInlineStyles = (content: string | React.ReactNode[]): React.ReactNo
     })
   }
 
-  const parts = content.split(/(\*\*.*?\*\*|\*.*?\*)/g)
+  // Ensure content is treated as a string if it's not an array
+  const contentAsString = typeof content === "string" ? content : ""
+  const parts = contentAsString.split(/(\*\*.*?\*\*|\*.*?\*)/g)
+
   return parts.map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return React.createElement("strong", { key: index }, part.slice(2, -2))
@@ -955,7 +806,7 @@ const formatContent = (text: string): React.ReactNode => {
   while (i < lines.length) {
     const trimmedLine = lines[i].trim()
 
-    // Code block detection
+    // Code block detection - simplified without syntax highlighter
     if (trimmedLine.startsWith("```")) {
       const language = trimmedLine.slice(3).trim()
       const codeLines: string[] = []
@@ -967,14 +818,11 @@ const formatContent = (text: string): React.ReactNode => {
       }
 
       formattedLines.push(
-        <SyntaxHighlighter
-          key={`code-${i}`}
-          language={language || "javascript"}
-          style={vscDarkPlus}
-          className="rounded-md my-2"
-        >
-          {codeLines.join("\n")}
-        </SyntaxHighlighter>,
+        React.createElement(
+          "pre",
+          { key: `code-${i}`, className: "bg-gray-900 text-gray-100 p-3 rounded-md overflow-x-auto text-sm my-2" },
+          React.createElement("code", null, codeLines.join("\n")),
+        ),
       )
 
       // Skip to after the closing backticks
@@ -1025,11 +873,13 @@ const formatContent = (text: string): React.ReactNode => {
         const headingMatch = trimmedLine.match(/^(#{1,6})\s(.+)$/)
         if (headingMatch) {
           const [, hashes, content] = headingMatch
-          const HeadingTag = `h${hashes.length}` as keyof JSX.IntrinsicElements
+          const level = hashes.length
+          const headingClass = ["text-2xl", "text-xl", "text-lg", "text-base", "text-sm", "text-xs"][level - 1]
+
           formattedLines.push(
             React.createElement(
-              HeadingTag,
-              { key: `heading-${i}`, className: `text-${7 - hashes.length}xl font-bold mb-2` },
+              `h${level}` as any,
+              { key: `heading-${i}`, className: `${headingClass} font-bold mb-2` },
               processInlineStyles(processTextWithLinks(content)),
             ),
           )
@@ -1067,7 +917,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({
 }) => {
   const [formattedContent, setFormattedContent] = useState<React.ReactNode | null>(null)
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (text) {
       setFormattedContent(formatContent(text))
     } else {
@@ -1129,3 +979,4 @@ export const formatMessage = (
   })
 }
 
+export { AudioPlayer, VideoPlayer, ImagePreview }
