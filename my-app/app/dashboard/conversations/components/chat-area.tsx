@@ -558,7 +558,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
 
                   return (
                     <div key={message.id} className="flex flex-col mb-4">
-            {message.content && !contentHasMedia && (
+            {message.content && (
               <div
                 className={cn(
                   "message-bubble message-customer group",
@@ -569,37 +569,22 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
                 onMouseLeave={() => setHoveredMessageId(null)}
               >
                 <div className="message-tail message-tail-left" />
-                <div className="text-sm">{formatMessage(message.content)}</div>
-                <span className="text-[10px] text-white/80 mt-1 block">
-                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-                {message.reaction?.emoji && (
-                  <span className="text-[10px] text-white/80 mt-1 block">{message.reaction.emoji}</span>
-                )}
-                {message.whatsapp_message_id && (
-                  <div className="absolute -top-3 right-2">
-                    <ReactionPicker
-                      onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
-                      currentReaction={message.reaction?.emoji}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {contentHasMedia && (
-              <div
-                className={cn("message-bubble message-customer group", message.reaction?.emoji && "has-reaction")}
-                onMouseEnter={() => setHoveredMessageId(message.id)}
-                onMouseLeave={() => setHoveredMessageId(null)}
-              >
-                <div className="message-tail message-tail-left" />
                 <div className="text-sm">
-                  {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
-                  {contentMedia?.type === "image" && contentMedia?.url && (
-                    <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
+                  {contentHasMedia ? (
+                    <>
+                      {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
+                      {contentMedia?.type === "image" && contentMedia?.url && (
+                        <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
+                      )}
+                      {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
+                      {/* Display remaining text if any */}
+                      {contentMedia?.displayText && contentMedia.displayText.trim() && (
+                        <div className="mt-2">{formatMessage(contentMedia.displayText)}</div>
+                      )}
+                    </>
+                  ) : (
+                    formatMessage(message.content)
                   )}
-                  {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
                 </div>
                 <span className="text-[10px] text-white/80 mt-1 block">
                   {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
