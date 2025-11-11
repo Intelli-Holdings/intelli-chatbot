@@ -41,6 +41,7 @@ import {
   SidebarFooter,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { size } from "@/app/icon";
 
 type NavItem = {
   title: string;
@@ -48,7 +49,7 @@ type NavItem = {
   icon: React.ComponentType;
   showBadge?: boolean;
   hasSubmenu?: boolean;
-  submenuItems?: { title: string; url: string }[];
+  submenuItems?: { title: string; url: string; icon?: string }[];
 };
 
 const data = {
@@ -81,7 +82,11 @@ const data = {
       submenuItems: [
         { title: "📊 Overview", url: "/dashboard/conversations" },
         { title: "🌐 Website", url: "/dashboard/conversations/website" },
-        { title: "💬 WhatsApp", url: "/dashboard/conversations/whatsapp" },
+        {
+          title: "WhatsApp",
+          url: "/dashboard/conversations/whatsapp",
+          icon: "/WhatsApp.svg"
+        },
       ]
     },
     {
@@ -114,14 +119,16 @@ const data = {
 };
 
 // Helper component for submenu items
-const SidebarSubmenuItem = ({ 
-  title, 
-  url, 
-  pathname 
-}: { 
-  title: string; 
-  url: string; 
-  pathname: string 
+const SidebarSubmenuItem = ({
+  title,
+  url,
+  pathname,
+  icon
+}: {
+  title: string;
+  url: string;
+  pathname: string;
+  icon?: string;
 }) => {
   return (
     <SidebarMenuItem className="ml-6">
@@ -135,6 +142,15 @@ const SidebarSubmenuItem = ({
                 : "transparent"
             )}
           >
+            {icon ? (
+              <Image
+                src={icon}
+                alt={title}
+                width={16}
+                height={16}
+                className="mr-2"
+              />
+            ) : null}
             <span>{title}</span>
           </span>
         </Link>
@@ -263,11 +279,12 @@ export function AppSidebar({ activePath, ...props }: AppSidebarProps) {
 
                 {/* Render submenu items if parent is expanded */}
                 {item.hasSubmenu && expandedMenus[item.title] && item.submenuItems?.map((subItem) => (
-                  <SidebarSubmenuItem 
-                    key={subItem.url} 
-                    title={subItem.title} 
-                    url={subItem.url} 
+                  <SidebarSubmenuItem
+                    key={subItem.url}
+                    title={subItem.title}
+                    url={subItem.url}
                     pathname={pathname}
+                    icon={subItem.icon}
                   />
                 ))}
               </React.Fragment>
