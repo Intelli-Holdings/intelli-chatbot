@@ -25,6 +25,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'intelliholdingsstorage.blob.core.windows.net',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'storage.googleapis.com',
         port: '',
         pathname: '/**',
