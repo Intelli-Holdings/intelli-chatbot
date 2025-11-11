@@ -4,7 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import MessageInput from "./messageInput"
-import { formatMessage } from "@/utils/formatMessage"
+import { extractMedia } from "@/utils/extractMedia"
+import { AudioPlayer, VideoPlayer, ImagePreview, formatMessage } from "@/utils/formatMessage"
 import type { Conversation, ChatMessage } from "./types"
 import { format, parseISO, isToday, isYesterday } from "date-fns"
 import ConversationHeader from "./conversationsHeader"
@@ -320,8 +321,6 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
           if (actualNewMessages.length > 0) {
             setCurrentMessages((prev) => [...(prev || []), ...actualNewMessages])
             setLastMessageId(highestNewId)
-
-            console.log(`Fetched ${actualNewMessages.length} new messages`)
             toast({
               description: `${actualNewMessages.length} new message${actualNewMessages.length > 1 ? "s" : ""} received`,
               duration: 2000,
@@ -552,117 +551,151 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
             .map(([date, messages]) => (
               <div className="" key={date}>
                 {renderDateSeparator(date)}
-                {(messages ?? []).map((message) => (
-                  <div key={message.id} className="flex flex-col mb-4">
-                    {message.content && (
-                      <div
-                        className={cn(
-                          "message-bubble message-customer group",
-                          !expandedMessages.includes(message.id) && "collapsed",
-                          message.reaction?.emoji && "has-reaction",
-                        )}
-                        onMouseEnter={() => setHoveredMessageId(message.id)}
-                        onMouseLeave={() => setHoveredMessageId(null)}
-                      >
-                        <div className="message-tail message-tail-left" />
-                        <div className="text-sm">{formatMessage(message.content)}</div>
-                        <span className="text-[10px] text-white/80 mt-1 block">
-                          {format(parseISO(message.created_at), "h:mm a")}
-                        </span>
-                        {renderReaction(message)}
-                        {message.whatsapp_message_id && (
-                          <div className="absolute -top-3 right-2">
-                            <ReactionPicker
-                              onReactionSelect={(emoji) =>
-                                handleReactionSelect(message, emoji, message.reaction?.emoji)
-                              }
-                              currentReaction={message.reaction?.emoji}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {message.answer && (
-                      <div
-                        className={cn(
-                          "message-bubble group",
-                          message.sender === "ai" ? "message-assistant" : "message-human",
-                          message.reaction?.emoji && "has-reaction",
-                        )}
-                        onMouseEnter={() => setHoveredMessageId(message.id)}
-                        onMouseLeave={() => setHoveredMessageId(null)}
-                      >
-                        <div
-                          className={`message-tail ${
-                            message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
-                          }`}
-                        />
-                        <div className="text-sm">{formatMessage(message.answer)}</div>
-                        <span
-                          className={`text-[10px] ${
-                            message.sender === "ai" ? "text-black/60" : "text-white/80"
-                          } mt-1 block`}
-                        >
-                          {format(parseISO(message.created_at), "h:mm a")} - {message.sender === "ai" ? "AI" : "Human"}
-                          {message.pending && " (sending...)"}
-                        </span>
-                        {renderReaction(message)}
-                        {message.whatsapp_message_id && (
-                          <div className="absolute -top-3 right-2">
-                            <ReactionPicker
-                              onReactionSelect={(emoji) =>
-                                handleReactionSelect(message, emoji, message.reaction?.emoji)
-                              }
-                              currentReaction={message.reaction?.emoji}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {message.media && (
-                      <div
-                        className={cn(
-                          "message-bubble message-customer group",
-                          message.reaction?.emoji && "has-reaction",
-                        )}
-                        onMouseEnter={() => setHoveredMessageId(message.id)}
-                        onMouseLeave={() => setHoveredMessageId(null)}
-                      >
-                        <div className="message-tail message-tail-left" />
-                        <div className="text-sm cursor-pointer" onClick={() => {}}>
-                          <div className="max-w-xs rounded-lg overflow-hidden shadow">
-                            {message.type === "image" ? (
-                              <Image
-                                src={message.media || "/placeholder.svg"}
-                                alt="Image"
-                                className="w-full h-auto rounded-lg"
-                              />
-                            ) : (
-                              <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
-                                {getFileIcon(message.type)}
-                                <span className="text-sm truncate">Attachment</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <span className="text-[10px] text-white/80 mt-1 block">
-                          {format(parseISO(message.created_at), "h:mm a")}
-                        </span>
-                        {renderReaction(message)}
-                        {message.whatsapp_message_id && (
-                          <div className="absolute -top-3 right-2">
-                            <ReactionPicker
-                              onReactionSelect={(emoji) =>
-                                handleReactionSelect(message, emoji, message.reaction?.emoji)
-                              }
-                              currentReaction={message.reaction?.emoji}
-                            />
-                          </div>
-                        )}
+                {(messages ?? []).map((message) => {
+                  // Extract media from content if it exists
+                  const contentMedia = message.content ? extractMedia(message.content) : null
+                  const contentHasMedia = contentMedia?.type && contentMedia?.url
+
+                  return (
+                    <div key={message.id} className="flex flex-col mb-4">
+            {message.content && !contentHasMedia && (
+              <div
+                className={cn(
+                  "message-bubble message-customer group",
+                  !expandedMessages.includes(message.id) && "collapsed",
+                  message.reaction?.emoji && "has-reaction",
+                )}
+                onMouseEnter={() => setHoveredMessageId(message.id)}
+                onMouseLeave={() => setHoveredMessageId(null)}
+              >
+                <div className="message-tail message-tail-left" />
+                <div className="text-sm">{formatMessage(message.content)}</div>
+                <span className="text-[10px] text-white/80 mt-1 block">
+                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+                {message.reaction?.emoji && (
+                  <span className="text-[10px] text-white/80 mt-1 block">{message.reaction.emoji}</span>
+                )}
+                {message.whatsapp_message_id && (
+                  <div className="absolute -top-3 right-2">
+                    <ReactionPicker
+                      onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                      currentReaction={message.reaction?.emoji}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {contentHasMedia && (
+              <div
+                className={cn("message-bubble message-customer group", message.reaction?.emoji && "has-reaction")}
+                onMouseEnter={() => setHoveredMessageId(message.id)}
+                onMouseLeave={() => setHoveredMessageId(null)}
+              >
+                <div className="message-tail message-tail-left" />
+                <div className="text-sm">
+                  {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
+                  {contentMedia?.type === "image" && contentMedia?.url && (
+                    <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
+                  )}
+                  {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
+                </div>
+                <span className="text-[10px] text-white/80 mt-1 block">
+                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+                {message.reaction?.emoji && (
+                  <span className="text-[10px] text-white/80 mt-1 block">{message.reaction.emoji}</span>
+                )}
+                {message.whatsapp_message_id && (
+                  <div className="absolute -top-3 right-2">
+                    <ReactionPicker
+                      onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                      currentReaction={message.reaction?.emoji}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {message.answer && (
+              <div
+                className={cn(
+                  "message-bubble group",
+                  message.sender === "ai" ? "message-assistant" : "message-human",
+                  message.reaction?.emoji && "has-reaction",
+                )}
+                onMouseEnter={() => setHoveredMessageId(message.id)}
+                onMouseLeave={() => setHoveredMessageId(null)}
+              >
+                <div
+                  className={`message-tail ${
+                    message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
+                  }`}
+                />
+                <div className="text-sm">{formatMessage(message.answer)}</div>
+                <span
+                  className={`text-[10px] ${message.sender === "ai" ? "text-black/60" : "text-white/80"} mt-1 block`}
+                >
+                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
+                  {message.sender === "ai" ? "AI" : "Human"}
+                  {message.pending && " (sending...)"}
+                </span>
+                {message.reaction?.emoji && (
+                  <span className="text-[10px] text-white/80 mt-1 block">{message.reaction.emoji}</span>
+                )}
+                {message.whatsapp_message_id && (
+                  <div className="absolute -top-3 right-2">
+                    <ReactionPicker
+                      onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                      currentReaction={message.reaction?.emoji}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {message.media && (
+              <div
+                className={cn("message-bubble message-customer group", message.reaction?.emoji && "has-reaction")}
+                onMouseEnter={() => setHoveredMessageId(message.id)}
+                onMouseLeave={() => setHoveredMessageId(null)}
+              >
+                <div className="message-tail message-tail-left" />
+                <div className="text-sm cursor-pointer" onClick={() => {}}>
+                  <div className="max-w-xs rounded-lg overflow-hidden shadow">
+                    {message.type === "image" ? (
+                      <Image
+                        src={message.media || "/placeholder.svg"}
+                        alt="Image"
+                        className="w-full h-auto rounded-lg"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
+                        {getFileIcon(message.type)}
+                        <span className="text-sm truncate">Attachment</span>
                       </div>
                     )}
                   </div>
-                ))}
+                </div>
+                <span className="text-[10px] text-white/80 mt-1 block">
+                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+                {message.reaction?.emoji && (
+                  <span className="text-[10px] text-white/80 mt-1 block">{message.reaction.emoji}</span>
+                )}
+                {message.whatsapp_message_id && (
+                  <div className="absolute -top-3 right-2">
+                    <ReactionPicker
+                      onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                      currentReaction={message.reaction?.emoji}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+                  )
+                })}
               </div>
             ))}
           {(currentMessages?.length ?? 0) === 0 && (
