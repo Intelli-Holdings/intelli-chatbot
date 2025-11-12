@@ -8,7 +8,7 @@ export async function PUT(
 
   try {
     const body = await request.json()
-    console.log(`[intelli] Editing assistant ${assistantId} for organization: ${organizationId}`, body)
+
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`, {
       method: "PUT",
@@ -18,8 +18,6 @@ export async function PUT(
       },
       body: JSON.stringify(body),
     })
-
-    console.log(`[intelli] Backend edit response status: ${response.status}`)
 
     if (!response.ok) {
       const errorData: any = await response.json().catch(() => ({}))
@@ -31,7 +29,6 @@ export async function PUT(
     }
 
     const data = await response.json()
-    console.log(`[intelli] Successfully edited assistant:`, data)
 
     return NextResponse.json(data)
   } catch (error) {
@@ -47,10 +44,8 @@ export async function DELETE(
   const { organizationId, assistantId } = params
 
   try {
-    console.log(`[intelli] Deleting assistant ${assistantId} for organization: ${organizationId}`)
 
     const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`
-    console.log(`[intelli] Making DELETE request to: ${backendUrl}`)
 
     const response = await fetch(backendUrl, {
       method: "DELETE",
@@ -59,9 +54,6 @@ export async function DELETE(
         "User-Agent": "NextJS-Proxy/1.0",
       },
     })
-
-    console.log(`[intelli] Backend delete response status: ${response.status}`)
-    console.log(`[intelli] Backend delete response headers:`, Object.fromEntries(response.headers.entries()))
 
     if (!response.ok) {
       let errorData: { detail?: string } = {}
