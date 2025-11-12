@@ -27,9 +27,9 @@ const HowItWorksSection = () => {
     <section className="py-12">
       <div className="container mx-auto text-center">
       <div className="text-center mb-12">
-        <h2 className="text-5xl font-bold mb-10">How to get started</h2>
+        <h2 className="text-5xl font-bold mb-10">Convert leads in 4 steps</h2>
         <p className="text-gray-600">
-        Convert your website visitors into customers with these <strong>4 steps </strong> 
+        Enrich your marketing funnel by following these <strong>4 steps </strong> 
         </p>
         </div>
 
