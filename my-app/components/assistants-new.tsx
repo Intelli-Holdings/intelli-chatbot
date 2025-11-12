@@ -41,10 +41,7 @@ export default function Assistants() {
 
     setIsLoading(true)
     try {
-      console.log(`[v0] Fetching assistants via API route for org: ${organizationId}`)
       const response = await fetch(`/api/assistants/${organizationId}`)
-
-      console.log(`[v0] API route response status: ${response.status}`)
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -57,7 +54,6 @@ export default function Assistants() {
       }
 
       const data: Assistant[] = await response.json()
-      console.log(`[v0] Successfully fetched ${data.length} assistants`)
 
       if (!Array.isArray(data)) {
         console.error("[v0] API response is not an array:", data)
@@ -79,8 +75,7 @@ export default function Assistants() {
 
         return isValid
       })
-
-      console.log(`[v0] Validated ${validatedAssistants.length} out of ${data.length} assistants`)
+      
       setAssistants(validatedAssistants)
 
       if (validatedAssistants.length === 0) {
@@ -99,6 +94,9 @@ export default function Assistants() {
     try {
       const response = await fetch(`/api/assistants/${organizationId}/${assistant.id}`, {
         method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
 
       if (!response.ok) throw new Error("Failed to delete assistant")

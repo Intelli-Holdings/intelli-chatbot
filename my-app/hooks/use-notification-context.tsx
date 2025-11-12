@@ -118,6 +118,27 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const wsRef = useRef<WebSocket | null>(null)
   const pingIntervalRef = useRef<number | null>(null)
   const reconnectTimeoutRef = useRef<number | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Initialize notification sound
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio('/notification-sound.mp3')
+      audioRef.current.volume = 0.5 // Set volume to 50%
+    }
+  }, [])
+
+  // Function to play notification sound
+  const playNotificationSound = useCallback(() => {
+    if (audioRef.current) {
+      // Reset audio to beginning in case it's already playing
+      audioRef.current.currentTime = 0
+      // Play sound and catch any errors (e.g., user hasn't interacted with page yet)
+      audioRef.current.play().catch(() => {
+        // Silently fail if browser blocks autoplay
+      })
+    }
+  }, [])
 
   // Fetch all historical notifications with pagination
   const fetchHistoricalNotifications = useCallback(async () => {
@@ -147,7 +168,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch notifications')
-      console.error('Error fetching historical notifications:', err)
     } finally {
       setIsLoading(false)
     }
@@ -169,7 +189,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setAssignedNotifications(data.results)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch assigned notifications')
-      console.error('Error fetching assigned notifications:', err)
     } finally {
       setIsLoading(false)
     }
@@ -188,7 +207,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setUnreadCount(unread)
       }
     } catch (err) {
-      console.error('Error reading notifications from localStorage:', err)
+      // Failed to read notifications from localStorage
     }
   }, [storageKey, lastReadKey])
 
@@ -200,8 +219,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     ws.onopen = () => {
       setIsConnected(true)
-      // Ping every 30s
-      pingIntervalRef.current = window.setInterval(() => ws.send(JSON.stringify({ type: 'ping' })), 30000)
+      // Ping every 30 minutes to keep connection alive
+      pingIntervalRef.current = window.setInterval(() => ws.send(JSON.stringify({ type: 'ping' })), 1800000)
     }
 
     ws.onmessage = (event) => {
@@ -223,6 +242,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
           // Increment unread count
           setUnreadCount(prev => prev + 1)
+
+          // Play notification sound
+          playNotificationSound()
 
           // Get channel info using the helper function
           const channelInfo = getChannelInfo(payload.channel)
@@ -281,14 +303,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     ws.onclose = () => {
       setIsConnected(false)
-      // Attempt reconnect after 1 minute
-      reconnectTimeoutRef.current = window.setTimeout(connect, 60000)
+      // Attempt reconnect after 2 minutes
+      reconnectTimeoutRef.current = window.setTimeout(connect, 120000)
     }
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
+    ws.onerror = () => {
+      // WebSocket error occurred
     }
-  }, [activeOrganizationId])
+  }, [activeOrganizationId, playNotificationSound])
 
   // Initialize and cleanup WebSocket
   useEffect(() => {

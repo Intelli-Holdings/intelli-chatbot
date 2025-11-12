@@ -25,20 +25,33 @@ export function DeploymentDialog({
   const [embeddingCode, setEmbeddingCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
-  
-
   useEffect(() => {
     const fetchEmbeddingCode = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/widgets/widget/${widgetKey}/embedding-code/`
-        );
-        if (!response.ok) throw new Error("Failed to fetch embedding code");
+        // Use API route to avoid CORS issues
+        const response = await fetch(`/api/widgets/embedding/${widgetKey}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to fetch embedding code");
+        }
+
         const data = await response.json();
+        console.log("[DeploymentDialog] Successfully fetched embedding code");
         setEmbeddingCode(data.embedding_code);
       } catch (error) {
-        console.error("Error fetching embedding code:", error);
-        toast.error("Failed to fetch embedding code");
+        console.error(
+          "[DeploymentDialog] Error fetching embedding code:",
+          error
+        );
+        toast.error(
+          `Failed to fetch embedding code: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
       } finally {
         setIsLoading(false);
       }
@@ -70,7 +83,9 @@ export function DeploymentDialog({
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] sm:max-w-2xl mx-4 sm:mx-auto h-[90vh] sm:h-auto overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">Deployment Instructions</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">
+            Deployment Instructions
+          </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground mb-4 px-1">
           This will allow you to receive and respond to messages via your
@@ -118,8 +133,8 @@ export function DeploymentDialog({
           <TabsContent value="wordpress">
             <div className="space-y-4">
               <p className="text-sm px-1">
-                Copy the Widget Key to configure your Website Widget using
-                the Intelli WordPress plugin.
+                Copy the Widget Key to configure your Website Widget using the
+                Intelli WordPress plugin.
               </p>
               <div className="relative">
                 <pre className="bg-muted p-3 sm:p-4 rounded-lg overflow-x-auto text-xs sm:text-sm font-mono">

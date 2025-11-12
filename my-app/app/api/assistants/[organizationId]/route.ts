@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
 
 export async function GET(request: NextRequest, { params }: { params: { organizationId: string } }) {
   const { organizationId } = params
 
   try {
-    console.log(` Proxying request for organization: ${organizationId}`)
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`,
@@ -17,8 +17,6 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
       },
     )
 
-    console.log(`Backend response status: ${response.status}`)
-
     if (!response.ok) {
       console.error(` Backend error: ${response.status} ${response.statusText}`)
       return NextResponse.json(
@@ -28,11 +26,58 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
     }
 
     const data = await response.json()
-    console.log(` Successfully fetched ${data.length} assistants`)
 
     return NextResponse.json(data)
   } catch (error) {
     console.error(" Proxy error:", error)
     return NextResponse.json({ error: "Failed to fetch assistants from backend" }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest, { params }: { params: { organizationId: string } }) {
+  const { organizationId } = params
+
+  try {
+    // Get authentication from Clerk
+    const { getToken } = auth()
+    const token = await getToken()
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      },
+    )
+
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error(` Backend error:`, errorData)
+      return NextResponse.json(
+        { error: errorData.detail || 'Failed to create assistant' },
+        { status: response.status },
+      )
+    }
+
+    const data = await response.json()
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error(" Error creating assistant:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

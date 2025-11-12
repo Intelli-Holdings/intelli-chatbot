@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useNotifications } from "@/context/notifications-context";
 import { UserNav } from "@/components/user-nav";
 import { AnnouncementBanner } from "@/components/announcement";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 
 import {
   Sidebar,
@@ -41,14 +42,17 @@ import {
   SidebarFooter,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { size } from "@/app/icon";
+
+type IconComponent = React.ComponentType<{ className?: string }>;
 
 type NavItem = {
   title: string;
   url: string;
-  icon: React.ComponentType;
+  icon: IconComponent;
   showBadge?: boolean;
   hasSubmenu?: boolean;
-  submenuItems?: { title: string; url: string }[];
+  submenuItems?: { title: string; url: string; icon?: string | IconComponent }[];
 };
 
 const data = {
@@ -81,7 +85,11 @@ const data = {
       submenuItems: [
         { title: "📊 Overview", url: "/dashboard/conversations" },
         { title: "🌐 Website", url: "/dashboard/conversations/website" },
-        { title: "💬 WhatsApp", url: "/dashboard/conversations/whatsapp" },
+        {
+          title: "WhatsApp",
+          url: "/dashboard/conversations/whatsapp",
+          icon: WhatsAppIcon
+        },
       ]
     },
     {
@@ -126,15 +134,20 @@ const data = {
 };
 
 // Helper component for submenu items
-const SidebarSubmenuItem = ({ 
-  title, 
-  url, 
-  pathname 
-}: { 
-  title: string; 
-  url: string; 
-  pathname: string 
+const SidebarSubmenuItem = ({
+  title,
+  url,
+  pathname,
+  icon
+}: {
+  title: string;
+  url: string;
+  pathname: string;
+  icon?: string | IconComponent;
 }) => {
+  const IconComp = typeof icon === "function" ? icon : null;
+  const iconPath = typeof icon === "string" ? icon : null;
+
   return (
     <SidebarMenuItem className="ml-6">
       <SidebarMenuButton asChild className="w-full">
@@ -147,6 +160,17 @@ const SidebarSubmenuItem = ({
                 : "transparent"
             )}
           >
+            {IconComp ? (
+              <IconComp className="mr-2 size-4" />
+            ) : iconPath ? (
+              <Image
+                src={iconPath}
+                alt={title}
+                width={16}
+                height={16}
+                className="mr-2"
+              />
+            ) : null}
             <span>{title}</span>
           </span>
         </Link>
@@ -275,11 +299,12 @@ export function AppSidebar({ activePath, ...props }: AppSidebarProps) {
 
                 {/* Render submenu items if parent is expanded */}
                 {item.hasSubmenu && expandedMenus[item.title] && item.submenuItems?.map((subItem) => (
-                  <SidebarSubmenuItem 
-                    key={subItem.url} 
-                    title={subItem.title} 
-                    url={subItem.url} 
+                  <SidebarSubmenuItem
+                    key={subItem.url}
+                    title={subItem.title}
+                    url={subItem.url}
                     pathname={pathname}
+                    icon={subItem.icon}
                   />
                 ))}
               </React.Fragment>

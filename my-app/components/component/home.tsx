@@ -1,25 +1,34 @@
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
-
+import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-
 import { Badge } from "@/components/ui/badge";
-
 import Testimonials from "@/components/testimonial";
 
 // Section and component imports
-
 import { PreviewLanding } from "@/components/sections/preview-landing";
 import HowItWorksSection from "@/components/home/howItworks";
 import { BentoSection } from "@/components/home/bentoSection";
-import { FooterComponent} from "@/components/home/Footer";
+import { FooterComponent } from "@/components/home/Footer";
 
 import ValueProposition from "@/components/ValueProposition";
 import PlatformCards from "@/components/platform-cards";
 import UsecaseComponent from "@/components/usecaseComponent";
 import Banner from "../signup-banner";
 
+declare global {
+  interface Window {
+    fbq?: (...args: any[]) => void;
+  }
+}
 
 export function Home() {
+  const onSignUpClick = useCallback(() => {
+    if (window.fbq) {
+      window.fbq("track", "Lead", { cta: "home_sign_up" });
+    }
+  }, []);
+
   return (
     <div className="relative">
       <Navbar />
@@ -41,29 +50,24 @@ export function Home() {
             Intelli streamlines customer conversations for your business using
             AI across WhatsApp, website, and email.
           </p>
-          
+
           <PreviewLanding />
-         
-          
-    <div className="flex justify-center mt-10 mb-10">
-            <a href="/auth/sign-up">
-              <Button
-                className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
-                hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
-                ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation"
-              >
-                Sign-up for Free
+
+          <div className="flex justify-center mt-10 mb-10">
+            <Link href="/auth/sign-up" onClick={onSignUpClick}>
+              <Button className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation">
+                Sign Up for Free
               </Button>
-            </a>
+            </Link>
           </div>
         </section>
 
         <section className="container mt-20">
-        <HowItWorksSection />
+          <HowItWorksSection />
         </section>
 
         <section className="container mt-20">
-        <ValueProposition />      
+          <ValueProposition />
         </section>
 
         <section className="">
@@ -72,10 +76,10 @@ export function Home() {
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8">
             <h2 className="text-center text-5xl font-bold mb-10">
-            Intelli works on these platforms
+              Intelli works on these platforms
             </h2>
             <PlatformCards />
-           
+
             <div className="flex justify-center mt-10 mb-10 space-x-4">
               <a href="/auth/sign-up">
                 <Button
@@ -109,7 +113,7 @@ export function Home() {
             <Badge>Testimonials</Badge>
           </div>
 
-          <div className="container mx-auto sm:px-6 lg:px-8 p-2">         
+          <div className="container mx-auto sm:px-6 lg:px-8 p-2">
             <Testimonials />
           </div>
         </section>
@@ -122,17 +126,15 @@ export function Home() {
             <UsecaseComponent />
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8 p-2">
-          <Banner />
+            <Banner />
           </div>
         </section>
 
         <section className="mb-10 mt-10">
-        <div className="">
-       </div>
-        </section>    
+          <div className=""></div>
+        </section>
         <FooterComponent />
-      </main>    
-      
+      </main>
     </div>
   );
 }

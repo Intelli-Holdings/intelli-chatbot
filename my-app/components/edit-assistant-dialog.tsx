@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { useAuth } from "@clerk/nextjs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,7 @@ export function EditAssistantDialog({
   onAssistantUpdated,
   assistants,
 }: EditAssistantDialogProps) {
+  const { getToken } = useAuth()
   const organizationId = useActiveOrganizationId()
   const [name, setName] = useState("")
   const [prompt, setPrompt] = useState("")
@@ -66,12 +68,17 @@ export function EditAssistantDialog({
 
     setIsLoading(true)
     try {
-      console.log(`[v0] Editing assistant ${assistant.id} for organization: ${organizationId}`)
+      console.log(`[v0] Editing assistant.`)
+
+      // Get the session token
+      const token = await getToken()
+
       const response = await fetch(`/api/assistants/${organizationId}/${assistant.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
           id: assistant.id,
@@ -82,7 +89,7 @@ export function EditAssistantDialog({
         }),
       })
 
-      console.log(`[v0] Edit assistant response status: ${response.status}`)
+      console.log(`[v0] Edit assistant response status`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -90,7 +97,7 @@ export function EditAssistantDialog({
       }
 
       const updatedData = await response.json()
-      console.log(`[v0] Successfully updated assistant:`, updatedData)
+      console.log(`[v0] Successfully updated assistant`)
 
       const updatedAssistants = assistants.map((a) => (a.id === updatedData.id ? updatedData : a))
 
