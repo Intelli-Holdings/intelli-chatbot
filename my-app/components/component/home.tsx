@@ -46,7 +46,7 @@ export function Home() {
         <section className="container mt-20">
           <div className="max-w-4xl mx-auto">
             <h1 className="mt-4 text-center text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-tight">
-              <div className="relative w-full overflow-visible" style={{ height: '1.2em', minHeight: '1.2em' }}>
+              <div className="relative w-full overflow-visible" style={{ height: '2.2em', minHeight: '1.2em' }}>
                 {actions.map((action, index) => (
                   <span
                     key={action}
