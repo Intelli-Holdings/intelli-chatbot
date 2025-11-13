@@ -72,7 +72,7 @@ export function Home() {
             </h1>
 
             <p className="mt-6 text-center text-lg sm:text-xl md:text-2xl text-gray-700 font-medium max-w-3xl mx-auto leading-relaxed">
-              Intelli streamlines customer conversations using AI assistants for your business across WhatsApp, website, and email.
+              Intelli streamlines customer engagement using AI for your business across WhatsApp, website, and email.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mt-10 mb-16 justify-center">
@@ -84,7 +84,7 @@ export function Home() {
 
               <Link href="/dashboard/assistants">
                 <Button variant="ghost" className="w-full sm:w-auto text-base sm:text-lg font-bold py-6 px-8  text-blue-600 rounded-xl hover:bg-blue-50 transition-all duration-300 ease-in-out">
-                  View your assistants →
+                  Build your Assistant →
                 </Button>
               </Link>
             </div>
