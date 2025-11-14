@@ -6,7 +6,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 export async function POST(request: NextRequest) {
   try {
     // Get authentication token from Clerk
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
 
     if (!token) {
@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const file = formData.get("file") as File
     const organization = formData.get("organization") as string
+    const tagSlugs = formData.get("tag_slugs") as string | null
 
     if (!file) {
       return NextResponse.json({ error: "File is required" }, { status: 400 })
@@ -43,6 +44,11 @@ export async function POST(request: NextRequest) {
     const backendFormData = new FormData()
     backendFormData.append("file", file)
     backendFormData.append("organization", organization)
+
+    // Add tag slugs if provided
+    if (tagSlugs) {
+      backendFormData.append("tag_slugs", tagSlugs)
+    }
 
     // Send file to backend import API
     const response = await fetch(`${BASE_URL}/contacts/imports/contacts/`, {
