@@ -2,9 +2,10 @@
 
 import { ContactsHeader } from "@/components/contacts-header"
 import { ContactsTable } from "@/components/contacts-table"
+import { ContactsFilter } from "@/components/contacts-filter"
 import { useCallback, useEffect, useState } from "react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface Tag {
   id: number
@@ -27,25 +28,34 @@ export default function ContactsPage() {
   const [tags, setTags] = useState<Tag[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const pageSize = 12
   const organizationId = useActiveOrganizationId()
 
-  const fetchContacts = useCallback(async (orgId: string) => {
+  const fetchContacts = useCallback(async (orgId: string, page: number = 1) => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/contacts/contacts?organization=${orgId}`)
+      const response = await fetch(`/api/contacts/contacts?organization=${orgId}&page=${page}&page_size=${pageSize}`)
       if (!response.ok) throw new Error("Failed to fetch contacts")
       const data = await response.json()
-      setContacts(Array.isArray(data) ? data : data.results || [])
+
+      // Handle paginated response
+      if (data.results) {
+        setContacts(data.results)
+        setTotalCount(data.count || 0)
+        setTotalPages(Math.ceil((data.count || 0) / pageSize))
+      } else {
+        setContacts(Array.isArray(data) ? data : [])
+      }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch contacts",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch contacts")
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [pageSize])
 
   const fetchTags = useCallback(async (orgId: string) => {
     try {
@@ -60,16 +70,31 @@ export default function ContactsPage() {
 
   useEffect(() => {
     if (organizationId) {
-      fetchContacts(organizationId)
+      fetchContacts(organizationId, currentPage)
       fetchTags(organizationId)
     }
-  }, [organizationId, fetchContacts, fetchTags])
+  }, [organizationId, currentPage, fetchContacts, fetchTags])
 
-  const filteredContacts = contacts.filter(
-    (contact) =>
-      contact.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.phone.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const filteredContacts = contacts.filter((contact) => {
+    // Filter by search term
+    const matchesSearch =
+      !searchTerm ||
+      contact.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    // Filter by selected tags
+    const matchesTags =
+      selectedTagSlugs.length === 0 ||
+      contact.tags?.some((tag) => selectedTagSlugs.includes(tag.slug))
+
+    return matchesSearch && matchesTags
+  })
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -79,14 +104,26 @@ export default function ContactsPage() {
           onSearchChange={setSearchTerm}
           tags={tags}
           onTagsChange={() => fetchTags(organizationId || "")}
-          onContactsChange={() => fetchContacts(organizationId || "")}
+          onContactsChange={() => {
+            setCurrentPage(1)
+            fetchContacts(organizationId || "", 1)
+          }}
+        />
+        <ContactsFilter
+          tags={tags}
+          selectedTags={selectedTagSlugs}
+          onTagsChange={setSelectedTagSlugs}
         />
         <ContactsTable
           contacts={filteredContacts}
           isLoading={isLoading}
           searchTerm={searchTerm}
           tags={tags}
-          onContactsChange={() => fetchContacts(organizationId || "")}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          onPageChange={handlePageChange}
+          onContactsChange={() => fetchContacts(organizationId || "", currentPage)}
         />
       </div>
     </div>

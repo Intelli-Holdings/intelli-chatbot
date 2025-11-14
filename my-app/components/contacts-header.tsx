@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Import, Search } from "lucide-react"
 import { FileUploadDialog } from "./file-upload-dialog"
 import { TagManagementDialog } from "./tag-management-dialog"
+import { AddContactDialog } from "./add-contact-dialog"
 
 interface ContactsHeaderProps {
   onSearchChange: (search: string) => void
@@ -50,11 +51,12 @@ export function ContactsHeader({ onSearchChange, tags, onTagsChange, onContactsC
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <AddContactDialog tags={tags} onSuccess={onContactsChange} onTagsChange={onTagsChange} />
         <Dialog>
           <DialogTrigger asChild>
             <Button className="bg-[#007fff] text-white hover:bg-[#007fff]/90" size="sm">
               <Import className="mr-2 h-4 w-4" />
-              Import
+              Bulk Import
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -62,26 +64,14 @@ export function ContactsHeader({ onSearchChange, tags, onTagsChange, onContactsC
               <DialogTitle>Import Contacts</DialogTitle>
               <DialogDescription>Import contacts from a file or manage your tags.</DialogDescription>
             </DialogHeader>
-            <Tabs defaultValue="file" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="file">Import File</TabsTrigger>
-                <TabsTrigger value="tags">Manage Tags</TabsTrigger>
-              </TabsList>
+            <Tabs defaultValue="file" className="w-full">              
               <TabsContent value="file" className="mt-4">
                 <FileUploadDialog
                   open={true}
                   onOpenChange={() => {}}
                   onImportSuccess={onContactsChange}
                   embedded={true}
-                />
-              </TabsContent>
-              <TabsContent value="tags" className="mt-4">
-                <TagManagementDialog
-                  open={true}
-                  onOpenChange={() => {}}
-                  tags={tags}
-                  onTagsChange={onTagsChange}
-                  embedded={true}
+                  availableTags={tags}
                 />
               </TabsContent>
             </Tabs>
