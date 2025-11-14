@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Spinner } from "@/components/ui/spinner"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Trash2 } from "lucide-react"
 
 interface Tag {
@@ -45,17 +45,10 @@ export function BulkActionsDialog({ open, onOpenChange, selectedIds, tags, onSuc
 
         if (!response.ok) throw new Error("Bulk delete failed")
 
-        toast({
-          title: "Success",
-          description: `${selectedIds.length} contacts deleted`,
-        })
+        toast.success(`${selectedIds.length} contacts deleted`)
       } else if (action === "add") {
         if (selectedTags.length === 0) {
-          toast({
-            title: "Error",
-            description: "Please select at least one tag",
-            variant: "destructive",
-          })
+          toast.error("Please select at least one tag")
           return
         }
 
@@ -67,17 +60,10 @@ export function BulkActionsDialog({ open, onOpenChange, selectedIds, tags, onSuc
 
         if (!response.ok) throw new Error("Bulk add tags failed")
 
-        toast({
-          title: "Success",
-          description: `Tags added to ${selectedIds.length} contacts`,
-        })
+        toast.success(`Tags added to ${selectedIds.length} contacts`)
       } else if (action === "remove") {
         if (selectedTags.length === 0) {
-          toast({
-            title: "Error",
-            description: "Please select at least one tag",
-            variant: "destructive",
-          })
+          toast.error("Please select at least one tag")
           return
         }
 
@@ -89,10 +75,7 @@ export function BulkActionsDialog({ open, onOpenChange, selectedIds, tags, onSuc
 
         if (!response.ok) throw new Error("Bulk remove tags failed")
 
-        toast({
-          title: "Success",
-          description: `Tags removed from ${selectedIds.length} contacts`,
-        })
+        toast.success(`Tags removed from ${selectedIds.length} contacts`)
       }
 
       setSelectedTags([])
@@ -100,11 +83,7 @@ export function BulkActionsDialog({ open, onOpenChange, selectedIds, tags, onSuc
       onOpenChange(false)
       onSuccess()
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Action failed",
-        variant: "destructive",
-      })
+      toast.error(error instanceof Error ? error.message : "Action failed")
     } finally {
       setIsLoading(false)
     }
