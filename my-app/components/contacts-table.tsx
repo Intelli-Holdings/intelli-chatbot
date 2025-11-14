@@ -8,10 +8,20 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { BulkActionsDialog } from "./bulk-actions-dialog"
+import { DeleteContactDialog } from "./delete-contact-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { Trash2, MoreHorizontal } from "lucide-react"
 import { format } from "date-fns"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface Tag {
   id: number
@@ -35,11 +45,17 @@ interface ContactsTableProps {
   searchTerm: string
   tags: Tag[]
   onContactsChange: () => void
+  currentPage: number
+  totalPages: number
+  totalCount: number
+  onPageChange: (page: number) => void
 }
 
-export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContactsChange }: ContactsTableProps) {
+export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContactsChange, currentPage, totalPages, totalCount, onPageChange }: ContactsTableProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [showBulkDialog, setShowBulkDialog] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [contactToDelete, setContactToDelete] = useState<{ id: number; name: string } | null>(null)
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -57,29 +73,29 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
     }
   }
 
-  const handleDeleteContact = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this contact?")) return
+  const handleDeleteClick = (id: number, name: string) => {
+    setContactToDelete({ id, name })
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!contactToDelete) return
 
     try {
-      const response = await fetch(`/api/contacts/contacts/${id}`, {
+      const response = await fetch(`/api/contacts/contacts/${contactToDelete.id}`, {
         method: "DELETE",
       })
 
       if (!response.ok) throw new Error("Failed to delete contact")
 
-      toast({
-        title: "Success",
-        description: "Contact deleted successfully",
-      })
-
+      toast.success("Contact deleted successfully")
       onContactsChange()
     } catch (error) {
       console.error("Failed to delete contact:", error)
-      toast({
-        title: "Error",
-        description: "Failed to delete contact",
-        variant: "destructive",
-      })
+      toast.error("Failed to delete contact")
+    } finally {
+      setDeleteDialogOpen(false)
+      setContactToDelete(null)
     }
   }
 
@@ -179,7 +195,9 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {format(new Date(contact.created_at), "MMM d, yyyy")}
+                    {contact.created_at && !isNaN(new Date(contact.created_at).getTime())
+                      ? format(new Date(contact.created_at), "MMM d, yyyy")
+                      : "-"}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -190,7 +208,7 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => handleDeleteContact(contact.id)}
+                          onClick={() => handleDeleteClick(contact.id, contact.fullname)}
                           className="text-destructive cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
@@ -216,6 +234,96 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
           onContactsChange()
         }}
       />
+
+      <DeleteContactDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        contactName={contactToDelete?.name}
+      />
+
+      {/* Pagination */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {contacts.length > 0 ? ((currentPage - 1) * 12) + 1 : 0} to {Math.min(currentPage * 12, totalCount)} of {totalCount} contacts
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {/* First page */}
+              {currentPage > 2 && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => onPageChange(1)} className="cursor-pointer">
+                    1
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+
+              {/* Ellipsis before current */}
+              {currentPage > 3 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              {/* Previous page */}
+              {currentPage > 1 && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => onPageChange(currentPage - 1)} className="cursor-pointer">
+                    {currentPage - 1}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+
+              {/* Current page */}
+              <PaginationItem>
+                <PaginationLink isActive className="cursor-default">
+                  {currentPage}
+                </PaginationLink>
+              </PaginationItem>
+
+              {/* Next page */}
+              {currentPage < totalPages && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => onPageChange(currentPage + 1)} className="cursor-pointer">
+                    {currentPage + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+
+              {/* Ellipsis after current */}
+              {currentPage < totalPages - 2 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              {/* Last page */}
+              {currentPage < totalPages - 1 && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => onPageChange(totalPages)} className="cursor-pointer">
+                    {totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </>
   )
 }
