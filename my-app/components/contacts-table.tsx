@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { BulkActionsDialog } from "./bulk-actions-dialog"
 import { DeleteContactDialog } from "./delete-contact-dialog"
+import { EditContactDialog } from "./edit-contact-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Pagination,
@@ -19,7 +20,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { Trash2, MoreHorizontal } from "lucide-react"
+import { Trash2, MoreHorizontal, Pencil } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 
@@ -56,6 +57,8 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
   const [showBulkDialog, setShowBulkDialog] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [contactToDelete, setContactToDelete] = useState<{ id: number; name: string } | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [contactToEdit, setContactToEdit] = useState<Contact | null>(null)
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -76,6 +79,11 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
   const handleDeleteClick = (id: number, name: string) => {
     setContactToDelete({ id, name })
     setDeleteDialogOpen(true)
+  }
+
+  const handleEditClick = (contact: Contact) => {
+    setContactToEdit(contact)
+    setEditDialogOpen(true)
   }
 
   const handleDeleteConfirm = async () => {
@@ -208,6 +216,13 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
+                          onClick={() => handleEditClick(contact)}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => handleDeleteClick(contact.id, contact.fullname)}
                           className="text-destructive cursor-pointer"
                         >
@@ -240,6 +255,19 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleDeleteConfirm}
         contactName={contactToDelete?.name}
+      />
+
+      <EditContactDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        contact={contactToEdit}
+        tags={tags}
+        onSuccess={() => {
+          onContactsChange()
+        }}
+        onTagsChange={() => {
+          onContactsChange()
+        }}
       />
 
       {/* Pagination */}

@@ -134,7 +134,7 @@ export function AddContactDialog({ tags, onSuccess, onTagsChange }: AddContactDi
               id="phone"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+1234567890"
+              placeholder="234XXXXXXXX"
               disabled={isLoading}
               required
             />
