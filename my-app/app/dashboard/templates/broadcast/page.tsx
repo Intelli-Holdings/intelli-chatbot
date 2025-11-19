@@ -15,56 +15,26 @@ import { toast } from 'sonner';
 
 import DashboardHeader from '@/components/dashboard-header';
 import BulkContactUpload from '@/components/bulk-contact-upload';
-import CampaignCreationForm from '@/components/campaign-creation-form';
+import CampaignCreationFormV2 from '@/components/campaign-creation-form-v2';
 import TemplateSelector from '@/components/template-selector';
 import CampaignDetailsModal from '@/components/campaign-details-modal';
 import { useAppServices } from '@/hooks/use-app-services';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
-import { useCampaigns } from '@/hooks/use-campaigns';
+import { useWhatsAppCampaigns } from '@/hooks/use-campaigns';
 import { CampaignService } from '@/services/campaign';
-
-interface Campaign {
-  id: string;
-  name: string;
-  description: string;
-  status: 'draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'failed';
-  template?: {
-    id: string;
-    name: string;
-  };
-  audience: {
-    total: number;
-    uploaded: number;
-    segments: string[];
-  };
-  schedule: {
-    startDate: string;
-    timezone: string;
-    immediate: boolean;
-  };
-  stats: {
-    sent: number;
-    delivered: number;
-    failed: number;
-    read: number;
-    replied: number;
-    progress: number;
-  };
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-}
+import useActiveOrganizationId from '@/hooks/use-organization-id';
 
 export default function BroadcastCampaignPage() {
+  const organizationId = useActiveOrganizationId();
   const [activeTab, setActiveTab] = useState('campaigns');
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [showCampaignDetails, setShowCampaignDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   const { appServices, selectedAppService } = useAppServices();
-  
+
   // Fetch templates from Meta using the existing hook
   const {
     templates,
@@ -72,13 +42,15 @@ export default function BroadcastCampaignPage() {
     error: templatesError,
   } = useWhatsAppTemplates(selectedAppService);
 
-  const { campaigns, loading, error, refetch } = useCampaigns(selectedAppService?.id ? String(selectedAppService.id) : undefined);
+  const { campaigns, loading, error, refetch } = useWhatsAppCampaigns(organizationId || undefined, {
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+  });
 
   // Real-time stats polling for active campaigns
   useEffect(() => {
     if (!selectedAppService) return;
 
-    const activeCampaigns = campaigns.filter((c: Campaign) => c.status === 'active');
+    const activeCampaigns = campaigns.filter((c: any) => c.status === 'active');
     if (activeCampaigns.length === 0) return;
 
     const pollInterval = setInterval(() => {
@@ -89,14 +61,15 @@ export default function BroadcastCampaignPage() {
     return () => clearInterval(pollInterval);
   }, [campaigns, selectedAppService, refetch]);
 
-  const handleViewCampaign = (campaign: Campaign) => {
+  const handleViewCampaign = (campaign: any) => {
     setSelectedCampaign(campaign);
     setShowCampaignDetails(true);
   };
 
   const handlePauseCampaign = async (campaignId: string) => {
+    if (!organizationId) return;
     try {
-      await CampaignService.pauseCampaign(campaignId);
+      await CampaignService.pauseCampaign(campaignId, organizationId);
       toast.success('Campaign paused successfully');
       refetch();
     } catch (error) {
@@ -105,8 +78,9 @@ export default function BroadcastCampaignPage() {
   };
 
   const handleResumeCampaign = async (campaignId: string) => {
+    if (!organizationId) return;
     try {
-      await CampaignService.resumeCampaign(campaignId);
+      await CampaignService.resumeCampaign(campaignId, organizationId);
       toast.success('Campaign resumed successfully');
       refetch();
     } catch (error) {
@@ -126,39 +100,12 @@ export default function BroadcastCampaignPage() {
     }
   };
 
-  const filteredCampaigns = campaigns.filter((campaign: Campaign) => {
+  const filteredCampaigns = campaigns.filter((campaign: any) => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          campaign.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
-  const statsCards = [
-    {
-      title: 'Active Campaigns',
-      value: campaigns.filter((c: Campaign) => c.status === 'active').length,
-      icon: Play,
-      color: 'text-green-600'
-    },
-    {
-      title: 'Total Messages Sent',
-      value: campaigns.reduce((sum: number, c: Campaign) => sum + c.stats.sent, 0).toLocaleString(),
-      icon: MessageSquare,
-      color: 'text-blue-600'
-    },
-    {
-      title: 'Delivery Rate',
-      value: `${Math.round((campaigns.reduce((sum: number, c: Campaign) => sum + c.stats.delivered, 0) / Math.max(campaigns.reduce((sum: number, c: Campaign) => sum + c.stats.sent, 0), 1)) * 100)}%`,
-      icon: BarChart3,
-      color: 'text-purple-600'
-    },
-    {
-      title: 'Scheduled Campaigns',
-      value: campaigns.filter((c: Campaign) => c.status === 'scheduled').length,
-      icon: Clock,
-      color: 'text-orange-600'
-    }
-  ];
 
   return (
     <div className="flex min-h-screen flex-col">      
@@ -170,55 +117,18 @@ export default function BroadcastCampaignPage() {
           </p>
         </div>
 
-        {!selectedAppService && (
-          <Alert className="mb-6">
-            <AlertDescription>
-              Please configure your WhatsApp App Service first to manage broadcast campaigns.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {templatesError && (
-          <Alert className="mb-6" variant="destructive">
-            <AlertDescription>
-              Error loading templates: {templatesError}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {statsCards.map((stat) => {
-            const IconComponent = stat.icon;
-            return (
-              <Card key={stat.title}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
-                    </div>
-                    <IconComponent className={`h-8 w-8 ${stat.color}`} />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between mb-4">
-            <TabsList className="grid w-auto grid-cols-4">
+            <TabsList className="grid w-auto grid-cols-3">
               <TabsTrigger value="campaigns">Active Campaigns</TabsTrigger>
               <TabsTrigger value="create">Create Campaign</TabsTrigger>
-              <TabsTrigger value="contacts">Manage Contacts</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
             </TabsList>
 
             {activeTab === 'campaigns' && (
               <Button 
                 onClick={() => setShowCreateForm(true)}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-[#0070f3] hover:bg-[#007fff]"
                 disabled={!selectedAppService}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -275,16 +185,7 @@ export default function BroadcastCampaignPage() {
                         ? 'Try adjusting your filters' 
                         : 'Create your first broadcast campaign to get started'
                       }
-                    </p>
-                    {!searchTerm && statusFilter === 'all' && (
-                      <Button 
-                        onClick={() => setShowCreateForm(true)}
-                        disabled={!selectedAppService}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Campaign
-                      </Button>
-                    )}
+                    </p>                   
                   </div>
                 ) : (
                   <Table>
@@ -292,15 +193,13 @@ export default function BroadcastCampaignPage() {
                       <TableRow>
                         <TableHead>Campaign</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Audience</TableHead>
-                        <TableHead>Progress</TableHead>
-                        <TableHead>Delivery Stats</TableHead>
+                        <TableHead>Created</TableHead>
                         <TableHead>Schedule</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCampaigns.map((campaign: Campaign) => (
+                      {filteredCampaigns.map((campaign: any) => (
                         <TableRow key={campaign.id}>
                           <TableCell>
                             <div>
@@ -308,68 +207,34 @@ export default function BroadcastCampaignPage() {
                               <div className="text-sm text-muted-foreground">
                                 {campaign.description}
                               </div>
-                              {campaign.template && (
+                              {campaign.payload?.template_name && (
                                 <div className="text-xs text-blue-600 mt-1">
-                                  Template: {campaign.template.name}
+                                  Template: {campaign.payload.template_name}
                                 </div>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(campaign.status)}>
-                              {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
-                            </Badge>
-                          </TableCell>
+                        <Badge className={getStatusColor(campaign.status)}>
+                                                    {campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1): 'Draft' }
+                                                  </Badge>
+                                                </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Users className="h-4 w-4 text-muted-foreground" />
-                              <span>{campaign.audience.total.toLocaleString()}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {campaign.status === 'active' && (
-                              <div className="space-y-1">
-                                <Progress value={campaign.stats.progress} className="w-[80px]" />
-                                <div className="text-xs text-muted-foreground">
-                                  {campaign.stats.progress}%
-                                </div>
-                              </div>
-                            )}
-                            {campaign.status === 'completed' && (
-                              <Badge variant="outline" className="text-green-600">
-                                100% Complete
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm space-y-1">
-                              <div>
-                                <span className="text-green-600">{campaign.stats.delivered}</span>
-                                <span className="text-muted-foreground"> delivered</span>
-                              </div>
-                              <div>
-                                <span className="text-red-600">{campaign.stats.failed}</span>
-                                <span className="text-muted-foreground"> failed</span>
-                              </div>
-                              {campaign.stats.read > 0 && (
-                                <div>
-                                  <span className="text-blue-600">{campaign.stats.read}</span>
-                                  <span className="text-muted-foreground"> read</span>
-                                </div>
-                              )}
+                            <div className="text-sm">
+                              {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : '-'}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              {campaign.schedule.immediate ? (
-                                <span className="text-muted-foreground">Immediate</span>
-                              ) : (
+                              {campaign.scheduled_at ? (
                                 <div>
-                                  <div>{new Date(campaign.schedule.startDate).toLocaleDateString()}</div>
+                                  <div>{new Date(campaign.scheduled_at).toLocaleDateString()}</div>
                                   <div className="text-muted-foreground">
-                                    {new Date(campaign.schedule.startDate).toLocaleTimeString()}
+                                    {new Date(campaign.scheduled_at).toLocaleTimeString()}
                                   </div>
                                 </div>
+                              ) : (
+                                <span className="text-muted-foreground">Immediate</span>
                               )}
                             </div>
                           </TableCell>
@@ -412,19 +277,13 @@ export default function BroadcastCampaignPage() {
           </TabsContent>
 
           <TabsContent value="create">
-            <CampaignCreationForm 
+            <CampaignCreationFormV2
               appService={selectedAppService}
               onSuccess={() => {
                 setActiveTab('campaigns');
                 refetch();
                 toast.success('Campaign created successfully');
               }}
-            />
-          </TabsContent>
-
-          <TabsContent value="contacts">
-            <BulkContactUpload 
-              appService={selectedAppService}
             />
           </TabsContent>
 
