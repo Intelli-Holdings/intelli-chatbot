@@ -13,7 +13,9 @@ import {
   ShieldQuestion,
   Contact,
   ChevronDown,
+  Files,
   ChevronRight,
+  RadioTower
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -91,6 +93,11 @@ const data = {
       title: "Contacts",
       url: "/dashboard/contacts",
       icon: Contact,
+    },
+    {
+      title: "Campaigns",
+      url: "/dashboard/campaigns",
+      icon: RadioTower,
     },
     {
       title: "Templates",
