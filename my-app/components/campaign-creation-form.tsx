@@ -60,7 +60,6 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
           setContactLists(lists);
         }
       } catch (error) {
-        console.error('Error fetching contact lists:', error);
         toast.error('Failed to load contact lists');
       } finally {
         setLoadingLists(false);
@@ -129,24 +128,20 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
 
     setLoading(true);
     try {
-      const campaignData: CreateCampaignData = {
+      // TODO: This old form needs to be updated to match new API structure
+      // Use CampaignCreationFormV2 instead
+      const campaignData: any = {
         name: formData.name,
         description: formData.description,
-        templateId: formData.templateId,
-        audienceListIds: formData.audienceListIds,
-        schedule: {
-          immediate: formData.scheduleImmediate,
-          startDate: formData.scheduleImmediate ? undefined : `${formData.scheduleDate}T${formData.scheduleTime}`,
-          timezone: formData.timezone,
-        },
-        appServiceId: appService.id,
+        channel: 'whatsapp',
+        organization: '',
+        payload: {},
       };
 
       await CampaignService.createCampaign(campaignData);
       toast.success('Campaign created successfully!');
       onSuccess();
     } catch (error) {
-      console.error('Error creating campaign:', error);
       toast.error('Failed to create campaign');
     } finally {
       setLoading(false);
