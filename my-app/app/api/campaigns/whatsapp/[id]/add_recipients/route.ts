@@ -34,6 +34,21 @@ export async function POST(
       )
     }
 
+    // Validate that arrays are not empty if provided
+    if (body.tag_ids && (!Array.isArray(body.tag_ids) || body.tag_ids.length === 0)) {
+      return NextResponse.json(
+        { error: "tag_ids must be a non-empty array" },
+        { status: 400 }
+      )
+    }
+
+    if (body.contact_ids && (!Array.isArray(body.contact_ids) || body.contact_ids.length === 0)) {
+      return NextResponse.json(
+        { error: "contact_ids must be a non-empty array" },
+        { status: 400 }
+      )
+    }
+
     const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/add_recipients/`
 
     const response = await fetch(url, {
