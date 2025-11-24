@@ -199,21 +199,29 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
               const tag = tags.find(t => t.slug === slug);
               return tag ? parseInt(tag.id) : null;
             }).filter((id): id is number => id !== null)
-          : undefined;
+          : [];
 
         // Get contact IDs
         const contactIds = formData.selectedContacts.length > 0
           ? formData.selectedContacts.map(id => parseInt(id))
-          : undefined;
+          : [];
 
-        if (tagIds && tagIds.length > 0 || contactIds && contactIds.length > 0) {
+        // Only add recipients if at least one type is selected
+        if (tagIds.length > 0 || contactIds.length > 0) {
+          const recipientData: { tag_ids?: number[]; contact_ids?: number[] } = {};
+
+          if (tagIds.length > 0) {
+            recipientData.tag_ids = tagIds;
+          }
+
+          if (contactIds.length > 0) {
+            recipientData.contact_ids = contactIds;
+          }
+
           await CampaignService.addWhatsAppCampaignRecipients(
             createdCampaign.whatsapp_campaign_id,
             organizationId,
-            {
-              tag_ids: tagIds,
-              contact_ids: contactIds,
-            }
+            recipientData
           );
         }
 
