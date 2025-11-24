@@ -1,15 +1,35 @@
 /**
- * WhatsApp Template Creator Utility
+ * WhatsApp Template Creator Utility - Updated with Carousel and Flows support
  * Follows Meta's official documentation for template creation
- * https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages
+ * 
+ * CRITICAL FIXES:
+ * - Button types forced to UPPERCASE
+ * - body_text always uses nested array format [[ ]]
+ * - header_handle uses array format [ ]
+ * - Authentication templates: no custom body text, fields in components
+ * - OTP button type stays as 'OTP', not 'COPY_CODE'
+ * - Matches working Postman examples exactly
  */
 
 export interface TemplateComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS'
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS' | 'CAROUSEL'
   format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION'
   text?: string
   example?: any
   buttons?: TemplateButton[]
+  cards?: CarouselCard[]
+  add_security_recommendation?: boolean
+  code_expiration_minutes?: number
+}
+
+export interface CarouselCard {
+  components: Array<{
+    type: 'HEADER' | 'BODY' | 'BUTTONS'
+    format?: 'IMAGE' | 'VIDEO'
+    text?: string
+    example?: any
+    buttons?: TemplateButton[]
+  }>
 }
 
 export interface TemplateButton {
@@ -19,14 +39,16 @@ export interface TemplateButton {
   url?: string
   otp_type?: string
   example?: string[] | string
+  // Flow button properties
+  flow_id?: string
+  flow_action?: 'navigate' | 'data_exchange'
+  navigate_screen?: string
 }
 
 export interface TemplateData {
   name: string
   language: string
   category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION'
-  add_security_recommendation?: boolean;
-  code_expiration_minutes?: number;
   components: TemplateComponent[]
 }
 
@@ -36,6 +58,11 @@ export class TemplateCreationHandler {
    */
   static createTemplate(templateData: any): TemplateData {
     const components: TemplateComponent[] = []
+
+    // Handle Carousel subcategory
+    if (templateData.subcategory === 'carousel' && templateData.carouselData) {
+      return this.createCarouselTemplate(templateData)
+    }
 
     // Add header component
     if (templateData.headerType && templateData.headerType !== "NONE") {
@@ -50,14 +77,22 @@ export class TemplateCreationHandler {
     components.push(bodyComponent)
 
     // Add footer component
-    if (templateData.category !== 'AUTHENTICATION') {
+    if (templateData.category === 'AUTHENTICATION') {
+      // Authentication templates use FOOTER for code expiration
+      if (templateData.code_expiration_minutes) {
+        const footerComponent: TemplateComponent = {
+          type: 'FOOTER',
+          code_expiration_minutes: templateData.code_expiration_minutes
+        }
+        components.push(footerComponent)
+      }
+    } else {
       if (templateData.footer?.trim()) {
         const footerComponent = this.createFooterComponent(templateData.footer, templateData.category)
         if (footerComponent) {
           components.push(footerComponent)
         }
       } else if (templateData.category === 'MARKETING') {
-        // Auto-add opt-out footer for marketing templates
         const footerComponent = this.createFooterComponent(undefined, templateData.category)
         if (footerComponent) {
           components.push(footerComponent)
@@ -81,18 +116,143 @@ export class TemplateCreationHandler {
       language: templateData.language || 'en_US',
       category: templateData.category,
       components
-    };
-
-    if (templateData.category === 'AUTHENTICATION') {
-      if (templateData.add_security_recommendation) {
-        result.add_security_recommendation = true;
-      }
-      if (templateData.code_expiration_minutes) {
-        result.code_expiration_minutes = templateData.code_expiration_minutes;
-      }
     }
 
-    return result;
+    // CRITICAL: Do NOT add auth fields at template level
+    // They are now in the BODY and FOOTER components
+
+    return result
+  }
+
+  /**
+   * Creates a carousel template
+   * CRITICAL: Carousel templates should NOT have FOOTER added automatically
+   */
+  private static createCarouselTemplate(templateData: any): TemplateData {
+    const { name, language, carouselData } = templateData
+
+    // CRITICAL: If carouselData already has components (from SimpleCarouselCreator),
+    // just return it directly - don't rebuild or modify
+    if (carouselData?.components) {
+      return {
+        name: carouselData.name || this.sanitizeTemplateName(name),
+        language: carouselData.language || language || 'en_US',
+        category: carouselData.category || 'MARKETING',
+        components: carouselData.components  // Return as-is, no modifications
+      };
+    }
+
+    // Legacy code for building carousel from raw data
+    if (!carouselData?.cards || carouselData.cards.length < 2) {
+      throw new Error('Carousel templates require at least 2 cards')
+    }
+
+    if (carouselData.cards.length > 10) {
+      throw new Error('Carousel templates cannot have more than 10 cards')
+    }
+
+    const components: TemplateComponent[] = []
+
+    // Add body component (message that appears above carousel)
+    if (carouselData.messageBody?.trim()) {
+      const bodyVariables = this.extractVariables(carouselData.messageBody)
+      const bodyComponent: TemplateComponent = {
+        type: 'BODY',
+        text: carouselData.messageBody
+      }
+
+      // Only add example if there are variables
+      if (bodyVariables.length > 0) {
+        bodyComponent.example = {
+          body_text: [bodyVariables.map((_, i) => `value${i + 1}`)]
+        }
+      }
+      // If no variables, omit example field entirely (per Meta API docs)
+
+      components.push(bodyComponent)
+    }
+
+    // Add carousel component
+    const carouselComponent: TemplateComponent = {
+      type: 'CAROUSEL',
+      cards: carouselData.cards.map((card: any) => {
+        const cardComponents: any[] = []
+
+        // Header (media)
+        cardComponents.push({
+          type: 'HEADER',
+          format: card.headerMediaType,
+          example: {
+            header_handle: [card.headerMediaHandle]
+          }
+        })
+
+        // Body text (if present)
+        if (card.bodyText?.trim()) {
+          const bodyVariables = this.extractVariables(card.bodyText)
+          const bodyComp: any = {
+            type: 'BODY',
+            text: card.bodyText
+          }
+
+          if (bodyVariables.length > 0) {
+            bodyComp.example = {
+              body_text: [bodyVariables.map((_, i) => `value${i + 1}`)]
+            }
+          } else {
+            // CRITICAL FIX: Empty example for non-variable body
+            bodyComp.example = {
+              body_text: [[]]
+            }
+          }
+
+          cardComponents.push(bodyComp)
+        }
+
+        // Buttons (if present)
+        if (card.buttons?.length > 0) {
+          cardComponents.push({
+            type: 'BUTTONS',
+            buttons: card.buttons.map((btn: any) => {
+              const button: any = {
+                type: btn.type.toUpperCase(), // CRITICAL FIX: Force uppercase
+                text: btn.text
+              }
+
+              if (btn.type.toUpperCase() === 'URL') {
+                button.url = btn.url
+                if (btn.url?.includes('{{1}}') && btn.urlVariable) {
+                  button.example = [btn.urlVariable]
+                }
+              } else if (btn.type.toUpperCase() === 'PHONE_NUMBER') {
+                button.phone_number = btn.phone_number
+              }
+
+              return button
+            })
+          })
+        }
+
+        return { components: cardComponents }
+      })
+    }
+
+    components.push(carouselComponent)
+
+    return {
+      name: this.sanitizeTemplateName(name),
+      language: language || 'en_US',
+      category: 'MARKETING', // Carousel templates are always MARKETING
+      components
+    }
+  }
+
+  /**
+   * Extract variables from text
+   */
+  private static extractVariables(text: string): string[] {
+    const matches = text.match(/\{\{(\d+)\}\}/g) || []
+    return matches
   }
 
   /**
@@ -105,7 +265,6 @@ export class TemplateCreationHandler {
       case 'TEXT':
         if (!headerText?.trim()) return null
         
-        // For authentication templates, remove emojis from header
         let cleanHeaderText = headerText
         if (templateData.category === 'AUTHENTICATION') {
           cleanHeaderText = this.removeEmojis(headerText)
@@ -117,17 +276,12 @@ export class TemplateCreationHandler {
           text: cleanHeaderText
         }
 
-        // Add examples for variables
         if (headerVariables?.length > 0) {
           const exampleValues = headerVariables.map((variable: any, i: number) => {
             const key = variable.replace(/[{}]/g, '')
-            
-            // Use custom values if available
             if (customVariableValues && customVariableValues[key]) {
               return customVariableValues[key]
             }
-            
-            // Generate meaningful examples
             if (key.toLowerCase().includes('company') || key.includes('1')) {
               return 'YourCompany'
             } else if (key.toLowerCase().includes('name')) {
@@ -137,6 +291,7 @@ export class TemplateCreationHandler {
             }
           })
           
+          // CRITICAL FIX: header_text is simple array, NOT nested
           headerComponent.example = {
             header_text: exampleValues
           }
@@ -151,11 +306,12 @@ export class TemplateCreationHandler {
           throw new Error(`Media handle is required for ${headerType} header. Please upload media first.`)
         }
 
+        // CRITICAL FIX: header_handle must be array format
         return {
           type: 'HEADER',
           format: headerType as any,
           example: {
-            header_handle: [headerMediaHandle] // Always use uploadData.h from upload API response
+            header_handle: [headerMediaHandle]
           }
         }
 
@@ -172,50 +328,63 @@ export class TemplateCreationHandler {
 
   /**
    * Creates body component with proper variable examples
+   * CRITICAL: body_text must ALWAYS be nested array format [[ ]]
+   * CRITICAL: Authentication templates cannot have custom body text but need empty example
    */
   private static createBodyComponent(templateData: any): TemplateComponent {
-    const { body, bodyVariables, customVariableValues, category } = templateData;
+    const { body, bodyVariables, customVariableValues, category } = templateData
 
     const bodyComponent: TemplateComponent = {
       type: 'BODY',
-    };
+    }
 
-    const hasVariables = bodyVariables?.length > 0;
+    // AUTHENTICATION TEMPLATES: Special handling
+    if (category === 'AUTHENTICATION') {
+      // Add security recommendation if requested
+      if (templateData.add_security_recommendation) {
+        bodyComponent.add_security_recommendation = true
+      }
+
+      // Provide a prefilled sample value for the preset auth text ({{1}})
+      bodyComponent.example = {
+        body_text: [['123456']]
+      }
+
+      // Do NOT include text field - Meta uses preset text
+      return bodyComponent
+    }
+
+    // NON-AUTHENTICATION TEMPLATES: Include text and examples
+    const hasVariables = bodyVariables?.length > 0
 
     if (hasVariables) {
       const exampleValues = bodyVariables.map((variable: any, i: number) => {
-        const key = variable.replace(/[{}]/g, '');
+        const key = variable.replace(/[{}]/g, '')
         if (customVariableValues && customVariableValues[key]) {
-          return customVariableValues[key];
+          return customVariableValues[key]
         }
-        if (key.toLowerCase().includes('name') || key.includes('1')) return 'John Doe';
-        if (key.toLowerCase().includes('order') || key.includes('2')) return '#12345';
-        if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.includes('3')) return '$99.99';
-        if (key.toLowerCase().includes('date') || key.toLowerCase().includes('time') || key.includes('4')) return 'March 15';
-        if (key.toLowerCase().includes('code') || key.toLowerCase().includes('track')) return 'ABC123';
-        return `Sample${i + 1}`;
-      });
+        if (key.toLowerCase().includes('name') || key.includes('1')) return 'John Doe'
+        if (key.toLowerCase().includes('order') || key.includes('2')) return '#12345'
+        if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.includes('3')) return '$99.99'
+        if (key.toLowerCase().includes('date') || key.toLowerCase().includes('time') || key.includes('4')) return 'March 15'
+        if (key.toLowerCase().includes('code') || key.toLowerCase().includes('track')) return 'ABC123'
+        return `Sample${i + 1}`
+      })
       
+      // CRITICAL FIX: body_text must be nested array [[val1, val2, ...]]
       bodyComponent.example = {
         body_text: [exampleValues],
-      };
-    } else if (category === 'MARKETING' || category === 'UTILITY') {
-      // Marketing and Utility templates ALWAYS need an example field, even without variables
-      // For templates without variables, provide an array with a single element
-      const exampleText = body?.substring(0, 60) || 'Sample message';
+      }
+    } else {
+      // CRITICAL FIX: Templates without variables need empty nested array [[]]
       bodyComponent.example = {
-        body_text: [[exampleText]]
-      };
+        body_text: [[]]
+      }
     }
 
-    // Add the 'text' property based on Meta's rules:
-    // - ALWAYS for non-AUTHENTICATION templates.
-    // - ONLY for AUTHENTICATION templates if they DO NOT have variables.
-    if (category !== 'AUTHENTICATION' || !hasVariables) {
-      bodyComponent.text = body;
-    }
+    bodyComponent.text = body
 
-    return bodyComponent;
+    return bodyComponent
   }
 
   /**
@@ -223,7 +392,6 @@ export class TemplateCreationHandler {
    */
   private static createFooterComponent(footerText?: string, category?: string): TemplateComponent | null {
     if (!footerText?.trim()) {
-      // For marketing templates, auto-add opt-out footer if missing
       if (category === 'MARKETING') {
         return {
           type: 'FOOTER',
@@ -235,12 +403,13 @@ export class TemplateCreationHandler {
 
     return {
       type: 'FOOTER',
-      text: footerText.substring(0, 60) // Max 60 characters
+      text: footerText.substring(0, 60)
     }
   }
 
   /**
    * Creates buttons component with proper validation
+   * CRITICAL: Button types must be UPPERCASE
    */
   private static createButtonsComponent(templateData: any): TemplateComponent | null {
     const { buttonType, buttons, category } = templateData
@@ -258,23 +427,19 @@ export class TemplateCreationHandler {
 
     if (category === 'AUTHENTICATION') {
       if (formattedButtons.length !== 1 || formattedButtons[0].type !== 'OTP') {
-        // Find the valid OTP button or create a default one if none is valid
-        const otpButton = buttons.find((b: any) => b.type === 'OTP');
+        const otpButton = buttons.find((b: any) => b.type === 'OTP' || b.type === 'otp')
         if (otpButton) {
           formattedButtons = [{
             type: 'OTP',
             text: otpButton.text || 'Copy Code',
-            otp_type: 'COPY_CODE'
-          }];
+            otp_type: otpButton.otp_type || 'COPY_CODE'
+          }]
         } else {
-          // If no valid OTP button is found, you might want to throw an error
-          // or just use a default, depending on desired behavior.
-          // Here, we'll default to a single valid OTP button.
           formattedButtons = [{
             type: 'OTP',
             text: 'Copy Code',
             otp_type: 'COPY_CODE'
-          }];
+          }]
         }
       }
     }
@@ -289,13 +454,18 @@ export class TemplateCreationHandler {
 
   /**
    * Formats individual button according to Meta specs
+   * CRITICAL: All button types MUST be UPPERCASE
+   * CRITICAL: OTP buttons must stay as type 'OTP', not 'COPY_CODE'
    */
   private static formatButton(button: any, buttonType: string, category: string): TemplateButton | null {
-    switch (button.type) {
+    // CRITICAL FIX: Normalize button type to uppercase for comparison
+    const buttonTypeUpper = button.type?.toString().toUpperCase()
+    
+    switch (buttonTypeUpper) {
       case 'QUICK_REPLY':
         return {
           type: 'QUICK_REPLY',
-          text: button.text?.substring(0, 25) || 'Reply' // Max 25 characters
+          text: button.text?.substring(0, 25) || 'Reply'
         }
 
       case 'PHONE_NUMBER':
@@ -312,12 +482,9 @@ export class TemplateCreationHandler {
           url: button.url
         }
 
-        // Add example if URL contains variables
         if (button.url?.includes('{{1}}')) {
-          // Match the variable pattern with meaningful examples
           let exampleValue = button.example || 'default-value'
           
-          // Generate contextual examples based on URL pattern
           if (button.url.includes('order') || button.url.includes('purchase')) {
             exampleValue = button.example || 'ORD12345'
           } else if (button.url.includes('track') || button.url.includes('status')) {
@@ -328,30 +495,42 @@ export class TemplateCreationHandler {
             exampleValue = button.example || 'USR789'
           }
           
-          urlButton.example = [exampleValue]
+          // CRITICAL FIX: Ensure example is always array format
+          urlButton.example = Array.isArray(exampleValue) ? exampleValue : [exampleValue]
         }
 
         return urlButton
 
-      case 'OTP':
-        // For AUTHENTICATION templates, an OTP button is a special type of COPY_CODE button.
-        if (category === 'AUTHENTICATION') {
-          return {
-            type: 'COPY_CODE',
-            example: '123456' // Example is required for COPY_CODE buttons
-          };
+      case 'FLOW':
+        // Flow buttons for Flows templates
+        if (!button.flow_id) {
+          throw new Error('Flow button requires a flow_id')
         }
-        // If not an AUTH template, an OTP button is not valid in this context.
-        return null;
 
+        const flowButton: TemplateButton = {
+          type: 'FLOW',
+          text: button.text?.substring(0, 20) || 'Open Flow',
+          flow_id: button.flow_id,
+          flow_action: button.flow_action || 'navigate'
+        }
+
+        if (button.flow_action === 'navigate' && button.navigate_screen) {
+          flowButton.navigate_screen = button.navigate_screen
+        }
+
+        return flowButton
+
+      case 'OTP':
       case 'COPY_CODE':
-        // This is for a generic "copy code" button, not the OTP-specific one.
+        // CRITICAL FIX: Keep type as 'OTP' for Meta API
         return {
-          type: 'COPY_CODE',
-          example: button.example || 'EXAMPLE_CODE',
-        };
+          type: 'OTP',
+          text: button.text || 'Copy Code',
+          otp_type: button.otp_type || 'COPY_CODE'
+        }
 
       default:
+        console.warn(`Unknown button type: ${button.type}`)
         return null
     }
   }
@@ -362,7 +541,6 @@ export class TemplateCreationHandler {
   private static validateTemplate(category: string, components: TemplateComponent[]): void {
     switch (category) {
       case 'MARKETING':
-        // Marketing templates must have opt-out option
         const hasOptOut = components.some(component => 
           component.type === 'BUTTONS' && 
           component.buttons?.some(button => 
@@ -378,7 +556,6 @@ export class TemplateCreationHandler {
         break
 
       case 'AUTHENTICATION':
-        // Authentication templates cannot have emojis in header
         const headerComponent = components.find(c => c.type === 'HEADER')
         if (headerComponent?.text && this.containsEmojis(headerComponent.text)) {
           throw new Error('Authentication templates cannot contain emojis in header text')
@@ -386,7 +563,6 @@ export class TemplateCreationHandler {
         break
 
       case 'UTILITY':
-        // Utility templates are more flexible, no specific restrictions
         break
     }
   }
@@ -400,14 +576,13 @@ export class TemplateCreationHandler {
       .replace(/[^a-z0-9_]/g, '_')
       .replace(/_{2,}/g, '_')
       .replace(/^_|_$/g, '')
-      .substring(0, 512) // Max length
+      .substring(0, 512)
   }
 
   /**
    * Removes emojis from text
    */
   private static removeEmojis(text: string): string {
-    // Emoji regex pattern compatible with ES5
     const emojiRegex = /(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udd70-\udd71]|\ud83c[\udd7e-\udd7f]|\ud83c\udd8e|\ud83c[\udd91-\udd9a]|\ud83c[\udde6-\uddff]|\ud83c[\ude01-\ude02]|\ud83c\ude1a|\ud83c\ude2f|\ud83c[\ude32-\ude3a]|\ud83c[\ude50-\ude51]|\u203c|\u2049|[\u25aa-\u25ab]|\u25b6|\u25c0|[\u25fb-\u25fe]|\u00a9|\u00ae|\u2122|\u2139|\ud83c\udc04|[\u2600-\u26FF]|\u2b05|\u2b06|\u2b07|\u2b1b|\u2b1c|\u2b50|\u2b55|\u231a|\u231b|\u2328|\u23cf|[\u23e9-\u23f3]|[\u23f8-\u23fa]|\ud83c\udccf|\u2934|\u2935|[\u2190-\u21ff])/g
     return text.replace(emojiRegex, '')
   }
@@ -425,140 +600,21 @@ export class TemplateCreationHandler {
    */
   static validateMediaHandle(handle: string, mediaType: string): boolean {
     if (!handle || typeof handle !== 'string') {
-      return false;
+      return false
     }
   
-    // Check for placeholder values
     if (handle === 'DYNAMIC_HANDLE_FROM_UPLOAD' || 
         handle.includes('...') || 
         handle.includes('sample') || 
         handle.includes('example')) {
-      return false;
+      return false
+    }
+
+    if (handle.length < 5) {
+      return false
     }
   
-
-    if (handle.length < 5) {  // Minimum reasonable length for a handle
-      return false;
-    }
-  
-    // Allow alphanumeric, colons, underscores, hyphens, and base64 characters
-    const handlePattern = /^[a-zA-Z0-9:_\-+/=]+$/;
-    return handlePattern.test(handle);
-  }
-
-  /**
-   * Creates sample template structures for different categories
-   */
-  static createSampleTemplates() {
-    return {
-      authentication: {
-        name: "account_verification",
-        language: "en_US",
-        category: "AUTHENTICATION",
-        components: [
-          {
-            type: "HEADER",
-            format: "TEXT",
-            text: "Welcome to YourApp", // No emojis
-            example: {
-              header_text: ["YourCompany"]
-            }
-          },
-          {
-            type: "BODY",
-            text: "Your verification code is {{1}}. This code expires in 10 minutes.",
-            example: {
-              body_text: [["123456"]]
-            }
-          },
-          {
-            type: "BUTTONS",
-            buttons: [{
-              type: "OTP",
-              otp_type: "COPY_CODE",
-              text: "Copy Code"
-            }]
-          }
-        ]
-      },
-
-      marketing: {
-        name: "seasonal_promotion",
-        language: "en_US",
-        category: "MARKETING",
-        components: [
-          {
-            type: "HEADER",
-            format: "IMAGE",
-            example: {
-              header_handle: ["DYNAMIC_HANDLE_FROM_UPLOAD"] // Media handle must be uploadData.h from upload API response
-            }
-          },
-          {
-            type: "BODY",
-            text: "🎉 Our {{1}} sale is now live! Get {{2}} off everything. Use code {{3}}",
-            example: {
-              body_text: [["Summer", "25%", "SAVE25"]]
-            }
-          },
-          {
-            type: "FOOTER",
-            text: "Valid until end of month. Terms apply."
-          },
-          {
-            type: "BUTTONS",
-            buttons: [
-              {
-                type: "URL",
-                text: "Shop Now",
-                url: "https://yourstore.com/sale"
-              },
-              {
-                type: "QUICK_REPLY",
-                text: "Unsubscribe"
-              }
-            ]
-          }
-        ]
-      },
-
-      utility: {
-        name: "order_confirmation",
-        language: "en_US",
-        category: "UTILITY",
-        components: [
-          {
-            type: "HEADER",
-            format: "DOCUMENT",
-            example: {
-              header_handle: ["DYNAMIC_HANDLE_FROM_UPLOAD"] // Media handle must be uploadData.h from upload API response
-            }
-          },
-          {
-            type: "BODY",
-            text: "Hi {{1}}, your order {{2}} has been confirmed. Total: {{3}}. Estimated delivery: {{4}}",
-            example: {
-              body_text: [["John", "#12345", "$99.99", "March 15"]]
-            }
-          },
-          {
-            type: "BUTTONS",
-            buttons: [
-              {
-                type: "PHONE_NUMBER",
-                text: "Call Support",
-                phone_number: "15551234567"
-              },
-              {
-                type: "URL",
-                text: "Track Order",
-                url: "https://yourstore.com/track/{{1}}",
-                example: ["12345"]
-              }
-            ]
-          }
-        ]
-      }
-    }
+    const handlePattern = /^[a-zA-Z0-9:_\-+/=]+$/
+    return handlePattern.test(handle)
   }
 }

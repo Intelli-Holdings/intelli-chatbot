@@ -9,8 +9,11 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { CampaignService, type Campaign } from '@/services/campaign';
+import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { useCampaignRecipients } from '@/hooks/use-campaign-recipients';
 
 interface CampaignDetailsModalProps {
   campaign: Campaign;
@@ -20,19 +23,40 @@ interface CampaignDetailsModalProps {
 }
 
 export default function CampaignDetailsModal({ campaign, open, onClose, onRefresh }: CampaignDetailsModalProps) {
+  const organizationId = useActiveOrganizationId();
+  const [recipientStatusFilter, setRecipientStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState(campaign.stats);
+  const [stats, setStats] = useState(campaign.stats || {
+    sent: 0,
+    delivered: 0,
+    failed: 0,
+    read: 0,
+    replied: 0,
+    progress: 0
+  });
+
+  // Fetch recipients if campaign is WhatsApp
+  const {
+    recipients,
+    loading: recipientsLoading,
+    error: recipientsError,
+    refetch: refetchRecipients,
+  } = useCampaignRecipients(
+    campaign.channel === 'whatsapp' ? campaign.whatsapp_campaign_id : undefined,
+    organizationId || undefined,
+    recipientStatusFilter !== 'all' ? recipientStatusFilter : undefined
+  );
 
   // Refresh stats for active campaigns
   useEffect(() => {
-    if (!open || campaign.status !== 'active') return;
+    if (!open || campaign.status !== 'active' || !organizationId) return;
 
     const refreshStats = async () => {
       try {
-        const updatedStats = await CampaignService.getCampaignStats(campaign.id);
+        const updatedStats = await CampaignService.getCampaignStats(campaign.id, organizationId!);
         setStats(updatedStats);
       } catch (error) {
-        console.error('Error refreshing stats:', error);
+        // Error refreshing stats
       }
     };
 
@@ -41,12 +65,13 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
     const interval = setInterval(refreshStats, 30000);
 
     return () => clearInterval(interval);
-  }, [campaign.id, campaign.status, open]);
+  }, [campaign.id, campaign.status, open, organizationId]);
 
   const handlePause = async () => {
+    if (!organizationId) return;
     setLoading(true);
     try {
-      await CampaignService.pauseCampaign(campaign.id);
+      await CampaignService.pauseCampaign(campaign.id, organizationId);
       toast.success('Campaign paused successfully');
       onRefresh();
       onClose();
@@ -58,9 +83,10 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
   };
 
   const handleResume = async () => {
+    if (!organizationId) return;
     setLoading(true);
     try {
-      await CampaignService.resumeCampaign(campaign.id);
+      await CampaignService.resumeCampaign(campaign.id, organizationId);
       toast.success('Campaign resumed successfully');
       onRefresh();
       onClose();
@@ -98,13 +124,6 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
     return Math.round((stats.replied / stats.delivered) * 100);
   };
 
-  const mockMessageDetails = [
-    { id: '1', recipient: '+1234567890', status: 'delivered', sentAt: '2024-01-15 10:30:00', deliveredAt: '2024-01-15 10:30:05' },
-    { id: '2', recipient: '+1234567891', status: 'read', sentAt: '2024-01-15 10:30:01', deliveredAt: '2024-01-15 10:30:06', readAt: '2024-01-15 10:32:15' },
-    { id: '3', recipient: '+1234567892', status: 'failed', sentAt: '2024-01-15 10:30:02', error: 'Invalid phone number' },
-    { id: '4', recipient: '+1234567893', status: 'replied', sentAt: '2024-01-15 10:30:03', deliveredAt: '2024-01-15 10:30:08', readAt: '2024-01-15 10:33:20', repliedAt: '2024-01-15 10:35:45' },
-  ];
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -114,11 +133,14 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
               <DialogTitle className="text-xl">{campaign.name}</DialogTitle>
               <p className="text-muted-foreground mt-1">{campaign.description}</p>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className={getStatusColor(campaign.status)}>
-                  {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                <Badge className={getStatusColor(campaign.status || 'draft')}>
+                  {campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}
                 </Badge>
                 {campaign.template && (
                   <Badge variant="outline">Template: {campaign.template.name}</Badge>
+                )}
+                {campaign.payload?.template_name && (
+                  <Badge variant="outline">Template: {campaign.payload.template_name}</Badge>
                 )}
               </div>
             </div>
@@ -210,25 +232,31 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Total Contacts:</span>
-                      <span className="font-medium">{campaign.audience.total.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Lists:</span>
-                      <span className="font-medium">{campaign.audience.segments.length}</span>
-                    </div>
-                    {campaign.audience.segments.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-sm text-muted-foreground mb-1">Targeted Lists:</div>
-                        <div className="space-y-1">
-                          {campaign.audience.segments.map((segment, index) => (
-                            <Badge key={index} variant="outline" className="mr-1">
-                              {segment}
-                            </Badge>
-                          ))}
+                    {campaign.audience ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Total Contacts:</span>
+                          <span className="font-medium">{campaign.audience.total?.toLocaleString() || 0}</span>
                         </div>
-                      </div>
+                        <div className="flex justify-between">
+                          <span>Lists:</span>
+                          <span className="font-medium">{campaign.audience.segments?.length || 0}</span>
+                        </div>
+                        {campaign.audience.segments && campaign.audience.segments.length > 0 && (
+                          <div className="mt-2">
+                            <div className="text-sm text-muted-foreground mb-1">Targeted Lists:</div>
+                            <div className="space-y-1">
+                              {campaign.audience.segments.map((segment, index) => (
+                                <Badge key={index} variant="outline" className="mr-1">
+                                  {segment}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">Audience information not available</div>
                     )}
                   </div>
                 </CardContent>
@@ -243,36 +271,38 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Type:</span>
-                      <span className="font-medium">
-                        {campaign.schedule.immediate ? 'Immediate' : 'Scheduled'}
-                      </span>
-                    </div>
-                    {!campaign.schedule.immediate && (
+                    {campaign.scheduled_at ? (
                       <>
+                        <div className="flex justify-between">
+                          <span>Type:</span>
+                          <span className="font-medium">Scheduled</span>
+                        </div>
                         <div className="flex justify-between">
                           <span>Start Date:</span>
                           <span className="font-medium">
-                            {new Date(campaign.schedule.startDate).toLocaleDateString()}
+                            {new Date(campaign.scheduled_at).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span>Start Time:</span>
                           <span className="font-medium">
-                            {new Date(campaign.schedule.startDate).toLocaleTimeString()}
+                            {new Date(campaign.scheduled_at).toLocaleTimeString()}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Timezone:</span>
-                          <span className="font-medium">{campaign.schedule.timezone}</span>
-                        </div>
                       </>
+                    ) : (
+                      <div className="flex justify-between">
+                        <span>Type:</span>
+                        <span className="font-medium">Immediate</span>
+                      </div>
                     )}
                     <div className="flex justify-between">
                       <span>Created:</span>
                       <span className="font-medium">
-                        {new Date(campaign.createdAt).toLocaleDateString()}
+                        {campaign.created_at
+                          ? new Date(campaign.created_at).toLocaleDateString()
+                          : '-'
+                        }
                       </span>
                     </div>
                   </div>
@@ -358,57 +388,94 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
           <TabsContent value="messages" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Message Details</CardTitle>
-                <CardDescription>
-                  Individual message delivery status and timestamps
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Message Details</CardTitle>
+                    <CardDescription>
+                      Individual message delivery status and timestamps
+                    </CardDescription>
+                  </div>
+                  {campaign.channel === 'whatsapp' && (
+                    <Select value={recipientStatusFilter} onValueChange={setRecipientStatusFilter}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Recipients</SelectItem>
+                        <SelectItem value="sent">Sent</SelectItem>
+                        <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="read">Read</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Recipient</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Sent At</TableHead>
-                      <TableHead>Delivered At</TableHead>
-                      <TableHead>Read At</TableHead>
-                      <TableHead>Notes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockMessageDetails.map((message) => (
-                      <TableRow key={message.id}>
-                        <TableCell className="font-mono">{message.recipient}</TableCell>
-                        <TableCell>
-                          <Badge
-                            className={
-                              message.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                              message.status === 'read' ? 'bg-blue-100 text-blue-800' :
-                              message.status === 'replied' ? 'bg-purple-100 text-purple-800' :
-                              message.status === 'failed' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }
-                          >
-                            {message.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{message.sentAt}</TableCell>
-                        <TableCell>{message.deliveredAt || '-'}</TableCell>
-                        <TableCell>{message.readAt || '-'}</TableCell>
-                        <TableCell>
-                          {message.error && (
-                            <span className="text-red-600 text-sm">{message.error}</span>
-                          )}
-                          {message.repliedAt && (
-                            <span className="text-purple-600 text-sm">
-                              Replied at {message.repliedAt}
-                            </span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                {campaign.channel === 'whatsapp' ? (
+                  <>
+                    {recipientsLoading ? (
+                      <div className="text-center py-8">Loading recipients...</div>
+                    ) : recipientsError ? (
+                      <div className="text-center py-8 text-red-600">{recipientsError}</div>
+                    ) : recipients.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No recipients found
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Contact ID</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Sent At</TableHead>
+                            <TableHead>Delivered At</TableHead>
+                            <TableHead>Read At</TableHead>
+                            <TableHead>Notes</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {recipients.map((recipient) => (
+                            <TableRow key={recipient.id}>
+                              <TableCell className="font-mono">{recipient.contact_id}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  className={
+                                    recipient.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                    recipient.status === 'read' ? 'bg-blue-100 text-blue-800' :
+                                    recipient.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                    recipient.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }
+                                >
+                                  {recipient.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {recipient.sent_at ? new Date(recipient.sent_at).toLocaleString() : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {recipient.delivered_at ? new Date(recipient.delivered_at).toLocaleString() : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {recipient.read_at ? new Date(recipient.read_at).toLocaleString() : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {recipient.error_message && (
+                                  <span className="text-red-600 text-sm">{recipient.error_message}</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Recipient details are only available for WhatsApp campaigns
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -432,33 +499,44 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                           <span className="font-mono">{campaign.id}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Created By:</span>
-                          <span>{campaign.createdBy}</span>
+                          <span>Organization:</span>
+                          <span className="font-mono text-xs">{campaign.organization}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Created At:</span>
-                          <span>{new Date(campaign.createdAt).toLocaleString()}</span>
+                          <span>{campaign.created_at ? new Date(campaign.created_at).toLocaleString() : '-'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Last Updated:</span>
-                          <span>{new Date(campaign.updatedAt).toLocaleString()}</span>
+                          <span>{campaign.updated_at ? new Date(campaign.updated_at).toLocaleString() : '-'}</span>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <h4 className="font-medium mb-2">Template Information</h4>
-                      {campaign.template && (
+                      {campaign.payload?.template_name ? (
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span>Template ID:</span>
-                            <span className="font-mono">{campaign.template.id}</span>
+                            <span>Template Name:</span>
+                            <span>{campaign.payload.template_name}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Template Name:</span>
-                            <span>{campaign.template.name}</span>
+                            <span>Language:</span>
+                            <span>{campaign.payload.template_language || 'en'}</span>
                           </div>
                         </div>
+                      ) : campaign.payload?.message_content ? (
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span>Simple Text Message:</span>
+                            <div className="mt-1 p-2 bg-gray-50 rounded text-sm">
+                              {campaign.payload.message_content}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No message content available</p>
                       )}
                     </div>
                   </div>

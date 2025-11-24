@@ -13,7 +13,9 @@ import {
   ShieldQuestion,
   Contact,
   ChevronDown,
+  Files,
   ChevronRight,
+  RadioTower
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -91,6 +93,23 @@ const data = {
       title: "Contacts",
       url: "/dashboard/contacts",
       icon: Contact,
+    },
+    {
+      title: "Campaigns",
+      url: "/dashboard/campaigns",
+      icon: RadioTower,
+    },
+    {
+      title: "Templates",
+      url: "/dashboard/templates",
+      icon: Files,
+      hasSubmenu: true,
+      submenuItems: [
+        {title: "📄 Overview", url: "/dashboard/templates/overview"},
+        { title: "📚 Templates Library", url: "/dashboard/templates" },
+        { title: "📡 Broadcasts Manager", url: "/dashboard/templates/broadcast" },
+        
+      ]
     },
     {
       title: "Analytics",
