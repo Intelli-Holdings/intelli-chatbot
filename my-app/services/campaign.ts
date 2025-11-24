@@ -309,20 +309,43 @@ export class CampaignService {
     }
   ): Promise<any> {
     try {
+      // Validate inputs
+      if (!campaignId) {
+        throw new Error('Campaign ID is required');
+      }
+
+      if (!organizationId) {
+        throw new Error('Organization ID is required');
+      }
+
+      if (!recipients.tag_ids && !recipients.contact_ids) {
+        throw new Error('At least one of tag_ids or contact_ids must be provided');
+      }
+
+      // Filter out undefined values and ensure proper arrays
+      const payload: any = {
+        organization_id: organizationId,
+      };
+
+      if (recipients.tag_ids && recipients.tag_ids.length > 0) {
+        payload.tag_ids = recipients.tag_ids;
+      }
+
+      if (recipients.contact_ids && recipients.contact_ids.length > 0) {
+        payload.contact_ids = recipients.contact_ids;
+      }
+
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/add_recipients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          organization_id: organizationId,
-          ...recipients,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add recipients');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to add recipients (${response.status})`);
       }
 
       return await response.json();
