@@ -12,7 +12,6 @@ const getStoredNotifications = (): NotificationMessage[] => {
     const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    console.error('Error reading notifications from localStorage:', error);
     return [];
   }
 };
@@ -26,6 +25,27 @@ export const useNotifications = () => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const wsRef = useRef<WebSocket | null>(null);
   const toastIdRef = useRef<string | number>('');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize notification sound
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio('/notification-sound.mp3');
+      audioRef.current.volume = 0.5; // Set volume to 50%
+    }
+  }, []);
+
+  // Function to play notification sound
+  const playNotificationSound = useCallback(() => {
+    if (audioRef.current) {
+      // Reset audio to beginning in case it's already playing
+      audioRef.current.currentTime = 0;
+      // Play sound and catch any errors (e.g., user hasn't interacted with page yet)
+      audioRef.current.play().catch(() => {
+        // Silently fail if browser blocks autoplay
+      });
+    }
+  }, []);
 
   const persistNotifications = (newNotifications: NotificationMessage[]) => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newNotifications));
@@ -46,7 +66,6 @@ export const useNotifications = () => {
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('WebSocket connected');
       setIsConnected(true);
       reconnectAttempts.current = 0;
 
@@ -57,39 +76,35 @@ export const useNotifications = () => {
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('WebSocket message received:', data);
 
       const payload = data.message || data; // Extract actual notification
 
       if (payload.type === 'connection_established') {
-        console.log('Connection established:', payload);
-        
+        // Connection established
       } else if (payload.type === 'notification') {
+        // Play notification sound
+        playNotificationSound();
+
         updateNotifications(prev => {
           const updated = [payload, ...prev];
-          console.log('Updated notifications:', updated);
           return updated;
         });
       }
     };
 
     ws.onclose = () => {
-      console.log('WebSocket disconnected');
       setIsConnected(false);
 
       if (reconnectAttempts.current < maxReconnectAttempts) {
         reconnectAttempts.current += 1;
         reconnectTimeoutRef.current = setTimeout(connect, 2000);
-      } else {
-       console.log('Max reconnect attempts reached. Not reconnecting.');
       }
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+    ws.onerror = () => {
       ws.close();
     };
-  }, [activeOrganizationId]);
+  }, [activeOrganizationId, playNotificationSound]);
 
   useEffect(() => {
     connect();

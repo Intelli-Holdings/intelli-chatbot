@@ -75,7 +75,6 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
           }))
           setOrganizationUsers(formattedMembers)
         } catch (error) {
-          console.error("Error fetching organization members:", error)
           toast("Failed to fetch team members", {
             description: "Could not load team members",
             action: {
@@ -139,7 +138,6 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       })
 
     } catch (error) {
-      console.error("Error assigning notification:", error)
       toast("Assignment Failed", {
         description: error instanceof Error ? error.message : "Unknown error occurred",
         
@@ -173,8 +171,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       })
 
     } catch (error) {
-      console.error("Error resolving notification:", error)
-      
+      // Failed to resolve notification
     } finally {
       setIsLoading((prev) => ({ ...prev, [`resolve-${notificationId}`]: false }))
     }
@@ -240,7 +237,6 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
         break;
       default:
         // If no specific channel is matched, use default path
-        console.log(`No specific path for channel: ${channel}`);
         break;
     }
     

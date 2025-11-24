@@ -2,157 +2,129 @@
 
 import { ContactsHeader } from "@/components/contacts-header"
 import { ContactsTable } from "@/components/contacts-table"
+import { ContactsFilter } from "@/components/contacts-filter"
 import { useCallback, useEffect, useState } from "react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
-interface AppService {
+interface Tag {
   id: number
-  phone_number: string
-  phone_number_id: string
-  whatsapp_business_account_id: string
-  access_token: string
-  created_at: string
+  name: string
+  slug: string
 }
 
-interface ChatSession {
-  customer_name: string
-  customer_number: string
-  id?: string
-  created_at?: string
+interface Contact {
+  id: number
+  fullname: string
+  email: string
+  phone: string
+  tags: Tag[]
+  created_at: string
+  information_source?: string
 }
 
 export default function ContactsPage() {
-  const [contacts, setContacts] = useState<ChatSession[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const pageSize = 12
   const organizationId = useActiveOrganizationId()
 
-  const fetchAppServices = useCallback(async (orgId: string): Promise<AppService[]> => {
+  const fetchContacts = useCallback(async (orgId: string, page: number = 1) => {
     try {
-      const response = await fetch(`/api/contacts/appservices/${orgId}`)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-
+      setIsLoading(true)
+      const response = await fetch(`/api/contacts/contacts?organization=${orgId}&page=${page}&page_size=${pageSize}`)
+      if (!response.ok) throw new Error("Failed to fetch contacts")
       const data = await response.json()
 
-      return Array.isArray(data) ? data : []
+      // Handle paginated response
+      if (data.results) {
+        setContacts(data.results)
+        setTotalCount(data.count || 0)
+        setTotalPages(Math.ceil((data.count || 0) / pageSize))
+      } else {
+        setContacts(Array.isArray(data) ? data : [])
+      }
     } catch (error) {
-
-      toast({
-        title: "Error",
-        description: "Failed to fetch app services",
-        variant: "destructive",
-      })
-      return []
+      toast.error("Failed to fetch contacts")
+    } finally {
+      setIsLoading(false)
     }
-  }, [])
+  }, [pageSize])
 
-  const fetchChatSessions = useCallback(async (orgId: string, phoneNumber: string): Promise<ChatSession[]> => {
+  const fetchTags = useCallback(async (orgId: string) => {
     try {
-      
-      const response = await fetch(`/api/contacts/chatsessions/${orgId}/${phoneNumber}`)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-
+      const response = await fetch(`/api/contacts/tags?organization=${orgId}`)
+      if (!response.ok) throw new Error("Failed to fetch tags")
       const data = await response.json()
- 
-
-      if (Array.isArray(data)) {
-        return data.map((session: any) => ({
-          customer_name: session.customer_name || "",
-          customer_number: session.customer_number || "",
-          id: session.id,
-          created_at: session.created_at,
-        }))
-      }
-
-      // Fallback for wrapped response format
-      if (data.results && Array.isArray(data.results)) {
-        return data.results.map((session: any) => ({
-          customer_name: session.customer_name || "",
-          customer_number: session.customer_number || "",
-          id: session.id,
-          created_at: session.created_at,
-        }))
-      }
-
-      return []
+      setTags(Array.isArray(data) ? data : data.results || [])
     } catch (error) {
-      console.error("[intelli] Failed to fetch chat sessions:", error)
-      return []
+      console.error("Failed to fetch tags:", error)
     }
   }, [])
-
-  const fetchAllContacts = useCallback(
-    async (orgId: string) => {
-      try {
-        setIsLoading(true)
-    
-
-        // Step 1: Fetch app services to get phone numbers
-        const appServices = await fetchAppServices(orgId)
-
-        if (appServices.length === 0) {
-          setContacts([])
-          return
-        }
-
-        // Step 2: Fetch chat sessions for each phone number
-        const allContacts: ChatSession[] = []
-
-        for (const appService of appServices) {
-          if (appService.phone_number) {
-            const chatSessions = await fetchChatSessions(orgId, appService.phone_number)
-            allContacts.push(...chatSessions)
-          }
-        }
-
-        // Remove duplicates based on customer_number
-        const uniqueContacts = allContacts.filter(
-          (contact, index, self) => index === self.findIndex((c) => c.customer_number === contact.customer_number),
-        )
-
-        setContacts(uniqueContacts)
-      } catch (error) {
-        console.error("[intelli] Error fetching contacts:", error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch contacts",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [fetchAppServices, fetchChatSessions],
-  )
 
   useEffect(() => {
     if (organizationId) {
-      fetchAllContacts(organizationId)
+      fetchContacts(organizationId, currentPage)
+      fetchTags(organizationId)
     }
-  }, [organizationId, fetchAllContacts])
+  }, [organizationId, currentPage, fetchContacts, fetchTags])
 
-  // Filter contacts based on search term
-  const filteredContacts = contacts.filter(
-    (contact) =>
-      contact.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contact.customer_number.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const filteredContacts = contacts.filter((contact) => {
+    // Filter by search term
+    const matchesSearch =
+      !searchTerm ||
+      contact.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    // Filter by selected tags
+    const matchesTags =
+      selectedTagSlugs.length === 0 ||
+      contact.tags?.some((tag) => selectedTagSlugs.includes(tag.slug))
+
+    return matchesSearch && matchesTags
+  })
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">Contacts</h1>
+      <h1 className="text-3xl font-bold mb-6">Contacts</h1>
       <div className="flex w-full flex-col space-y-4">
-        <ContactsHeader onSearchChange={setSearchTerm} />
-        <ContactsTable contacts={filteredContacts} isLoading={isLoading} searchTerm={searchTerm} />
+        <ContactsHeader
+          onSearchChange={setSearchTerm}
+          tags={tags}
+          onTagsChange={() => fetchTags(organizationId || "")}
+          onContactsChange={() => {
+            setCurrentPage(1)
+            fetchContacts(organizationId || "", 1)
+          }}
+        />
+        <ContactsFilter
+          tags={tags}
+          selectedTags={selectedTagSlugs}
+          onTagsChange={setSelectedTagSlugs}
+        />
+        <ContactsTable
+          contacts={filteredContacts}
+          isLoading={isLoading}
+          searchTerm={searchTerm}
+          tags={tags}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          onPageChange={handlePageChange}
+          onContactsChange={() => fetchContacts(organizationId || "", currentPage)}
+        />
       </div>
     </div>
   )

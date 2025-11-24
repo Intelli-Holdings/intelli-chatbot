@@ -6,6 +6,7 @@
   max-width: 65%; /* Whatsapp-like width */
   border-radius: 1rem;
   overflow-wrap: break-word;
+  transition: transform 0.2s ease;
 }
 
 /* Message types */
@@ -59,6 +60,43 @@
   top: 0;
 }
 
+/* Enhanced reaction badge with click interaction
+ * Displays WhatsApp-style emoji reactions on messages
+ * Click to change or remove the reaction
+ */
+.message-reaction {
+  position: absolute;
+  bottom: -8px;
+  right: 8px;
+  background-color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  border: 2px solid white;
+  z-index: 10;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.message-reaction:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.message-reaction:active {
+  transform: scale(1.1);
+}
+
+/* Adjust message bubble padding when reaction is present */
+.message-bubble.has-reaction {
+  margin-bottom: 1rem;
+}
+
 /* Typography and spacing */
 .message-bubble p {
   overflow: hidden;
@@ -74,11 +112,11 @@
   -webkit-line-clamp: unset;
 }
 
-.message-bubble h1, 
-.message-bubble h2, 
-.message-bubble h3, 
-.message-bubble h4, 
-.message-bubble h5, 
+.message-bubble h1,
+.message-bubble h2,
+.message-bubble h3,
+.message-bubble h4,
+.message-bubble h5,
 .message-bubble h6 {
   font-weight: bold;
   margin-top: 1em;
@@ -98,11 +136,11 @@
   margin-bottom: 0;
 }
 
-.message-bubble h1, 
-.message-bubble h2, 
-.message-bubble h3, 
-.message-bubble h4, 
-.message-bubble h5, 
+.message-bubble h1,
+.message-bubble h2,
+.message-bubble h3,
+.message-bubble h4,
+.message-bubble h5,
 .message-bubble h6 {
   font-weight: bold;
   margin-top: 1em;

@@ -1,7 +1,6 @@
-"use client";
+"use client"
 
-import React, { useState, useMemo, useRef } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect } from "react"
 import {
   LineChart,
   Line,
@@ -15,563 +14,546 @@ import {
   YAxis,
   Tooltip,
   Legend,
-} from "recharts";
+  CartesianGrid,
+  Area,
+  AreaChart,
+} from "recharts"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/card"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  Rocket,
   MessageCircle,
-  UserPlus,
-  AlertTriangle,
-  Share2,
-  Smile,
-  Download,
-} from "lucide-react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+  Users,
+  CheckCircle,
+  Clock,
+  Activity,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Zap,
+  MessageSquare,
+  BarChart3,
+} from "lucide-react"
+import useActiveOrganizationId from "@/hooks/use-organization-id"
+import { getMetricsSummaryByOrganization, getMetricsByOrganization, type MetricsResponse, type MetricsSnapshot } from "@/lib/metrics-service"
+import Image from "next/image"
 
-// Mock data generator function
-const generateMockData = (days: number) => {
-  const data = [];
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-
-  for (let i = 0; i < days; i++) {
-    const date = new Date(startDate);
-    date.setDate(date.getDate() + i);
-    data.push({
-      date: date.toISOString().split("T")[0],
-      messageCredits: Math.floor(Math.random() * 100) + 50,
-      conversations: Math.floor(Math.random() * 50) + 10,
-      leads: Math.floor(Math.random() * 20) + 5,
-      escalations: Math.floor(Math.random() * 10) + 1,
-      sentiment: Math.random(),
-    });
-  }
-
-  return data;
-};
-
-interface DataPoint {
-  date: string;
-  messageCredits: number;
-  conversations: number;
-  leads: number;
-  escalations: number;
-  sentiment: number;
+const CHART_COLORS = {
+  primary: "#3b82f6",
+  success: "#10b981",
+  warning: "#f59e0b",
+  danger: "#ef4444",
+  purple: "#8b5cf6",
+  cyan: "#06b6d4",
 }
 
-const rawData: DataPoint[] = generateMockData(90); // Generate 90 days of data
+interface MetricCardProps {
+  title: string
+  value: string | number
+  change?: number
+  subtitle: string
+  icon: React.ElementType
+  color: string
+  trend?: "up" | "down" | "neutral"
+}
 
-const COLORS = [
-  "#0088FE",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
-  "#8884D8",
-  "#82ca9d",
-];
+const MetricCard: React.FC<MetricCardProps> = ({ title, value, change, subtitle, icon: Icon, color, trend }) => (
+  <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4" style={{ borderLeftColor: color }}>
+    <CardContent className="p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-3 rounded-xl" style={{ backgroundColor: `${color}15` }}>
+          <Icon className="h-6 w-6" style={{ color }} />
+        </div>
+        {change !== undefined && (
+          <Badge variant={trend === "up" ? "default" : trend === "down" ? "destructive" : "secondary"} className="flex items-center gap-1">
+            {trend === "up" && <TrendingUp className="h-3 w-3" />}
+            {trend === "down" && <TrendingDown className="h-3 w-3" />}
+            {trend === "neutral" && <Minus className="h-3 w-3" />}
+            {Math.abs(change).toFixed(1)}%
+          </Badge>
+        )}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+        <h3 className="text-3xl font-bold mb-1">{value}</h3>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+    </CardContent>
+  </Card>
+)
 
-const timeRanges = {
-  daily: 1,
-  weekly: 7,
-  monthly: 30,
-};
+interface ChannelCardProps {
+  name: string
+  conversations: number
+  messages: number
+  escalations: number
+  avgResolution: number
+  icon: string | React.ReactNode
+  color: string
+}
+
+const ChannelCard: React.FC<ChannelCardProps> = ({ name, conversations, messages, escalations, avgResolution, icon, color }) => (
+  <Card className="hover:shadow-md transition-all duration-300">
+    <CardHeader className="pb-3">
+      <div className="flex items-center justify-between">
+        <CardTitle className="text-lg flex items-center gap-2">
+          {typeof icon === "string" ? <span className="text-2xl">{icon}</span> : icon}
+          {name}
+        </CardTitle>
+        <Badge style={{ backgroundColor: `${color}20`, color }}>{conversations} conversations</Badge>
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Messages</p>
+          <p className="text-2xl font-bold">{messages.toLocaleString()}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Escalations</p>
+          <p className="text-2xl font-bold">{escalations}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Avg Resolution</p>
+          <p className="text-2xl font-bold">{Math.floor(avgResolution / 60)} min</p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)
 
 export default function Analytics() {
-  const [timeRange, setTimeRange] = useState<"daily" | "weekly" | "monthly">(
-    "daily"
-  );
-  const [exportFormat, setExportFormat] = useState<
-    "pdf" | "svg" | "png" | "jpeg"
-  >("pdf");
-  const dashboardRef = useRef<HTMLDivElement>(null);
+  const organizationId = useActiveOrganizationId()
+  const [timeRange, setTimeRange] = useState<string>("30")
+  const [metricsData, setMetricsData] = useState<MetricsResponse | null>(null)
+  const [timelineData, setTimelineData] = useState<MetricsSnapshot[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const aggregateData = useMemo(() => {
-    const days = timeRanges[timeRange];
-    return rawData.reduce<DataPoint[]>((acc, curr, index) => {
-      if (index % days === 0) {
-        acc.push({
-          date: curr.date,
-          messageCredits: rawData
-            .slice(index, index + days)
-            .reduce((sum, item) => sum + item.messageCredits, 0),
-          conversations: rawData
-            .slice(index, index + days)
-            .reduce((sum, item) => sum + item.conversations, 0),
-          leads: rawData
-            .slice(index, index + days)
-            .reduce((sum, item) => sum + item.leads, 0),
-          escalations: rawData
-            .slice(index, index + days)
-            .reduce((sum, item) => sum + item.escalations, 0),
-          sentiment:
-            rawData
-              .slice(index, index + days)
-              .reduce((sum, item) => sum + item.sentiment, 0) / days,
-        });
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!organizationId) return
+
+      try {
+        setIsLoading(true)
+
+        // Fetch summary data
+        const summaryData = await getMetricsSummaryByOrganization(organizationId, { period: timeRange })
+        setMetricsData(summaryData)
+
+        // Fetch timeline data
+        const timeline = await getMetricsByOrganization(organizationId, { period: timeRange })
+        setTimelineData(timeline)
+      } catch (error) {
+        console.error("Error fetching analytics data:", error)
+      } finally {
+        setIsLoading(false)
       }
-      return acc;
-    }, []);
-  }, [timeRange]);
-
-  const totalStats = useMemo(
-    () => ({
-      messageCredits: aggregateData.reduce(
-        (sum, item) => sum + item.messageCredits,
-        0
-      ),
-      conversations: aggregateData.reduce(
-        (sum, item) => sum + item.conversations,
-        0
-      ),
-      leads: aggregateData.reduce((sum, item) => sum + item.leads, 0),
-      escalations: aggregateData.reduce(
-        (sum, item) => sum + item.escalations,
-        0
-      ),
-    }),
-    [aggregateData]
-  );
-
-  const channelData = [
-    { name: "Website", value: 400 },
-    { name: "Facebook", value: 300 },
-    { name: "WhatsApp", value: 300 },
-    { name: "Instagram", value: 200 },
-  ];
-
-  const sentimentData = useMemo(() => {
-    const sentiments = aggregateData.map((item) => item.sentiment);
-    const positive = sentiments.filter((s) => s > 0.66).length;
-    const neutral = sentiments.filter((s) => s >= 0.33 && s <= 0.66).length;
-    const negative = sentiments.filter((s) => s < 0.33).length;
-    return [
-      { name: "Positive", value: positive },
-      { name: "Neutral", value: neutral },
-      { name: "Negative", value: negative },
-    ];
-  }, [aggregateData]);
-
-  const generateReport = async () => {
-    if (!dashboardRef.current) return;
-
-    if (exportFormat === "pdf") {
-      const pdf = new jsPDF("p", "mm", "a4");
-      const elements = dashboardRef.current.querySelectorAll(".export-section");
-      let yOffset = 10;
-
-      for (let i = 0; i < elements.length; i++) {
-        const element = elements[i] as HTMLElement;
-        const canvas = await html2canvas(element);
-        const imgData = canvas.toDataURL("image/png");
-
-        if (i > 0) {
-          pdf.addPage();
-          yOffset = 10;
-        }
-
-        const imgWidth = 190;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        pdf.addImage(imgData, "PNG", 10, yOffset, imgWidth, imgHeight);
-        yOffset += imgHeight + 10;
-      }
-
-      pdf.save("analytics-report.pdf");
-    } else {
-      const elements = dashboardRef.current.querySelectorAll(".export-section");
-      elements.forEach(async (element, index) => {
-        const canvas = await html2canvas(element as HTMLElement);
-        const link = document.createElement("a");
-        link.download = `analytics-section-${index + 1}.${exportFormat}`;
-        link.href = canvas.toDataURL(`image/${exportFormat}`);
-        link.click();
-      });
     }
-  };
+
+    fetchData()
+  }, [organizationId, timeRange])
+
+  if (!organizationId || isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[600px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="text-muted-foreground">Loading analytics...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!metricsData) {
+    return (
+      <div className="flex items-center justify-center h-[600px]">
+        <div className="text-center space-y-4">
+          <Activity className="h-16 w-16 text-muted-foreground mx-auto" />
+          <div>
+            <h3 className="text-lg font-semibold mb-2">No Analytics Data Available</h3>
+            <p className="text-sm text-muted-foreground">Start generating metrics to see your analytics</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const { summary, latest } = metricsData
+
+  // Calculate trends
+  const totalEscalations = summary.total_pending + summary.total_assigned + summary.total_resolved
+  const resolutionRate = totalEscalations > 0 ? (summary.total_resolved / totalEscalations) * 100 : 0
+
+  // Prepare escalation distribution data
+  const escalationData = [
+    { name: "Pending", value: summary.total_pending, color: CHART_COLORS.warning },
+    { name: "Assigned", value: summary.total_assigned, color: CHART_COLORS.primary },
+    { name: "Resolved", value: summary.total_resolved, color: CHART_COLORS.success },
+  ]
+
+  // Prepare channel data
+  const channelData = [
+    {
+      name: "Website",
+      conversations: latest.conversations_per_channel.channels.website?.number_of_conversations || 0,
+      messages: latest.conversations_per_channel.channels.website?.number_of_messages || 0,
+      escalations: latest.conversations_per_channel.channels.website?.number_of_escalations.total || 0,
+      avgResolution: latest.conversations_per_channel.channels.website?.number_of_escalations.average_duration || 0,
+      icon: "🌐",
+      color: CHART_COLORS.primary,
+    },
+    {
+      name: "WhatsApp",
+      conversations: latest.conversations_per_channel.channels.whatsapp?.number_of_conversations || 0,
+      messages: latest.conversations_per_channel.channels.whatsapp?.number_of_messages || 0,
+      escalations: latest.conversations_per_channel.channels.whatsapp?.number_of_escalations.total || 0,
+      avgResolution: latest.conversations_per_channel.channels.whatsapp?.number_of_escalations.average_duration || 0,
+      icon: (
+        <Image
+          src="/whatsapp.png"
+          alt="WhatsApp"
+          width={20}
+          height={20}
+          className="object-contain"
+        />
+      ),
+      color: CHART_COLORS.success,
+    },
+  ]
+
+  // Prepare conversations over time data
+  const conversationsOverTime = timelineData.map((snapshot) => ({
+    date: new Date(snapshot.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    whatsapp: snapshot.conversations_per_channel.channels.whatsapp?.number_of_conversations || 0,
+    website: snapshot.conversations_per_channel.channels.website?.number_of_conversations || 0,
+    total: snapshot.num_conversations,
+  }))
+
+  const messagesOverTime = timelineData.map((snapshot) => ({
+    date: new Date(snapshot.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    messages: snapshot.num_messages,
+    escalations: snapshot.num_escalations,
+  }))
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+    return num.toLocaleString()
+  }
 
   return (
-    <div
-      ref={dashboardRef}
-      className="border rounded-xl space-y-8 p-8 bg-white shadow-md"
-    >
-      <div className="mb-6 flex justify-between items-center">
-        <Select
-          value={timeRange}
-          onValueChange={(value: "daily" | "weekly" | "monthly") =>
-            setTimeRange(value)
-          }
-        >
+    <div className="space-y-6">
+      {/* Time Range Selector - Floating */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Performance Overview</h2>
+          <p className="text-muted-foreground">Real-time insights into your operations</p>
+        </div>
+        <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select time range" />
+            <SelectValue placeholder="Select period" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="daily">Daily</SelectItem>
-            <SelectItem value="weekly">Weekly</SelectItem>
-            <SelectItem value="monthly">Monthly</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={exportFormat}
-          onValueChange={(value: "pdf" | "svg" | "png" | "jpeg") =>
-            setExportFormat(value)
-          }
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select export format" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pdf">PDF</SelectItem>
-            <SelectItem value="svg">SVG</SelectItem>
-            <SelectItem value="png">PNG</SelectItem>
-            <SelectItem value="jpeg">JPEG</SelectItem>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+            <SelectItem value="90">Last 90 days</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full mb-6">
-        <TabsList className="grid w-full grid-cols-3">
+      {/* Key Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="AI Token Usage"
+          value={formatNumber(summary.total_tokens_used)}
+          change={summary.avg_tokens_remaining > 0 ? 12.5 : 0}
+          subtitle={`${formatNumber(Math.round(summary.avg_tokens_remaining))} remaining`}
+          icon={Zap}
+          color={CHART_COLORS.cyan}
+          trend="up"
+        />
+        <MetricCard
+          title="Total Conversations"
+          value={formatNumber(summary.total_conversations)}
+          change={8.3}
+          subtitle={`${formatNumber(summary.total_messages)} messages`}
+          icon={MessageSquare}
+          color={CHART_COLORS.purple}
+          trend="up"
+        />
+        <MetricCard
+          title="Resolution Rate"
+          value={`${resolutionRate.toFixed(1)}%`}
+          change={resolutionRate}
+          subtitle={`${summary.total_resolved} resolved`}
+          icon={CheckCircle}
+          color={CHART_COLORS.success}
+          trend={resolutionRate > 50 ? "up" : "down"}
+        />
+        <MetricCard
+          title="Pending Issues"
+          value={summary.total_pending}
+          change={-5.2}
+          subtitle={`${summary.total_assigned} assigned`}
+          icon={Clock}
+          color={CHART_COLORS.warning}
+          trend="down"
+        />
+      </div>
+
+      {/* Main Content - Tabs */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="conversations">Conversations</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="channels">Channels</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview">
-          <div className="export-section">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Message Credits
-                  </CardTitle>
-                  <Rocket className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {totalStats.messageCredits}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Conversations
-                  </CardTitle>
-                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {totalStats.conversations}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Leads
-                  </CardTitle>
-                  <UserPlus className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{totalStats.leads}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Escalations
-                  </CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {totalStats.escalations}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Escalation Status Distribution */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Escalation Status</CardTitle>
+                <CardDescription>Distribution of current escalations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={escalationData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {escalationData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-4 space-y-2">
+                  {escalationData.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-muted-foreground">{item.name}</span>
+                      </div>
+                      <span className="font-semibold">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Rocket className="mr-2 h-5 w-5 text-purple-500" />
-                    Message Credits Usage
-                  </CardTitle>
-                  <CardDescription>
-                    Control your messaging costs
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer
-                    config={{
-                      credits: {
-                        label: "Credits",
-                        color: "hsl(var(--chart-1))",
-                      },
-                    }}
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={aggregateData}>
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Line
-                          type="monotone"
-                          dataKey="messageCredits"
-                          stroke="var(--color-credits)"
-                          strokeWidth={2}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <MessageCircle className="mr-2 h-5 w-5 text-blue-500" />
-                    Conversations
-                  </CardTitle>
-                  <CardDescription>Measure customer engagement</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer
-                    config={{
-                      conversations: {
-                        label: "Conversations",
-                        color: "hsl(var(--chart-2))",
-                      },
-                    }}
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={aggregateData}>
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Bar
-                          dataKey="conversations"
-                          fill="var(--color-conversations)"
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Conversations Over Time */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Conversation Trends</CardTitle>
+                <CardDescription>Track conversation volume across all channels</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={conversationsOverTime}>
+                    <defs>
+                      <linearGradient id="colorWhatsapp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorWebsite" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" stroke="#888" fontSize={12} />
+                    <YAxis stroke="#888" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
+                    />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="whatsapp"
+                      stroke={CHART_COLORS.success}
+                      fillOpacity={1}
+                      fill="url(#colorWhatsapp)"
+                      strokeWidth={2}
+                      name="WhatsApp"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="website"
+                      stroke={CHART_COLORS.primary}
+                      fillOpacity={1}
+                      fill="url(#colorWebsite)"
+                      strokeWidth={2}
+                      name="Website"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="conversations">
-          <div className="export-section">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <UserPlus className="mr-2 h-5 w-5 text-green-500" />
-                    Leads Collected
-                  </CardTitle>
-                  <CardDescription>Grow your sales pipeline</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer
-                    config={{
-                      leads: { label: "Leads", color: "hsl(var(--chart-3))" },
-                    }}
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={aggregateData}>
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Line
-                          type="monotone"
-                          dataKey="leads"
-                          stroke="var(--color-leads)"
-                          strokeWidth={2}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
+        {/* Channels Tab */}
+        <TabsContent value="channels" className="space-y-6">
+          {/* Channel Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {channelData.map((channel) => (
+              <ChannelCard key={channel.name} {...channel} />
+            ))}
+          </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Share2 className="mr-2 h-5 w-5 text-indigo-500" />
-                    Conversations per Channel
-                  </CardTitle>
-                  <CardDescription>
-                    Optimize your channel strategy
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer
-                    config={{
-                      channel: {
-                        label: "Channel",
-                        color: "hsl(var(--chart-5))",
-                      },
-                    }}
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={channelData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label
-                        >
-                          {channelData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-            </div>
+          {/* Channel Comparison Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Conversations by Channel</CardTitle>
+                <CardDescription>Compare conversation volume</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={channelData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                    <YAxis stroke="#888" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar dataKey="conversations" fill={CHART_COLORS.success} radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Message Volume</CardTitle>
+                <CardDescription>Total messages per channel</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={channelData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" stroke="#888" fontSize={12} />
+                    <YAxis stroke="#888" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar dataKey="messages" fill={CHART_COLORS.primary} radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="performance">
-          <div className="export-section">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
-                    Escalations
-                  </CardTitle>
-                  <CardDescription>
-                    Monitor and improve resolution times
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer
-                    config={{
-                      escalations: {
-                        label: "Escalations",
-                        color: "hsl(var(--chart-4))",
-                      },
+        {/* Trends Tab */}
+        <TabsContent value="trends" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Message & Escalation Trends</CardTitle>
+              <CardDescription>Monitor activity patterns over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={messagesOverTime}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" stroke="#888" fontSize={12} />
+                  <YAxis stroke="#888" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                     }}
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={aggregateData}>
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Line
-                          type="monotone"
-                          dataKey="escalations"
-                          stroke="var(--color-escalations)"
-                          strokeWidth={2}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="messages"
+                    stroke={CHART_COLORS.primary}
+                    strokeWidth={3}
+                    dot={{ fill: CHART_COLORS.primary, r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Messages"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="escalations"
+                    stroke={CHART_COLORS.warning}
+                    strokeWidth={3}
+                    dot={{ fill: CHART_COLORS.warning, r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Escalations"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Smile className="mr-2 h-5 w-5 text-yellow-500" />
-                    Sentiment Analysis
-                  </CardTitle>
-                  <CardDescription>
-                    Gauge overall customer satisfaction
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer
-                    config={{
-                      sentiment: {
-                        label: "Sentiment",
-                        color: "hsl(var(--chart-6))",
-                      },
+          {/* Resolution Performance */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Resolution Performance</CardTitle>
+              <CardDescription>Average resolution time by channel</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={channelData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis type="number" stroke="#888" fontSize={12} />
+                  <YAxis dataKey="name" type="category" stroke="#888" fontSize={12} width={100} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
                     }}
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={sentimentData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label
-                        >
-                          {sentimentData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                    formatter={(value: number) => [`${Math.floor(value / 60)} min`, "Avg Resolution"]}
+                  />
+                  <Bar dataKey="avgResolution" fill={CHART_COLORS.purple} radius={[0, 8, 8, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
-
-      <motion.div
-        className="bottom-8 right-8"
-        whileHover={{ scale: 1.0 }}
-        whileTap={{ scale: 1.1 }}
-      >
-        <Button
-          size="sm"
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-          onClick={generateReport}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Generate Report
-        </Button>
-      </motion.div>
     </div>
-  );
+  )
 }

@@ -47,7 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { DeleteAssistantDialog } from '@/components/delete-assistant-dialog';
+import { DeleteAssistantDialog } from '@/components/delete-dialog-assistant';
 import { Textarea } from './ui/textarea';
 
 interface Assistant {

@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useRef } from 'react'
 
 import CreateOrganizationStep from '@/components/CreateOrganization';
 import { 
@@ -11,7 +12,18 @@ import {
 import Link from "next/link";
 import CircuitBackground from '@/components/ui/circuit-background';
 
-export default function PreOnboardingPage() {
+declare global { interface Window { fbq?: (...args: any[]) => void } }
+
+const consentOK = () => document.cookie.includes('cookie_consent=accepted')
+
+export default function PreOnboarding() {
+  const fired = useRef(false)
+
+  useEffect(() => {
+    if (!consentOK() || fired.current) return
+    fired.current = true
+    window.fbq?.('track', 'CompleteRegistration', { status: 'success' })
+  }, [])
   return (
     <div className="mx-auto py-10 min-h-screen relative">
       <CircuitBackground />
