@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react';
-import { metaConfigService } from '@/services/meta-config';
 import { TemplateCreationHandler } from '@/utils/template-creator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +20,9 @@ import {
   Info,
   Loader2,
   Plus,
-  Trash2
+  Trash2,
+  Link as LinkIcon,
+  Phone as PhoneIcon
 } from 'lucide-react';
 import { DefaultTemplate } from '@/data/default-templates';
 
@@ -36,6 +37,9 @@ interface CustomizeTemplateDialogProps {
 
 interface TemplateCustomizations {
   variables: { [key: string]: string };
+  urlButtonVariables: { [key: string]: string };
+  phoneNumbers: { [key: string]: string }; // NEW: Store custom phone numbers
+  buttonUrls: { [key: string]: string }; // NEW: Store custom URLs
   mediaFile?: File;
   mediaPreview?: string;
 }
@@ -46,22 +50,21 @@ interface MediaRequirement {
   component: any;
 }
 
-// File size limits and accepted formats
 const MEDIA_LIMITS = {
   IMAGE: {
-    maxSize: 5 * 1024 * 1024, // 5MB
+    maxSize: 5 * 1024 * 1024,
     formats: ['.jpg', '.jpeg', '.png'],
     mimeTypes: ['image/jpeg', 'image/png'],
     accept: 'image/jpeg,image/png'
   },
   VIDEO: {
-    maxSize: 16 * 1024 * 1024, // 16MB
+    maxSize: 16 * 1024 * 1024,
     formats: ['.mp4'],
     mimeTypes: ['video/mp4'],
     accept: 'video/mp4'
   },
   DOCUMENT: {
-    maxSize: 100 * 1024 * 1024, // 100MB
+    maxSize: 100 * 1024 * 1024,
     formats: ['.pdf'],
     mimeTypes: ['application/pdf'],
     accept: 'application/pdf'
@@ -78,6 +81,9 @@ export function CustomizeTemplateDialog({
 }: CustomizeTemplateDialogProps) {
   const [customizations, setCustomizations] = useState<TemplateCustomizations>({
     variables: {},
+    urlButtonVariables: {},
+    phoneNumbers: {},
+    buttonUrls: {},
     mediaFile: undefined,
     mediaPreview: undefined
   });
@@ -85,12 +91,14 @@ export function CustomizeTemplateDialog({
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset customizations when template changes
   useEffect(() => {
     if (template) {
       const variables: { [key: string]: string } = {};
+      const urlButtonVariables: { [key: string]: string } = {};
+      const phoneNumbers: { [key: string]: string } = {};
+      const buttonUrls: { [key: string]: string } = {};
       
-      // Extract all variables from all components
+      // Extract body/header variables
       template.components?.forEach(component => {
         if (component.text) {
           const matches = component.text.match(/\{\{(\d+)\}\}/g) || [];
@@ -103,8 +111,36 @@ export function CustomizeTemplateDialog({
         }
       });
 
+      // Extract button information
+      const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
+      buttonsComponent?.buttons?.forEach((button, buttonIndex) => {
+        // Phone number buttons
+        if (button.type === 'PHONE_NUMBER') {
+          const key = `phone_${buttonIndex}`;
+          phoneNumbers[key] = button.phone_number || '';
+        }
+        
+        // URL buttons
+        if (button.type === 'URL') {
+          const urlKey = `url_${buttonIndex}`;
+          buttonUrls[urlKey] = button.url || '';
+          
+          // URL variables
+          if (button.url?.includes('{{')) {
+            const matches = button.url.match(/\{\{(\d+)\}\}/g) || [];
+            matches.forEach(match => {
+              const key = `url_button_${buttonIndex}_${match.replace(/[{}]/g, '')}`;
+              urlButtonVariables[key] = '';
+            });
+          }
+        }
+      });
+
       setCustomizations({
         variables,
+        urlButtonVariables,
+        phoneNumbers,
+        buttonUrls,
         mediaFile: undefined,
         mediaPreview: undefined
       });
@@ -113,7 +149,6 @@ export function CustomizeTemplateDialog({
 
   if (!template) return null;
 
-  // Utility: extract and sort variable tokens like ['{{1}}','{{2}}'] from a given text
   const extractVariables = (text?: string): string[] => {
     if (!text) return [];
     const matches = text.match(/\{\{(\d+)\}\}/g) || [];
@@ -125,7 +160,6 @@ export function CustomizeTemplateDialog({
     });
   };
 
-  // Check if template requires media
   const getMediaRequirement = (): MediaRequirement => {
     const headerComponent = template.components?.find(c => c.type === 'HEADER');
     
@@ -147,38 +181,66 @@ export function CustomizeTemplateDialog({
 
   const mediaRequirement = getMediaRequirement();
 
-  // Extract all variables from template text
   const getAllVariables = () => {
-    const variables: string[] = [];
+    const bodyVariables: string[] = [];
+    const urlButtonVariables: Array<{variable: string, buttonIndex: number, buttonText: string}> = [];
     
     template.components?.forEach(component => {
-      if (component.text) {
+      if (component.type === 'BODY' && component.text) {
         const matches = component.text.match(/\{\{(\d+)\}\}/g) || [];
         matches.forEach(match => {
-          if (!variables.includes(match)) {
-            variables.push(match);
+          if (!bodyVariables.includes(match)) {
+            bodyVariables.push(match);
+          }
+        });
+      }
+      
+      if (component.type === 'HEADER' && component.format === 'TEXT' && component.text) {
+        const matches = component.text.match(/\{\{(\d+)\}\}/g) || [];
+        matches.forEach(match => {
+          if (!bodyVariables.includes(match)) {
+            bodyVariables.push(match);
           }
         });
       }
     });
 
-    return variables.sort((a, b) => {
-      const aNum = parseInt(a.replace(/[{}]/g, ''));
-      const bNum = parseInt(b.replace(/[{}]/g, ''));
-      return aNum - bNum;
+    const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
+    buttonsComponent?.buttons?.forEach((button, index) => {
+      if (button.type === 'URL' && button.url?.includes('{{')) {
+        const matches = button.url.match(/\{\{(\d+)\}\}/g) || [];
+        matches.forEach(match => {
+          urlButtonVariables.push({
+            variable: match,
+            buttonIndex: index,
+            buttonText: button.text || 'Button'
+          });
+        });
+      }
     });
+
+    return {
+      bodyVariables: bodyVariables.sort((a, b) => {
+        const aNum = parseInt(a.replace(/[{}]/g, ''));
+        const bNum = parseInt(b.replace(/[{}]/g, ''));
+        return aNum - bNum;
+      }),
+      urlButtonVariables
+    };
   };
 
-  const allVariables = getAllVariables();
-
-  // Also compute component-specific variables
+  const variableData = getAllVariables();
   const bodyText = template.components?.find(c => c.type === 'BODY')?.text || '';
   const headerComponent = template.components?.find(c => c.type === 'HEADER');
   const headerText = headerComponent?.format === 'TEXT' ? (headerComponent.text || '') : '';
   const bodyVariables = extractVariables(bodyText);
   const headerVariables = extractVariables(headerText);
 
-  // Handle variable input change
+  // Get buttons for customization
+  const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
+  const phoneButtons = buttonsComponent?.buttons?.filter(b => b.type === 'PHONE_NUMBER') || [];
+  const urlButtons = buttonsComponent?.buttons?.filter(b => b.type === 'URL') || [];
+
   const updateVariable = (variableKey: string, value: string) => {
     setCustomizations(prev => ({
       ...prev,
@@ -189,28 +251,56 @@ export function CustomizeTemplateDialog({
     }));
   };
 
-  // Handle file upload
+  const updateUrlButtonVariable = (key: string, value: string) => {
+    setCustomizations(prev => ({
+      ...prev,
+      urlButtonVariables: {
+        ...prev.urlButtonVariables,
+        [key]: value
+      }
+    }));
+  };
+
+  const updatePhoneNumber = (key: string, value: string) => {
+    // Auto-format phone number
+    let cleanValue = value.replace(/\s/g, '');
+    setCustomizations(prev => ({
+      ...prev,
+      phoneNumbers: {
+        ...prev.phoneNumbers,
+        [key]: cleanValue
+      }
+    }));
+  };
+
+  const updateButtonUrl = (key: string, value: string) => {
+    setCustomizations(prev => ({
+      ...prev,
+      buttonUrls: {
+        ...prev.buttonUrls,
+        [key]: value
+      }
+    }));
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const limits = MEDIA_LIMITS[mediaRequirement.format];
     
-    // Check file type
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!limits.formats.includes(fileExtension)) {
       toast.error(`Invalid file format. Accepted formats: ${limits.formats.join(', ')}`);
       return;
     }
 
-    // Check file size
     if (file.size > limits.maxSize) {
       const maxSizeMB = limits.maxSize / (1024 * 1024);
       toast.error(`File size exceeds ${maxSizeMB}MB limit`);
       return;
     }
 
-    // Create preview URL for images and videos
     let previewUrl = "";
     if (mediaRequirement.format === 'IMAGE' || mediaRequirement.format === 'VIDEO') {
       previewUrl = URL.createObjectURL(file);
@@ -225,7 +315,6 @@ export function CustomizeTemplateDialog({
     toast.success(`${file.name} uploaded successfully`);
   };
 
-  // Remove uploaded file
   const removeUploadedFile = () => {
     if (customizations.mediaPreview) {
       URL.revokeObjectURL(customizations.mediaPreview);
@@ -242,22 +331,22 @@ export function CustomizeTemplateDialog({
     }
   };
 
-  // Upload file to Meta's API and get media handle
   const uploadMediaToMeta = async (file: File): Promise<string> => {
+    if (!appService) {
+      throw new Error('App service not provided');
+    }
+
+    if (!appService.access_token || appService.access_token === 'undefined') {
+      console.error('Invalid access token in appService:', appService);
+      throw new Error('Valid access token not available');
+    }
+
     try {
       setIsUploadingMedia(true);
       
-      // Get the correct App ID from Meta using the access token
-      const config = await metaConfigService.getConfigForAppService(appService);
-      if (!config) {
-        throw new Error('Could not get Meta app configuration');
-      }
-
-      // Use the backend API to upload the file
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('appId', config.appId);
-      formData.append('accessToken', config.accessToken);
+      formData.append('accessToken', appService.access_token);
 
       const response = await fetch('/api/whatsapp/upload-media', {
         method: 'POST',
@@ -265,17 +354,23 @@ export function CustomizeTemplateDialog({
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const errorText = await response.text();
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText };
+        }
+        console.error('Upload failed:', error);
         throw new Error(error.error || 'Failed to upload media');
       }
 
       const data = await response.json();
       
-      // Debug logging
-      console.log('Media upload response:', data);
-      console.log('Media handle (uploadData.h):', data.handle);
+      if (!data.handle) {
+        throw new Error('No media handle received from upload');
+      }
       
-      // Use the handle field which contains uploadData.h from the API response
       return data.handle;
     } catch (error) {
       console.error('Meta upload error:', error);
@@ -285,43 +380,76 @@ export function CustomizeTemplateDialog({
     }
   };
 
-  // Handle form submission
   const handleSubmit = async () => {
-    // Validate required fields
     if (mediaRequirement.required && !customizations.mediaFile) {
       toast.error('Media file is required for this template');
       return;
     }
 
-    // Validate all variables are filled
-    const emptyVariables = allVariables.filter(variable => {
+    // Validate body/header variables
+    const emptyBodyVars = variableData.bodyVariables.filter(variable => {
       const key = variable.replace(/[{}]/g, '');
       return !customizations.variables[key]?.trim();
     });
 
-    if (emptyVariables.length > 0) {
-      toast.error('Please fill in all template variables');
+    if (emptyBodyVars.length > 0) {
+      toast.error('Please fill in all message variables');
       return;
     }
+
+    // Validate URL button variables
+    const emptyUrlVars = variableData.urlButtonVariables.filter(({ variable, buttonIndex }) => {
+      const key = `url_button_${buttonIndex}_${variable.replace(/[{}]/g, '')}`;
+      return !customizations.urlButtonVariables[key]?.trim();
+    });
+
+    if (emptyUrlVars.length > 0) {
+      toast.error('Please fill in all button URL parameters');
+      return;
+    }
+
+    // Validate phone numbers
+    buttonsComponent?.buttons?.forEach((button, index) => {
+      if (button.type === 'PHONE_NUMBER') {
+        const key = `phone_${index}`;
+        const phoneNumber = customizations.phoneNumbers[key];
+        if (!phoneNumber || !phoneNumber.trim()) {
+          toast.error(`Please enter phone number for "${button.text}" button`);
+          return;
+        }
+      }
+    });
+
+    // Validate button URLs
+    buttonsComponent?.buttons?.forEach((button, index) => {
+      if (button.type === 'URL') {
+        const key = `url_${index}`;
+        const url = customizations.buttonUrls[key];
+        if (!url || !url.trim()) {
+          toast.error(`Please enter URL for "${button.text}" button`);
+          return;
+        }
+      }
+    });
 
     setIsSubmitting(true);
 
     try {
-      // Handle media upload if required
       let headerMediaHandle = null;
       
       if (mediaRequirement.required && customizations.mediaFile) {
         try {
           toast.info("Uploading media to Meta...");
           headerMediaHandle = await uploadMediaToMeta(customizations.mediaFile);
+          toast.success("Media uploaded successfully!");
         } catch (uploadError) {
-          toast.error("Failed to upload media to Meta.");
+          console.error('Failed to upload media:', uploadError);
+          toast.error(uploadError instanceof Error ? uploadError.message : "Failed to upload media to Meta");
           setIsSubmitting(false);
           return;
         }
       }
 
-      // Determine header type/text/variables from template
       let headerType: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' = 'NONE';
       let headerTextForTemplate: string | undefined = undefined;
       let headerVariablesForTemplate: string[] | undefined = undefined;
@@ -335,8 +463,29 @@ export function CustomizeTemplateDialog({
           headerType = headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT';
         }
       }
+
+      // Apply custom phone numbers and URLs to buttons
+      const customizedButtons = buttonsComponent?.buttons?.map((button, index) => {
+        const customButton = { ...button };
+        
+        if (button.type === 'PHONE_NUMBER') {
+          const key = `phone_${index}`;
+          let phoneNumber = customizations.phoneNumbers[key] || button.phone_number || '';
+          // Ensure E.164 format
+          if (phoneNumber && !phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber;
+          }
+          customButton.phone_number = phoneNumber;
+        }
+        
+        if (button.type === 'URL') {
+          const key = `url_${index}`;
+          customButton.url = customizations.buttonUrls[key] || button.url || '';
+        }
+        
+        return customButton;
+      }) || [];
       
-      // Prepare template data for the template creator
       const templateInputData = {
         name: template.name,
         category: template.category,
@@ -346,65 +495,101 @@ export function CustomizeTemplateDialog({
         headerType: headerType === 'NONE' ? (mediaRequirement.required ? mediaRequirement.format : 'NONE') : headerType,
         headerText: headerTextForTemplate,
         headerVariables: headerVariablesForTemplate,
-        headerMediaHandle, // Always use handle from upload API response, never from template data
+        headerMediaHandle,
         body: (template.category === 'AUTHENTICATION' && bodyVariables.length > 0) 
           ? '' 
           : bodyText,
         bodyVariables: bodyVariables,
         footer: template.components?.find(c => c.type === 'FOOTER')?.text || '',
-        buttonType: template.components?.find(c => c.type === 'BUTTONS') ? 'QUICK_REPLY' : 'NONE',
-        buttons: template.components?.find(c => c.type === 'BUTTONS')?.buttons || [],
-        // Add customization values
+        buttonType: template.components?.find(c => c.type === 'BUTTONS') ? 'CALL_TO_ACTION' : 'NONE',
+        buttons: customizedButtons, // Use customized buttons
         customVariableValues: customizations.variables
       };
 
-      // Use the template creation handler
       const formattedTemplate = TemplateCreationHandler.createTemplate(templateInputData);
 
-      // Override examples with actual customized values, preserving original examples for marketing templates
+      // CRITICAL SAFETY NET: Ensure examples are in correct Meta API format
       formattedTemplate.components = formattedTemplate.components.map(component => {
-        // Get the original component from the template to preserve existing examples
         const originalComponent = template.components?.find(c => c.type === component.type);
         
         if (component.type === 'BODY') {
-          if (bodyVariables.length > 0) {
-            // If body has variables, replace example values with actual customized values
-            const bodyValues = bodyVariables.map(variable => {
+          const componentBodyVariables = extractVariables(component.text);
+
+          if (!component.example) component.example = {};
+
+          // AUTHENTICATION: Preserve original prefilled examples if provided; otherwise use empty [[]]
+          if (template.category === 'AUTHENTICATION') {
+            const orig = originalComponent?.example?.body_text;
+            if (orig && Array.isArray(orig) && Array.isArray(orig[0]) && orig[0].length > 0) {
+              component.example.body_text = orig;
+            } else {
+              component.example.body_text = [[]];
+            }
+          } else if (componentBodyVariables.length > 0) {
+            const bodyValues = componentBodyVariables.map(variable => {
+              const key = variable.replace(/[{}]/g, '');
+              return customizations.variables[key] || `Sample ${key}`;
+            });
+
+            // CRITICAL: body_text must be array of arrays [[value1, value2, ...]]
+            component.example.body_text = [bodyValues];
+          } else if (originalComponent?.example?.body_text) {
+            const originalExample = originalComponent.example.body_text;
+            if (Array.isArray(originalExample[0])) {
+              component.example.body_text = originalExample;
+            } else {
+              component.example.body_text = [originalExample];
+            }
+          } else {
+            component.example.body_text = [[]];
+          }
+        }
+
+        if (component.type === 'HEADER') {
+          if (component.format === 'TEXT' && headerVariables.length > 0) {
+            const headerValues = headerVariables.map(variable => {
               const key = variable.replace(/[{}]/g, '');
               return customizations.variables[key] || `Sample ${key}`;
             });
 
             if (!component.example) component.example = {};
-            // Meta requires body_text examples to be nested arrays: [["value1", "value2"]]
-            component.example.body_text = [bodyValues];
-          } else if ((template.category === 'MARKETING' || template.category === 'UTILITY') && originalComponent?.example) {
-            // For marketing/utility templates without variables, preserve the original example
+            component.example.header_text = headerValues;
+          }
+          
+          if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format || '')) {
             if (!component.example) component.example = {};
-            component.example = { ...originalComponent.example };
+            if (headerMediaHandle) {
+              component.example.header_handle = [headerMediaHandle];
+            } else if (originalComponent?.example?.header_handle) {
+              component.example.header_handle = originalComponent.example.header_handle;
+            } else {
+              component.example.header_handle = [''];
+            }
           }
         }
 
-        if (component.type === 'HEADER' && component.format === 'TEXT' && headerVariables.length > 0) {
-          // For header text variables, the example is a flat array of strings
-          const headerValues = headerVariables.map(variable => {
-            const key = variable.replace(/[{}]/g, '');
-            return customizations.variables[key] || `Sample ${key}`;
-          });
-
-          if (!component.example) component.example = {};
-          component.example.header_text = headerValues;
-        }
-
-        if (component.type === 'BUTTONS') {
-          component.buttons = component.buttons?.map((button: any) => {
+        if (component.type === 'BUTTONS' && component.buttons) {
+          component.buttons = component.buttons.map((button: any, btnIndex: number) => {
+            if (button.type) {
+              button.type = button.type.toUpperCase();
+            }
+            
             if (button.type === 'URL' && button.url?.includes('{{')) {
               const urlVariable = (button.url.match(/\{\{(\d+)\}\}/g) || [])[0];
               if (urlVariable) {
-                const key = urlVariable.replace(/[{}]/g, '');
-                const exampleValue = customizations.variables[key] || 'default-url-value';
+                const key = `url_button_${btnIndex}_${urlVariable.replace(/[{}]/g, '')}`;
+                const exampleValue = customizations.urlButtonVariables[key] || 'default-value';
                 button.example = [exampleValue];
               }
             }
+
+            // CRITICAL: Ensure phone numbers have E.164 format
+            if (button.type === 'PHONE_NUMBER' && button.phone_number) {
+              if (!button.phone_number.startsWith('+')) {
+                button.phone_number = '+' + button.phone_number;
+              }
+            }
+            
             return button;
           });
         }
@@ -412,11 +597,12 @@ export function CustomizeTemplateDialog({
         return component;
       });
 
+      console.log('Final template being sent to API:', JSON.stringify(formattedTemplate, null, 2));
+
       try {
         const success = await onSubmit(formattedTemplate, customizations);
         if (success) {
           onClose();
-          // Clean up preview URLs
           if (customizations.mediaPreview) {
             URL.revokeObjectURL(customizations.mediaPreview);
           }
@@ -433,33 +619,45 @@ export function CustomizeTemplateDialog({
     }
   };
 
-  // Preview template with filled variables
-  const getPreviewText = (text: string) => {
+  const getPreviewText = (text: string, isUrlButton: boolean = false, buttonIndex?: number) => {
     if (!text) return '';
     
     let result = text;
-    allVariables.forEach(variable => {
-      const key = variable.replace(/[{}]/g, '');
-      const value = customizations.variables[key];
-      if (value) {
-        result = result.replace(variable, value);
-      }
-    });
+    
+    if (isUrlButton && buttonIndex !== undefined) {
+      const matches = text.match(/\{\{(\d+)\}\}/g) || [];
+      matches.forEach(variable => {
+        const key = `url_button_${buttonIndex}_${variable.replace(/[{}]/g, '')}`;
+        const value = customizations.urlButtonVariables[key];
+        if (value) {
+          result = result.replace(variable, value);
+        } else {
+          result = result.replace(variable, `[URL Param]`);
+        }
+      });
+    } else {
+      variableData.bodyVariables.forEach(variable => {
+        const key = variable.replace(/[{}]/g, '');
+        const value = customizations.variables[key];
+        if (value) {
+          result = result.replace(variable, value);
+        }
+      });
+    }
     
     return result;
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Customize Template: {template.name}</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Customization Form */}
+          {/* Left Column - Customization Fields */}
           <div className="space-y-6">
-            {/* Media Upload Section */}
             {mediaRequirement.required && (
               <Card>
                 <CardHeader>
@@ -527,19 +725,15 @@ export function CustomizeTemplateDialog({
                       </Button>
                     )}
 
-                    {/* Media Preview */}
                     {customizations.mediaPreview && (
                       <Card className="p-3">
                         <div className="text-xs font-medium mb-2">Preview</div>
                         {mediaRequirement.format === 'IMAGE' && (
-                          <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={customizations.mediaPreview}
-                              alt="Preview"
-                              className="w-full max-h-48 object-contain rounded"
-                            />
-                          </>
+                          <img
+                            src={customizations.mediaPreview}
+                            alt="Preview"
+                            className="w-full max-h-48 object-contain rounded"
+                          />
                         )}
                         {mediaRequirement.format === 'VIDEO' && (
                           <video
@@ -561,22 +755,21 @@ export function CustomizeTemplateDialog({
               </Card>
             )}
 
-            {/* Variables Section */}
-            {allVariables.length > 0 && (
+            {variableData.bodyVariables.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Template Variables</CardTitle>
+                  <CardTitle className="text-lg">Message Variables</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Alert>
                     <Info className="h-4 w-4" />
                     <AlertDescription>
-                      Fill in the values for dynamic variables in your template.
+                      These variables will be used in your message body and header.
                     </AlertDescription>
                   </Alert>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {allVariables.map((variable) => {
+                    {variableData.bodyVariables.map((variable) => {
                       const key = variable.replace(/[{}]/g, '');
                       
                       return (
@@ -588,6 +781,7 @@ export function CustomizeTemplateDialog({
                             </Badge>
                           </Label>
                           <Input                        
+                            placeholder={`Enter value for ${variable}`}
                             value={customizations.variables[key] || ''}
                             onChange={(e) => updateVariable(key, e.target.value)}
                           />
@@ -598,97 +792,282 @@ export function CustomizeTemplateDialog({
                 </CardContent>
               </Card>
             )}
+
+            {/* NEW: Phone Number Customization */}
+            {phoneButtons.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <PhoneIcon className="h-5 w-5" />
+                    Phone Numbers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Customize phone numbers for call buttons. Must be in E.164 format (e.g., +15551234567).
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {phoneButtons.map((button, index) => {
+                      const actualIndex = buttonsComponent?.buttons?.findIndex(b => b === button) ?? index;
+                      const key = `phone_${actualIndex}`;
+                      
+                      return (
+                        <div key={key} className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {button.text} Button
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              Phone
+                            </Badge>
+                          </Label>
+                          <Input
+                            type="tel"
+                            placeholder="+15551234567"
+                            value={customizations.phoneNumbers[key] || ''}
+                            onChange={(e) => updatePhoneNumber(key, e.target.value)}
+                            onBlur={(e) => {
+                              let value = e.target.value.trim();
+                              if (value && !value.startsWith('+')) {
+                                value = '+' + value;
+                                updatePhoneNumber(key, value);
+                              }
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            E.164 format required. The + will be added automatically if missing.
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* NEW: URL Customization */}
+            {urlButtons.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <LinkIcon className="h-5 w-5" />
+                    Button URLs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Customize the URLs for your link buttons.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {urlButtons.map((button, index) => {
+                      const actualIndex = buttonsComponent?.buttons?.findIndex(b => b === button) ?? index;
+                      const key = `url_${actualIndex}`;
+                      
+                      return (
+                        <div key={key} className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {button.text} Button
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              URL
+                            </Badge>
+                          </Label>
+                          <Input
+                            type="url"
+                            placeholder="https://example.com"
+                            value={customizations.buttonUrls[key] || ''}
+                            onChange={(e) => updateButtonUrl(key, e.target.value)}
+                          />
+                          {button.url?.includes('{{') && (
+                            <p className="text-xs text-blue-600">
+                              Note: This URL contains variables. Fill them below.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {variableData.urlButtonVariables.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <LinkIcon className="h-5 w-5" />
+                    URL Parameters
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      These parameters will be appended to button URLs.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {variableData.urlButtonVariables.map(({ variable, buttonIndex, buttonText }) => {
+                      const key = `url_button_${buttonIndex}_${variable.replace(/[{}]/g, '')}`;
+                      const button = template.components?.find(c => c.type === 'BUTTONS')?.buttons?.[buttonIndex];
+                      
+                      return (
+                        <div key={key} className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            {buttonText} - Parameter
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {variable}
+                            </Badge>
+                          </Label>
+                          <Input                        
+                            placeholder={`Enter parameter value`}
+                            value={customizations.urlButtonVariables[key] || ''}
+                            onChange={(e) => updateUrlButtonVariable(key, e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Current URL: {button?.url}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Template Preview */}
+          {/* Right Column - WhatsApp-Style Preview */}
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Template Preview</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  WhatsApp Preview
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-                  <div className="space-y-3">
-                    {template.components?.map((component, index) => (
-                      <div key={index}>
-                        {component.type === 'HEADER' && (
-                          <div className="space-y-2">
-                            {component.format === 'TEXT' && component.text && (
-                              <div className="font-semibold text-sm">
+                {/* WhatsApp chat background */}
+                <div className="bg-[#e5ddd5] dark:bg-gray-800 p-4 rounded-lg min-h-[400px]">
+                  {/* Message bubble - right side (business sending) */}
+                  <div className="flex justify-end mb-2">
+                    <div className="max-w-[85%]">
+                      <div className="bg-[#dcf8c6] dark:bg-green-900 rounded-lg shadow-md p-3 space-y-2">
+                        {/* Header */}
+                        {template.components?.map((component, index) => (
+                          <div key={index}>
+                            {component.type === 'HEADER' && (
+                              <div className="space-y-2">
+                                {component.format === 'TEXT' && component.text && (
+                                  <div className="font-semibold text-sm">
+                                    {getPreviewText(component.text)}
+                                  </div>
+                                )}
+                                {mediaRequirement.required && customizations.mediaPreview && (
+                                  <div className="rounded-md overflow-hidden -mx-1 -mt-1 mb-2">
+                                    {mediaRequirement.format === 'IMAGE' && (
+                                      <img
+                                        src={customizations.mediaPreview}
+                                        alt="Header"
+                                        className="w-full max-h-48 object-cover"
+                                      />
+                                    )}
+                                    {mediaRequirement.format === 'VIDEO' && (
+                                      <video
+                                        src={customizations.mediaPreview}
+                                        className="w-full max-h-48 object-cover"
+                                        muted
+                                      />
+                                    )}
+                                  </div>
+                                )}
+                                {mediaRequirement.required && !customizations.mediaPreview && (
+                                  <div className="bg-gray-200 dark:bg-gray-700 rounded-md p-8 flex items-center justify-center -mx-1 -mt-1 mb-2">
+                                    {mediaRequirement.format === 'IMAGE' && <ImageIcon className="h-8 w-8 text-muted-foreground" />}
+                                    {mediaRequirement.format === 'VIDEO' && <Video className="h-8 w-8 text-muted-foreground" />}
+                                    {mediaRequirement.format === 'DOCUMENT' && <FileText className="h-8 w-8 text-muted-foreground" />}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {component.type === 'BODY' && component.text && (
+                              <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
                                 {getPreviewText(component.text)}
                               </div>
                             )}
-                            {mediaRequirement.required && customizations.mediaPreview && (
-                              <div className="bg-gray-100 dark:bg-gray-800 rounded-md overflow-hidden">
-                                {mediaRequirement.format === 'IMAGE' && (
-                                  <>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                      src={customizations.mediaPreview}
-                                      alt="Header"
-                                      className="w-full max-h-32 object-cover"
-                                    />
-                                  </>
-                                )}
-                                {mediaRequirement.format === 'VIDEO' && (
-                                  <video
-                                    src={customizations.mediaPreview}
-                                    className="w-full max-h-32 object-cover"
-                                    muted
-                                  />
-                                )}
+
+                            {component.type === 'FOOTER' && component.text && (
+                              <div className="text-xs text-gray-600 dark:text-gray-400 pt-1">
+                                {component.text}
                               </div>
                             )}
-                            {mediaRequirement.required && !customizations.mediaPreview && (
-                              <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-8 flex items-center justify-center">
-                                {mediaRequirement.format === 'IMAGE' && <ImageIcon className="h-8 w-8 text-muted-foreground" />}
-                                {mediaRequirement.format === 'VIDEO' && <Video className="h-8 w-8 text-muted-foreground" />}
-                                {mediaRequirement.format === 'DOCUMENT' && <FileText className="h-8 w-8 text-muted-foreground" />}
+
+                            {component.type === 'BUTTONS' && component.buttons && (
+                              <div className="pt-2 space-y-1">
+                                {component.buttons.map((button: any, buttonIndex: number) => {
+                                  let displayUrl = button.url || '';
+                                  let displayPhone = button.phone_number || '';
+                                  
+                                  // Get custom values
+                                  if (button.type === 'PHONE_NUMBER') {
+                                    const key = `phone_${buttonIndex}`;
+                                    displayPhone = customizations.phoneNumbers[key] || displayPhone;
+                                  }
+                                  
+                                  if (button.type === 'URL') {
+                                    const key = `url_${buttonIndex}`;
+                                    displayUrl = customizations.buttonUrls[key] || displayUrl;
+                                    displayUrl = getPreviewText(displayUrl, true, buttonIndex);
+                                  }
+                                  
+                                  return (
+                                    <div 
+                                      key={buttonIndex}
+                                      className="border-t border-gray-300 dark:border-gray-600 px-3 py-2 text-center text-sm bg-white/50 dark:bg-black/20"
+                                    >
+                                      <span className="text-[#00a5f4] dark:text-blue-400 font-medium flex items-center justify-center gap-2">
+                                        {button.type === 'PHONE_NUMBER' && <PhoneIcon className="h-3 w-3" />}
+                                        {button.type === 'URL' && <LinkIcon className="h-3 w-3" />}
+                                        {button.text}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
-                        )}
+                        ))}
 
-                        {component.type === 'BODY' && component.text && (
-                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                            {getPreviewText(component.text)}
-                          </div>
-                        )}
-
-                        {component.type === 'FOOTER' && component.text && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-                            {component.text}
-                          </div>
-                        )}
-
-                        {component.type === 'BUTTONS' && component.buttons && (
-                          <div className="pt-2 space-y-1">
-                            {component.buttons.map((button: any, buttonIndex: number) => (
-                              <div 
-                                key={buttonIndex}
-                                className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-center text-sm bg-gray-50 dark:bg-gray-800"
-                              >
-                                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                  {button.text}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {/* WhatsApp message timestamp */}
+                        <div className="flex justify-end items-center gap-1 pt-1">
+                          <span className="text-[10px] text-gray-600 dark:text-gray-400">
+                            {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" viewBox="0 0 16 15" fill="none">
+                            <path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" fill="currentColor"/>
+                          </svg>
+                        </div>
                       </div>
-                    ))}
+                    </div>
                   </div>
+                </div>
 
-                  <div className="flex justify-end mt-3">
-                    <span className="text-xs text-gray-400">Template Preview</span>
-                  </div>
+                <div className="mt-4 text-xs text-muted-foreground space-y-1">
+                  <p>• This preview shows how your message will appear in WhatsApp</p>
+                  <p>• Messages from businesses appear on the right (green bubble)</p>
+                  <p>• Customize all fields on the left to see changes</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
             Cancel

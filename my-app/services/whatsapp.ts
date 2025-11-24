@@ -18,14 +18,23 @@ interface WhatsAppTemplate {
   language: string;
   components: TemplateComponent[];
   parameters?: any[];
+  last_updated?: string;
+  quality_score?: {
+    score: string;
+    date: number;
+  };
+  rejected_reason?: string;
+  created_at?: string;
+  message_send_ttl_seconds?: number;
 }
 
 interface TemplateComponent {
-  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS' | 'CAROUSEL';
   format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
   text?: string;
   example?: any;
   buttons?: any[];
+  cards?: any[];
 }
 
 interface WhatsAppApiResponse<T> {
@@ -83,17 +92,52 @@ interface ConversationAnalyticsResponse {
   };
   id: string;
 }
-
 interface PhoneNumberLimit {
-  phone_number: string;
+     phone_number: string;
+     name: string;
+     quality_rating?: string;
+     limit: number;
+     business_initiated_conversations?: number;
+     country?: string;
+   }
+
+// WhatsApp Flow interfaces
+interface WhatsAppFlow {
+  id: string;
   name: string;
-  country: string;
-  business_initiated_conversations: number;
-  limit: number;
-  quality_rating?: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'DEPRECATED';
+  categories: string[];
+  validation_errors?: any[];
+  created_time?: string;
+  updated_time?: string;
+  json_version?: string;
+  data_api_version?: string;
 }
 
-const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v22.0';
+interface FlowScreen {
+  id: string;
+  title: string;
+  terminal?: boolean;
+  success?: boolean;
+  data?: any;
+}
+
+interface FlowDetails extends WhatsAppFlow {
+  screens?: FlowScreen[];
+  preview?: any;
+}
+
+interface FlowMessagePayload {
+  flow_id: string;
+  flow_token?: string;
+  flow_action?: 'navigate' | 'data_exchange';
+  flow_action_payload?: {
+    screen?: string;
+    data?: Record<string, any>;
+  };
+}
+
+const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v23.0';
 
 // Language code mappings for WhatsApp templates
 const LANGUAGE_CODES: Record<string, string[]> = {
@@ -113,26 +157,72 @@ const LANGUAGE_CODES: Record<string, string[]> = {
 
 export class WhatsAppService {
   /**
+   * Extract detailed error message from Meta API response
+   * Includes error_data.details, error_user_msg, and error_user_title if available
+   */
+  static extractErrorMessage(error: any): { message: string; details?: string } {
+    if (!error) {
+      return { message: 'Unknown error occurred' };
+    }
+
+    let message = 'An error occurred';
+    let details: string | undefined;
+
+    // Handle Meta API error response structure
+    if (error.error) {
+      // Try to get the most user-friendly message first
+      message = error.error.error_user_title ||
+                error.error.error_user_msg ||
+                error.error.message ||
+                message;
+
+      // Extract additional details from multiple possible sources
+      if (error.error.error_data?.details) {
+        details = error.error.error_data.details;
+      }
+      // If no error_data.details, try error_user_msg as details (if not already used as message)
+      else if (error.error.error_user_msg && error.error.error_user_title) {
+        details = error.error.error_user_msg;
+        message = error.error.error_user_title;
+      }
+      // Fallback to error_user_msg if available
+      else if (error.error.error_user_msg) {
+        details = error.error.error_user_msg;
+      }
+    }
+    // Handle Error object
+    else if (error instanceof Error) {
+      message = error.message;
+    }
+    // Handle string error
+    else if (typeof error === 'string') {
+      message = error;
+    }
+
+    return { message, details };
+  }
+
+  /**
    * Validates that a media handle is properly formatted and not a placeholder
    */
   static validateMediaHandle(handle: string, mediaType: string): boolean {
     if (!handle || typeof handle !== 'string') {
       return false;
     }
-  
+
     // Check for placeholder values
-    if (handle === 'DYNAMIC_HANDLE_FROM_UPLOAD' || 
-        handle.includes('...') || 
-        handle.includes('sample') || 
-        handle.includes('example')) {
+    if (handle === 'DYNAMIC_HANDLE_FROM_UPLOAD' ||
+      handle.includes('...') ||
+      handle.includes('sample') ||
+      handle.includes('example')) {
       return false;
     }
-  
+
     // More flexible validation for different handle formats
     if (handle.length < 5) {
       return false;
     }
-  
+
     const handlePattern = /^[a-zA-Z0-9:_\-+/=]+$/;
     return handlePattern.test(handle);
   }
@@ -142,7 +232,7 @@ export class WhatsAppService {
    */
   static getLanguageVariations(code: string): string[] {
     const variations: string[] = [code]; // Start with the original code
-    
+
     // Add common variations
     if (code === 'en') {
       variations.push('en_US', 'en_GB');
@@ -151,18 +241,22 @@ export class WhatsAppService {
     } else if (code === 'en_GB') {
       variations.push('en', 'en_US');
     }
-    
+
     // For other languages, add the base and common regional variants
     const baseCode = code.split('_')[0];
     if (baseCode !== code && !variations.includes(baseCode)) {
       variations.push(baseCode);
     }
-    
+
     return variations;
   }
 
- 
-  static formatTemplateComponents(components: any[]): any[] {
+  /**
+   * Format template components for Meta API
+   * CRITICAL: This method must preserve the exact format from template-creator.ts
+   * DO NOT modify examples, button types, or array structures
+   */
+static formatTemplateComponents(components: any[]): any[] {
     return components.map(component => {
       const formattedComponent: any = {
         type: component.type
@@ -173,88 +267,278 @@ export class WhatsAppService {
         if (component.format) {
           formattedComponent.format = component.format;
         }
-        
+
+        // Handle LOCATION header - no example or parameters needed at creation time
+        if (component.format === 'LOCATION') {
+          // Location headers are created with just type and format
+          // The actual location data is provided when sending the message
+          return formattedComponent;
+        }
+
         if (component.format === 'TEXT' && component.text) {
           formattedComponent.text = component.text;
-          
-          // Add example if the text contains variables
-          const variableMatches = component.text.match(/\{\{(\d+)\}\}/g);
-          if (variableMatches) {
+
+          // CRITICAL: Preserve existing example if provided
+          if (component.example?.header_text) {
             formattedComponent.example = {
-              header_text: variableMatches.map(() => '')
+              header_text: component.example.header_text
             };
           }
         } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format)) {
           // For media headers, use the provided media handle from upload API response
           if (component.example?.header_handle?.[0]) {
             const mediaHandle = component.example.header_handle[0];
-            
+
             formattedComponent.example = {
-              header_handle: [mediaHandle] // Always use uploadData.h from upload API response
+              header_handle: [mediaHandle]
             };
           } else {
-            // This should not happen in normal flow - media headers without handles
-            // should trigger the customization dialog where users upload media
             throw new Error(`Media header component (${component.format}) requires a media handle. Please upload media first.`);
           }
         }
       }
 
       // Handle BODY component
-      if (component.type === 'BODY' && component.text) {
-        formattedComponent.text = component.text;
-        
-        // Extract variables and create proper example structure
-        const variableMatches = component.text.match(/\{\{(\d+)\}\}/g);
-        if (variableMatches && variableMatches.length > 0) {
-          const exampleValues = variableMatches.map((_: any, index: number) => `value${index + 1}`);
+      if (component.type === 'BODY') {
+        // CRITICAL: text field is REQUIRED by Meta API for non-authentication templates
+        // Authentication templates don't need text field (they use preset templates)
+        if (component.add_security_recommendation !== undefined) {
+          // Authentication template - don't include text field
+          formattedComponent.add_security_recommendation = component.add_security_recommendation;
+        } else {
+          // Non-authentication template - MUST have text field
+          if (component.text !== undefined && component.text !== null && component.text !== '') {
+            formattedComponent.text = component.text;
+          } else {
+            throw new Error('BODY component requires a text field for non-authentication templates');
+          }
+        }
+
+        // Handle example for body text variables
+        if (component.example?.body_text) {
+          const bodyText = component.example.body_text;
+
+          // Ensure body_text is in nested array format [[...]] and NOT EMPTY
+          if (Array.isArray(bodyText) && bodyText.length > 0) {
+            // Check if it's nested and has content
+            if (Array.isArray(bodyText[0])) {
+              // Only add if inner array has content
+              if (bodyText[0].length > 0) {
+                formattedComponent.example = {
+                  body_text: bodyText
+                };
+              }
+            } else {
+              // Flat array with content
+              if (bodyText.length > 0) {
+                formattedComponent.example = {
+                  body_text: [bodyText]
+                };
+              }
+            }
+          }
+        } else if (component.text && /\{\{\d+\}\}/.test(component.text)) {
+          // Only add example if template has variables
+          const varCount = (component.text.match(/\{\{\d+\}\}/g) || []).length;
           formattedComponent.example = {
-            body_text: exampleValues  // Fixed: Use flat array, not nested [exampleValues]
+            body_text: [Array(varCount).fill('Sample text')]
           };
         }
+        // If no variables and no example provided, don't include example field at all
       }
 
       // Handle FOOTER component
-      if (component.type === 'FOOTER' && component.text) {
-        formattedComponent.text = component.text;
+      if (component.type === 'FOOTER') {
+        // For authentication templates, code_expiration_minutes
+        if (component.code_expiration_minutes !== undefined) {
+          formattedComponent.code_expiration_minutes = component.code_expiration_minutes;
+        }
+        
+        // For regular templates, text
+        if (component.text) {
+          formattedComponent.text = component.text;
+        }
+      }
+
+      // Handle CAROUSEL component
+      if (component.type === 'CAROUSEL' && component.cards) {
+        formattedComponent.cards = component.cards.map((card: any) => {
+          const formattedCard: any = {
+            components: []
+          };
+
+          // Process each component in the card
+          if (card.components && Array.isArray(card.components)) {
+            formattedCard.components = card.components.map((cardComponent: any) => {
+              const formattedCardComponent: any = {
+                type: cardComponent.type
+              };
+
+              // Handle HEADER component in card
+              if (cardComponent.type === 'HEADER' || cardComponent.type === 'header') {
+                formattedCardComponent.type = 'header';
+
+                if (cardComponent.format) {
+                  formattedCardComponent.format = cardComponent.format.toLowerCase();
+                }
+
+                // For product cards
+                if (cardComponent.format === 'product' || cardComponent.format === 'PRODUCT') {
+                  formattedCardComponent.format = 'product';
+                }
+                // For media cards (image/video)
+                else if (['image', 'IMAGE', 'video', 'VIDEO'].includes(cardComponent.format)) {
+                  formattedCardComponent.format = cardComponent.format.toLowerCase();
+
+                  // Include media handle example
+                  if (cardComponent.example?.header_handle) {
+                    formattedCardComponent.example = {
+                      header_handle: cardComponent.example.header_handle
+                    };
+                  }
+                }
+              }
+
+              // Handle BODY component in card (optional for carousel cards)
+              if (cardComponent.type === 'BODY' || cardComponent.type === 'body') {
+                formattedCardComponent.type = 'body';
+
+                if (cardComponent.text) {
+                  formattedCardComponent.text = cardComponent.text;
+                }
+
+                if (cardComponent.example?.body_text) {
+                  formattedCardComponent.example = {
+                    body_text: cardComponent.example.body_text
+                  };
+                }
+              }
+
+              // Handle BUTTONS component in card
+              if (cardComponent.type === 'BUTTONS' || cardComponent.type === 'buttons') {
+                formattedCardComponent.type = 'buttons';
+
+                if (cardComponent.buttons && Array.isArray(cardComponent.buttons)) {
+                  formattedCardComponent.buttons = cardComponent.buttons.map((btn: any) => {
+                    const buttonType = btn.type.toString().toLowerCase();
+                    const formattedButton: any = {
+                      type: buttonType,
+                      text: btn.text
+                    };
+
+                    // Handle SPM (Single Product Message) button - for product cards
+                    if (buttonType === 'spm') {
+                      formattedButton.type = 'spm';
+                    }
+                    // Handle quick_reply buttons
+                    else if (buttonType === 'quick_reply') {
+                      formattedButton.type = 'quick_reply';
+                    }
+                    // Handle URL buttons with variable support
+                    else if (buttonType === 'url') {
+                      formattedButton.type = 'url';
+                      if (btn.url) {
+                        formattedButton.url = btn.url;
+                      }
+                      if (btn.example && Array.isArray(btn.example)) {
+                        formattedButton.example = btn.example;
+                      }
+                    }
+                    // Handle phone_number buttons
+                    else if (buttonType === 'phone_number') {
+                      formattedButton.type = 'phone_number';
+                      if (btn.phone_number) {
+                        formattedButton.phone_number = btn.phone_number;
+                      }
+                    }
+
+                    return formattedButton;
+                  });
+                }
+              }
+
+              return formattedCardComponent;
+            });
+          }
+
+          return formattedCard;
+        });
       }
 
       // Handle BUTTONS component
+      // CRITICAL: Button types MUST remain uppercase for Meta API
       if (component.type === 'BUTTONS' && component.buttons) {
         formattedComponent.buttons = component.buttons.map((button: any) => {
+          // CRITICAL FIX: Keep button types in UPPERCASE (Meta API accepts both, but we standardize on uppercase)
+          // Normalize the type to uppercase for consistency
+          const buttonType = button.type.toString().toUpperCase();
+
           const formattedButton: any = {
-            type: button.type,
+            type: buttonType,
             text: button.text
           };
 
-          if (button.type === 'PHONE_NUMBER' && button.phone_number) {
-            formattedButton.phone_number = button.phone_number;
+          // Handle FLOW buttons - CRITICAL: Preserve all fields
+          if (buttonType === 'FLOW') {
+            // MUST preserve these fields for Flow buttons
+            if (button.flow_id) {
+              formattedButton.flow_id = button.flow_id;
+            }
+            if (button.flow_action) {
+              formattedButton.flow_action = button.flow_action;
+            }
+            if (button.navigate_screen) {
+              formattedButton.navigate_screen = button.navigate_screen;
+            }
+            return formattedButton;
           }
 
-          if (button.type === 'URL') {
+          // Handle PHONE_NUMBER buttons
+          if (buttonType === 'PHONE_NUMBER') {
+            if (button.phone_number) {
+              formattedButton.phone_number = button.phone_number;
+            }
+          }
+
+          // Handle URL buttons
+          if (buttonType === 'URL') {
             if (button.url) {
               formattedButton.url = button.url;
-              
-              // Check for dynamic URL parameters
-              const urlVariables = button.url.match(/\{\{(\d+)\}\}/g);
-              if (urlVariables) {
-                formattedButton.example = urlVariables.map(() => 'parameter');
+
+              // CRITICAL: Preserve existing example if provided
+              if (button.example && Array.isArray(button.example)) {
+                formattedButton.example = button.example;
               }
             }
           }
 
-          if (button.type === 'QUICK_REPLY') {
-            // Quick reply buttons don't need additional properties
+          // Handle QUICK_REPLY buttons
+          if (buttonType === 'QUICK_REPLY') {
+            // Quick reply buttons only need type and text
           }
 
           // Handle OTP buttons for authentication templates
-          if (button.type === 'OTP') {
-            formattedButton.otp_type = button.otp_type || 'COPY_CODE';
-            if (button.otp_type === 'ONE_TAP') {
-              formattedButton.autofill_text = button.autofill_text || 'Autofill';
-              formattedButton.package_name = button.package_name || 'com.example.app';
-              formattedButton.signature_hash = button.signature_hash || 'K8a/AINcGX7';
+          if (buttonType === 'OTP' || buttonType === 'COPY_CODE') {
+            formattedButton.type = 'OTP'; // CRITICAL FIX: Keep as OTP, not COPY_CODE
+
+            if (button.otp_type) {
+              formattedButton.otp_type = button.otp_type;
             }
+
+            // For ONE_TAP buttons, include additional fields
+            if (button.otp_type === 'ONE_TAP') {
+              if (button.autofill_text) {
+                formattedButton.autofill_text = button.autofill_text;
+              }
+              if (button.package_name) {
+                formattedButton.package_name = button.package_name;
+              }
+              if (button.signature_hash) {
+                formattedButton.signature_hash = button.signature_hash;
+              }
+            }
+
+            return formattedButton;
           }
 
           return formattedButton;
@@ -275,8 +559,6 @@ export class WhatsAppService {
       }
 
       const apiUrl = `/api/channels/whatsapp/org/${organizationId}`;
-      
-   
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -284,14 +566,14 @@ export class WhatsAppService {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch app services: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       const services = Array.isArray(data) ? data : (data.appServices || data || []);
-    
+
       return services;
     } catch (error) {
       console.error('Error fetching app services:', error);
@@ -329,6 +611,7 @@ export class WhatsAppService {
 
   /**
    * Create a new WhatsApp template with proper formatting
+   * CRITICAL: This method must NOT modify the template structure
    */
   static async createTemplate(
     appService: AppService,
@@ -347,8 +630,6 @@ export class WhatsAppService {
         components: this.formatTemplateComponents(templateData.components || [])
       };
 
-      console.log('Creating template with formatted data:', JSON.stringify(formattedData, null, 2));
-      
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates`,
         {
@@ -362,18 +643,16 @@ export class WhatsAppService {
       );
 
       const responseData = await response.json();
-      
+
       if (!response.ok) {
-        console.error('Template creation failed:', responseData);
-        const errorMessage = responseData.error?.message || 
-                           responseData.error?.error_user_msg || 
-                           'Failed to create template';
+        const errorMessage = responseData.error?.message ||
+          responseData.error?.error_user_msg ||
+          'Failed to create template';
         throw new Error(errorMessage);
       }
 
       return responseData;
     } catch (error) {
-      console.error('Error creating WhatsApp template:', error);
       throw error;
     }
   }
@@ -395,7 +674,7 @@ export class WhatsAppService {
         category: templateData.category,
         components: this.formatTemplateComponents(templateData.components || [])
       };
-      
+
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${templateId}`,
         {
@@ -431,7 +710,7 @@ export class WhatsAppService {
       if (!appService.access_token) {
         throw new Error('Access token is required for Meta Graph API calls');
       }
-      
+
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates?name=${templateName}`,
         {
@@ -469,20 +748,14 @@ export class WhatsAppService {
 
       // Ensure language code is provided - use exact match with template
       if (!messageData.template?.language?.code) {
-        // Default to en_US if no language code is provided
         messageData.template.language = { code: 'en_US' };
       }
 
-      console.log('Sending message with template:', messageData.template.name, 'language:', messageData.template.language.code);
-      console.log('Sending message:', JSON.stringify(messageData, null, 2));
-
-      // Try sending with the original language code first
       let lastError: any;
       const languageVariations = this.getLanguageVariations(messageData.template.language.code);
-      
+
       for (const languageCode of languageVariations) {
         try {
-          // Update the language code for this attempt
           const attemptData = {
             ...messageData,
             template: {
@@ -491,8 +764,6 @@ export class WhatsAppService {
             }
           };
 
-          console.log(`Attempting to send with language code: ${languageCode}`);
-          
           const response = await fetch(
             `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
             {
@@ -506,27 +777,21 @@ export class WhatsAppService {
           );
 
           const responseData = await response.json();
-          
+
           if (response.ok) {
-            console.log(`Successfully sent with language code: ${languageCode}`);
             return responseData;
           } else {
             lastError = responseData;
-            // If it's not a language/translation error, don't try other variations
-            if (!responseData.error?.message?.includes('translation') && 
-                !responseData.error?.message?.includes('Template name does not exist')) {
+            if (!responseData.error?.message?.includes('translation') &&
+              !responseData.error?.message?.includes('Template name does not exist')) {
               break;
             }
-            console.log(`Failed with language code ${languageCode}:`, responseData.error?.message);
           }
         } catch (error) {
           lastError = error;
-          console.log(`Network error with language code ${languageCode}:`, error);
         }
       }
 
-      // If we get here, all attempts failed
-      console.error('All language variations failed. Last error:', lastError);
       if (lastError?.error?.message) {
         throw new Error(`Failed to send message: ${lastError.error.message}`);
       } else {
@@ -555,7 +820,7 @@ export class WhatsAppService {
       template: {
         name: templateName,
         language: {
-          code: languageCode // Use the language code as provided
+          code: languageCode
         }
       }
     };
@@ -628,7 +893,7 @@ export class WhatsAppService {
       }
 
       const fieldsParam = `conversation_analytics.start(${startTimestamp}).end(${endTimestamp}).granularity(${granularity}).metric_types([${metricTypes.map(t => `"${t}"`).join(',')}]).dimensions([${dimensions.map(d => `"${d}"`).join(',')}])`;
-      
+
       const response = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}?fields=${encodeURIComponent(fieldsParam)}`,
         {
@@ -680,7 +945,7 @@ export class WhatsAppService {
       }
 
       const phoneNumbersData = await response.json();
-      
+
       return phoneNumbersData.data?.map((phone: any) => ({
         phone_number: phone.display_phone_number || phone.phone_number,
         name: phone.verified_name || 'Unknown',
@@ -690,6 +955,71 @@ export class WhatsAppService {
       })) || [];
     } catch (error) {
       console.error('Error fetching phone number limits:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch phone numbers from Meta Graph API with comprehensive details
+   * Uses the dedicated phone_numbers endpoint with extensive field list
+   */
+  static async fetchPhoneNumbers(appService: AppService): Promise<any[]> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.whatsapp_business_account_id) {
+        throw new Error('WhatsApp Business Account ID is required');
+      }
+
+      // Comprehensive field list for phone numbers
+      const fields = [
+        'id',
+        'display_phone_number',
+        'phone_number',
+        'verified_name',
+        'display_name',
+        'name',
+        'quality_rating',
+        'quality_score',
+        'messaging_limit_tier',
+        'tier',
+        'current_limit',
+        'max_daily_conversation_per_phone',
+        'code_verification_status',
+        'verification_status',
+        'name_status',
+        'new_name_status',
+        'certificate',
+        'account_mode',
+        'is_official_business_account',
+        'certificate_status',
+        'platform_type',
+        'throughput',
+        'webhook_configuration',
+      ].join(',');
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/phone_numbers?fields=${fields}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch phone numbers: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error);
       throw error;
     }
   }
@@ -727,7 +1057,7 @@ export class WhatsAppService {
         return country;
       }
     }
-    
+
     return 'Unknown';
   }
 
@@ -762,16 +1092,834 @@ export class WhatsAppService {
       throw error;
     }
   }
+
+  /**
+   * Fetch template details including media handles
+   */
+  static async fetchTemplateDetails(
+    appService: AppService,
+    templateId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const url = `https://graph.facebook.com/${META_API_VERSION}/${templateId}`;
+      const params = new URLSearchParams({
+        fields: 'id,name,components,language,status',
+        access_token: appService.access_token
+      });
+
+      const response = await fetch(`${url}?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch template details: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching template details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract media handle from template components
+   * Returns the media handle/URL or null if not found
+   */
+  static extractMediaHandle(template: any): string | null {
+    const headerComponent = template.components?.find(
+      (c: any) => c.type === "HEADER" &&
+      ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format?.toUpperCase())
+    );
+
+    const handle = headerComponent?.example?.header_handle?.[0];
+
+    if (!handle) {
+      return null;
+    }
+
+    // Return the handle regardless of whether it's a URL or ID
+    // The buildMediaParameter function will determine how to use it
+    return handle;
+  }
+
+  /**
+   * Check if a string is a URL
+   */
+  static isUrl(str: string): boolean {
+    try {
+      const url = new URL(str);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Upload media using the API endpoint
+   */
+  static async uploadMediaToMeta(
+    file: File,
+    accessToken: string
+  ): Promise<{ handle: string; fileType: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('accessToken', accessToken);
+
+      const response = await fetch('/api/whatsapp/upload-media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload media');
+      }
+
+      const data = await response.json();
+      return {
+        handle: data.handle,
+        fileType: data.fileType
+      };
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if template has media header
+   */
+  static hasMediaHeader(template: WhatsAppTemplate): boolean {
+    return template.components?.some(
+      (c) => c.type === "HEADER" &&
+      ["IMAGE", "VIDEO", "DOCUMENT"].includes(c.format?.toUpperCase() || '')
+    ) || false;
+  }
+
+  /**
+   * Check if template is a carousel template
+   */
+  static isCarouselTemplate(template: WhatsAppTemplate): boolean {
+    return template.components?.some((c) => c.type === "CAROUSEL") || false;
+  }
+
+  /**
+   * Get carousel type (media or product)
+   */
+  static getCarouselType(template: WhatsAppTemplate): 'media' | 'product' | null {
+    const carouselComponent = template.components?.find((c) => c.type === "CAROUSEL");
+    if (!carouselComponent?.cards || carouselComponent.cards.length === 0) return null;
+
+    const firstCard = carouselComponent.cards[0];
+    const headerComponent = firstCard?.components?.find((c: any) => c.type === "HEADER" || c.type === "header");
+
+    if (headerComponent?.format === 'product' || headerComponent?.format === 'PRODUCT') {
+      return 'product';
+    } else if (['image', 'IMAGE', 'video', 'VIDEO'].includes(headerComponent?.format)) {
+      return 'media';
+    }
+
+    return null;
+  }
+
+  /**
+   * Get media type from template
+   */
+  static getMediaType(template: WhatsAppTemplate): string {
+    const header = template.components?.find((c) => c.type === "HEADER");
+    return header?.format?.toUpperCase() || "";
+  }
+
+  /**
+   * Build media parameter object for sending messages
+   * Automatically detects if the handle is a URL or ID and formats accordingly
+   */
+  static buildMediaParameter(mediaType: string, mediaHandle: string): any {
+    const type = mediaType.toLowerCase();
+    const parameter: any = { type };
+
+    // Check if the handle is a URL or a media ID
+    if (this.isUrl(mediaHandle)) {
+      // Use 'link' for URLs (from template media)
+      parameter[type] = { link: mediaHandle };
+    } else {
+      // Use 'id' for media IDs (from uploaded media)
+      parameter[type] = { id: mediaHandle };
+    }
+
+    return parameter;
+  }
+
+  /**
+   * Check message status by message ID
+   * This helps debug why messages aren't being delivered
+   */
+  static async getMessageStatus(
+    appService: AppService,
+    messageId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${messageId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch message status: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching message status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get quality rating and messaging limits for debugging delivery issues
+   */
+  static async getPhoneNumberQuality(
+    appService: AppService
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}?fields=quality_rating,messaging_limit_tier,is_official_business_account,account_mode,name_status,code_verification_status`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch phone number quality: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching phone number quality:', error);
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // WHATSAPP FLOWS METHODS
+  // ============================================================================
+
+  /**
+   * Fetch all WhatsApp Flows for a business account
+   */
+  static async fetchFlows(appService: AppService): Promise<WhatsAppFlow[]> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.whatsapp_business_account_id) {
+        throw new Error('WhatsApp Business Account ID is required');
+      }
+
+      // Note: created_time and updated_time are not available fields for WhatsAppFlow
+      // Only use supported fields: id, name, status, categories, validation_errors
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/flows?fields=id,name,status,categories,validation_errors`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch flows: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error('Error fetching WhatsApp Flows:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch detailed information about a specific Flow including screens
+   */
+  static async fetchFlowDetails(
+    appService: AppService,
+    flowId: string
+  ): Promise<FlowDetails> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      // Fetch flow with preview to get screens
+      // Note: created_time and updated_time are not available on WhatsAppFlow node
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${flowId}?fields=id,name,status,categories,validation_errors,preview.invalidate(false)`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch flow details: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Parse screens from preview
+      let screens: FlowScreen[] = [];
+      if (data.preview?.preview) {
+        try {
+          const previewData = JSON.parse(data.preview.preview);
+
+          // The preview structure is: { version, screens: [...] }
+          if (previewData.screens && Array.isArray(previewData.screens)) {
+            screens = previewData.screens.map((screen: any) => ({
+              id: screen.id,
+              title: screen.title || screen.id,
+              terminal: screen.terminal || false,
+              success: screen.success,
+              data: screen.data
+            }));
+          }
+        } catch (e) {
+          console.error('Error parsing flow preview:', e);
+          console.error('Preview data:', data.preview?.preview);
+        }
+      }
+
+      // If no screens found from preview, try fetching from assets endpoint
+      if (screens.length === 0) {
+        console.warn('No preview data found, trying assets endpoint for flow:', flowId);
+
+        try {
+          const flowJSON = await this.getFlowJSON(appService, flowId);
+          if (flowJSON?.screens && Array.isArray(flowJSON.screens)) {
+            screens = flowJSON.screens.map((screen: any) => ({
+              id: screen.id,
+              title: screen.title || screen.id,
+              terminal: screen.terminal || false,
+              success: screen.success,
+              data: screen.data
+            }));
+            console.log(`Found ${screens.length} screens from assets endpoint`);
+          }
+        } catch (assetError) {
+          console.error('Error fetching from assets endpoint:', assetError);
+        }
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        status: data.status,
+        categories: data.categories || [],
+        validation_errors: data.validation_errors,
+        screens
+      };
+    } catch (error) {
+      console.error('Error fetching flow details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a message template with a Flow button
+   * This creates a business-initiated message template that includes a Flow
+   */
+  static async createFlowTemplate(
+    appService: AppService,
+    templateData: {
+      name: string;
+      language: string;
+      category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+      bodyText: string;
+      flowId: string;
+      flowAction?: 'navigate' | 'data_exchange';
+      navigateScreen?: string;
+      buttonText?: string;
+    }
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.whatsapp_business_account_id) {
+        throw new Error('WhatsApp Business Account ID is required');
+      }
+
+      // Format template name
+      const templateName = templateData.name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+      // Build template components
+      // Check if body text has variables ({{1}}, {{2}}, etc.)
+      const variableMatches = templateData.bodyText.match(/\{\{\d+\}\}/g);
+      const hasVariables = variableMatches && variableMatches.length > 0;
+
+      const bodyComponent: any = {
+        type: 'BODY',
+        text: templateData.bodyText
+      };
+
+      // Meta ALWAYS requires example field for BODY component
+      if (hasVariables) {
+        // For templates WITH variables: provide sample values
+        const exampleValues = variableMatches!.map((_, idx) => `Sample ${idx + 1}`);
+        bodyComponent.example = {
+          body_text: [exampleValues]  // Nested array: [[val1, val2, ...]]
+        };
+      } else {
+        // For templates WITHOUT variables: provide empty nested array
+        bodyComponent.example = {
+          body_text: [[]]  // Empty nested array required by Meta
+        };
+      }
+
+      const components: any[] = [
+        bodyComponent,
+        {
+          type: 'BUTTONS',
+          buttons: [
+            {
+              type: 'FLOW',
+              text: templateData.buttonText || 'Open Flow',
+              flow_id: templateData.flowId,
+              flow_action: templateData.flowAction || 'navigate'
+              // Note: navigate_screen is NOT supported in template creation
+              // The screen is specified when SENDING the template, not when creating it
+            }
+          ]
+        }
+      ];
+
+      const payload = {
+        name: templateName,
+        language: templateData.language,
+        category: templateData.category,
+        components
+      };
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        // Extract detailed error information
+        const errorInfo = this.extractErrorMessage(responseData);
+
+        // Create a comprehensive error message
+        let errorMessage = errorInfo.message;
+        if (errorInfo.details) {
+          errorMessage = `${errorInfo.message}\n\nDetails: ${errorInfo.details}`;
+        }
+
+        // Create error with both message and details for better handling
+        const error: any = new Error(errorMessage);
+        error.details = errorInfo.details;
+        error.apiResponse = responseData;
+
+        throw error;
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error('Error creating flow template:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send a template message with a Flow (business-initiated)
+   */
+  static async sendFlowTemplate(
+    appService: AppService,
+    recipientNumber: string,
+    templateName: string,
+    languageCode: string,
+    flowToken?: string,
+    flowActionData?: Record<string, any>
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.phone_number_id) {
+        throw new Error('Phone number ID is required');
+      }
+
+      const messageData: any = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: recipientNumber,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: {
+            code: languageCode
+          }
+        }
+      };
+
+      // Add flow button parameters if provided
+      if (flowToken || flowActionData) {
+        messageData.template.components = [
+          {
+            type: 'button',
+            sub_type: 'flow',
+            index: '0',
+            parameters: [
+              {
+                type: 'action',
+                action: {
+                  ...(flowToken && { flow_token: flowToken }),
+                  ...(flowActionData && { flow_action_data: flowActionData })
+                }
+              }
+            ]
+          }
+        ];
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(messageData),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        // Extract detailed error information
+        const errorInfo = this.extractErrorMessage(responseData);
+
+        // Create a comprehensive error message
+        let errorMessage = errorInfo.message;
+        if (errorInfo.details) {
+          errorMessage = `${errorInfo.message}\n\nDetails: ${errorInfo.details}`;
+        }
+
+        // Create error with both message and details for better handling
+        const error: any = new Error(errorMessage);
+        error.details = errorInfo.details;
+        error.apiResponse = responseData;
+
+        throw error;
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error('Error sending flow template:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send an interactive Flow message (user-initiated conversation)
+   * This is for sending Flows in response to user messages within 24-hour window
+   */
+  static async sendInteractiveFlowMessage(
+    appService: AppService,
+    recipientNumber: string,
+    flowId: string,
+    options: {
+      headerText?: string;
+      bodyText: string;
+      footerText?: string;
+      buttonText: string;
+      flowToken?: string;
+      flowAction?: 'navigate' | 'data_exchange';
+      screen?: string;
+      flowData?: Record<string, any>;
+      mode?: 'draft' | 'published';
+    }
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      if (!appService.phone_number_id) {
+        throw new Error('Phone number ID is required');
+      }
+
+      const messageData: any = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: recipientNumber,
+        type: 'interactive',
+        interactive: {
+          type: 'flow',
+          body: {
+            text: options.bodyText
+          },
+          action: {
+            name: 'flow',
+            parameters: {
+              flow_message_version: '3',
+              flow_id: flowId,
+              flow_cta: options.buttonText,
+              mode: options.mode || 'published',
+              ...(options.flowToken && { flow_token: options.flowToken }),
+              ...(options.flowAction && { flow_action: options.flowAction })
+            }
+          }
+        }
+      };
+
+      // Add optional header
+      if (options.headerText) {
+        messageData.interactive.header = {
+          type: 'text',
+          text: options.headerText
+        };
+      }
+
+      // Add optional footer
+      if (options.footerText) {
+        messageData.interactive.footer = {
+          text: options.footerText
+        };
+      }
+
+      // Add flow action payload if screen or data is provided
+      // IMPORTANT: data must be a non-empty object or omitted entirely
+      if (options.screen || (options.flowData && Object.keys(options.flowData).length > 0)) {
+        const payload: any = {};
+
+        if (options.screen) {
+          payload.screen = options.screen;
+        }
+
+        // Only add data if it's a non-empty object
+        if (options.flowData && Object.keys(options.flowData).length > 0) {
+          payload.data = options.flowData;
+        }
+
+        messageData.interactive.action.parameters.flow_action_payload = payload;
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${appService.phone_number_id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(messageData),
+        }
+      );
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        // Extract detailed error information
+        const errorInfo = this.extractErrorMessage(responseData);
+
+        // Create a comprehensive error message
+        let errorMessage = errorInfo.message;
+        if (errorInfo.details) {
+          errorMessage = `${errorInfo.message}\n\nDetails: ${errorInfo.details}`;
+        }
+
+        // Create error with both message and details for better handling
+        const error: any = new Error(errorMessage);
+        error.details = errorInfo.details;
+        error.apiResponse = responseData;
+
+        throw error;
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error('Error sending interactive flow message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Publish a draft Flow
+   */
+  static async publishFlow(
+    appService: AppService,
+    flowId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${flowId}/publish`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to publish flow: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error publishing flow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deprecate a published Flow
+   */
+  static async deprecateFlow(
+    appService: AppService,
+    flowId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${flowId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to deprecate flow: ${errorData.error?.message || response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error deprecating flow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Helper method to get flow JSON directly (for debugging)
+   * This can help diagnose why screens aren't showing up
+   */
+  static async getFlowJSON(
+    appService: AppService,
+    flowId: string
+  ): Promise<any> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${flowId}/assets`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to fetch flow JSON: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // The flow JSON is in data.data[0] if it exists
+      if (data.data && data.data.length > 0) {
+        return JSON.parse(data.data[0].flow_json);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching flow JSON:', error);
+      throw error;
+    }
+  }
 }
 
-export type { 
-  AppService, 
-  WhatsAppTemplate, 
-  WhatsAppApiResponse, 
+export type {
+  AppService,
+  WhatsAppTemplate,
+  WhatsAppApiResponse,
   TemplateComponent,
   AnalyticsDataPoint,
   ConversationAnalyticsDataPoint,
   MessagingAnalyticsResponse,
   ConversationAnalyticsResponse,
-  PhoneNumberLimit
+  PhoneNumberLimit,
+  WhatsAppFlow,
+  FlowScreen,
+  FlowDetails,
+  FlowMessagePayload
 };

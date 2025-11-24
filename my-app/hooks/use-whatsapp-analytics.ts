@@ -7,6 +7,23 @@ import {
   type PhoneNumberLimit 
 } from '@/services/whatsapp';
 
+export interface PhoneNumberProfile {
+  id: string;
+  display_phone_number: string;
+  display_name?: string;
+  verified_name?: string;
+  quality_rating?: string;
+  messaging_limit?: {
+    max: number;
+    tier?: string;
+  };
+  code_verification_status?: string;
+  status?: string;
+  current_limit?: number;
+  business_initiated_conversations?: number;
+  country?: string;
+}
+
 export interface ConversationBreakdown {
   category: string;
   conversations: number;
@@ -21,7 +38,7 @@ export interface AnalyticsSummary {
   totalSent: number;
   totalDelivered: number;
   totalRead: number;
-  phoneNumberLimits: PhoneNumberLimit[];
+  phoneNumberProfiles: PhoneNumberProfile[];
   conversationBreakdown: ConversationBreakdown[];
 }
 
@@ -78,6 +95,7 @@ export const useWhatsAppAnalytics = (
       '44': 'GB',
       '91': 'IN',
       '221': 'SN',
+      '256': 'UG', // Uganda
       // Add more country codes as needed
     };
 
@@ -87,6 +105,14 @@ export const useWhatsAppAnalytics = (
       }
     }
     return 'US'; // Default
+  }, []);
+
+  // Helper function to determine messaging tier based on limit
+  const determineMessagingTier = useCallback((limit: number): string => {
+    if (limit >= 100000) return 'TIER_4';
+    if (limit >= 10000) return 'TIER_3';
+    if (limit >= 1000) return 'TIER_2';
+    return 'TIER_1';
   }, []);
 
   const fetchAnalytics = useCallback(async () => {
@@ -109,27 +135,25 @@ export const useWhatsAppAnalytics = (
     setError(null);
 
     try {
-      // Fetch conversation analytics using direct API calls for better accuracy
-      const conversationsUrl = `https://graph.facebook.com/v18.0/${appService.whatsapp_business_account_id}`;
+      const graphApiVersion = 'v18.0';
+      const wabaId = appService.whatsapp_business_account_id;
+      const accessToken = appService.access_token;
+
+      // Fetch conversation analytics
+      const conversationsUrl = `https://graph.facebook.com/${graphApiVersion}/${wabaId}`;
       const conversationsParams = new URLSearchParams({
-        access_token: appService.access_token,
+        access_token: accessToken,
         fields: `conversation_analytics.start(${timeRangeInDays}).end(0).granularity(DAILY).phone_numbers(ALL).dimensions(CONVERSATION_CATEGORY,CONVERSATION_TYPE,COUNTRY,PHONE)`,
       });
 
-      // Fetch phone number limits and current usage with additional fields
-      const phoneNumbersUrl = `https://graph.facebook.com/v18.0/${appService.whatsapp_business_account_id}/phone_numbers`;
-      const phoneNumbersParams = new URLSearchParams({
-        access_token: appService.access_token,
-        fields: 'id,display_phone_number,verified_name,quality_rating,messaging_limit,current_limit,status'
-      });
-
-      // Also fetch messaging analytics for sent/delivered stats
+      // Fetch messaging analytics
       const endTime = Math.floor(Date.now() / 1000);
       const startTime = endTime - (timeRangeInDays * 24 * 60 * 60);
 
+      // Fetch all data in parallel using Promise.allSettled
       const [conversationsResponse, phoneNumbersResponse, messagingResponse] = await Promise.allSettled([
         fetch(`${conversationsUrl}?${conversationsParams}`),
-        fetch(`${phoneNumbersUrl}?${phoneNumbersParams}`),
+        WhatsAppService.fetchPhoneNumbers(appService),
         WhatsAppService.getMessagingAnalytics(appService, startTime, endTime, 'DAY')
       ]);
 
@@ -143,42 +167,67 @@ export const useWhatsAppAnalytics = (
 
       if (conversationsResponse.status === 'fulfilled') {
         conversationsData = await conversationsResponse.value.json();
-        
+
         if (conversationsData?.conversation_analytics?.data) {
-          conversationsData.conversation_analytics.data.forEach((item: any) => {
-            const conversations = parseInt(item.conversation || 0);
-            totalConversations += conversations;
+          // Track user-initiated conversations separately for free tier calculation
+          let totalUserInitiatedConversations = 0;
 
-            // Track free tier conversations (first 1000 user-initiated)
-            if (item.conversation_type === 'USER_INITIATED') {
-              freeTierConversations += Math.min(conversations, 1000);
+          conversationsData.conversation_analytics.data.forEach((dataItem: any) => {
+            // Each dataItem contains metadata (type, category, country, phone) and data_points array
+            const conversationType = dataItem.conversation_type;
+            const conversationCategory = dataItem.conversation_category;
+            const country = dataItem.country;
+            const phone = dataItem.phone;
+
+            // Process each data point (time-series data)
+            if (dataItem.data_points && Array.isArray(dataItem.data_points)) {
+              dataItem.data_points.forEach((point: any) => {
+                const conversations = parseInt(point.conversation || 0);
+                const apiCost = parseFloat(point.cost || 0);
+
+                // Accumulate total conversations
+                totalConversations += conversations;
+
+                // Track user-initiated conversations for free tier
+                if (conversationType === 'USER_INITIATED') {
+                  totalUserInitiatedConversations += conversations;
+                }
+
+                // Track business-initiated conversations
+                if (conversationType === 'BUSINESS_INITIATED') {
+                  businessInitiatedConversations += conversations;
+                }
+
+                // Use API-provided cost if available, otherwise calculate
+                let cost = apiCost;
+                if (cost === 0 && conversations > 0) {
+                  // Fallback to manual calculation if API doesn't provide cost
+                  cost = calculateConversationCost(
+                    conversationCategory,
+                    conversationType,
+                    conversations,
+                    country
+                  );
+                }
+                approximateCharges += cost;
+
+                // Build conversation breakdown by category
+                const category = conversationCategory || 'UNKNOWN';
+                if (!conversationBreakdownMap[category]) {
+                  conversationBreakdownMap[category] = {
+                    category,
+                    conversations: 0,
+                    cost: 0
+                  };
+                }
+                conversationBreakdownMap[category].conversations += conversations;
+                conversationBreakdownMap[category].cost += cost;
+              });
             }
-
-            if (item.conversation_type === 'BUSINESS_INITIATED') {
-              businessInitiatedConversations += conversations;
-            }
-
-            // Calculate approximate charges using improved pricing model
-            const cost = calculateConversationCost(
-              item.conversation_category,
-              item.conversation_type,
-              conversations,
-              item.country
-            );
-            approximateCharges += cost;
-
-            // Build conversation breakdown
-            const category = item.conversation_category || 'UNKNOWN';
-            if (!conversationBreakdownMap[category]) {
-              conversationBreakdownMap[category] = {
-                category,
-                conversations: 0,
-                cost: 0
-              };
-            }
-            conversationBreakdownMap[category].conversations += conversations;
-            conversationBreakdownMap[category].cost += cost;
           });
+
+          // Calculate free tier conversations (first 1000 user-initiated per month are free)
+          freeTierConversations = Math.min(totalUserInitiatedConversations, 1000);
         }
       }
 
@@ -195,120 +244,85 @@ export const useWhatsAppAnalytics = (
         });
       }
 
-      // Process phone number limits with per-phone business-initiated conversations
-      let phoneNumberLimitsData: PhoneNumberLimit[] = [];
-      if (phoneNumbersResponse.status === 'fulfilled') {
-        const phoneNumbersData = await phoneNumbersResponse.value.json();
-        
-        // Log the phone numbers response for debugging
-        console.log('Phone numbers API response:', phoneNumbersData);
-        
+      // Process phone number profiles with enhanced data
+      let phoneNumberProfiles: PhoneNumberProfile[] = [];
+      const phoneNumbersData: any[] = phoneNumbersResponse.status === 'fulfilled'
+        ? phoneNumbersResponse.value
+        : [];
+
+      if (phoneNumbersData && phoneNumbersData.length > 0) {
         // Create a map of business-initiated conversations per phone number
         const phoneConversationMap: { [phoneNumber: string]: number } = {};
-        
-        // Use the already parsed conversationsData instead of parsing again
-        if (conversationsData) {
-          console.log('Conversations API response structure:', {
-            hasConversationAnalytics: !!conversationsData?.conversation_analytics,
-            hasData: !!conversationsData?.conversation_analytics?.data,
-            dataLength: conversationsData?.conversation_analytics?.data?.length || 0
-          });
-          
-          if (conversationsData?.conversation_analytics?.data) {
-            conversationsData.conversation_analytics.data.forEach((item: any) => {
-              console.log('Processing conversation item:', {
-                type: item.conversation_type,
-                phone: item.phone,
-                conversations: item.conversation,
-                category: item.conversation_category
-              });
-              
-              if (item.conversation_type === 'BUSINESS_INITIATED' && item.phone) {
-                const conversations = parseInt(item.conversation || 0);
-                phoneConversationMap[item.phone] = (phoneConversationMap[item.phone] || 0) + conversations;
+
+        if (conversationsData?.conversation_analytics?.data) {
+          conversationsData.conversation_analytics.data.forEach((dataItem: any) => {
+            if (dataItem.conversation_type === 'BUSINESS_INITIATED' && dataItem.phone) {
+              // Sum conversations from all data_points for this phone
+              if (dataItem.data_points && Array.isArray(dataItem.data_points)) {
+                const totalForPhone = dataItem.data_points.reduce((sum: number, point: any) => {
+                  return sum + parseInt(point.conversation || 0);
+                }, 0);
+                phoneConversationMap[dataItem.phone] = (phoneConversationMap[dataItem.phone] || 0) + totalForPhone;
               }
-            });
-          }
-        }
-        
-        console.log('Phone conversation map:', phoneConversationMap);
-        
-        phoneNumberLimitsData = phoneNumbersData?.data?.map((phone: any) => {
-          const phoneNumber = phone.display_phone_number;
-          const businessInitiatedForPhone = phoneConversationMap[phoneNumber] || 0;
-          
-          console.log(`Processing phone ${phoneNumber}:`, {
-            name: phone.verified_name,
-            limit: phone.messaging_limit?.max,
-            businessInitiated: businessInitiatedForPhone,
-            qualityRating: phone.quality_rating
+            }
           });
-          
+        }
+
+        // Process each phone number to build comprehensive profiles
+        // The data is already comprehensive from WhatsAppService.fetchPhoneNumbers()
+        phoneNumberProfiles = phoneNumbersData.map((phone: any) => {
+          const phoneNumber = phone.display_phone_number || phone.phone_number;
+
+          // Extract messaging limit from various possible fields
+          let limit = 250; // Default
+          if (phone.current_limit) {
+            limit = phone.current_limit;
+          } else if (phone.max_daily_conversation_per_phone) {
+            limit = phone.max_daily_conversation_per_phone;
+          } else if (phone.messaging_limit_tier) {
+            // Derive from tier
+            const tierLimits: Record<string, number> = {
+              'TIER_1K': 1000,
+              'TIER_10K': 10000,
+              'TIER_100K': 100000,
+              'TIER_UNLIMITED': 1000000,
+              'STANDARD': 250,
+            };
+            limit = tierLimits[phone.messaging_limit_tier] || 250;
+          }
+
           return {
-            phone_number: phoneNumber,
-            name: phone.verified_name || 'Unknown',
+            id: phone.id,
+            display_phone_number: phoneNumber,
+            display_name: phone.display_name || phone.name,
+            verified_name: phone.verified_name,
             quality_rating: phone.quality_rating || 'UNKNOWN',
-            limit: phone.messaging_limit?.max || 250,
-            business_initiated_conversations: businessInitiatedForPhone,
+            messaging_limit: {
+              max: limit,
+              tier: determineMessagingTier(limit)
+            },
+            code_verification_status: phone.code_verification_status || phone.verification_status,
+            status: 'ACTIVE', // Phone numbers returned are active
+            current_limit: limit,
+            business_initiated_conversations: phoneConversationMap[phoneNumber] || 0,
             country: extractCountryFromPhoneNumber(phoneNumber)
-          };
-        }) || [];
-      } else {
-        console.warn('Phone numbers fetch failed, using fallback data');
-        // Fallback to app service data if phone numbers fetch fails
-        phoneNumberLimitsData = [{
-          phone_number: appService.phone_number || 'Unknown',
-          name: appService.name || 'WhatsApp Business',
-          country: 'Unknown',
-          business_initiated_conversations: businessInitiatedConversations,
-          limit: 250,
-          quality_rating: 'UNKNOWN'
-        }];
+          } as PhoneNumberProfile;
+        });
       }
 
       const analyticsSummary: AnalyticsSummary = {
         totalConversations,
         freeTierConversations,
         businessInitiatedConversations,
-        approximateCharges: Math.round(approximateCharges * 100) / 100, // Round to 2 decimal places
+        approximateCharges: Math.round(approximateCharges * 100) / 100,
         totalSent,
         totalDelivered,
-        totalRead: 0, // Not available in current API structure
-        phoneNumberLimits: phoneNumberLimitsData,
+        totalRead: 0,
+        phoneNumberProfiles,
         conversationBreakdown
       };
 
       setAnalytics(analyticsSummary);
-
-      // Log any partial failures for debugging
-      if (conversationsResponse.status === 'rejected') {
-        console.warn('Failed to fetch conversation analytics:', conversationsResponse.reason);
-      } else {
-        console.log('Conversation analytics fetched successfully');
-      }
-      
-      if (phoneNumbersResponse.status === 'rejected') {
-        console.warn('Failed to fetch phone number limits:', phoneNumbersResponse.reason);
-      } else {
-        console.log('Phone number data fetched successfully');
-      }
-      
-      if (messagingResponse.status === 'rejected') {
-        console.warn('Failed to fetch messaging analytics:', messagingResponse.reason);
-      } else {
-        console.log('Messaging analytics fetched successfully');
-      }
-
-      // Log the final analytics summary for debugging
-      console.log('Final analytics summary:', {
-        totalConversations,
-        freeTierConversations,
-        businessInitiatedConversations,
-        totalSent,
-        totalDelivered,
-        phoneNumberCount: phoneNumberLimitsData.length,
-        conversationBreakdownCount: conversationBreakdown.length
-      });
 
     } catch (err) {
       let errorMessage = 'Failed to fetch analytics';
@@ -330,7 +344,7 @@ export const useWhatsAppAnalytics = (
     } finally {
       setLoading(false);
     }
-  }, [appService, timeRangeInDays, calculateConversationCost, extractCountryFromPhoneNumber]);
+  }, [appService, timeRangeInDays, calculateConversationCost, extractCountryFromPhoneNumber, determineMessagingTier]);
 
   useEffect(() => {
     fetchAnalytics();

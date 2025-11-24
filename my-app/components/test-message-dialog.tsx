@@ -9,8 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { type WhatsAppTemplate } from '@/services/whatsapp';
 import { WhatsAppService } from '@/services/whatsapp';
-import { metaConfigService } from '@/services/meta-config';
-import { Upload, Image as ImageIcon, Video, FileText } from 'lucide-react';
+import { Upload, Image as ImageIcon, Video, FileText, Loader2, Info, MapPin } from 'lucide-react';
 
 interface TestMessageDialogProps {
   template: WhatsAppTemplate | null;
@@ -19,11 +18,25 @@ interface TestMessageDialogProps {
   onClose: () => void;
 }
 
+interface LocationData {
+  latitude: string;
+  longitude: string;
+  name: string;
+  address: string;
+}
+
 export default function TestMessageDialog({ template, appService, isOpen, onClose }: TestMessageDialogProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [variables, setVariables] = useState<string[]>([]);
+  const [headerVariables, setHeaderVariables] = useState<string[]>([]);
   const [headerMediaFile, setHeaderMediaFile] = useState<File | null>(null);
   const [headerMediaHandle, setHeaderMediaHandle] = useState<string>('');
+  const [locationData, setLocationData] = useState<LocationData>({
+    latitude: '',
+    longitude: '',
+    name: '',
+    address: ''
+  });
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -31,7 +44,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
   React.useEffect(() => {
     if (template) {
-      // Extract variables from body text
+      // Extract body variables
       const bodyComponent = template.components?.find(c => c.type === 'BODY');
       if (bodyComponent?.text) {
         const variableMatches = bodyComponent.text.match(/\{\{(\d+)\}\}/g) || [];
@@ -41,40 +54,84 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             return numberMatch ? parseInt(numberMatch[0]) : 0;
           })
         );
-        
-        // Create array based on highest variable number
         const maxVariableNum = uniqueVariables.size > 0 ? Math.max(...Array.from(uniqueVariables)) : 0;
         setVariables(new Array(maxVariableNum).fill(''));
       }
 
-      // Reset media state when template changes
+      // Extract header variables (for variable media templates)
+      const headerComponent = template.components?.find(c => c.type === 'HEADER');
+      if (headerComponent?.example?.header_handle || headerComponent?.example?.header_text) {
+        const headerParams = headerComponent.example.header_handle || headerComponent.example.header_text || [];
+        setHeaderVariables(new Array(headerParams.length).fill(''));
+      } else {
+        setHeaderVariables([]);
+      }
+
+      // Reset media and location state
       setHeaderMediaFile(null);
       setHeaderMediaHandle('');
+      setLocationData({
+        latitude: '',
+        longitude: '',
+        name: '',
+        address: ''
+      });
     }
   }, [template]);
 
-  // Check if template has media header
-  const getHeaderMediaType = () => {
+  // Check if template has media header and whether it's variable or fixed
+  const getHeaderMediaInfo = () => {
     const headerComponent = template?.components?.find(c => c.type === 'HEADER');
-    if (headerComponent?.format && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format)) {
-      return headerComponent.format;
+    
+    if (!headerComponent?.format) {
+      return { hasMedia: false, isVariable: false, format: undefined, isLocation: false };
     }
-    return undefined;
+
+    // Check if it's a location header (always variable - requires location data when sending)
+    if (headerComponent.format === 'LOCATION') {
+      return {
+        hasMedia: false,
+        isVariable: false,
+        format: 'LOCATION' as const,
+        isLocation: true
+      };
+    }
+
+    // Check for other media types
+    if (!['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format)) {
+      return { hasMedia: false, isVariable: false, format: undefined, isLocation: false };
+    }
+
+
+    return {
+      hasMedia: true,
+      isVariable: false, // Media headers are fixed - use template's pre-uploaded media
+      format: headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT',
+      isLocation: false
+    };
   };
 
   const uploadMediaToMeta = async (file: File): Promise<string> => {
+    if (!appService) {
+      throw new Error('App service not provided');
+    }
+
+    if (!appService.access_token || appService.access_token === 'undefined') {
+      console.error('Invalid access token in appService:', appService);
+      throw new Error('Valid access token not available');
+    }
+
     try {
       setIsUploadingMedia(true);
       
-      const config = await metaConfigService.getConfigForAppService(appService);
-      if (!config) {
-        throw new Error('Could not get Meta app configuration');
-      }
-
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('appId', config.appId);
-      formData.append('accessToken', config.accessToken);
+      formData.append('accessToken', appService.access_token);
+
+      console.log('Uploading media to Resumable Upload API...', {
+        fileName: file.name,
+        fileSize: file.size
+      });
 
       const response = await fetch('/api/whatsapp/upload-media', {
         method: 'POST',
@@ -82,7 +139,14 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const errorText = await response.text();
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText };
+        }
+        console.error('Upload failed:', error);
         throw new Error(error.error || 'Failed to upload media');
       }
 
@@ -90,7 +154,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       console.log('Media upload response:', data);
       
       if (!data.handle) {
-        throw new Error('Media upload succeeded but no handle was returned');
+        throw new Error('No media handle received from upload');
       }
       
       return data.handle;
@@ -106,19 +170,53 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const mediaType = getHeaderMediaType();
-    if (!mediaType) return;
-
     setHeaderMediaFile(file);
 
     try {
       const handle = await uploadMediaToMeta(file);
       setHeaderMediaHandle(handle);
-      toast.success('Media uploaded successfully');
+      toast.success('Media uploaded successfully!');
     } catch (error) {
-      toast.error('Failed to upload media');
+      console.error('File upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload media');
       setHeaderMediaFile(null);
+      setHeaderMediaHandle('');
     }
+  };
+
+  const validateLocationData = (): boolean => {
+    if (!locationData.latitude.trim()) {
+      toast.error("Latitude is required");
+      return false;
+    }
+    if (!locationData.longitude.trim()) {
+      toast.error("Longitude is required");
+      return false;
+    }
+    if (!locationData.name.trim()) {
+      toast.error("Location name is required");
+      return false;
+    }
+    if (!locationData.address.trim()) {
+      toast.error("Address is required");
+      return false;
+    }
+
+    // Validate latitude range (-90 to 90)
+    const lat = parseFloat(locationData.latitude);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      toast.error("Latitude must be between -90 and 90");
+      return false;
+    }
+
+    // Validate longitude range (-180 to 180)
+    const lng = parseFloat(locationData.longitude);
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      toast.error("Longitude must be between -180 and 180");
+      return false;
+    }
+
+    return true;
   };
 
   const handleSendTest = async () => {
@@ -129,17 +227,16 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       return;
     }
 
-    // Validate phone number format
     const cleanNumber = phoneNumber.replace(/[^\d]/g, '');
     if (cleanNumber.length < 10) {
       toast.error("Please enter a valid phone number");
       return;
     }
 
-    // Check if media is required but not uploaded
-    const mediaType = getHeaderMediaType();
-    if (mediaType && !headerMediaHandle) {
-      toast.error(`Please upload ${mediaType.toLowerCase()} for the template header`);
+    const headerInfo = getHeaderMediaInfo();
+    
+    // Validate location data if template has location header
+    if (headerInfo.isLocation && !validateLocationData()) {
       return;
     }
 
@@ -148,47 +245,41 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     try {
       const components = [];
 
-      // Add header component if template has media header
-      if (mediaType && headerMediaHandle) {
-        const headerComponent: any = {
+      // Add location header component
+      if (headerInfo.isLocation) {
+        components.push({
           type: "header",
-          parameters: []
-        };
-
-        if (mediaType === 'IMAGE') {
-          headerComponent.parameters.push({
-            type: "image",
-            image: {
-              id: headerMediaHandle  // Use the handle as media ID
+          parameters: [
+            {
+              type: "location",
+              location: {
+                latitude: locationData.latitude,
+                longitude: locationData.longitude,
+                name: locationData.name,
+                address: locationData.address
+              }
             }
-          });
-        } else if (mediaType === 'VIDEO') {
-          headerComponent.parameters.push({
-            type: "video",
-            video: {
-              id: headerMediaHandle
-            }
-          });
-        } else if (mediaType === 'DOCUMENT') {
-          headerComponent.parameters.push({
-            type: "document",
-            document: {
-              id: headerMediaHandle,
-              filename: headerMediaFile?.name || "document.pdf"
-            }
-          });
-        }
-
-        components.push(headerComponent);
+          ]
+        });
       }
+      
+      // Note: For IMAGE/VIDEO/DOCUMENT headers, we DON'T add a header component
+      // The template will automatically use its pre-uploaded media from the template definition
 
       // Add body component if there are variables
       if (variables.length > 0) {
+        const filledVariables = variables.filter(v => v.trim());
+        if (filledVariables.length === 0) {
+          toast.error("Please fill in at least one variable value");
+          setIsSending(false);
+          return;
+        }
+
         components.push({
           type: "body",
-          parameters: variables.map(value => ({
+          parameters: variables.map((value, index) => ({
             type: "text",
-            text: value || `Sample Value ${variables.indexOf(value) + 1}`
+            text: value || `Sample Value ${index + 1}`
           }))
         });
       }
@@ -206,24 +297,31 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
         }
       };
 
-      console.log('Sending message with data:', messageData);
+      console.log('Sending message with data:', JSON.stringify(messageData, null, 2));
 
       await WhatsAppService.sendMessage(
         appService,
         messageData
       );
 
-      toast.success("Test message sent successfully!");
+      toast.success("Message sent successfully!");
       onClose();
       
       // Reset form
       setPhoneNumber('');
       setVariables([]);
+      setHeaderVariables([]);
       setHeaderMediaFile(null);
       setHeaderMediaHandle('');
+      setLocationData({
+        latitude: '',
+        longitude: '',
+        name: '',
+        address: ''
+      });
     } catch (error) {
-      console.error('Send test message error:', error);
-      toast.error("Failed to send test message");
+      console.error('Send message error:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to send message");
     } finally {
       setIsSending(false);
     }
@@ -235,10 +333,17 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     setVariables(newVariables);
   };
 
+  const updateLocationField = (field: keyof LocationData, value: string) => {
+    setLocationData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   if (!template) return null;
 
-  const mediaType = getHeaderMediaType();
-  const acceptedFormats = {
+  const headerInfo = getHeaderMediaInfo();
+  const acceptedFormats: Record<'IMAGE' | 'VIDEO' | 'DOCUMENT', string> = {
     IMAGE: 'image/jpeg,image/png',
     VIDEO: 'video/mp4',
     DOCUMENT: 'application/pdf'
@@ -246,11 +351,11 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Send Test Message</DialogTitle>
+          <DialogTitle>Send Message</DialogTitle>
           <DialogDescription>
-            Send a test message using template: {template.name}
+            Send a message using template: {template.name}
           </DialogDescription>
         </DialogHeader>
 
@@ -270,76 +375,174 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Include country code (e.g., +1 for US)
+              Include country code (e.g., +1 for US, +256 for Uganda)
             </p>
           </div>
 
-          {/* Media upload section for templates with media headers */}
-          {mediaType && (
+          {/* Location input section - for templates with LOCATION header */}
+          {headerInfo.isLocation && (
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Location Details *
+              </Label>
+              
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  This template requires location information. Enter the coordinates, name, and address.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="location-name" className="text-sm">Location Name *</Label>
+                <Input
+                  id="location-name"
+                  placeholder="e.g., Philz Coffee"
+                  value={locationData.name}
+                  onChange={(e) => updateLocationField('name', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location-address" className="text-sm">Address *</Label>
+                <Input
+                  id="location-address"
+                  placeholder="e.g., 101 Forest Ave, Palo Alto, CA 94301"
+                  value={locationData.address}
+                  onChange={(e) => updateLocationField('address', e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="location-latitude" className="text-sm">Latitude *</Label>
+                  <Input
+                    id="location-latitude"
+                    type="number"
+                    step="any"
+                    placeholder="e.g., 37.4421"
+                    value={locationData.latitude}
+                    onChange={(e) => updateLocationField('latitude', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">-90 to 90</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location-longitude" className="text-sm">Longitude *</Label>
+                  <Input
+                    id="location-longitude"
+                    type="number"
+                    step="any"
+                    placeholder="e.g., -122.1616"
+                    value={locationData.longitude}
+                    onChange={(e) => updateLocationField('longitude', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">-180 to 180</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Media upload section - ONLY for templates with VARIABLE media */}
+          {headerInfo.isVariable && headerInfo.format && headerInfo.format !== 'LOCATION' && (
             <div className="space-y-2">
-              <Label>Template Header Media ({mediaType}) *</Label>
+              <Label>Template Header Media ({headerInfo.format}) *</Label>
+              
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  This template requires you to upload media for each message sent.
+                </AlertDescription>
+              </Alert>
+
               <input
                 ref={fileInputRef}
                 type="file"
-                accept={acceptedFormats[mediaType as keyof typeof acceptedFormats]}
+                accept={acceptedFormats[headerInfo.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT']}
                 onChange={handleFileUpload}
                 className="hidden"
               />
               
               {headerMediaFile ? (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    {mediaType === 'IMAGE' && <ImageIcon className="h-4 w-4" />}
-                    {mediaType === 'VIDEO' && <Video className="h-4 w-4" />}
-                    {mediaType === 'DOCUMENT' && <FileText className="h-4 w-4" />}
-                    <span className="text-sm">{headerMediaFile.name}</span>
-                    {headerMediaHandle && (
-                      <span className="text-xs text-green-600">✓ Uploaded</span>
-                    )}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      {headerInfo.format === 'IMAGE' && <ImageIcon className="h-4 w-4" />}
+                      {headerInfo.format === 'VIDEO' && <Video className="h-4 w-4" />}
+                      {headerInfo.format === 'DOCUMENT' && <FileText className="h-4 w-4" />}
+                      <span className="text-sm">{headerMediaFile.name}</span>
+                      {headerMediaHandle && (
+                        <span className="text-xs text-green-600">✓ Uploaded</span>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setHeaderMediaFile(null);
+                        setHeaderMediaHandle('');
+                      }}
+                    >
+                      Remove
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setHeaderMediaFile(null);
-                      setHeaderMediaHandle('');
-                    }}
-                  >
-                    Remove
-                  </Button>
+                  
+                  {headerMediaHandle && (
+                    <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs">
+                      <span className="font-medium text-green-700 dark:text-green-400">
+                        ✓ Media handle received and ready to send
+                      </span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Button
                   type="button"
                   variant="outline"
+                  className="w-full"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingMedia}
                 >
                   {isUploadingMedia ? (
-                    <>Uploading...</>
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
-                      Upload {mediaType.toLowerCase()}
+                      Upload {headerInfo.format.toLowerCase()}
                     </>
                   )}
                 </Button>
               )}
               
               <p className="text-xs text-muted-foreground">
-                {mediaType === 'IMAGE' && 'Supported: JPG, PNG (max 5MB)'}
-                {mediaType === 'VIDEO' && 'Supported: MP4 (max 16MB)'}
-                {mediaType === 'DOCUMENT' && 'Supported: PDF (max 100MB)'}
+                {headerInfo.format === 'IMAGE' && 'Supported: JPG, PNG (max 5MB)'}
+                {headerInfo.format === 'VIDEO' && 'Supported: MP4 (max 16MB)'}
+                {headerInfo.format === 'DOCUMENT' && 'Supported: PDF (max 100MB)'}
               </p>
             </div>
           )}
 
+          {/* Info for templates with FIXED media */}
+          {headerInfo.hasMedia && !headerInfo.isVariable && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                This template has fixed media that was uploaded during template creation. No media upload needed for sending.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Body variables */}
           {variables.length > 0 && (
             <div className="space-y-2">
               <Label>Template Variables</Label>
               {variables.map((variable, index) => (
-                <div key={index}>
+                <div key={index} className="space-y-1">
                   <Label htmlFor={`var-${index}`} className="text-sm">
                     Variable {index + 1}
                   </Label>
@@ -354,21 +557,27 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             </div>
           )}
 
+          {/* Template Preview */}
           <div className="space-y-2">
             <Label>Preview</Label>
-            <div className="p-3 border rounded-lg bg-gray-50">
-              <div className="text-sm">
-                <div className="font-medium mb-1">Template: {template.name}</div>
-                <div className="font-medium mb-1">Category: {template.category}</div>
-                <div className="font-medium mb-2">Status: 
+            <div className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-900">
+              <div className="text-sm space-y-2">
+                <div className="font-medium">Template: {template.name}</div>
+                <div className="font-medium">Category: {template.category}</div>
+                <div className="font-medium">
+                  Status: 
                   <span className={`ml-1 ${template.status === 'APPROVED' ? 'text-green-600' : 'text-yellow-600'}`}>
                     {template.status}
                   </span>
                 </div>
                 {template.components?.map((component, index) => (
-                  <div key={index} className="mb-2">
-                    <div className="font-medium text-xs text-gray-500 uppercase">{component.type}</div>
-                    <div>{component.text || (component.format ? `[${component.format}]` : '')}</div>
+                  <div key={index} className="pt-2">
+                    <div className="font-medium text-xs text-gray-500 dark:text-gray-400 uppercase">
+                      {component.type}
+                    </div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      {component.text || (component.format ? `[${component.format}]` : '')}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -381,9 +590,20 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             </Button>
             <Button 
               onClick={handleSendTest} 
-              disabled={isSending || template.status !== 'APPROVED' || (mediaType && !headerMediaHandle)}
+              disabled={
+                isSending || 
+                template.status !== 'APPROVED' || 
+                (headerInfo.isLocation && (!locationData.latitude || !locationData.longitude || !locationData.name || !locationData.address))
+              }
             >
-              {isSending ? "Sending..." : "Send Test"}
+              {isSending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Message"
+              )}
             </Button>
           </div>
 
