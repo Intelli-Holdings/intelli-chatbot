@@ -18,6 +18,7 @@ import BulkContactUpload from '@/components/bulk-contact-upload';
 import CampaignCreationFormV2 from '@/components/campaign-creation-form-v2';
 import TemplateSelector from '@/components/template-selector';
 import CampaignDetailsModal from '@/components/campaign-details-modal';
+import { CampaignScheduleDisplay } from '@/components/schedule-input-timezone';
 import { useAppServices } from '@/hooks/use-app-services';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
 import { useWhatsAppCampaigns } from '@/hooks/use-campaigns';
@@ -207,18 +208,9 @@ export default function BroadcastCampaignPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm">
-                              {campaign.scheduled_at ? (
-                                <div>
-                                  <div>{new Date(campaign.scheduled_at).toLocaleDateString()}</div>
-                                  <div className="text-muted-foreground">
-                                    {new Date(campaign.scheduled_at).toLocaleTimeString()}
-                                  </div>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">Immediate</span>
-                              )}
-                            </div>
+                            <CampaignScheduleDisplay
+                              scheduledAt={campaign.scheduled_at}
+                            />
                           </TableCell>
                         </TableRow>
                       ))}

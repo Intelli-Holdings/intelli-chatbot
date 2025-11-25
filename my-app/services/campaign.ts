@@ -74,23 +74,26 @@ export class CampaignService {
    */
   static async createCampaign(data: CreateCampaignData): Promise<Campaign> {
     try {
-      const response = await fetch('/api/campaigns', {
-        method: 'POST',
+      const response = await fetch("/api/campaigns", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
-      });
+        body: JSON.stringify({
+          ...data,
+          scheduled_at: data.scheduled_at ? new Date(data.scheduled_at).toISOString() : undefined,
+        }),
+      })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create campaign');
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create campaign")
       }
 
-      return await response.json();
+      return await response.json()
     } catch (error) {
-      console.error('Error creating campaign:', error);
-      throw error;
+      console.error("Error creating campaign:", error)
+      throw error
     }
   }
 
@@ -226,29 +229,32 @@ export class CampaignService {
   /**
    * Update a campaign
    */
-  static async updateCampaign(
+static async updateCampaign(
     campaignId: string,
     organizationId: string,
-    data: Partial<CreateCampaignData>
+    data: Partial<CreateCampaignData>,
   ): Promise<Campaign> {
     try {
       const response = await fetch(`/api/campaigns/${campaignId}?organization=${organizationId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
-      });
+        body: JSON.stringify({
+          ...data,
+          scheduled_at: data.scheduled_at ? new Date(data.scheduled_at).toISOString() : undefined,
+        }),
+      })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update campaign');
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update campaign")
       }
 
-      return await response.json();
+      return await response.json()
     } catch (error) {
-      console.error('Error updating campaign:', error);
-      throw error;
+      console.error("Error updating campaign:", error)
+      throw error
     }
   }
 
