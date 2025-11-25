@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil } from 'lucide-react';
+import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 
 import { useCampaigns } from '@/hooks/use-campaigns';
@@ -20,6 +26,7 @@ import { CampaignService, type Campaign } from '@/services/campaign';
 import CampaignCreationFormV2 from '@/components/campaign-creation-form-v2';
 import CampaignEditForm from '@/components/campaign-edit-form';
 import CampaignDetailsModal from '@/components/campaign-details-modal';
+import { CampaignScheduleDisplay } from '@/components/schedule-input-timezone';
 
 export default function CampaignsPage() {
   const organizationId = useActiveOrganizationId();
@@ -308,106 +315,58 @@ export default function CampaignsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">
-                          {campaign.scheduled_at ? (
-                            <div>
-                              <div>{new Date(campaign.scheduled_at).toLocaleDateString()}</div>
-                              <div className="text-muted-foreground">
-                                {new Date(campaign.scheduled_at).toLocaleTimeString()}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">Immediate</span>
-                          )}
-                        </div>
+                        <CampaignScheduleDisplay
+                          scheduledAt={campaign.scheduled_at}
+                        />
                       </TableCell>
                       <TableCell>
-                        <TooltipProvider>
-                          <div className="flex items-center gap-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleViewCampaign(campaign)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>View Campaign Details</p>
-                              </TooltipContent>
-                            </Tooltip>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewCampaign(campaign)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
 
                             {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEditCampaign(campaign)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Edit Campaign</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
                             )}
 
                             {campaign.status === 'active' && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handlePauseCampaign(campaign.id)}
-                                  >
-                                    <Pause className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Pause Campaign</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <DropdownMenuItem onClick={() => handlePauseCampaign(campaign.id)}>
+                                <Pause className="h-4 w-4 mr-2" />
+                                Pause
+                              </DropdownMenuItem>
                             )}
 
                             {campaign.status === 'paused' && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleResumeCampaign(campaign.id)}
-                                  >
-                                    <Play className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Resume Campaign</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <DropdownMenuItem onClick={() => handleResumeCampaign(campaign.id)}>
+                                <Play className="h-4 w-4 mr-2" />
+                                Resume
+                              </DropdownMenuItem>
                             )}
 
                             {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleDeleteCampaign(campaign.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete Campaign</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteCampaign(campaign.id)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
                             )}
-                          </div>
-                        </TooltipProvider>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
