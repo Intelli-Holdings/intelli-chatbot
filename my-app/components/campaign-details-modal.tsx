@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { CampaignService, type Campaign } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { useCampaignRecipients } from '@/hooks/use-campaign-recipients';
+import { formatUTCForDisplay } from '@/lib/timezone-utils';
 
 interface CampaignDetailsModalProps {
   campaign: Campaign;
@@ -299,13 +300,19 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                {recipient.sent_at ? new Date(recipient.sent_at).toLocaleString() : '-'}
+                                <span className="text-xs">
+                                  {recipient.sent_at ? formatUTCForDisplay(recipient.sent_at) : '-'}
+                                </span>
                               </TableCell>
                               <TableCell>
-                                {recipient.delivered_at ? new Date(recipient.delivered_at).toLocaleString() : '-'}
+                                <span className="text-xs">
+                                  {recipient.delivered_at ? formatUTCForDisplay(recipient.delivered_at) : '-'}
+                                </span>
                               </TableCell>
                               <TableCell>
-                                {recipient.read_at ? new Date(recipient.read_at).toLocaleString() : '-'}
+                                <span className="text-xs">
+                                  {recipient.read_at ? formatUTCForDisplay(recipient.read_at) : '-'}
+                                </span>
                               </TableCell>
                               <TableCell>
                                 {recipient.error_message && (
