@@ -17,6 +17,9 @@ import { toast } from 'sonner';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
 import { CampaignService, type CreateCampaignData } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { useCampaignTimezone } from '@/hooks/use-campaign-timezone';
+import { convertUTCToLocalDateTimeString } from '@/lib/timezone-utils';
+import { TemplateSelectionPanel } from '@/components/template-selection-panel';
 
 interface Contact {
   id: string;
@@ -41,6 +44,15 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
   const [step, setStep] = useState(1);
   const [campaignType, setCampaignType] = useState<'template' | 'simple'>('template');
 
+  const {
+    scheduledAtUTC,
+    scheduleNow,
+    setScheduleNow,
+    handleScheduleChange,
+    getScheduleForAPI,
+    getDisplaySchedule,
+  } = useCampaignTimezone();
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -58,10 +70,6 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
     // Recipient selection
     selectedContacts: [] as string[],
     selectedTags: [] as string[],
-
-    // Scheduling
-    scheduleNow: true,
-    scheduledAt: '',
   });
 
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -256,7 +264,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
         channel: formData.channel,
         phone_number: appService.phone_number,
         organization: organizationId,
-        scheduled_at: formData.scheduleNow ? undefined : formData.scheduledAt,
+        scheduled_at: getScheduleForAPI(),
         payload: campaignType === 'template'
           ? {
               template_name: formData.templateName,
@@ -309,7 +317,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
         await CampaignService.executeWhatsAppCampaign(
           createdCampaign.whatsapp_campaign_id,
           organizationId,
-          formData.scheduleNow
+          scheduleNow
         );
       }
 
@@ -464,20 +472,20 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                   <div className="flex items-center space-x-3 p-4 bg-muted/40 rounded-lg border border-border/50">
                     <Checkbox
                       id="scheduleNow"
-                      checked={formData.scheduleNow}
-                      onCheckedChange={(checked) => handleInputChange('scheduleNow', checked)}
+                      checked={scheduleNow}
+                      onCheckedChange={(checked) => setScheduleNow(!!checked)}
                     />
                     <Label htmlFor="scheduleNow" className="font-medium cursor-pointer">Send immediately</Label>
                   </div>
 
-                  {!formData.scheduleNow && (
+                  {!scheduleNow && (
                     <div className="space-y-3 mt-4">
                       <Label htmlFor="scheduledAt" className="text-sm font-semibold">Scheduled Date & Time</Label>
                       <Input
                         id="scheduledAt"
                         type="datetime-local"
-                        value={formData.scheduledAt}
-                        onChange={(e) => handleInputChange('scheduledAt', e.target.value)}
+                        value={scheduledAtUTC ? convertUTCToLocalDateTimeString(scheduledAtUTC) : ''}
+                        onChange={(e) => handleScheduleChange(e.target.value)}
                         min={new Date().toISOString().slice(0, 16)}
                         className="h-11"
                       />
@@ -512,52 +520,16 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                       </Alert>
                     ) : (
                       <div className="space-y-4">
-                        <div className="space-y-3">
-                          <Label className="text-base font-semibold">Select Template</Label>
-                          <Select value={formData.templateName} onValueChange={handleTemplateSelect}>
-                            <SelectTrigger className="h-11 text-base">
-                              <SelectValue placeholder="Choose a template..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {approvedTemplates.map((template) => (
-                                <SelectItem key={template.id} value={template.name}>
-                                  {template.name} · {template.category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <TemplateSelectionPanel
+                          templates={approvedTemplates}
+                          selectedTemplate={formData.templateName}
+                          onSelectTemplate={handleTemplateSelect}
+                          loading={false}
+                          maxHeight="max-h-80"
+                        />
 
                         {getSelectedTemplate() && (
                           <>
-                            <Card className="bg-muted/30 border border-border/50">
-                              <CardHeader className="pb-4">
-                                <CardTitle className="text-base">Template Preview</CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-semibold text-foreground">{getSelectedTemplate()?.name}</span>
-                                  <Badge variant="outline" className="text-xs">{getSelectedTemplate()?.category}</Badge>
-                                </div>
-                                {getSelectedTemplate()?.components?.map((component, index) => (
-                                  <div key={index}>
-                                    {component.type === 'HEADER' && component.format === 'TEXT' && (
-                                      <div className="text-sm">
-                                        <p className="font-semibold text-muted-foreground mb-2">Header:</p>
-                                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{component.text}</p>
-                                      </div>
-                                    )}
-                                    {component.type === 'BODY' && (
-                                      <div className="text-sm">
-                                        <p className="font-semibold text-muted-foreground mb-2">Body:</p>
-                                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{component.text}</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </CardContent>
-                            </Card>
-
                             {/* Header Variables */}
                             {formData.headerParameters.length > 0 && (
                               <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
@@ -806,8 +778,8 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                           <div className="border-t border-border/30"></div>
                           <div className="flex justify-between items-center">
                             <span className="font-medium text-muted-foreground">Schedule:</span>
-                            <span className={`text-sm font-semibold ${formData.scheduleNow ? 'text-green-600' : 'text-foreground'}`}>
-                              {formData.scheduleNow ? 'Send immediately' : new Date(formData.scheduledAt).toLocaleString()}
+                            <span className={`text-sm font-semibold ${scheduleNow ? 'text-green-600' : 'text-foreground'}`}>
+                              {getDisplaySchedule()}
                             </span>
                           </div>
                         </CardContent>
