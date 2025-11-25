@@ -48,8 +48,9 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
 
     // Template-based fields
     templateName: '',
-    templateLanguage: 'en',
-    bodyParameters: [] as Array<{ type: string; text: string }>,
+    templateLanguage: '',
+    bodyParameters: [] as Array<{ type: string; text: string; parameter_name?: string }>,
+    headerParameters: [] as Array<{ type: string; text: string }>,
 
     // Simple text fields
     messageContent: '',
@@ -82,7 +83,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
       try {
         // Fetch contacts
         const contactsResponse = await fetch(
-          `/api/contacts/contacts?organization=${organizationId}&page_size=100`
+          `/api/contacts/contacts?organization=${organizationId}&page_size=1000`
         );
         if (contactsResponse.ok) {
           const contactsData = await contactsResponse.json();
@@ -132,13 +133,91 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
     return approvedTemplates.find(t => t.name === formData.templateName);
   };
 
+  // Extract variables from template
+  const extractTemplateVariables = (template: any) => {
+    const bodyVariables: Array<{ type: string; text: string; parameter_name?: string }> = [];
+    const headerVariables: Array<{ type: string; text: string }> = [];
+
+    // Extract body variables
+    const bodyComponent = template.components?.find((c: any) => c.type === 'BODY');
+    if (bodyComponent?.text) {
+      const bodyText = bodyComponent.text;
+      const paramMatches = bodyText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+
+      // Check if template uses named parameters (marketing templates)
+      const isNamedParameters = paramMatches.some((m: string) => !/^\{\{\d+\}\}$/.test(m));
+
+      paramMatches.forEach((match: string, index: number) => {
+        const paramName = match.replace(/\{\{|\}\}/g, '');
+        const param: { type: string; text: string; parameter_name?: string } = {
+          type: 'text',
+          text: '', // User will fill this
+        };
+
+        // If template uses named parameters, include parameter_name
+        if (isNamedParameters && !/^\d+$/.test(paramName)) {
+          param.parameter_name = paramName;
+        }
+
+        bodyVariables.push(param);
+      });
+    }
+
+    // Extract header variables (if TEXT header with variable)
+    const headerComponent = template.components?.find((c: any) => c.type === 'HEADER');
+    if (headerComponent?.format === 'TEXT' && headerComponent?.text) {
+      const headerText = headerComponent.text;
+      const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+
+      headerMatches.forEach(() => {
+        headerVariables.push({
+          type: 'text',
+          text: '', // User will fill this
+        });
+      });
+    }
+
+    return { bodyVariables, headerVariables };
+  };
+
+  // Handle template selection
+  const handleTemplateSelect = (templateName: string) => {
+    const template = approvedTemplates.find(t => t.name === templateName);
+    if (template) {
+      const { bodyVariables, headerVariables } = extractTemplateVariables(template);
+      setFormData(prev => ({
+        ...prev,
+        templateName,
+        templateLanguage: template.language,
+        bodyParameters: bodyVariables,
+        headerParameters: headerVariables,
+      }));
+    }
+  };
+
   const validateStep = (stepNumber: number): boolean => {
     switch (stepNumber) {
       case 1:
         return formData.name.trim() !== '' && formData.description.trim() !== '';
       case 2:
         if (campaignType === 'template') {
-          return formData.templateName !== '';
+          if (!formData.templateName) {
+            toast.error('Please select a template');
+            return false;
+          }
+          // Check if all body parameters are filled
+          const hasEmptyBodyParams = formData.bodyParameters.some(param => !param.text.trim());
+          if (hasEmptyBodyParams) {
+            toast.error('Please fill all template variables');
+            return false;
+          }
+          // Check if all header parameters are filled
+          const hasEmptyHeaderParams = formData.headerParameters.some(param => !param.text.trim());
+          if (hasEmptyHeaderParams) {
+            toast.error('Please fill all header variables');
+            return false;
+          }
+          return true;
         }
         return formData.messageContent.trim() !== '';
       case 3:
@@ -182,6 +261,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
           ? {
               template_name: formData.templateName,
               template_language: formData.templateLanguage,
+              header_parameters: formData.headerParameters.length > 0 ? formData.headerParameters : undefined,
               body_parameters: formData.bodyParameters.length > 0 ? formData.bodyParameters : undefined,
             }
           : {
@@ -434,7 +514,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                       <div className="space-y-4">
                         <div className="space-y-3">
                           <Label className="text-base font-semibold">Select Template</Label>
-                          <Select value={formData.templateName} onValueChange={(value) => handleInputChange('templateName', value)}>
+                          <Select value={formData.templateName} onValueChange={handleTemplateSelect}>
                             <SelectTrigger className="h-11 text-base">
                               <SelectValue placeholder="Choose a template..." />
                             </SelectTrigger>
@@ -449,27 +529,94 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                         </div>
 
                         {getSelectedTemplate() && (
-                          <Card className="bg-muted/30 border border-border/50">
-                            <CardHeader className="pb-4">
-                              <CardTitle className="text-base">Template Preview</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <span className="font-semibold text-foreground">{getSelectedTemplate()?.name}</span>
-                                <Badge variant="outline" className="text-xs">{getSelectedTemplate()?.category}</Badge>
-                              </div>
-                              {getSelectedTemplate()?.components?.map((component, index) => (
-                                <div key={index}>
-                                  {component.type === 'BODY' && (
-                                    <div className="text-sm">
-                                      <p className="font-semibold text-muted-foreground mb-2">Body:</p>
-                                      <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{component.text}</p>
-                                    </div>
-                                  )}
+                          <>
+                            <Card className="bg-muted/30 border border-border/50">
+                              <CardHeader className="pb-4">
+                                <CardTitle className="text-base">Template Preview</CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold text-foreground">{getSelectedTemplate()?.name}</span>
+                                  <Badge variant="outline" className="text-xs">{getSelectedTemplate()?.category}</Badge>
                                 </div>
-                              ))}
-                            </CardContent>
-                          </Card>
+                                {getSelectedTemplate()?.components?.map((component, index) => (
+                                  <div key={index}>
+                                    {component.type === 'HEADER' && component.format === 'TEXT' && (
+                                      <div className="text-sm">
+                                        <p className="font-semibold text-muted-foreground mb-2">Header:</p>
+                                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{component.text}</p>
+                                      </div>
+                                    )}
+                                    {component.type === 'BODY' && (
+                                      <div className="text-sm">
+                                        <p className="font-semibold text-muted-foreground mb-2">Body:</p>
+                                        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">{component.text}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </CardContent>
+                            </Card>
+
+                            {/* Header Variables */}
+                            {formData.headerParameters.length > 0 && (
+                              <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+                                <CardHeader className="pb-4">
+                                  <CardTitle className="text-base">Header Variables</CardTitle>
+                                  <CardDescription>Fill in the header variable values</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {formData.headerParameters.map((param, index) => (
+                                    <div key={index} className="space-y-2">
+                                      <Label className="text-sm font-medium">Variable {index + 1}</Label>
+                                      <Input
+                                        placeholder={`Enter value for {{${index + 1}}}`}
+                                        value={param.text}
+                                        onChange={(e) => {
+                                          const newParams = [...formData.headerParameters];
+                                          newParams[index].text = e.target.value;
+                                          setFormData(prev => ({ ...prev, headerParameters: newParams }));
+                                        }}
+                                        className="h-11"
+                                      />
+                                    </div>
+                                  ))}
+                                </CardContent>
+                              </Card>
+                            )}
+
+                            {/* Body Variables */}
+                            {formData.bodyParameters.length > 0 && (
+                              <Card className="bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900">
+                                <CardHeader className="pb-4">
+                                  <CardTitle className="text-base">Body Variables</CardTitle>
+                                  <CardDescription>Fill in the body variable values that will be sent to all recipients</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {formData.bodyParameters.map((param, index) => (
+                                    <div key={index} className="space-y-2">
+                                      <Label className="text-sm font-medium">
+                                        {param.parameter_name ? `{{${param.parameter_name}}}` : `Variable {{${index + 1}}}`}
+                                      </Label>
+                                      <Input
+                                        placeholder={`Enter value for ${param.parameter_name ? `{{${param.parameter_name}}}` : `{{${index + 1}}}`}`}
+                                        value={param.text}
+                                        onChange={(e) => {
+                                          const newParams = [...formData.bodyParameters];
+                                          newParams[index].text = e.target.value;
+                                          setFormData(prev => ({ ...prev, bodyParameters: newParams }));
+                                        }}
+                                        className="h-11"
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        This value will be the same for all recipients
+                                      </p>
+                                    </div>
+                                  ))}
+                                </CardContent>
+                              </Card>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
