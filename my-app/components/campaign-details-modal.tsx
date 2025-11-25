@@ -172,144 +172,10 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="stats">Statistics</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            {/* Progress */}
-            {(campaign.status === 'active' || campaign.status === 'completed') && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Campaign Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Overall Progress</span>
-                        <span>{stats.progress}%</span>
-                      </div>
-                      <Progress value={stats.progress} className="h-2" />
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-blue-600">{stats.sent}</div>
-                        <div className="text-sm text-muted-foreground">Sent</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">{stats.delivered}</div>
-                        <div className="text-sm text-muted-foreground">Delivered</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">{stats.read}</div>
-                        <div className="text-sm text-muted-foreground">Read</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
-                        <div className="text-sm text-muted-foreground">Failed</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Campaign Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Audience
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {campaign.audience ? (
-                      <>
-                        <div className="flex justify-between">
-                          <span>Total Contacts:</span>
-                          <span className="font-medium">{campaign.audience.total?.toLocaleString() || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Lists:</span>
-                          <span className="font-medium">{campaign.audience.segments?.length || 0}</span>
-                        </div>
-                        {campaign.audience.segments && campaign.audience.segments.length > 0 && (
-                          <div className="mt-2">
-                            <div className="text-sm text-muted-foreground mb-1">Targeted Lists:</div>
-                            <div className="space-y-1">
-                              {campaign.audience.segments.map((segment, index) => (
-                                <Badge key={index} variant="outline" className="mr-1">
-                                  {segment}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">Audience information not available</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Schedule
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {campaign.scheduled_at ? (
-                      <>
-                        <div className="flex justify-between">
-                          <span>Type:</span>
-                          <span className="font-medium">Scheduled</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Start Date:</span>
-                          <span className="font-medium">
-                            {new Date(campaign.scheduled_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Start Time:</span>
-                          <span className="font-medium">
-                            {new Date(campaign.scheduled_at).toLocaleTimeString()}
-                          </span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex justify-between">
-                        <span>Type:</span>
-                        <span className="font-medium">Immediate</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span>Created:</span>
-                      <span className="font-medium">
-                        {campaign.created_at
-                          ? new Date(campaign.created_at).toLocaleDateString()
-                          : '-'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
           <TabsContent value="stats" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -364,25 +230,6 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                 </CardContent>
               </Card>
             </div>
-
-            {/* Real-time Stats Chart Placeholder */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Over Time</CardTitle>
-                <CardDescription>
-                  {campaign.status === 'active' && 'Stats update every 30 seconds'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center text-muted-foreground">
-                    <BarChart3 className="h-12 w-12 mx-auto mb-2" />
-                    <p>Performance chart would be displayed here</p>
-                    <p className="text-sm">Integration with charting library needed</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="messages" className="space-y-4">
@@ -476,71 +323,6 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                     Recipient details are only available for WhatsApp campaigns
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Campaign Settings</CardTitle>
-                <CardDescription>
-                  Configuration and metadata for this campaign
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Basic Information</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Campaign ID:</span>
-                          <span className="font-mono">{campaign.id}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Organization:</span>
-                          <span className="font-mono text-xs">{campaign.organization}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Created At:</span>
-                          <span>{campaign.created_at ? new Date(campaign.created_at).toLocaleString() : '-'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Last Updated:</span>
-                          <span>{campaign.updated_at ? new Date(campaign.updated_at).toLocaleString() : '-'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2">Template Information</h4>
-                      {campaign.payload?.template_name ? (
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Template Name:</span>
-                            <span>{campaign.payload.template_name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Language:</span>
-                            <span>{campaign.payload.template_language || 'en'}</span>
-                          </div>
-                        </div>
-                      ) : campaign.payload?.message_content ? (
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <span>Simple Text Message:</span>
-                            <div className="mt-1 p-2 bg-gray-50 rounded text-sm">
-                              {campaign.payload.message_content}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No message content available</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
