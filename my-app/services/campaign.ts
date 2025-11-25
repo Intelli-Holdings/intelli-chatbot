@@ -13,9 +13,14 @@ interface Campaign {
   payload?: {
     template_name?: string;
     template_language?: string;
+    header_parameters?: Array<{
+      type: string;
+      text: string;
+    }>;
     body_parameters?: Array<{
       type: string;
       text: string;
+      parameter_name?: string;
     }>;
     message_content?: string;
   };
@@ -48,9 +53,14 @@ interface CreateCampaignData {
   payload: {
     template_name?: string;
     template_language?: string;
+    header_parameters?: Array<{
+      type: string;
+      text: string;
+    }>;
     body_parameters?: Array<{
       type: string;
       text: string;
+      parameter_name?: string;
     }>;
     message_content?: string;
   };
@@ -419,6 +429,103 @@ export class CampaignService {
       return await response.json();
     } catch (error) {
       console.error('Error fetching recipients:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Re-execute a WhatsApp campaign by creating a new campaign with the same settings
+   * This duplicates the campaign and executes it immediately or schedules it
+   */
+  static async reExecuteWhatsAppCampaign(
+    originalCampaign: Campaign,
+    organizationId: string,
+    phoneNumber: string,
+    scheduleAt?: string
+  ): Promise<any> {
+    try {
+      if (!originalCampaign) {
+        throw new Error('Original campaign is required');
+      }
+
+      if (!organizationId) {
+        throw new Error('Organization ID is required');
+      }
+
+      if (!phoneNumber) {
+        throw new Error('Phone number is required');
+      }
+
+      console.log('Creating duplicate campaign from:', originalCampaign.id);
+
+      // Step 1: Create a new campaign with the same payload
+      const newCampaignData: CreateCampaignData = {
+        name: `${originalCampaign.name} (Re-run ${new Date().toLocaleString()})`,
+        description: originalCampaign.description,
+        channel: originalCampaign.channel,
+        phone_number: phoneNumber,
+        organization: organizationId,
+        scheduled_at: scheduleAt,
+        payload: originalCampaign.payload || {},
+      };
+
+      const newCampaign = await this.createCampaign(newCampaignData);
+      console.log('New campaign created:', newCampaign.id);
+
+      // Step 2: Get recipients from the original campaign
+      if (!originalCampaign.whatsapp_campaign_id) {
+        throw new Error('Original campaign has no WhatsApp campaign ID');
+      }
+
+      const recipientsData = await this.getWhatsAppCampaignRecipients(
+        originalCampaign.whatsapp_campaign_id,
+        organizationId,
+        { page_size: 1000 }
+      );
+
+      const recipients = Array.isArray(recipientsData) ? recipientsData : recipientsData.results || [];
+      console.log(`Found ${recipients.length} recipients from original campaign`);
+
+      // Step 3: Extract unique contact IDs from recipients
+      const contactIds = Array.from(new Set(recipients.map((r: any) => r.contact_id)))
+        .filter((id): id is number => typeof id === 'number');
+
+      if (contactIds.length === 0) {
+        throw new Error('No recipients found in original campaign');
+      }
+
+      // Step 4: Add recipients to new campaign
+      if (!newCampaign.whatsapp_campaign_id) {
+        throw new Error('New campaign has no WhatsApp campaign ID');
+      }
+
+      await this.addWhatsAppCampaignRecipients(
+        newCampaign.whatsapp_campaign_id,
+        organizationId,
+        { contact_ids: contactIds }
+      );
+
+      console.log(`Added ${contactIds.length} recipients to new campaign`);
+
+      // Step 5: Execute the new campaign
+      const executeNow = !scheduleAt;
+      await this.executeWhatsAppCampaign(
+        newCampaign.whatsapp_campaign_id,
+        organizationId,
+        executeNow
+      );
+
+      console.log('New campaign executed successfully');
+
+      return {
+        original_campaign_id: originalCampaign.id,
+        new_campaign_id: newCampaign.id,
+        new_whatsapp_campaign_id: newCampaign.whatsapp_campaign_id,
+        recipients_count: contactIds.length,
+        scheduled: !executeNow
+      };
+    } catch (error) {
+      console.error('Error re-executing campaign:', error);
       throw error;
     }
   }

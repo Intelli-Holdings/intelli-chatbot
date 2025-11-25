@@ -124,17 +124,6 @@ export default function BroadcastCampaignPage() {
               <TabsTrigger value="create">Create Campaign</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
             </TabsList>
-
-            {activeTab === 'campaigns' && (
-              <Button 
-                onClick={() => setShowCreateForm(true)}
-                className="bg-[#0070f3] hover:bg-[#007fff]"
-                disabled={!selectedAppService}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Campaign
-              </Button>
-            )}
           </div>
 
           <TabsContent value="campaigns" className="space-y-4">
@@ -192,10 +181,8 @@ export default function BroadcastCampaignPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Campaign</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead>Schedule</TableHead>
-                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -215,11 +202,6 @@ export default function BroadcastCampaignPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                        <Badge className={getStatusColor(campaign.status)}>
-                                                    {campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1): 'Draft' }
-                                                  </Badge>
-                                                </TableCell>
-                          <TableCell>
                             <div className="text-sm">
                               {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : '-'}
                             </div>
@@ -235,35 +217,6 @@ export default function BroadcastCampaignPage() {
                                 </div>
                               ) : (
                                 <span className="text-muted-foreground">Immediate</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewCampaign(campaign)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {campaign.status === 'active' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handlePauseCampaign(campaign.id)}
-                                >
-                                  <Pause className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {campaign.status === 'paused' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleResumeCampaign(campaign.id)}
-                                >
-                                  <Play className="h-4 w-4" />
-                                </Button>
                               )}
                             </div>
                           </TableCell>
