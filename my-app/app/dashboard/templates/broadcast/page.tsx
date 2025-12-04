@@ -235,12 +235,6 @@ export default function BroadcastCampaignPage() {
           <TabsContent value="templates">
             <div className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Available Templates</CardTitle>
-                  <CardDescription>
-                    Templates fetched from your Meta Business account for broadcast campaigns
-                  </CardDescription>
-                </CardHeader>
                 <CardContent>
                   {templatesLoading ? (
                     <div className="text-center py-8">
