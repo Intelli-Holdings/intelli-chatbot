@@ -50,7 +50,8 @@ interface CreateCampaignData {
   phone_number?: string;
   organization: string;
   scheduled_at?: string;
-  payload: {
+  template_id?: string;  // For template-based campaigns
+  payload?: {
     template_name?: string;
     template_language?: string;
     header_parameters?: Array<{
@@ -62,6 +63,8 @@ interface CreateCampaignData {
       text: string;
       parameter_name?: string;
     }>;
+    body_params?: string[];  // Backend format for body parameters
+    button_params?: string[];  // Backend format for button parameters
     message_content?: string;
   };
   recipient_contacts?: string[];
@@ -87,7 +90,8 @@ export class CampaignService {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create campaign")
+        console.error("Backend error response:", errorData)
+        throw new Error(errorData.error || errorData.detail || errorData.message || "Failed to create campaign")
       }
 
       return await response.json()
@@ -532,6 +536,82 @@ static async updateCampaign(
       };
     } catch (error) {
       console.error('Error re-executing campaign:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export CSV template for campaign parameters
+   */
+  static async exportParamsTemplate(
+    campaignId: string,
+    organizationId: string,
+    recipients?: {
+      tag_ids?: number[];
+      contact_ids?: number[];
+    }
+  ): Promise<Blob> {
+    try {
+      const payload: any = {
+        organization_id: organizationId,
+      };
+
+      // Include tag_ids if provided
+      if (recipients?.tag_ids && recipients.tag_ids.length > 0) {
+        payload.tag_ids = recipients.tag_ids;
+      }
+
+      // Include contact_ids if provided
+      if (recipients?.contact_ids && recipients.contact_ids.length > 0) {
+        payload.contact_ids = recipients.contact_ids;
+      }
+
+      const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/export_params_template`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to export params template');
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('Error exporting params template:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Import CSV template with campaign parameter values
+   */
+  static async importParamsTemplate(
+    campaignId: string,
+    organizationId: string,
+    file: File
+  ): Promise<any> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('organization_id', organizationId);
+
+      const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/import_params_template`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to import params template');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error importing params template:', error);
       throw error;
     }
   }

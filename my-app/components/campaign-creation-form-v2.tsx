@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, File, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
     templateLanguage: '',
     bodyParameters: [] as Array<{ type: string; text: string; parameter_name?: string }>,
     headerParameters: [] as Array<{ type: string; text: string }>,
+    buttonParameters: [] as Array<{ type: string; text: string; sub_type?: string }>,
 
     // Simple text fields
     messageContent: '',
@@ -71,6 +72,13 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
     selectedContacts: [] as string[],
     selectedTags: [] as string[],
   });
+
+  const [uploadedCSV, setUploadedCSV] = useState<File | null>(null);
+  const [csvUploading, setCSVUploading] = useState(false);
+  const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
+  const [createdWhatsAppCampaignId, setCreatedWhatsAppCampaignId] = useState<string | null>(null);
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -145,6 +153,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
   const extractTemplateVariables = (template: any) => {
     const bodyVariables: Array<{ type: string; text: string; parameter_name?: string }> = [];
     const headerVariables: Array<{ type: string; text: string }> = [];
+    const buttonVariables: Array<{ type: string; text: string; sub_type?: string }> = [];
 
     // Extract body variables
     const bodyComponent = template.components?.find((c: any) => c.type === 'BODY');
@@ -185,21 +194,296 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
       });
     }
 
-    return { bodyVariables, headerVariables };
+    // Extract button variables (URL buttons with parameters and COPY_CODE buttons)
+    const buttonsComponent = template.components?.find((c: any) => c.type === 'BUTTONS');
+    console.log('Looking for BUTTONS component in template:', template.name);
+    console.log('All components:', template.components?.map((c: any) => c.type));
+
+    if (buttonsComponent) {
+      console.log('Button component found:', JSON.stringify(buttonsComponent, null, 2));
+
+      if (buttonsComponent.buttons) {
+        buttonsComponent.buttons.forEach((button: any, index: number) => {
+          console.log(`Processing button ${index}:`, JSON.stringify(button, null, 2));
+
+          // URL buttons with variables in the URL
+          if (button.type === 'URL' && button.url) {
+            const urlMatches = button.url.match(/\{\{(\w+|\d+)\}\}/g) || [];
+            console.log(`Button ${index} URL matches:`, urlMatches);
+            urlMatches.forEach(() => {
+              buttonVariables.push({
+                type: 'text',
+                text: '', // User will fill this
+                sub_type: 'url',
+              });
+            });
+          }
+
+          // COPY_CODE buttons always require a parameter (the code to copy)
+          if (button.type === 'COPY_CODE') {
+            console.log(`Button ${index} is COPY_CODE, adding parameter`);
+            buttonVariables.push({
+              type: 'text',
+              text: '', // User will fill this
+              sub_type: 'copy_code',
+            });
+          }
+        });
+      } else {
+        console.log('Buttons component found but no buttons array');
+      }
+    } else {
+      console.log('No BUTTONS component found in template');
+    }
+
+    return { bodyVariables, headerVariables, buttonVariables };
   };
 
   // Handle template selection
-  const handleTemplateSelect = (templateName: string) => {
+  const handleTemplateSelect = async (templateName: string) => {
     const template = approvedTemplates.find(t => t.name === templateName);
     if (template) {
-      const { bodyVariables, headerVariables } = extractTemplateVariables(template);
+      console.log('Selected template:', template);
+      const { bodyVariables, headerVariables, buttonVariables } = extractTemplateVariables(template);
+      console.log('Extracted variables - Body:', bodyVariables.length, 'Header:', headerVariables.length, 'Button:', buttonVariables.length);
       setFormData(prev => ({
         ...prev,
         templateName,
         templateLanguage: template.language,
         bodyParameters: bodyVariables,
         headerParameters: headerVariables,
+        buttonParameters: buttonVariables,
       }));
+
+      // Reset CSV upload when template changes
+      setUploadedCSV(null);
+    }
+  };
+
+  // Create campaign with current form data
+  const createCampaign = async () => {
+    if (!appService || !organizationId) {
+      toast.error('App service or organization not configured');
+      return false;
+    }
+
+    setCreatingCampaign(true);
+    try {
+      // Build the campaign data according to backend expectations
+      const campaignData: any = {
+        name: formData.name,
+        description: formData.description,
+        channel: formData.channel,
+        organization: organizationId,
+      };
+
+      // Only add scheduled_at if it has a value
+      const scheduleValue = getScheduleForAPI();
+      if (scheduleValue) {
+        campaignData.scheduled_at = scheduleValue;
+      }
+
+      // Add phone_number for WhatsApp campaigns
+      if (formData.channel === 'whatsapp' && appService.phone_number) {
+        campaignData.phone_number = appService.phone_number;
+      }
+
+      // Add template data for template-based campaigns
+      if (campaignType === 'template') {
+        const selectedTemplate = approvedTemplates.find(t => t.name === formData.templateName);
+        if (selectedTemplate) {
+          console.log('=== CAMPAIGN CREATION DEBUG ===');
+          console.log('Selected template for campaign:', JSON.stringify(selectedTemplate, null, 2));
+          console.log('Form data button parameters:', formData.buttonParameters);
+          campaignData.template_id = selectedTemplate.id;
+
+          // Build the template object with all required metadata
+          // Use the Meta API format with components as an array
+          const templatePayload: any = {
+            template: {
+              meta_template_id: selectedTemplate.id,
+              name: selectedTemplate.name,
+              language: selectedTemplate.language,
+              category: selectedTemplate.category,
+              components: selectedTemplate.components.map((component: any) => {
+                // Return component in Meta API format
+                const comp: any = {
+                  type: component.type
+                };
+
+                // Add component-specific fields
+                if (component.type === 'HEADER') {
+                  comp.format = component.format;
+                  if (component.text) comp.text = component.text;
+                } else if (component.type === 'BODY') {
+                  comp.text = component.text;
+                } else if (component.type === 'FOOTER') {
+                  comp.text = component.text;
+                } else if (component.type === 'BUTTONS') {
+                  comp.buttons = component.buttons?.map((btn: any) => ({
+                    type: btn.type,
+                    text: btn.text,
+                    url: btn.url,
+                    phone_number: btn.phone_number
+                  }));
+                }
+
+                return comp;
+              })
+            }
+          };
+
+          // Extract body params as variable placeholders (e.g., {{1}}, {{2}})
+          // These will be dynamically replaced when CSV is imported with actual values
+          const bodyComponent = selectedTemplate.components.find((c: any) => c.type === 'BODY');
+          if (bodyComponent?.text) {
+            const bodyText = bodyComponent.text;
+            const paramMatches = bodyText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+            templatePayload.body_params = paramMatches;
+          } else {
+            templatePayload.body_params = [];
+          }
+
+          // Extract header params as variable placeholders
+          const headerComponent = selectedTemplate.components.find((c: any) => c.type === 'HEADER');
+          if (headerComponent?.format === 'TEXT' && headerComponent?.text) {
+            const headerText = headerComponent.text;
+            const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+            templatePayload.header_params = headerMatches;
+          }
+
+          // Extract button params from URL buttons and COPY_CODE buttons
+          const buttonsComponent = selectedTemplate.components.find((c: any) => c.type === 'BUTTONS');
+          const buttonParams: string[] = [];
+
+          if (buttonsComponent?.buttons) {
+            buttonsComponent.buttons.forEach((button: any) => {
+              // URL buttons with variables in the URL
+              if (button.type === 'URL' && button.url) {
+                const urlMatches = button.url.match(/\{\{(\w+|\d+)\}\}/g) || [];
+                buttonParams.push(...urlMatches);
+              }
+              // COPY_CODE buttons - the example value is the placeholder
+              if (button.type === 'COPY_CODE' && button.example) {
+                buttonParams.push('{{copy_code}}'); // Placeholder for copy code
+              }
+            });
+          }
+
+          templatePayload.button_params = buttonParams;
+          console.log('Extracted params - Body:', templatePayload.body_params, 'Header:', templatePayload.header_params, 'Button:', templatePayload.button_params);
+
+          campaignData.payload = templatePayload;
+        }
+      } else {
+        // For simple text campaigns
+        campaignData.payload = {
+          message_content: formData.messageContent,
+        };
+      }
+
+      console.log('Creating campaign with data:', campaignData);
+      const campaign = await CampaignService.createCampaign(campaignData);
+      console.log('Campaign created:', campaign);
+
+      setCreatedCampaignId(campaign.id);
+      if (campaign.whatsapp_campaign_id) {
+        setCreatedWhatsAppCampaignId(campaign.whatsapp_campaign_id);
+      }
+      toast.success('Campaign created successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create campaign');
+      return false;
+    } finally {
+      setCreatingCampaign(false);
+    }
+  };
+
+  // Download CSV template
+  const handleDownloadTemplate = async () => {
+    if (!createdWhatsAppCampaignId || !organizationId) {
+      toast.error('Campaign not created yet');
+      return;
+    }
+
+    try {
+      // Prepare recipients data
+      const tagIds = formData.selectedTags.length > 0
+        ? formData.selectedTags.map(slug => {
+            const tag = tags.find(t => t.slug === slug);
+            return tag ? parseInt(tag.id) : null;
+          }).filter((id): id is number => id !== null)
+        : [];
+
+      const contactIds = formData.selectedContacts.length > 0
+        ? formData.selectedContacts.map(id => parseInt(id))
+        : [];
+
+      // Build recipients object only if there are recipients
+      const recipients = (tagIds.length > 0 || contactIds.length > 0) ? {
+        tag_ids: tagIds.length > 0 ? tagIds : undefined,
+        contact_ids: contactIds.length > 0 ? contactIds : undefined,
+      } : undefined;
+
+      const blob = await CampaignService.exportParamsTemplate(
+        createdWhatsAppCampaignId,
+        organizationId,
+        recipients
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `campaign-${createdWhatsAppCampaignId}-params-template.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('CSV template downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      toast.error('Failed to download CSV template');
+    }
+  };
+
+  // Handle CSV file selection
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith('.csv')) {
+        toast.error('Please upload a CSV file');
+        return;
+      }
+      setUploadedCSV(file);
+      toast.success('CSV file selected successfully');
+    }
+  };
+
+  // Upload and process CSV
+  const handleImportCSV = async () => {
+    if (!uploadedCSV || !createdWhatsAppCampaignId || !organizationId) {
+      toast.error('Please select a CSV file first');
+      return;
+    }
+
+    setCSVUploading(true);
+    try {
+      await CampaignService.importParamsTemplate(createdWhatsAppCampaignId, organizationId, uploadedCSV);
+      toast.success('CSV imported successfully! Your template parameters are ready.');
+    } catch (error) {
+      console.error('Error importing CSV:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to import CSV');
+    } finally {
+      setCSVUploading(false);
+    }
+  };
+
+  // Remove uploaded CSV
+  const handleRemoveCSV = () => {
+    setUploadedCSV(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -213,36 +497,43 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
             toast.error('Please select a template');
             return false;
           }
-          // Check if all body parameters are filled
-          const hasEmptyBodyParams = formData.bodyParameters.some(param => !param.text.trim());
-          if (hasEmptyBodyParams) {
-            toast.error('Please fill all template variables');
-            return false;
-          }
-          // Check if all header parameters are filled
-          const hasEmptyHeaderParams = formData.headerParameters.some(param => !param.text.trim());
-          if (hasEmptyHeaderParams) {
-            toast.error('Please fill all header variables');
-            return false;
-          }
           return true;
         }
         return formData.messageContent.trim() !== '';
       case 3:
         return formData.selectedContacts.length > 0 || formData.selectedTags.length > 0;
       case 4:
+        // For templates with variables, require CSV upload
+        if (campaignType === 'template') {
+          const hasVariables = formData.bodyParameters.length > 0 || formData.headerParameters.length > 0;
+          if (hasVariables && !uploadedCSV) {
+            toast.error('Please upload the CSV file with parameter values');
+            return false;
+          }
+        }
+        return true;
+      case 5:
         return true; // Review step, always valid
       default:
         return true;
     }
   };
 
-  const nextStep = () => {
-    if (validateStep(step)) {
-      setStep(prev => Math.min(prev + 1, 4));
-    } else {
+  const nextStep = async () => {
+    if (!validateStep(step)) {
       toast.error('Please complete all required fields');
+      return;
     }
+
+    // Create campaign after step 2 (message content)
+    if (step === 2 && !createdCampaignId) {
+      const success = await createCampaign();
+      if (!success) return;
+    }
+
+    // Move to next step, respecting the max step count
+    const maxStep = stepTitles.length;
+    setStep(prev => Math.min(prev + 1, maxStep));
   };
 
   const prevStep = () => {
@@ -250,37 +541,15 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
   };
 
   const handleSubmit = async () => {
-    if (!appService || !organizationId) {
-      toast.error('App service or organization not configured');
+    if (!createdWhatsAppCampaignId || !organizationId) {
+      toast.error('Campaign not created');
       return;
     }
 
     setLoading(true);
     try {
-      // Step 1: Create the campaign
-      const campaignData: CreateCampaignData = {
-        name: formData.name,
-        description: formData.description,
-        channel: formData.channel,
-        phone_number: appService.phone_number,
-        organization: organizationId,
-        scheduled_at: getScheduleForAPI(),
-        payload: campaignType === 'template'
-          ? {
-              template_name: formData.templateName,
-              template_language: formData.templateLanguage,
-              header_parameters: formData.headerParameters.length > 0 ? formData.headerParameters : undefined,
-              body_parameters: formData.bodyParameters.length > 0 ? formData.bodyParameters : undefined,
-            }
-          : {
-              message_content: formData.messageContent,
-            },
-      };
-
-      const createdCampaign = await CampaignService.createCampaign(campaignData);
-
-      // Step 2: Add recipients if campaign is WhatsApp
-      if (formData.channel === 'whatsapp' && createdCampaign.whatsapp_campaign_id) {
+      // Add recipients if campaign is WhatsApp
+      if (formData.channel === 'whatsapp') {
         // Get tag IDs from tag slugs
         const tagIds = formData.selectedTags.length > 0
           ? formData.selectedTags.map(slug => {
@@ -307,36 +576,47 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
           }
 
           await CampaignService.addWhatsAppCampaignRecipients(
-            createdCampaign.whatsapp_campaign_id,
+            createdWhatsAppCampaignId,
             organizationId,
             recipientData
           );
         }
 
-        // Step 3: Execute the campaign
+        // Execute the campaign
         await CampaignService.executeWhatsAppCampaign(
-          createdCampaign.whatsapp_campaign_id,
+          createdWhatsAppCampaignId,
           organizationId,
           scheduleNow
         );
       }
 
-      toast.success('Campaign created and launched successfully!');
+      toast.success('Campaign launched successfully!');
       onSuccess();
     } catch (error) {
-      console.error('Error creating campaign:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create campaign');
+      console.error('Error launching campaign:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to launch campaign');
     } finally {
       setLoading(false);
     }
   };
 
-  const stepTitles = [
-    'Campaign Details',
-    'Message Content',
-    'Select Recipients',
-    'Review & Launch'
-  ];
+  const hasTemplateVariables = campaignType === 'template' &&
+    (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0);
+
+  const stepTitles = hasTemplateVariables
+    ? [
+        'Campaign Details',
+        'Message Content',
+        'Select Recipients',
+        'Upload Parameters',
+        'Review & Launch'
+      ]
+    : [
+        'Campaign Details',
+        'Message Content',
+        'Select Recipients',
+        'Review & Launch'
+      ];
 
   const filteredContacts = contacts.filter(contact =>
     contact.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -413,14 +693,16 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
               {step === 1 && <FileText className="h-6 w-6 text-primary" />}
               {step === 2 && <MessageSquare className="h-6 w-6 text-primary" />}
               {step === 3 && <Users className="h-6 w-6 text-primary" />}
-              {step === 4 && <Zap className="h-6 w-6 text-primary" />}
+              {step === 4 && <Upload className="h-6 w-6 text-primary" />}
+              {step === 5 && <Zap className="h-6 w-6 text-primary" />}
               <div>
                 <CardTitle className="text-2xl">{stepTitles[step - 1]}</CardTitle>
                 <CardDescription className="mt-1">
                   {step === 1 && 'Enter the basic information for your campaign'}
                   {step === 2 && 'Choose your message type and content'}
                   {step === 3 && 'Select contacts or tags to target'}
-                  {step === 4 && 'Review your campaign settings before launching'}
+                  {step === 4 && hasTemplateVariables && 'Upload CSV with template parameter values'}
+                  {((step === 4 && !hasTemplateVariables) || step === 5) && 'Review your campaign settings before launching'}
                 </CardDescription>
               </div>
             </div>
@@ -528,67 +810,13 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                           maxHeight="max-h-80"
                         />
 
-                        {getSelectedTemplate() && (
-                          <>
-                            {/* Header Variables */}
-                            {formData.headerParameters.length > 0 && (
-                              <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-                                <CardHeader className="pb-4">
-                                  <CardTitle className="text-base">Header Variables</CardTitle>
-                                  <CardDescription>Fill in the header variable values</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                  {formData.headerParameters.map((param, index) => (
-                                    <div key={index} className="space-y-2">
-                                      <Label className="text-sm font-medium">Variable {index + 1}</Label>
-                                      <Input
-                                        placeholder={`Enter value for {{${index + 1}}}`}
-                                        value={param.text}
-                                        onChange={(e) => {
-                                          const newParams = [...formData.headerParameters];
-                                          newParams[index].text = e.target.value;
-                                          setFormData(prev => ({ ...prev, headerParameters: newParams }));
-                                        }}
-                                        className="h-11"
-                                      />
-                                    </div>
-                                  ))}
-                                </CardContent>
-                              </Card>
-                            )}
-
-                            {/* Body Variables */}
-                            {formData.bodyParameters.length > 0 && (
-                              <Card className="bg-green-50/50 dark:bg-green-950/20 border-green-200 dark:border-green-900">
-                                <CardHeader className="pb-4">
-                                  <CardTitle className="text-base">Body Variables</CardTitle>
-                                  <CardDescription>Fill in the body variable values that will be sent to all recipients</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                  {formData.bodyParameters.map((param, index) => (
-                                    <div key={index} className="space-y-2">
-                                      <Label className="text-sm font-medium">
-                                        {param.parameter_name ? `{{${param.parameter_name}}}` : `Variable {{${index + 1}}}`}
-                                      </Label>
-                                      <Input
-                                        placeholder={`Enter value for ${param.parameter_name ? `{{${param.parameter_name}}}` : `{{${index + 1}}}`}`}
-                                        value={param.text}
-                                        onChange={(e) => {
-                                          const newParams = [...formData.bodyParameters];
-                                          newParams[index].text = e.target.value;
-                                          setFormData(prev => ({ ...prev, bodyParameters: newParams }));
-                                        }}
-                                        className="h-11"
-                                      />
-                                      <p className="text-xs text-muted-foreground">
-                                        This value will be the same for all recipients
-                                      </p>
-                                    </div>
-                                  ))}
-                                </CardContent>
-                              </Card>
-                            )}
-                          </>
+                        {getSelectedTemplate() && (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0) && (
+                          <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900">
+                            <AlertDescription className="text-blue-800 dark:text-blue-200">
+                              This template requires {formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s).
+                              You&apos;ll be able to upload parameter values after selecting recipients.
+                            </AlertDescription>
+                          </Alert>
                         )}
                       </div>
                     )}
@@ -751,8 +979,119 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
               </div>
             )}
 
-            {/* Step 4: Review */}
-            {step === 4 && (
+            {/* Step 4: Upload Parameters (only for templates with variables) */}
+            {step === 4 && hasTemplateVariables && (
+              <div className="space-y-6">
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-900">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Template Parameters
+                    </CardTitle>
+                    <CardDescription>
+                      This template requires {formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s).
+                      Download the CSV template, fill it with values for each recipient, then upload it back.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Step 1: Download CSV Template */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">Step 1: Download CSV Template</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full h-11"
+                        onClick={handleDownloadTemplate}
+                        disabled={!createdWhatsAppCampaignId}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download CSV Template
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        The CSV will include columns for all template parameters
+                      </p>
+                    </div>
+
+                    {/* Step 2: Upload Filled CSV */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">Step 2: Upload Filled CSV</Label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv"
+                        onChange={handleCSVUpload}
+                        className="hidden"
+                        id="csv-upload"
+                      />
+
+                      {!uploadedCSV ? (
+                        <label htmlFor="csv-upload">
+                          <div className="w-full h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                            <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-sm font-medium text-foreground">Click to upload CSV</p>
+                            <p className="text-xs text-muted-foreground mt-1">or drag and drop</p>
+                          </div>
+                        </label>
+                      ) : (
+                        <div className="w-full p-4 border border-border rounded-lg bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                                <File className="h-5 w-5 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{uploadedCSV.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {(uploadedCSV.size / 1024).toFixed(2)} KB
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleRemoveCSV}
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <Button
+                            type="button"
+                            className="w-full mt-3"
+                            onClick={handleImportCSV}
+                            disabled={csvUploading}
+                          >
+                            {csvUploading ? (
+                              <>
+                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                Importing...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import CSV Data
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info Alert */}
+                    <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900">
+                      <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs">
+                        <strong>Note:</strong> Each row in the CSV represents one recipient. The template parameters will be personalized for each contact.
+                      </AlertDescription>
+                    </Alert>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Step 5 (or 4 for simple): Review */}
+            {((hasTemplateVariables && step === 5) || (!hasTemplateVariables && step === 4)) && (
               <div className="space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Campaign Details Column */}
@@ -791,12 +1130,29 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                       <Card className="bg-muted/30 border-border/50">
                         <CardContent className="p-4">
                           {campaignType === 'template' ? (
-                            <div className="space-y-2">
-                              <div className="text-sm font-medium text-muted-foreground">Template:</div>
-                              <div className="font-semibold text-foreground">{formData.templateName}</div>
-                              <Badge variant="outline" className="text-xs mt-2">
-                                {formData.templateLanguage}
-                              </Badge>
+                            <div className="space-y-3">
+                              <div className="space-y-2">
+                                <div className="text-sm font-medium text-muted-foreground">Template:</div>
+                                <div className="font-semibold text-foreground">{formData.templateName}</div>
+                                <Badge variant="outline" className="text-xs mt-2">
+                                  {formData.templateLanguage}
+                                </Badge>
+                              </div>
+
+                              {uploadedCSV && (
+                                <>
+                                  <div className="border-t border-border/30"></div>
+                                  <div className="space-y-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Parameters:</div>
+                                    <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded border border-green-200 dark:border-green-900">
+                                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                      <span className="text-sm text-green-800 dark:text-green-200">
+                                        CSV uploaded: {uploadedCSV.name}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           ) : (
                             <div className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">
@@ -881,30 +1237,37 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
             <Button
               variant="outline"
               onClick={prevStep}
-              disabled={step === 1}
+              disabled={step === 1 || creatingCampaign}
               className="h-11 px-6 font-medium"
             >
               Previous
             </Button>
 
-            {step < 4 ? (
+            {step < stepTitles.length ? (
               <Button
                 onClick={nextStep}
-                disabled={!validateStep(step)}
+                disabled={!validateStep(step) || creatingCampaign}
                 className="h-11 px-8 font-medium"
               >
-                Next Step
+                {creatingCampaign ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                    Creating Campaign...
+                  </div>
+                ) : (
+                  'Next Step'
+                )}
               </Button>
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || !validateStep(step)}
                 className="h-11 px-8 font-medium bg-green-600 hover:bg-green-700 text-white shadow-lg"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    Creating...
+                    Launching...
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
