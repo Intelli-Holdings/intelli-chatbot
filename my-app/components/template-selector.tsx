@@ -106,18 +106,9 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-2">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">WhatsApp Templates</h2>
-          <p className="text-muted-foreground">
-            Browse and manage your WhatsApp message templates
-          </p>
-        </div>
-        <Button className="bg-green-600 hover:bg-green-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
+        
       </div>
 
       {/* Filters */}
