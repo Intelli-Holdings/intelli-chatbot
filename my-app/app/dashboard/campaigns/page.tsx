@@ -39,6 +39,8 @@ export default function CampaignsPage() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showCampaignDetails, setShowCampaignDetails] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
 
   const { campaigns, loading, error, refetch } = useCampaigns(organizationId || undefined, {
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -77,13 +79,19 @@ export default function CampaignsPage() {
     }
   };
 
-  const handleDeleteCampaign = async (campaignId: string) => {
-    if (!organizationId) return;
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
+  const handleDeleteClick = (campaign: Campaign) => {
+    setCampaignToDelete(campaign);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!organizationId || !campaignToDelete) return;
 
     try {
-      await CampaignService.deleteCampaign(campaignId, organizationId);
+      await CampaignService.deleteCampaign(campaignToDelete.id, organizationId);
       toast.success('Campaign deleted successfully');
+      setShowDeleteDialog(false);
+      setCampaignToDelete(null);
       refetch();
     } catch (error) {
       toast.error('Failed to delete campaign');
@@ -332,12 +340,10 @@ export default function CampaignsPage() {
                               View Details
                             </DropdownMenuItem>
 
-                            {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
-                              <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
 
                             {campaign.status === 'active' && (
                               <DropdownMenuItem onClick={() => handlePauseCampaign(campaign.id)}>
@@ -353,18 +359,14 @@ export default function CampaignsPage() {
                               </DropdownMenuItem>
                             )}
 
-                            {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteCampaign(campaign.id)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </>
-                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteClick(campaign)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -394,7 +396,7 @@ export default function CampaignsPage() {
 
         {/* Campaign Edit Dialog */}
         <Dialog open={showEditForm} onOpenChange={setShowEditForm}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Campaign</DialogTitle>
             </DialogHeader>
@@ -427,6 +429,55 @@ export default function CampaignsPage() {
             onRefresh={refetch}
           />
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Campaign</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Are you sure you want to delete this campaign?
+              </p>
+              {campaignToDelete && (
+                <div className="bg-muted p-3 rounded-md">
+                  <p className="font-medium">{campaignToDelete.name}</p>
+                  <p className="text-sm text-muted-foreground">{campaignToDelete.description}</p>
+                  <div className="flex gap-2 mt-2">
+                    <Badge className={getChannelColor(campaignToDelete.channel)}>
+                      {campaignToDelete.channel.toUpperCase()}
+                    </Badge>
+                    <Badge className={getStatusColor(campaignToDelete.status || 'draft')}>
+                      {campaignToDelete.status ? campaignToDelete.status.charAt(0).toUpperCase() + campaignToDelete.status.slice(1) : 'Draft'}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground mt-4">
+                This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setCampaignToDelete(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDelete}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Campaign
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
