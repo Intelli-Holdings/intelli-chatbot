@@ -319,6 +319,9 @@ static async updateCampaign(
 
   /**
    * Add recipients to WhatsApp campaign
+   * Supports two formats:
+   * 1. Legacy format: Add recipients by tag_ids/contact_ids (no parameters)
+   * 2. New format: Add recipients with template parameters per recipient
    */
   static async addWhatsAppCampaignRecipients(
     campaignId: string,
@@ -326,6 +329,16 @@ static async updateCampaign(
     recipients: {
       tag_ids?: number[];
       contact_ids?: number[];
+      recipients?: Array<{
+        phone: string;
+        fullname?: string;
+        email?: string;
+        template_params?: {
+          header_params?: string[];
+          body_params?: string[];
+          button_params?: string[];
+        };
+      }>;
     }
   ): Promise<any> {
     try {
@@ -338,8 +351,8 @@ static async updateCampaign(
         throw new Error('Organization ID is required');
       }
 
-      if (!recipients.tag_ids && !recipients.contact_ids) {
-        throw new Error('At least one of tag_ids or contact_ids must be provided');
+      if (!recipients.tag_ids && !recipients.contact_ids && !recipients.recipients) {
+        throw new Error('At least one of tag_ids, contact_ids, or recipients must be provided');
       }
 
       // Filter out undefined values and ensure proper arrays
@@ -355,6 +368,11 @@ static async updateCampaign(
         payload.contact_ids = recipients.contact_ids;
       }
 
+      // New format: recipients with template parameters
+      if (recipients.recipients && recipients.recipients.length > 0) {
+        payload.recipients = recipients.recipients;
+      }
+
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/add_recipients`, {
         method: 'POST',
         headers: {
@@ -364,11 +382,20 @@ static async updateCampaign(
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `Failed to add recipients (${response.status})`);
+        const errorText = await response.text();
+
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || 'Unknown error' };
+        }
+
+        throw new Error(errorData.error || errorData.detail || errorData.message || `Failed to add recipients (${response.status})`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result;
     } catch (error) {
       console.error('Error adding recipients:', error);
       throw error;
@@ -439,6 +466,36 @@ static async updateCampaign(
       return await response.json();
     } catch (error) {
       console.error('Error fetching recipients:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Preview messages for a WhatsApp campaign
+   * Returns a sample of messages with template parameters substituted
+   */
+  static async previewWhatsAppCampaignMessages(
+    campaignId: string,
+    organizationId: string,
+    limit: number = 5
+  ): Promise<any> {
+    try {
+      const params = new URLSearchParams();
+      params.append('organization', organizationId);
+      params.append('limit', limit.toString());
+
+      const response = await fetch(
+        `/api/campaigns/whatsapp/${campaignId}/preview_messages?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to preview messages');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error previewing messages:', error);
       throw error;
     }
   }
@@ -588,16 +645,48 @@ static async updateCampaign(
 
   /**
    * Import CSV template with campaign parameter values
+   * New workflow: Creates contacts and recipients automatically
+   *
+   * CSV Format:
+   * contact_id,phone,fullname,email,{{1}},{{2}}
+   * ,+221774130289,Mahamadou Kaba,kaba@example.com,Value1,Value2
+   * ,+1234567890,John Doe,john@example.com,Val1,Val2
+   *
+   * Features:
+   * - Creates new contacts if they don't exist (when create_if_not_exists=true)
+   * - Adds existing contacts as recipients
+   * - Updates parameters for all
+   * - Phone normalization (handles +, spaces, etc.)
+   * - Transaction-safe (all or nothing)
+   *
+   * Response:
+   * {
+   *   updated_recipients: number,
+   *   new_recipients_created: number,
+   *   new_contacts_created: number,
+   *   errors: Array<{row: number, contact: string, error: string}>,
+   *   total_pending: number,
+   *   total_recipients: number
+   * }
    */
   static async importParamsTemplate(
     campaignId: string,
     organizationId: string,
-    file: File
-  ): Promise<any> {
+    file: File,
+    createIfNotExists: boolean = true
+  ): Promise<{
+    updated_recipients: number;
+    new_recipients_created: number;
+    new_contacts_created: number;
+    errors: Array<{ row: number; contact: string; error: string }>;
+    total_pending: number;
+    total_recipients: number;
+  }> {
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('organization_id', organizationId);
+      formData.append('create_if_not_exists', createIfNotExists.toString());
 
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/import_params_template`, {
         method: 'POST',

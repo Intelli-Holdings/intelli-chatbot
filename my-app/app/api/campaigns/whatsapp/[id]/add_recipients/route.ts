@@ -27,9 +27,9 @@ export async function POST(
     }
 
     // Validate at least one recipient type is provided
-    if (!body.tag_ids && !body.contact_ids) {
+    if (!body.tag_ids && !body.contact_ids && !body.recipients) {
       return NextResponse.json(
-        { error: "At least one of tag_ids or contact_ids must be provided" },
+        { error: "At least one of tag_ids, contact_ids, or recipients must be provided" },
         { status: 400 }
       )
     }
@@ -49,6 +49,13 @@ export async function POST(
       )
     }
 
+    if (body.recipients && (!Array.isArray(body.recipients) || body.recipients.length === 0)) {
+      return NextResponse.json(
+        { error: "recipients must be a non-empty array" },
+        { status: 400 }
+      )
+    }
+
     const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/add_recipients/`
 
     const response = await fetch(url, {
@@ -61,9 +68,17 @@ export async function POST(
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      const errorText = await response.text()
+
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { detail: errorText }
+      }
+
       return NextResponse.json(
-        { error: errorData.detail || errorData.message || "Failed to add recipients" },
+        { error: errorData.detail || errorData.message || errorData.error || "Failed to add recipients" },
         { status: response.status }
       )
     }
