@@ -3,7 +3,6 @@ import { auth } from "@clerk/nextjs/server"
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
-// POST /api/campaigns/whatsapp/[id]/import_params_template - Upload CSV with campaign parameter values
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
