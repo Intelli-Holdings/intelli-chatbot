@@ -20,11 +20,13 @@ import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { useCampaignTimezone } from '@/hooks/use-campaign-timezone';
 import { convertUTCToLocalDateTimeString } from '@/lib/timezone-utils';
 import { TemplateSelectionPanel } from '@/components/template-selection-panel';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 interface Contact {
   id: string;
   fullname: string;
-  phone_number: string;
+  phone: string; // Backend returns 'phone' not 'phone_number'
+  email?: string;
   tags: Array<{ id: string; name: string; slug: string }>;
 }
 
@@ -73,12 +75,10 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
     selectedTags: [] as string[],
   });
 
-  const [uploadedCSV, setUploadedCSV] = useState<File | null>(null);
-  const [csvUploading, setCSVUploading] = useState(false);
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
   const [createdWhatsAppCampaignId, setCreatedWhatsAppCampaignId] = useState<string | null>(null);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [recipientParameters, setRecipientParameters] = useState<Record<string, Record<string, string>>>({});
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -254,9 +254,6 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
         headerParameters: headerVariables,
         buttonParameters: buttonVariables,
       }));
-
-      // Reset CSV upload when template changes
-      setUploadedCSV(null);
     }
   };
 
@@ -401,89 +398,24 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
     }
   };
 
-  // Download CSV template
-  const handleDownloadTemplate = async () => {
-    if (!createdWhatsAppCampaignId || !organizationId) {
-      toast.error('Campaign not created yet');
-      return;
-    }
-
-    try {
-      // Prepare recipients data
-      const tagIds = formData.selectedTags.length > 0
-        ? formData.selectedTags.map(slug => {
-            const tag = tags.find(t => t.slug === slug);
-            return tag ? parseInt(tag.id) : null;
-          }).filter((id): id is number => id !== null)
-        : [];
-
-      const contactIds = formData.selectedContacts.length > 0
-        ? formData.selectedContacts.map(id => parseInt(id))
-        : [];
-
-      // Build recipients object only if there are recipients
-      const recipients = (tagIds.length > 0 || contactIds.length > 0) ? {
-        tag_ids: tagIds.length > 0 ? tagIds : undefined,
-        contact_ids: contactIds.length > 0 ? contactIds : undefined,
-      } : undefined;
-
-      const blob = await CampaignService.exportParamsTemplate(
-        createdWhatsAppCampaignId,
-        organizationId,
-        recipients
-      );
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `campaign-${createdWhatsAppCampaignId}-params-template.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success('CSV template downloaded successfully');
-    } catch (error) {
-      console.error('Error downloading template:', error);
-      toast.error('Failed to download CSV template');
-    }
-  };
-
-  // Handle CSV file selection
-  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.name.endsWith('.csv')) {
-        toast.error('Please upload a CSV file');
-        return;
+  // Handle parameter value change for a specific recipient
+  const handleParameterChange = (contactId: string, paramKey: string, value: string) => {
+    setRecipientParameters(prev => ({
+      ...prev,
+      [contactId]: {
+        ...(prev[contactId] || {}),
+        [paramKey]: value
       }
-      setUploadedCSV(file);
-      toast.success('CSV file selected successfully');
-    }
+    }));
   };
 
-  // Upload and process CSV
-  const handleImportCSV = async () => {
-    if (!uploadedCSV || !createdWhatsAppCampaignId || !organizationId) {
-      toast.error('Please select a CSV file first');
-      return;
-    }
-
-    setCSVUploading(true);
-    try {
-      await CampaignService.importParamsTemplate(createdWhatsAppCampaignId, organizationId, uploadedCSV);
-      toast.success('CSV imported successfully! Your template parameters are ready.');
-    } catch (error) {
-      console.error('Error importing CSV:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to import CSV');
-    } finally {
-      setCSVUploading(false);
-    }
-  };
-
-  // Remove uploaded CSV
-  const handleRemoveCSV = () => {
-    setUploadedCSV(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  // Handle select all contacts
+  const handleSelectAllContacts = (checked: boolean) => {
+    if (checked) {
+      const allContactIds = filteredContacts.map(c => c.id);
+      setFormData(prev => ({ ...prev, selectedContacts: allContactIds }));
+    } else {
+      setFormData(prev => ({ ...prev, selectedContacts: [] }));
     }
   };
 
@@ -501,18 +433,27 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
         }
         return formData.messageContent.trim() !== '';
       case 3:
-        return formData.selectedContacts.length > 0 || formData.selectedTags.length > 0;
-      case 4:
-        // For templates with variables, require CSV upload
-        if (campaignType === 'template') {
-          const hasVariables = formData.bodyParameters.length > 0 || formData.headerParameters.length > 0;
-          if (hasVariables && !uploadedCSV) {
-            toast.error('Please upload the CSV file with parameter values');
+        // For templates with variables, validate that all selected recipients have parameter values
+        if (campaignType === 'template' && hasTemplateVariables) {
+          const selectedRecipients = formData.selectedContacts;
+          if (selectedRecipients.length === 0 && formData.selectedTags.length === 0) {
+            toast.error('Please select at least one recipient');
             return false;
           }
+
+          // Check if all selected contacts have all required parameters filled
+          const totalParams = formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length;
+          for (const contactId of selectedRecipients) {
+            const params = recipientParameters[contactId] || {};
+            const filledParams = Object.keys(params).filter(k => params[k].trim() !== '').length;
+            if (filledParams < totalParams) {
+              toast.error('Please fill all parameter values for all selected recipients');
+              return false;
+            }
+          }
         }
-        return true;
-      case 5:
+        return formData.selectedContacts.length > 0 || formData.selectedTags.length > 0;
+      case 4:
         return true; // Review step, always valid
       default:
         return true;
@@ -550,36 +491,122 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
     try {
       // Add recipients if campaign is WhatsApp
       if (formData.channel === 'whatsapp') {
-        // Get tag IDs from tag slugs
-        const tagIds = formData.selectedTags.length > 0
-          ? formData.selectedTags.map(slug => {
-              const tag = tags.find(t => t.slug === slug);
-              return tag ? parseInt(tag.id) : null;
-            }).filter((id): id is number => id !== null)
-          : [];
+        console.log('=== RECIPIENT SUBMISSION DEBUG ===');
+        console.log('Selected contacts:', formData.selectedContacts);
+        console.log('Selected tags:', formData.selectedTags);
+        console.log('Has template variables:', hasTemplateVariables);
 
-        // Get contact IDs
-        const contactIds = formData.selectedContacts.length > 0
-          ? formData.selectedContacts.map(id => parseInt(id))
-          : [];
+        // If template has variables, use new format with per-recipient parameters
+        if (hasTemplateVariables && formData.selectedContacts.length > 0) {
+          console.log('=== USING NEW RECIPIENT FORMAT WITH PARAMETERS ===');
 
-        // Only add recipients if at least one type is selected
-        if (tagIds.length > 0 || contactIds.length > 0) {
-          const recipientData: { tag_ids?: number[]; contact_ids?: number[] } = {};
+          // Build recipients array with template parameters
+          const recipientsWithParams = formData.selectedContacts.map(contactId => {
+            const contact = contacts.find(c => c.id === contactId);
+            if (!contact) {
+              console.warn(`Contact not found for ID: ${contactId}`);
+              return null;
+            }
 
-          if (tagIds.length > 0) {
-            recipientData.tag_ids = tagIds;
-          }
+            // Validate that contact has a phone number
+            if (!contact.phone) {
+              console.warn(`Contact ${contactId} (${contact.fullname}) has no phone number`);
+              console.warn('Contact object:', contact);
+              return null;
+            }
 
-          if (contactIds.length > 0) {
-            recipientData.contact_ids = contactIds;
-          }
+            const params = recipientParameters[contactId] || {};
 
+            // Build header_params array
+            const header_params: string[] = [];
+            for (let i = 0; i < formData.headerParameters.length; i++) {
+              header_params.push(params[`header_${i}`] || '');
+            }
+
+            // Build body_params array
+            const body_params: string[] = [];
+            for (let i = 0; i < formData.bodyParameters.length; i++) {
+              body_params.push(params[`body_${i}`] || '');
+            }
+
+            // Build button_params array
+            const button_params: string[] = [];
+            for (let i = 0; i < formData.buttonParameters.length; i++) {
+              button_params.push(params[`button_${i}`] || '');
+            }
+
+            const recipient: any = {
+              phone: contact.phone,
+              fullname: contact.fullname || '',
+              email: contact.email || '', // Optional
+              template_params: {
+                header_params: header_params,
+                body_params: body_params,
+                button_params: button_params
+              }
+            };
+
+            console.log(`Building recipient for ${contact.fullname}:`, recipient);
+
+            return recipient;
+          }).filter(r => r !== null);
+
+          console.log('Recipients with parameters:', JSON.stringify(recipientsWithParams, null, 2));
+
+          // Add recipients with template parameters
           await CampaignService.addWhatsAppCampaignRecipients(
             createdWhatsAppCampaignId,
             organizationId,
-            recipientData
+            { recipients: recipientsWithParams }
           );
+
+          console.log('Recipients with parameters added successfully');
+        } else {
+          // Use legacy format: Add recipients by tag_ids/contact_ids (no parameters)
+          console.log('=== USING LEGACY RECIPIENT FORMAT ===');
+
+          // Get tag IDs from tag slugs
+          const tagIds = formData.selectedTags.length > 0
+            ? formData.selectedTags.map(slug => {
+                const tag = tags.find(t => t.slug === slug);
+                return tag ? parseInt(tag.id) : null;
+              }).filter((id): id is number => id !== null)
+            : [];
+
+          // Get contact IDs - ensure they are numbers
+          const contactIds = formData.selectedContacts.length > 0
+            ? formData.selectedContacts.map(id => {
+                const numId = typeof id === 'string' ? parseInt(id) : id;
+                console.log(`Converting contact ID: ${id} -> ${numId} (type: ${typeof numId})`);
+                return numId;
+              }).filter(id => !isNaN(id))
+            : [];
+
+          console.log('Converted tag IDs:', tagIds);
+          console.log('Converted contact IDs:', contactIds);
+
+          // Only add recipients if at least one type is selected
+          if (tagIds.length > 0 || contactIds.length > 0) {
+            const recipientData: { tag_ids?: number[]; contact_ids?: number[] } = {};
+
+            if (tagIds.length > 0) {
+              recipientData.tag_ids = tagIds;
+            }
+
+            if (contactIds.length > 0) {
+              recipientData.contact_ids = contactIds;
+            }
+
+            console.log('Recipient data payload:', JSON.stringify(recipientData, null, 2));
+
+            await CampaignService.addWhatsAppCampaignRecipients(
+              createdWhatsAppCampaignId,
+              organizationId,
+              recipientData
+            );
+
+            console.log('Recipients added successfully');
+          }
         }
 
         // Execute the campaign
@@ -603,24 +630,16 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
   const hasTemplateVariables = campaignType === 'template' &&
     (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0);
 
-  const stepTitles = hasTemplateVariables
-    ? [
-        'Campaign Details',
-        'Message Content',
-        'Select Recipients',
-        'Upload Parameters',
-        'Review & Launch'
-      ]
-    : [
-        'Campaign Details',
-        'Message Content',
-        'Select Recipients',
-        'Review & Launch'
-      ];
+  const stepTitles = [
+    'Campaign Details',
+    'Message Content',
+    'Select Recipients & Parameters',
+    'Review & Launch'
+  ];
 
   const filteredContacts = contacts.filter(contact =>
     contact.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.phone_number?.includes(searchTerm)
+    contact.phone?.includes(searchTerm)
   );
 
   const filteredTemplates = approvedTemplates.filter(template =>
@@ -693,16 +712,14 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
               {step === 1 && <FileText className="h-6 w-6 text-primary" />}
               {step === 2 && <MessageSquare className="h-6 w-6 text-primary" />}
               {step === 3 && <Users className="h-6 w-6 text-primary" />}
-              {step === 4 && <Upload className="h-6 w-6 text-primary" />}
-              {step === 5 && <Zap className="h-6 w-6 text-primary" />}
+              {step === 4 && <Zap className="h-6 w-6 text-primary" />}
               <div>
                 <CardTitle className="text-2xl">{stepTitles[step - 1]}</CardTitle>
                 <CardDescription className="mt-1">
                   {step === 1 && 'Enter the basic information for your campaign'}
                   {step === 2 && 'Choose your message type and content'}
-                  {step === 3 && 'Select contacts or tags to target'}
-                  {step === 4 && hasTemplateVariables && 'Upload CSV with template parameter values'}
-                  {((step === 4 && !hasTemplateVariables) || step === 5) && 'Review your campaign settings before launching'}
+                  {step === 3 && 'Select contacts and fill in template parameters'}
+                  {step === 4 && 'Review your campaign settings before launching'}
                 </CardDescription>
               </div>
             </div>
@@ -842,126 +859,171 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
               </div>
             )}
 
-            {/* Step 3: Select Recipients */}
+            {/* Step 3: Select Recipients & Parameters */}
             {step === 3 && (
               <div className="space-y-6">
-                <Tabs defaultValue="contacts" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/50 rounded-lg">
-                    <TabsTrigger value="contacts" className="rounded-md">By Contacts</TabsTrigger>
-                    <TabsTrigger value="tags" className="rounded-md">By Tags</TabsTrigger>
-                  </TabsList>
+                {/* Search Bar */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold text-muted-foreground">Search Contacts</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search by name or phone number..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-11"
+                    />
+                  </div>
+                </div>
 
-                  <TabsContent value="contacts" className="space-y-6 mt-6">
-                    <div className="space-y-3">
-                      <Label className="text-sm font-semibold text-muted-foreground">Search Contacts</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          placeholder="Search by name or phone number..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 h-11"
-                        />
-                      </div>
+                {/* Info Alert for Templates with Variables */}
+                {hasTemplateVariables && (
+                  <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900">
+                    <AlertDescription className="text-blue-800 dark:text-blue-200">
+                      This template requires <strong>{formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s)</strong>.
+                      Select recipients and fill in the parameter values for each contact in the table below.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {loadingContacts ? (
+                  <div className="text-center py-12">
+                    <div className="inline-flex items-center gap-2 text-muted-foreground">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                      Loading contacts...
                     </div>
-
-                    {loadingContacts ? (
-                      <div className="text-center py-12 p-10">
-                        <div className="inline-flex items-center gap-2 text-muted-foreground">
-                          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-                          Loading contacts...
+                  </div>
+                ) : filteredContacts.length === 0 ? (
+                  <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900">
+                    <AlertDescription className="text-amber-800 dark:text-amber-200">
+                      No contacts found. Please add contacts first.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Card className="border border-border">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">Recipients & Parameters</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="select-all"
+                            checked={formData.selectedContacts.length === filteredContacts.length && filteredContacts.length > 0}
+                            onCheckedChange={handleSelectAllContacts}
+                          />
+                          <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                            Select All
+                          </Label>
                         </div>
                       </div>
-                    ) : filteredContacts.length === 0 ? (
-                      <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900">
-                        <AlertDescription className="text-blue-800 dark:text-blue-200">
-                          No contacts found. Please add contacts first.
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
-                      <div className="space-y-3 max-h-[600px] overflow-y-auto pt-2 pl-2 pr-2">
-                        {filteredContacts.map((contact) => (
-                          <Card
-                            key={contact.id}
-                            className={`cursor-pointer transition-all duration-200 border-border/50 ${
-                              formData.selectedContacts.includes(contact.id)
-                                ? 'ring-2 ring-primary bg-primary/5 border-primary/30'
-                                : 'hover:border-border hover:shadow-sm'
-                            }`}
-                            onClick={() => handleContactToggle(contact.id)}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-start space-x-3">
-                                <Checkbox
-                                  checked={formData.selectedContacts.includes(contact.id)}
-                                  onCheckedChange={() => handleContactToggle(contact.id)}
-                                  className="mt-1"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-semibold text-foreground truncate">{contact.fullname}</div>
-                                  <div className="text-sm text-muted-foreground">{contact.phone_number}</div>
-                                  {contact.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                      {contact.tags.map((tag) => (
-                                        <Badge key={tag.id} variant="secondary" className="text-xs">
-                                          {tag.name}
-                                        </Badge>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {formData.selectedContacts.length} of {filteredContacts.length} recipients selected
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto rounded-xl border border-blue-300 shadow-sm overflow-x-auto bg-white">
+                        <Table className="min-w-full">
+                          <TableHeader>
+                            <TableRow className="bg-blue-50 border-b border-border/50">
+                              <TableHead className="text-left p-3 text-sm font-semibold text-muted-foreground bg-muted/30">
+                                Select
+                              </TableHead>
+                              <TableHead className="text-left p-3 text-sm font-semibold text-muted-foreground bg-muted/30">
+                                Fullname
+                              </TableHead>
+                              <TableHead className="text-left p-3 text-sm font-semibold text-muted-foreground bg-muted/30">
+                                Phone
+                              </TableHead>
+                              {hasTemplateVariables && (
+                                <>
+                                  {formData.headerParameters.map((_, idx) => (
+                                    <TableHead key={`header-${idx}`} className="text-left p-3 text-sm font-semibold text-muted-foreground bg-muted/30 min-w-[150px]">
+                                      Header {idx + 1}
+                                    </TableHead>
+                                  ))}
+                                  {formData.bodyParameters.map((param, idx) => (
+                                    <TableHead key={`body-${idx}`} className="text-left p-3 text-sm font-semibold text-muted-foreground bg-muted/30 min-w-[150px]">
+                                      {param.parameter_name || `Parameter ${idx + 1}`}
+                                    </TableHead>
+                                  ))}
+                                  {formData.buttonParameters.map((param, idx) => (
+                                    <TableHead key={`button-${idx}`} className="text-left p-3 text-sm font-semibold text-muted-foreground bg-muted/30 min-w-[150px]">
+                                      {param.sub_type === 'url' ? `URL ${idx + 1}` : param.sub_type === 'copy_code' ? 'Copy Code' : `Button ${idx + 1}`}
+                                    </TableHead>
+                                  ))}
+                                </>
+                              )}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredContacts.map((contact) => {
+                              const isSelected = formData.selectedContacts.includes(contact.id);
+                              return (
+                                <TableRow
+                                  key={contact.id}
+                                  className={`border-b border-border/50 transition-colors ${
+                                    isSelected ? 'bg-primary/5' : 'hover:bg-muted/30'
+                                  }`}
+                                >
+                                  <TableCell className="p-3">
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={() => handleContactToggle(contact.id)}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="p-3 text-sm text-foreground font-medium">
+                                    {contact.fullname}
+                                  </TableCell>
+                                  <TableCell className="p-3 text-sm text-muted-foreground">
+                                    {contact.phone}
+                                  </TableCell>
+                                  {hasTemplateVariables && (
+                                    <>
+                                      {formData.headerParameters.map((_, idx) => (
+                                        <TableCell key={`header-${contact.id}-${idx}`} className="p-3">
+                                          <Input
+                                            placeholder="Enter value"
+                                            value={recipientParameters[contact.id]?.[`header_${idx}`] || ''}
+                                            onChange={(e) => handleParameterChange(contact.id, `header_${idx}`, e.target.value)}
+                                            disabled={!isSelected}
+                                            className="h-9 text-sm"
+                                          />
+                                        </TableCell>
                                       ))}
-                                    </div>
+                                      {formData.bodyParameters.map((param, idx) => (
+                                        <TableCell key={`body-${contact.id}-${idx}`} className="p-3">
+                                          <Input
+                                            placeholder={`Enter ${param.parameter_name || `value ${idx + 1}`}`}
+                                            value={recipientParameters[contact.id]?.[`body_${idx}`] || ''}
+                                            onChange={(e) => handleParameterChange(contact.id, `body_${idx}`, e.target.value)}
+                                            disabled={!isSelected}
+                                            className="h-9 text-sm"
+                                          />
+                                        </TableCell>
+                                      ))}
+                                      {formData.buttonParameters.map((param, idx) => (
+                                        <TableCell key={`button-${contact.id}-${idx}`} className="p-3">
+                                          <Input
+                                            placeholder={param.sub_type === 'url' ? 'Enter URL' : param.sub_type === 'copy_code' ? 'Enter code' : 'Enter value'}
+                                            value={recipientParameters[contact.id]?.[`button_${idx}`] || ''}
+                                            onChange={(e) => handleParameterChange(contact.id, `button_${idx}`, e.target.value)}
+                                            disabled={!isSelected}
+                                            className="h-9 text-sm"
+                                          />
+                                        </TableCell>
+                                      ))}
+                                    </>
                                   )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
                       </div>
-                    )}
-                  </TabsContent>
+                    </CardContent>
+                  </Card>
+                )}
 
-                  <TabsContent value="tags" className="space-y-6 mt-6">
-                    {tags.length === 0 ? (
-                      <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900">
-                        <AlertDescription className="text-blue-800 dark:text-blue-200">
-                          No tags available. Create tags to organize your contacts.
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {tags.map((tag) => {
-                          const contactCount = contacts.filter(c => c.tags.some(t => t.slug === tag.slug)).length;
-                          return (
-                            <Card
-                              key={tag.id}
-                              className={`cursor-pointer transition-all duration-200 border-border/50 ${
-                                formData.selectedTags.includes(tag.slug)
-                                  ? 'ring-2 ring-primary bg-primary/5 border-primary/30'
-                                  : 'hover:border-border hover:shadow-sm'
-                              }`}
-                              onClick={() => handleTagToggle(tag.slug)}
-                            >
-                              <CardContent className="p-4">
-                                <div className="flex items-center space-x-3">
-                                  <Checkbox
-                                    checked={formData.selectedTags.includes(tag.slug)}
-                                    onCheckedChange={() => handleTagToggle(tag.slug)}
-                                  />
-                                  <div className="flex-1">
-                                    <div className="font-semibold text-foreground">{tag.name}</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {contactCount} {contactCount === 1 ? 'contact' : 'contacts'}
-                                    </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-
-                {(formData.selectedContacts.length > 0 || formData.selectedTags.length > 0) && (
+                {formData.selectedContacts.length > 0 && (
                   <Card className="bg-gradient-to-r from-green-50 to-green-50/50 border-green-200 dark:from-green-950/30 dark:to-green-950/20 dark:border-green-900">
                     <CardContent className="p-4 flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center flex-shrink-0">
@@ -969,9 +1031,11 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                       </div>
                       <div>
                         <div className="font-semibold text-green-900 dark:text-green-200">
-                          Estimated Recipients: {getRecipientCount()} contacts
+                          Selected Recipients: {formData.selectedContacts.length} contacts
                         </div>
-                        <p className="text-sm text-green-800/70 dark:text-green-300/70">Will receive this campaign</p>
+                        <p className="text-sm text-green-800/70 dark:text-green-300/70">
+                          {hasTemplateVariables ? 'Fill in all parameter values to continue' : 'Ready to proceed'}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -979,119 +1043,8 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
               </div>
             )}
 
-            {/* Step 4: Upload Parameters (only for templates with variables) */}
-            {step === 4 && hasTemplateVariables && (
-              <div className="space-y-6">
-                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-900">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Template Parameters
-                    </CardTitle>
-                    <CardDescription>
-                      This template requires {formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s).
-                      Download the CSV template, fill it with values for each recipient, then upload it back.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Step 1: Download CSV Template */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold">Step 1: Download CSV Template</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full h-11"
-                        onClick={handleDownloadTemplate}
-                        disabled={!createdWhatsAppCampaignId}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download CSV Template
-                      </Button>
-                      <p className="text-xs text-muted-foreground">
-                        The CSV will include columns for all template parameters
-                      </p>
-                    </div>
-
-                    {/* Step 2: Upload Filled CSV */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold">Step 2: Upload Filled CSV</Label>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".csv"
-                        onChange={handleCSVUpload}
-                        className="hidden"
-                        id="csv-upload"
-                      />
-
-                      {!uploadedCSV ? (
-                        <label htmlFor="csv-upload">
-                          <div className="w-full h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
-                            <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                            <p className="text-sm font-medium text-foreground">Click to upload CSV</p>
-                            <p className="text-xs text-muted-foreground mt-1">or drag and drop</p>
-                          </div>
-                        </label>
-                      ) : (
-                        <div className="w-full p-4 border border-border rounded-lg bg-muted/30">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
-                                <File className="h-5 w-5 text-green-600 dark:text-green-400" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">{uploadedCSV.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {(uploadedCSV.size / 1024).toFixed(2)} KB
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleRemoveCSV}
-                              className="h-8 w-8 p-0"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-
-                          <Button
-                            type="button"
-                            className="w-full mt-3"
-                            onClick={handleImportCSV}
-                            disabled={csvUploading}
-                          >
-                            {csvUploading ? (
-                              <>
-                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                                Importing...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="h-4 w-4 mr-2" />
-                                Import CSV Data
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info Alert */}
-                    <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900">
-                      <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs">
-                        <strong>Note:</strong> Each row in the CSV represents one recipient. The template parameters will be personalized for each contact.
-                      </AlertDescription>
-                    </Alert>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 5 (or 4 for simple): Review */}
-            {((hasTemplateVariables && step === 5) || (!hasTemplateVariables && step === 4)) && (
+            {/* Step 4: Review */}
+            {step === 4 && (
               <div className="space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Campaign Details Column */}
@@ -1139,15 +1092,15 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                                 </Badge>
                               </div>
 
-                              {uploadedCSV && (
+                              {hasTemplateVariables && formData.selectedContacts.length > 0 && (
                                 <>
                                   <div className="border-t border-border/30"></div>
                                   <div className="space-y-2">
-                                    <div className="text-sm font-medium text-muted-foreground">Parameters:</div>
+                                    <div className="text-sm font-medium text-muted-foreground">Template Parameters:</div>
                                     <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded border border-green-200 dark:border-green-900">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                                       <span className="text-sm text-green-800 dark:text-green-200">
-                                        CSV uploaded: {uploadedCSV.name}
+                                        {formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s) configured for {formData.selectedContacts.length} recipient(s)
                                       </span>
                                     </div>
                                   </div>
@@ -1179,7 +1132,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
                                   return contact ? (
                                     <div key={contactId} className="text-sm p-2 bg-background rounded border border-border/50">
                                       <div className="font-medium text-foreground">{contact.fullname}</div>
-                                      <div className="text-muted-foreground text-xs">{contact.phone_number}</div>
+                                      <div className="text-muted-foreground text-xs">{contact.phone}</div>
                                     </div>
                                   ) : null;
                                 })}
