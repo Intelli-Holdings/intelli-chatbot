@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, File, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,7 +65,7 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
     templateLanguage: '',
     bodyParameters: [] as Array<{ type: string; text: string; parameter_name?: string }>,
     headerParameters: [] as Array<{ type: string; text: string }>,
-    buttonParameters: [] as Array<{ type: string; text: string; sub_type?: string }>,
+    buttonParameters: [] as Array<{ type: string; text: string; sub_type?: string }>, 
 
     // Simple text fields
     messageContent: '',
@@ -87,24 +87,47 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
   const [loading, setLoading] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
 
+  // New pagination / totals state used by contacts fetch logic
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Reduce page size to 100 to avoid gateway timeouts (was 1000)
+  const pageSize = 100;
+
   const { templates, loading: templatesLoading } = useWhatsAppTemplates(appService);
   const approvedTemplates = templates.filter(t => t.status === 'APPROVED');
 
-  // Fetch contacts and tags
+  // Fetch contacts using the same logic as /dashboard/contacts (paginated, smaller page size)
+  const fetchContacts = useCallback(async (orgId: string, page: number = 1) => {
+    try {
+      setLoadingContacts(true);
+      const response = await fetch(`/api/contacts/contacts?organization=${orgId}&page=${page}&page_size=${pageSize}`);
+      if (!response.ok) throw new Error("Failed to fetch contacts");
+      const data = await response.json();
+
+      // Handle paginated response
+      if (data.results) {
+        setContacts(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / pageSize));
+      } else {
+        setContacts(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      toast.error("Failed to fetch contacts");
+    } finally {
+      setLoadingContacts(false);
+    }
+  }, [pageSize]);
+
+  // Fetch contacts and tags on mount / when organizationId changes
   useEffect(() => {
     const fetchData = async () => {
       if (!organizationId) return;
 
-      setLoadingContacts(true);
       try {
-        // Fetch contacts
-        const contactsResponse = await fetch(
-          `/api/contacts/contacts?organization=${organizationId}&page_size=1000`
-        );
-        if (contactsResponse.ok) {
-          const contactsData = await contactsResponse.json();
-          setContacts(contactsData.results || contactsData || []);
-        }
+        // Fetch contacts (uses the paginated fetchContacts implementation)
+        await fetchContacts(organizationId);
 
         // Fetch tags
         const tagsResponse = await fetch(`/api/contacts/tags?organization=${organizationId}`);
@@ -115,13 +138,11 @@ export default function CampaignCreationFormV2({ appService, onSuccess }: Campai
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load contacts and tags');
-      } finally {
-        setLoadingContacts(false);
       }
     };
 
     fetchData();
-  }, [organizationId]);
+  }, [organizationId, fetchContacts]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
