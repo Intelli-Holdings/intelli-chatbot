@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 import DashboardHeader from '@/components/dashboard-header';
 import BulkContactUpload from '@/components/bulk-contact-upload';
-import CampaignCreationFormV2 from '@/components/campaign-creation-form-v2';
+import CampaignCreationForm from '@/components/campaign-creation-form';
 import TemplateSelector from '@/components/template-selector';
 import CampaignDetailsModal from '@/components/campaign-details-modal';
 import { CampaignScheduleDisplay } from '@/components/schedule-input-timezone';
@@ -222,7 +222,7 @@ export default function BroadcastCampaignPage() {
           </TabsContent>
 
           <TabsContent value="create">
-            <CampaignCreationFormV2
+            <CampaignCreationForm
               appService={selectedAppService}
               onSuccess={() => {
                 setActiveTab('campaigns');
