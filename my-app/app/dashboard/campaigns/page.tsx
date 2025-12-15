@@ -23,7 +23,7 @@ import { useCampaigns } from '@/hooks/use-campaigns';
 import { useAppServices } from '@/hooks/use-app-services';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { CampaignService, type Campaign } from '@/services/campaign';
-import CampaignCreationFormV2 from '@/components/campaign-creation-form-v2';
+import CampaignCreationForm from '@/components/campaign-creation-form';
 import CampaignEditForm from '@/components/campaign-edit-form';
 import CampaignDetailsModal from '@/components/campaign-details-modal';
 import { CampaignScheduleDisplay } from '@/components/schedule-input-timezone';
@@ -384,7 +384,7 @@ export default function CampaignsPage() {
             <DialogHeader>
               <DialogTitle>Create New Campaign</DialogTitle>
             </DialogHeader>
-            <CampaignCreationFormV2
+            <CampaignCreationForm
               appService={selectedAppService}
               onSuccess={() => {
                 setShowCreateForm(false);
