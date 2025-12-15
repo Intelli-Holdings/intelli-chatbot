@@ -599,6 +599,7 @@ static async updateCampaign(
 
   /**
    * Export CSV template for campaign parameters
+   * Includes custom fields and template parameters
    */
   static async exportParamsTemplate(
     campaignId: string,
@@ -606,7 +607,8 @@ static async updateCampaign(
     recipients?: {
       tag_ids?: number[];
       contact_ids?: number[];
-    }
+    },
+    includeCustomFields?: boolean
   ): Promise<Blob> {
     try {
       const payload: any = {
@@ -621,6 +623,11 @@ static async updateCampaign(
       // Include contact_ids if provided
       if (recipients?.contact_ids && recipients.contact_ids.length > 0) {
         payload.contact_ids = recipients.contact_ids;
+      }
+
+      // Include custom fields flag
+      if (includeCustomFields !== undefined) {
+        payload.include_custom_fields = includeCustomFields;
       }
 
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/export_params_template`, {
@@ -648,16 +655,17 @@ static async updateCampaign(
    * New workflow: Creates contacts and recipients automatically
    *
    * CSV Format:
-   * contact_id,phone,fullname,email,{{1}},{{2}}
-   * ,+221774130289,Mahamadou Kaba,kaba@example.com,Value1,Value2
-   * ,+1234567890,John Doe,john@example.com,Val1,Val2
+   * contact_id,phone,fullname,email,{{1}},{{2}},custom.loyalty_id,custom.city
+   * ,+221774130289,Mahamadou Kaba,kaba@example.com,Value1,Value2,ABC123,Dakar
+   * ,+1234567890,John Doe,john@example.com,Val1,Val2,XYZ789,New York
    *
    * Features:
    * - Creates new contacts if they don't exist (when create_if_not_exists=true)
    * - Adds existing contacts as recipients
-   * - Updates parameters for all
+   * - Updates parameters for all (including custom fields)
    * - Phone normalization (handles +, spaces, etc.)
    * - Transaction-safe (all or nothing)
+   * - Import mapping support (when mapping_id is provided)
    *
    * Response:
    * {
@@ -673,7 +681,8 @@ static async updateCampaign(
     campaignId: string,
     organizationId: string,
     file: File,
-    createIfNotExists: boolean = true
+    createIfNotExists: boolean = true,
+    mappingId?: string
   ): Promise<{
     updated_recipients: number;
     new_recipients_created: number;
@@ -687,6 +696,10 @@ static async updateCampaign(
       formData.append('file', file);
       formData.append('organization_id', organizationId);
       formData.append('create_if_not_exists', createIfNotExists.toString());
+
+      if (mappingId) {
+        formData.append('mapping_id', mappingId);
+      }
 
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/import_params_template`, {
         method: 'POST',
