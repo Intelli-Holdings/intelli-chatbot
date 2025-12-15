@@ -10,12 +10,13 @@ import {
   BellDot,
   PaintRoller,
   Globe,
-  ShieldQuestion,
   Contact,
   ChevronDown,
   Files,
   ChevronRight,
-  RadioTower
+  RadioTower,
+  SettingsIcon,
+  CogIcon
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -122,9 +123,9 @@ const data = {
       icon: Building2,
     },
     {
-      title: "Escalation Events",
-      url: "/dashboard/escalation-events",
-      icon: ShieldQuestion,
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: SettingsIcon,
     },
   ],
 }
