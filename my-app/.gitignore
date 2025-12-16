@@ -50,3 +50,9 @@ next-env.d.ts
 /idea
 .vscode.env
 .env.*
+.env
+.env.*
+.env
+.env.*
+my-app/.env
+my-app/.env.*
