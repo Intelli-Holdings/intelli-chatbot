@@ -47,7 +47,7 @@ export default function CampaignsPage() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { campaigns, loading, error, refetch } = useCampaigns(organizationId || undefined, {
+  const { campaigns, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     channel: channelFilter !== 'all' ? channelFilter : undefined,
   });
@@ -185,7 +185,7 @@ export default function CampaignsPage() {
   const statsCards = [
     {
       title: 'Total Campaigns',
-      value: campaigns.length,
+      value: totalCount,
       icon: MessageSquare,
       color: 'text-blue-600'
     },
@@ -490,9 +490,6 @@ export default function CampaignsPage() {
         {/* Campaign Creation Dialog */}
         <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Campaign</DialogTitle>
-            </DialogHeader>
             <CampaignCreationForm
               appService={selectedAppService}
               onSuccess={() => {

@@ -5,6 +5,7 @@ import { CampaignService, type Campaign } from '@/services/campaign';
 
 interface UseCampaignsReturn {
   campaigns: Campaign[];
+  totalCount: number;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -22,6 +23,7 @@ export function useCampaigns(
   filters?: UseCampaignsFilters
 ): UseCampaignsReturn {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +33,7 @@ export function useCampaigns(
   const fetchCampaigns = useCallback(async () => {
     if (!organizationId) {
       setCampaigns([]);
+      setTotalCount(0);
       return;
     }
 
@@ -40,11 +43,13 @@ export function useCampaigns(
     try {
       const parsedFilters = filtersJson ? JSON.parse(filtersJson) : undefined;
       const data = await CampaignService.fetchCampaigns(organizationId, parsedFilters);
-      setCampaigns(data);
+      setCampaigns(data.campaigns);
+      setTotalCount(data.totalCount);
     } catch (err) {
       console.error('Error fetching campaigns:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch campaigns');
       setCampaigns([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -56,6 +61,7 @@ export function useCampaigns(
 
   return {
     campaigns,
+    totalCount,
     loading,
     error,
     refetch: fetchCampaigns,
@@ -67,6 +73,7 @@ export function useWhatsAppCampaigns(
   filters?: { status?: string; page?: number; pageSize?: number }
 ): UseCampaignsReturn {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +83,7 @@ export function useWhatsAppCampaigns(
   const fetchCampaigns = useCallback(async () => {
     if (!organizationId) {
       setCampaigns([]);
+      setTotalCount(0);
       return;
     }
 
@@ -85,11 +93,13 @@ export function useWhatsAppCampaigns(
     try {
       const parsedFilters = filtersJson ? JSON.parse(filtersJson) : undefined;
       const data = await CampaignService.fetchWhatsAppCampaigns(organizationId, parsedFilters);
-      setCampaigns(data);
+      setCampaigns(data.campaigns);
+      setTotalCount(data.totalCount);
     } catch (err) {
       console.error('Error fetching WhatsApp campaigns:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch WhatsApp campaigns');
       setCampaigns([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -101,6 +111,7 @@ export function useWhatsAppCampaigns(
 
   return {
     campaigns,
+    totalCount,
     loading,
     error,
     refetch: fetchCampaigns,
