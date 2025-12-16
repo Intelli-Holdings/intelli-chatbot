@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical } from 'lucide-react';
+import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,10 +38,14 @@ export default function CampaignsPage() {
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [showDraftForm, setShowDraftForm] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [draftToContinue, setDraftToContinue] = useState<Campaign | null>(null);
   const [showCampaignDetails, setShowCampaignDetails] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
+  const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { campaigns, loading, error, refetch } = useCampaigns(organizationId || undefined, {
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -50,6 +55,15 @@ export default function CampaignsPage() {
   const handleViewCampaign = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setShowCampaignDetails(true);
+  };
+
+  const handleContinueDraft = (campaign: Campaign) => {
+    if (!selectedAppService || !organizationId) {
+      toast.error('Please configure your App Service and organization to continue a draft');
+      return;
+    }
+    setDraftToContinue(campaign);
+    setShowDraftForm(true);
   };
 
   const handleEditCampaign = (campaign: Campaign) => {
@@ -85,17 +99,60 @@ export default function CampaignsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!organizationId || !campaignToDelete) return;
+    if (!organizationId) return;
 
+    setIsDeleting(true);
     try {
-      await CampaignService.deleteCampaign(campaignToDelete.id, organizationId);
-      toast.success('Campaign deleted successfully');
+      // Handle bulk delete
+      if (selectedCampaigns.size > 0) {
+        const deletePromises = Array.from(selectedCampaigns).map(campaignId =>
+          CampaignService.deleteCampaign(campaignId, organizationId)
+        );
+
+        await Promise.all(deletePromises);
+        toast.success(`${selectedCampaigns.size} campaign(s) deleted successfully`);
+        setSelectedCampaigns(new Set());
+      }
+      // Handle single delete
+      else if (campaignToDelete) {
+        await CampaignService.deleteCampaign(campaignToDelete.id, organizationId);
+        toast.success('Campaign deleted successfully');
+        setCampaignToDelete(null);
+      }
+
       setShowDeleteDialog(false);
-      setCampaignToDelete(null);
       refetch();
     } catch (error) {
-      toast.error('Failed to delete campaign');
+      toast.error('Failed to delete campaign(s)');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleToggleCampaign = (campaignId: string) => {
+    const newSelected = new Set(selectedCampaigns);
+    if (newSelected.has(campaignId)) {
+      newSelected.delete(campaignId);
+    } else {
+      newSelected.add(campaignId);
+    }
+    setSelectedCampaigns(newSelected);
+  };
+
+  const handleToggleAll = () => {
+    if (selectedCampaigns.size === filteredCampaigns.length) {
+      setSelectedCampaigns(new Set());
+    } else {
+      setSelectedCampaigns(new Set(filteredCampaigns.map((c: Campaign) => c.id)));
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedCampaigns(new Set());
   };
 
   const getStatusColor = (status: string) => {
@@ -219,6 +276,39 @@ export default function CampaignsPage() {
           </CardHeader>
 
           <CardContent>
+            {/* Bulk Action Toolbar */}
+            {selectedCampaigns.size > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedCampaigns.size === filteredCampaigns.length}
+                    onCheckedChange={handleToggleAll}
+                  />
+                  <span className="text-sm font-medium">
+                    {selectedCampaigns.size} campaign{selectedCampaigns.size !== 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearSelection}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDeleteClick}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete Selected
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4 items-center mb-4">
               <div className="relative flex-1">
@@ -288,6 +378,12 @@ export default function CampaignsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedCampaigns.size === filteredCampaigns.length && filteredCampaigns.length > 0}
+                        onCheckedChange={handleToggleAll}
+                      />
+                    </TableHead>
                     <TableHead>Campaign</TableHead>
                     <TableHead>Channel</TableHead>
                     <TableHead>Status</TableHead>
@@ -299,6 +395,12 @@ export default function CampaignsPage() {
                 <TableBody>
                   {filteredCampaigns.map((campaign: Campaign) => (
                     <TableRow key={campaign.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedCampaigns.has(campaign.id)}
+                          onCheckedChange={() => handleToggleCampaign(campaign.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium">{campaign.name}</div>
@@ -339,6 +441,13 @@ export default function CampaignsPage() {
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
+
+                            {campaign.status === 'draft' && (
+                              <DropdownMenuItem onClick={() => handleContinueDraft(campaign)}>
+                                <Play className="h-4 w-4 mr-2" />
+                                Continue Setup
+                              </DropdownMenuItem>
+                            )}
 
                             <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
                               <Pencil className="h-4 w-4 mr-2" />
@@ -394,6 +503,29 @@ export default function CampaignsPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Continue Draft Dialog */}
+        <Dialog open={showDraftForm} onOpenChange={(open) => {
+          setShowDraftForm(open);
+          if (!open) setDraftToContinue(null);
+        }}>
+          <DialogContent className="w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Continue Draft Campaign</DialogTitle>
+            </DialogHeader>
+            {draftToContinue && (
+              <CampaignCreationForm
+                appService={selectedAppService}
+                draftCampaign={draftToContinue}
+                onSuccess={() => {
+                  setShowDraftForm(false);
+                  setDraftToContinue(null);
+                  refetch();
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Campaign Edit Dialog */}
         <Dialog open={showEditForm} onOpenChange={setShowEditForm}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -434,13 +566,21 @@ export default function CampaignsPage() {
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Delete Campaign</DialogTitle>
+              <DialogTitle>
+                {selectedCampaigns.size > 0
+                  ? `Delete ${selectedCampaigns.size} Campaign${selectedCampaigns.size !== 1 ? 's' : ''}`
+                  : 'Delete Campaign'}
+              </DialogTitle>
             </DialogHeader>
             <div className="py-4">
               <p className="text-sm text-muted-foreground mb-4">
-                Are you sure you want to delete this campaign?
+                {selectedCampaigns.size > 0
+                  ? `Are you sure you want to delete ${selectedCampaigns.size} campaign${selectedCampaigns.size !== 1 ? 's' : ''}?`
+                  : 'Are you sure you want to delete this campaign?'}
               </p>
-              {campaignToDelete && (
+
+              {/* Show single campaign details */}
+              {campaignToDelete && selectedCampaigns.size === 0 && (
                 <div className="bg-muted p-3 rounded-md">
                   <p className="font-medium">{campaignToDelete.name}</p>
                   <p className="text-sm text-muted-foreground">{campaignToDelete.description}</p>
@@ -454,6 +594,19 @@ export default function CampaignsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Show count for bulk delete */}
+              {selectedCampaigns.size > 0 && (
+                <div className="bg-muted p-3 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <p className="font-medium">
+                      {selectedCampaigns.size} campaign{selectedCampaigns.size !== 1 ? 's' : ''} will be permanently deleted
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <p className="text-sm text-muted-foreground mt-4">
                 This action cannot be undone.
               </p>
@@ -465,15 +618,17 @@ export default function CampaignsPage() {
                   setShowDeleteDialog(false);
                   setCampaignToDelete(null);
                 }}
+                disabled={isDeleting}
               >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleConfirmDelete}
+                disabled={isDeleting}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Campaign
+                {isDeleting ? 'Deleting...' : selectedCampaigns.size > 0 ? 'Delete All' : 'Delete Campaign'}
               </Button>
             </div>
           </DialogContent>

@@ -38,6 +38,12 @@ interface Contact {
   tags: Tag[]
   created_at: string
   information_source?: string
+  custom_fields?: {
+    field_id: string
+    key: string
+    name?: string
+    value: any
+  }[]
 }
 
 interface ContactsTableProps {
@@ -148,6 +154,7 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
+              <TableHead>Custom Fields</TableHead>
               <TableHead>Tags</TableHead>
               <TableHead>Source</TableHead>
               <TableHead>Added</TableHead>
@@ -157,7 +164,7 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
           <TableBody>
             {contacts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No contacts found
                 </TableCell>
               </TableRow>
@@ -184,6 +191,25 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
                   </TableCell>
                   <TableCell>{contact.email || "-"}</TableCell>
                   <TableCell>+{contact.phone || "-"}</TableCell>
+                  <TableCell>
+                    {contact.custom_fields && contact.custom_fields.length > 0 ? (
+                      <div className="flex flex-col gap-1">
+                        {contact.custom_fields.slice(0, 2).map((cf) => (
+                          <div key={cf.field_id} className="text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">{cf.name || cf.key}:</span>{" "}
+                            {cf.value !== null && cf.value !== undefined && cf.value !== "" ? String(cf.value) : "—"}
+                          </div>
+                        ))}
+                        {contact.custom_fields.length > 2 && (
+                          <span className="text-[11px] text-blue-600">
+                            +{contact.custom_fields.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {contact.tags && contact.tags.length > 0 ? (

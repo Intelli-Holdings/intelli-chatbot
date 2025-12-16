@@ -20,6 +20,19 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCustomFields } from '@/hooks/use-custom-fields';
 import { useImportMappings, type ImportMapping } from '@/hooks/use-import-mappings';
 
+interface TemplateParameter {
+  index: number;
+  name?: string;
+  description?: string;
+  subType?: string;
+}
+
+interface TemplateParameters {
+  header?: TemplateParameter[];
+  body?: TemplateParameter[];
+  button?: TemplateParameter[];
+}
+
 interface ImportMappingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,6 +40,7 @@ interface ImportMappingDialogProps {
   channel: 'whatsapp' | 'sms' | 'email';
   csvHeaders: string[];
   templateId?: string;
+  templateParameters?: TemplateParameters;
   onMappingCreated?: (mapping: ImportMapping) => void;
   existingMapping?: ImportMapping | null;
 }
@@ -48,6 +62,7 @@ export default function ImportMappingDialog({
   channel,
   csvHeaders,
   templateId,
+  templateParameters,
   onMappingCreated,
   existingMapping,
 }: ImportMappingDialogProps) {
@@ -171,6 +186,25 @@ export default function ImportMappingDialog({
         label: `${f.name} (custom)`,
         required: f.required,
       })),
+    // Template parameters (if provided)
+    ...(templateParameters?.header?.map(p => ({
+      key: `header_${p.index}`,
+      label: `Header Parameter ${p.index + 1}${p.name ? ` ({{${p.name}}})` : ''}`,
+      required: false,
+      isTemplateParam: true,
+    })) || []),
+    ...(templateParameters?.body?.map(p => ({
+      key: `body_${p.index}`,
+      label: `Body Parameter ${p.index + 1}${p.name ? ` ({{${p.name}}})` : ''}`,
+      required: true, // Body params typically required
+      isTemplateParam: true,
+    })) || []),
+    ...(templateParameters?.button?.map(p => ({
+      key: `button_${p.index}`,
+      label: `Button Parameter ${p.index + 1}${p.subType ? ` (${p.subType})` : ''}`,
+      required: false,
+      isTemplateParam: true,
+    })) || []),
   ];
 
   const isFieldMapped = (targetFieldKey: string) => {
@@ -240,7 +274,12 @@ export default function ImportMappingDialog({
             </Alert>
 
             <div className="border rounded-lg divide-y">
-              {allTargetFields.map((field) => (
+              {/* Contact Fields Section */}
+              <div className="bg-muted/30 px-4 py-2">
+                <h4 className="font-semibold text-sm">Contact Fields</h4>
+              </div>
+
+              {allTargetFields.filter(f => !(f as any).isTemplateParam).map((field) => (
                 <div
                   key={field.key}
                   className={`p-4 flex items-center justify-between ${
@@ -281,6 +320,57 @@ export default function ImportMappingDialog({
                   </div>
                 </div>
               ))}
+
+              {/* Template Parameters Section */}
+              {templateParameters && (
+                <>
+                  <div className="bg-muted/30 px-4 py-2">
+                    <h4 className="font-semibold text-sm">Template Parameters</h4>
+                  </div>
+
+                  {allTargetFields.filter(f => (f as any).isTemplateParam).map((field) => (
+                    <div
+                      key={field.key}
+                      className={`p-4 flex items-center justify-between ${
+                        field.required && !isFieldMapped(field.key) ? 'bg-red-50' : ''
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium flex items-center gap-2">
+                          {field.label}
+                          {field.required && (
+                            <span className="text-red-500 text-sm">*</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          <code className="bg-muted px-1 py-0.5 rounded">{field.key}</code>
+                        </div>
+                      </div>
+
+                      <div className="w-64">
+                        <Select
+                          value={bindings[field.key] || 'ignore'}
+                          onValueChange={(value) => handleBindingChange(field.key, value)}
+                        >
+                          <SelectTrigger className={field.required && !bindings[field.key] ? 'border-red-500' : ''}>
+                            <SelectValue placeholder="Select column..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ignore">
+                              <span className="text-muted-foreground">-- Ignore --</span>
+                            </SelectItem>
+                            {csvHeaders.map(header => (
+                              <SelectItem key={header} value={header}>
+                                {header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
 
