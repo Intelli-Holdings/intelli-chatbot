@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle } from 'lucide-react';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -1608,7 +1608,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Users className="h-5 w-5 text-primary" />
+                          <UserPlus className="h-5 w-5 text-primary" />
                           <div className="font-semibold">Manual Selection</div>
                         </div>
                         {recipientSelectionMode === 'manual' && (
@@ -1870,15 +1870,15 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           {/* Left: Mappings - Inline Editable */}
-                          <Card>
+                          <Card className="border-border/60">
                             <CardHeader>
                               <CardTitle className="text-sm">Column Mappings</CardTitle>
                               <CardDescription className="text-xs">
                                 Match CSV columns to template variables
                               </CardDescription>
                             </CardHeader>
-                            <CardContent>
-                              <div className="space-y-3 max-h-96 overflow-auto">
+                            <CardContent className="p-6">
+                              <div className="space-y-3 max-h-96 overflow-auto p-2">
                                 {/* Contact Fields */}
                                 <div className="space-y-2">
                                   <h4 className="text-xs font-semibold text-muted-foreground uppercase">Contact Info</h4>
