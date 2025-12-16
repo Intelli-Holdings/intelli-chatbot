@@ -12,16 +12,7 @@ import { DeleteContactDialog } from "./delete-contact-dialog"
 import { EditContactDialog } from "./edit-contact-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import { Trash2, MoreHorizontal, Pencil } from "lucide-react"
+import { Trash2, MoreHorizontal, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 
@@ -297,80 +288,56 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
             </div>
           </div>
           {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-md px-3 py-2 border border-gray-300 dark:border-gray-700">
+              {/* First page */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
 
-                {/* First page */}
-                {currentPage > 2 && (
-                  <PaginationItem>
-                    <PaginationLink onClick={() => onPageChange(1)} className="cursor-pointer">
-                      1
-                    </PaginationLink>
-                  </PaginationItem>
-                )}
+              {/* Previous page */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
 
-                {/* Ellipsis before current */}
-                {currentPage > 3 && (
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                )}
+              {/* Page indicator */}
+              <span className="text-sm font-medium px-2 text-gray-700 dark:text-gray-300">
+                {currentPage}/{totalPages}
+              </span>
 
-                {/* Previous page */}
-                {currentPage > 1 && (
-                  <PaginationItem>
-                    <PaginationLink onClick={() => onPageChange(currentPage - 1)} className="cursor-pointer">
-                      {currentPage - 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                )}
+              {/* Next page */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
 
-                {/* Current page */}
-                <PaginationItem>
-                  <PaginationLink isActive className="cursor-default">
-                    {currentPage}
-                  </PaginationLink>
-                </PaginationItem>
-
-                {/* Next page */}
-                {currentPage < totalPages && (
-                  <PaginationItem>
-                    <PaginationLink onClick={() => onPageChange(currentPage + 1)} className="cursor-pointer">
-                      {currentPage + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                )}
-
-                {/* Ellipsis after current */}
-                {currentPage < totalPages - 2 && (
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                )}
-
-                {/* Last page */}
-                {currentPage < totalPages - 1 && (
-                  <PaginationItem>
-                    <PaginationLink onClick={() => onPageChange(totalPages)} className="cursor-pointer">
-                      {totalPages}
-                    </PaginationLink>
-                  </PaginationItem>
-                )}
-
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+              {/* Last page */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
       )}
