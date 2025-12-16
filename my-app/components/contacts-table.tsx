@@ -11,16 +11,8 @@ import { BulkActionsDialog } from "./bulk-actions-dialog"
 import { DeleteContactDialog } from "./delete-contact-dialog"
 import { EditContactDialog } from "./edit-contact-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import { Trash2, MoreHorizontal, Pencil } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Trash2, MoreHorizontal, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 
@@ -49,10 +41,12 @@ interface ContactsTableProps {
   currentPage: number
   totalPages: number
   totalCount: number
+  pageSize: number
   onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
 }
 
-export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContactsChange, currentPage, totalPages, totalCount, onPageChange }: ContactsTableProps) {
+export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContactsChange, currentPage, totalPages, totalCount, pageSize, onPageChange, onPageSizeChange }: ContactsTableProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [showBulkDialog, setShowBulkDialog] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -271,85 +265,80 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
       />
 
       {/* Pagination */}
-      {!isLoading && totalPages > 1 && (
+      {!isLoading && totalCount > 0 && (
         <div className="flex items-center justify-between px-4 py-4">
-          <div className="text-sm text-muted-foreground">
-            Showing {contacts.length > 0 ? ((currentPage - 1) * 12) + 1 : 0} to {Math.min(currentPage * 12, totalCount)} of {totalCount} contacts
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {contacts.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} contacts
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Results per page</span>
+              <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
+                <SelectTrigger className="h-8 w-[70px]">
+                  <SelectValue placeholder={pageSize} />
+                </SelectTrigger>
+                <SelectContent side="top">
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
-                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-md px-3 py-2 border border-gray-300 dark:border-gray-700">
               {/* First page */}
-              {currentPage > 2 && (
-                <PaginationItem>
-                  <PaginationLink onClick={() => onPageChange(1)} className="cursor-pointer">
-                    1
-                  </PaginationLink>
-                </PaginationItem>
-              )}
-
-              {/* Ellipsis before current */}
-              {currentPage > 3 && (
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
 
               {/* Previous page */}
-              {currentPage > 1 && (
-                <PaginationItem>
-                  <PaginationLink onClick={() => onPageChange(currentPage - 1)} className="cursor-pointer">
-                    {currentPage - 1}
-                  </PaginationLink>
-                </PaginationItem>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
 
-              {/* Current page */}
-              <PaginationItem>
-                <PaginationLink isActive className="cursor-default">
-                  {currentPage}
-                </PaginationLink>
-              </PaginationItem>
+              {/* Page indicator */}
+              <span className="text-sm font-medium px-2 text-gray-700 dark:text-gray-300">
+                {currentPage}/{totalPages}
+              </span>
 
               {/* Next page */}
-              {currentPage < totalPages && (
-                <PaginationItem>
-                  <PaginationLink onClick={() => onPageChange(currentPage + 1)} className="cursor-pointer">
-                    {currentPage + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              )}
-
-              {/* Ellipsis after current */}
-              {currentPage < totalPages - 2 && (
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
 
               {/* Last page */}
-              {currentPage < totalPages - 1 && (
-                <PaginationItem>
-                  <PaginationLink onClick={() => onPageChange(totalPages)} className="cursor-pointer">
-                    {totalPages}
-                  </PaginationLink>
-                </PaginationItem>
-              )}
-
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
-                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </>
