@@ -44,16 +44,6 @@ export default function MappingPreviewPanel({
   // Check if template has variables
   const hasVariables = bodyText.includes('{{') || headerText.includes('{{');
 
-  if (!hasVariables) {
-    return (
-      <Alert className="bg-blue-50 border-blue-200">
-        <AlertCircle className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800">
-          This template has no variables. Messages will be identical for all recipients.
-        </AlertDescription>
-      </Alert>
-    );
-  }
 
   // Preview a few recipients
   const previewCount = Math.min(csvData.length, maxPreviews);
