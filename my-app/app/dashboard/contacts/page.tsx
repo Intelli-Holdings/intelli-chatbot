@@ -32,13 +32,14 @@ export default function ContactsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
-  const pageSize = 12
+  const [pageSize, setPageSize] = useState(12)
   const organizationId = useActiveOrganizationId()
 
-  const fetchContacts = useCallback(async (orgId: string, page: number = 1) => {
+  const fetchContacts = useCallback(async (orgId: string, page: number = 1, size?: number) => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/contacts/contacts?organization=${orgId}&page=${page}&page_size=${pageSize}`)
+      const effectivePageSize = size || pageSize
+      const response = await fetch(`/api/contacts/contacts?organization=${orgId}&page=${page}&page_size=${effectivePageSize}`)
       if (!response.ok) throw new Error("Failed to fetch contacts")
       const data = await response.json()
 
@@ -46,7 +47,7 @@ export default function ContactsPage() {
       if (data.results) {
         setContacts(data.results)
         setTotalCount(data.count || 0)
-        setTotalPages(Math.ceil((data.count || 0) / pageSize))
+        setTotalPages(Math.ceil((data.count || 0) / effectivePageSize))
       } else {
         setContacts(Array.isArray(data) ? data : [])
       }
@@ -78,6 +79,14 @@ export default function ContactsPage() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize)
+    setCurrentPage(1) // Reset to first page when changing page size
+    if (organizationId) {
+      fetchContacts(organizationId, 1, newPageSize)
+    }
   }
 
   const filteredContacts = contacts.filter((contact) => {
@@ -122,7 +131,9 @@ export default function ContactsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalCount={totalCount}
+          pageSize={pageSize}
           onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
           onContactsChange={() => fetchContacts(organizationId || "", currentPage)}
         />
       </div>

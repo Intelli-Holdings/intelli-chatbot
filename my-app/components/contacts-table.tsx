@@ -11,6 +11,7 @@ import { BulkActionsDialog } from "./bulk-actions-dialog"
 import { DeleteContactDialog } from "./delete-contact-dialog"
 import { EditContactDialog } from "./edit-contact-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Pagination,
   PaginationContent,
@@ -49,10 +50,12 @@ interface ContactsTableProps {
   currentPage: number
   totalPages: number
   totalCount: number
+  pageSize: number
   onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
 }
 
-export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContactsChange, currentPage, totalPages, totalCount, onPageChange }: ContactsTableProps) {
+export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContactsChange, currentPage, totalPages, totalCount, pageSize, onPageChange, onPageSizeChange }: ContactsTableProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [showBulkDialog, setShowBulkDialog] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -271,85 +274,104 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
       />
 
       {/* Pagination */}
-      {!isLoading && totalPages > 1 && (
+      {!isLoading && totalCount > 0 && (
         <div className="flex items-center justify-between px-4 py-4">
-          <div className="text-sm text-muted-foreground">
-            Showing {contacts.length > 0 ? ((currentPage - 1) * 12) + 1 : 0} to {Math.min(currentPage * 12, totalCount)} of {totalCount} contacts
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {contacts.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} contacts
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Results per page</span>
+              <Select value={pageSize.toString()} onValueChange={(value) => onPageSizeChange(Number(value))}>
+                <SelectTrigger className="h-8 w-[70px]">
+                  <SelectValue placeholder={pageSize} />
+                </SelectTrigger>
+                <SelectContent side="top">
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
-                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-
-              {/* First page */}
-              {currentPage > 2 && (
+          {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
                 <PaginationItem>
-                  <PaginationLink onClick={() => onPageChange(1)} className="cursor-pointer">
-                    1
+                  <PaginationPrevious
+                    onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+
+                {/* First page */}
+                {currentPage > 2 && (
+                  <PaginationItem>
+                    <PaginationLink onClick={() => onPageChange(1)} className="cursor-pointer">
+                      1
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+
+                {/* Ellipsis before current */}
+                {currentPage > 3 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+
+                {/* Previous page */}
+                {currentPage > 1 && (
+                  <PaginationItem>
+                    <PaginationLink onClick={() => onPageChange(currentPage - 1)} className="cursor-pointer">
+                      {currentPage - 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+
+                {/* Current page */}
+                <PaginationItem>
+                  <PaginationLink isActive className="cursor-default">
+                    {currentPage}
                   </PaginationLink>
                 </PaginationItem>
-              )}
 
-              {/* Ellipsis before current */}
-              {currentPage > 3 && (
+                {/* Next page */}
+                {currentPage < totalPages && (
+                  <PaginationItem>
+                    <PaginationLink onClick={() => onPageChange(currentPage + 1)} className="cursor-pointer">
+                      {currentPage + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+
+                {/* Ellipsis after current */}
+                {currentPage < totalPages - 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+
+                {/* Last page */}
+                {currentPage < totalPages - 1 && (
+                  <PaginationItem>
+                    <PaginationLink onClick={() => onPageChange(totalPages)} className="cursor-pointer">
+                      {totalPages}
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+
                 <PaginationItem>
-                  <PaginationEllipsis />
+                  <PaginationNext
+                    onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
                 </PaginationItem>
-              )}
-
-              {/* Previous page */}
-              {currentPage > 1 && (
-                <PaginationItem>
-                  <PaginationLink onClick={() => onPageChange(currentPage - 1)} className="cursor-pointer">
-                    {currentPage - 1}
-                  </PaginationLink>
-                </PaginationItem>
-              )}
-
-              {/* Current page */}
-              <PaginationItem>
-                <PaginationLink isActive className="cursor-default">
-                  {currentPage}
-                </PaginationLink>
-              </PaginationItem>
-
-              {/* Next page */}
-              {currentPage < totalPages && (
-                <PaginationItem>
-                  <PaginationLink onClick={() => onPageChange(currentPage + 1)} className="cursor-pointer">
-                    {currentPage + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              )}
-
-              {/* Ellipsis after current */}
-              {currentPage < totalPages - 2 && (
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              )}
-
-              {/* Last page */}
-              {currentPage < totalPages - 1 && (
-                <PaginationItem>
-                  <PaginationLink onClick={() => onPageChange(totalPages)} className="cursor-pointer">
-                    {totalPages}
-                  </PaginationLink>
-                </PaginationItem>
-              )}
-
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
-                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       )}
     </>
