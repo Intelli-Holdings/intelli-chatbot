@@ -126,6 +126,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const { templates, loading: templatesLoading } = useWhatsAppTemplates(appService);
   const approvedTemplates = templates.filter(t => t.status === 'APPROVED');
 
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const immediateExecutionDelayMs = 10_000; // 10 seconds buffer before firing immediates
+
   useEffect(() => {
     hasInitializedDraft.current = false;
     hasSyncedDraftTemplate.current = false;
@@ -1313,6 +1316,10 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         }
 
         // Execute the campaign
+        if (scheduleNow) {
+          await delay(immediateExecutionDelayMs);
+        }
+
         await CampaignService.executeWhatsAppCampaign(
           createdWhatsAppCampaignId,
           organizationId,

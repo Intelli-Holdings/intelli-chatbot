@@ -147,21 +147,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setError(null)
 
     try {
-      let nextUrl: string | null = `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/org/${activeOrganizationId}/`
-      const allResults: NotificationMessage[] = []
+      const firstPageUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/org/${activeOrganizationId}/`
+      const response = await fetch(firstPageUrl)
+      if (!response.ok) throw new Error('Failed to fetch historical notifications')
+      const data: PaginatedResponse = await response.json()
 
-      while (nextUrl) {
-        const response = await fetch(nextUrl)
-        if (!response.ok) throw new Error('Failed to fetch historical notifications')
-        const data: PaginatedResponse = await response.json()
-        allResults.push(...data.results)
-        nextUrl = data.next
-      }
-
-      setHistoricalNotifications(allResults)
+      // Only store the first page to avoid flooding the backend with all pages at once
+      setHistoricalNotifications(data.results)
       setNotifications(prev => {
         const existing = new Set(prev.map(n => n.id))
-        const newItems = allResults.filter(n => !existing.has(n.id))
+        const newItems = data.results.filter(n => !existing.has(n.id))
         const combined = [...newItems, ...prev]
         if (storageKey) localStorage.setItem(storageKey, JSON.stringify(combined))
         return combined
