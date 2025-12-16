@@ -1780,6 +1780,14 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                 {/* CSV Import */}
                 {recipientSelectionMode === 'csv' && (
                   <div className="space-y-6">
+                    {campaignType === 'template' && hasTemplateVariables && (
+                      <Alert className="bg-blue-50 border-blue-200">
+                        <AlertDescription className="text-sm text-blue-800">
+                          This template requires {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length} parameter value{formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length === 1 ? '' : 's'} per recipient. In your CSV, include columns for phone plus each parameter and map them on the next step.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {/* File Upload Section */}
                     <div className="space-y-3">
                       <Label className="text-base font-semibold">Step 1: Upload CSV File</Label>
