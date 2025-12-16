@@ -1316,7 +1316,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         await CampaignService.executeWhatsAppCampaign(
           createdWhatsAppCampaignId,
           organizationId,
-          scheduleNow
+          scheduleNow,
+          scheduleNow ? undefined : scheduledAtUTC || new Date().toISOString()
         );
       }
 

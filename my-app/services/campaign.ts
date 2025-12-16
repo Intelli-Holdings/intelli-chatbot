@@ -408,18 +408,25 @@ static async updateCampaign(
   static async executeWhatsAppCampaign(
     campaignId: string,
     organizationId: string,
-    executeNow: boolean = true
+    executeNow: boolean = true,
+    scheduledAt?: string
   ): Promise<any> {
     try {
+      const payload: Record<string, any> = {
+        organization_id: organizationId,
+        execute_now: executeNow,
+      };
+
+      if (scheduledAt) {
+        payload.scheduled_at = scheduledAt;
+      }
+
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          organization_id: organizationId,
-          execute_now: executeNow,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -431,7 +438,7 @@ static async updateCampaign(
           const text = await response.text();
           errorMessage = text || errorMessage;
         }
-        throw new Error(errorMessage);
+        throw new Error(`${errorMessage} (status ${response.status})`);
       }
 
       return await response.json();
