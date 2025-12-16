@@ -423,8 +423,15 @@ static async updateCampaign(
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to execute campaign');
+        let errorMessage = 'Failed to execute campaign';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.detail || errorData.message || errorMessage;
+        } catch {
+          const text = await response.text();
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       return await response.json();

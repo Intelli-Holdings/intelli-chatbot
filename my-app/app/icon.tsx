@@ -17,12 +17,21 @@ export default function Icon() {
     (
       // ImageResponse JSX element
       <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
         <svg
           id="Layer_2"
           data-name="Layer 2"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 44.86 51.21"
+          width="32"
+          height="32"
         >
           <defs>
             <style>{`.cls-1 { fill: #007fFF; }`}</style>

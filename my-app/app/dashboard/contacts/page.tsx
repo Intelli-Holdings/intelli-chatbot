@@ -21,6 +21,12 @@ interface Contact {
   tags: Tag[]
   created_at: string
   information_source?: string
+  custom_fields?: {
+    field_id: string
+    key: string
+    name?: string
+    value: any
+  }[]
 }
 
 export default function ContactsPage() {
