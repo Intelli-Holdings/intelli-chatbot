@@ -22,6 +22,8 @@ interface CampaignEditFormProps {
 export default function CampaignEditForm({ campaign, onSuccess, onCancel }: CampaignEditFormProps) {
   const organizationId = useActiveOrganizationId();
   const [loading, setLoading] = useState(false);
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const immediateExecutionDelayMs = 10_000; // 10 seconds buffer before firing immediates
 
   const [formData, setFormData] = useState({
     name: campaign.name || '',
@@ -115,6 +117,10 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
         const scheduledAt = !executeNow ? new Date(formData.scheduled_at).toISOString() : undefined;
 
         try {
+          if (executeNow) {
+            await delay(immediateExecutionDelayMs);
+          }
+
           await CampaignService.executeWhatsAppCampaign(
             targetWhatsAppId,
             organizationId,
