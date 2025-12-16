@@ -109,10 +109,10 @@ export class CampaignService {
     status?: string;
     page?: number;
     pageSize?: number;
-  }): Promise<Campaign[]> {
+  }): Promise<{ campaigns: Campaign[], totalCount: number }> {
     try {
       if (!organizationId) {
-        return [];
+        return { campaigns: [], totalCount: 0 };
       }
 
       const params = new URLSearchParams();
@@ -131,7 +131,21 @@ export class CampaignService {
       }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : data.results || [];
+
+      // Handle paginated response
+      if (data.results && typeof data.count === 'number') {
+        return {
+          campaigns: data.results,
+          totalCount: data.count
+        };
+      }
+
+      // Handle non-paginated response
+      const campaigns = Array.isArray(data) ? data : [];
+      return {
+        campaigns,
+        totalCount: campaigns.length
+      };
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       throw error;
@@ -183,10 +197,10 @@ export class CampaignService {
     status?: string;
     page?: number;
     pageSize?: number;
-  }): Promise<Campaign[]> {
+  }): Promise<{ campaigns: Campaign[], totalCount: number }> {
     try {
       if (!organizationId) {
-        return [];
+        return { campaigns: [], totalCount: 0 };
       }
 
       const params = new URLSearchParams();
@@ -204,7 +218,21 @@ export class CampaignService {
       }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : data.results || [];
+
+      // Handle paginated response
+      if (data.results && typeof data.count === 'number') {
+        return {
+          campaigns: data.results,
+          totalCount: data.count
+        };
+      }
+
+      // Handle non-paginated response
+      const campaigns = Array.isArray(data) ? data : [];
+      return {
+        campaigns,
+        totalCount: campaigns.length
+      };
     } catch (error) {
       console.error('Error fetching WhatsApp campaigns:', error);
       throw error;
