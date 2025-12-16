@@ -108,6 +108,23 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
         updateData
       );
 
+      // Re-schedule or execute WhatsApp campaigns after updates
+      if (campaign.channel === 'whatsapp') {
+        const targetWhatsAppId = campaign.whatsapp_campaign_id || campaign.id;
+        const executeNow = !formData.scheduled_at || formData.scheduled_at.trim() === '';
+
+        try {
+          await CampaignService.executeWhatsAppCampaign(
+            targetWhatsAppId,
+            organizationId,
+            executeNow
+          );
+        } catch (execError) {
+          console.error('Error scheduling/executing WhatsApp campaign after edit:', execError);
+          toast.error(execError instanceof Error ? execError.message : 'Failed to schedule campaign');
+        }
+      }
+
       toast.success('Campaign updated successfully');
       onSuccess();
     } catch (error) {
