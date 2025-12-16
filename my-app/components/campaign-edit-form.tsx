@@ -112,12 +112,14 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
       if (campaign.channel === 'whatsapp') {
         const targetWhatsAppId = campaign.whatsapp_campaign_id || campaign.id;
         const executeNow = !formData.scheduled_at || formData.scheduled_at.trim() === '';
+        const scheduledAt = !executeNow ? new Date(formData.scheduled_at).toISOString() : undefined;
 
         try {
           await CampaignService.executeWhatsAppCampaign(
             targetWhatsAppId,
             organizationId,
-            executeNow
+            executeNow,
+            scheduledAt
           );
         } catch (execError) {
           console.error('Error scheduling/executing WhatsApp campaign after edit:', execError);
