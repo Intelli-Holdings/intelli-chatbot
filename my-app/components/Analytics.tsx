@@ -139,7 +139,6 @@ export default function Analytics() {
   const organizationId = useActiveOrganizationId()
   const [timeRange, setTimeRange] = useState<string>("30")
   const [metricsData, setMetricsData] = useState<MetricsResponse | null>(null)
-  const [timelineData, setTimelineData] = useState<MetricsSnapshot[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -149,13 +148,9 @@ export default function Analytics() {
       try {
         setIsLoading(true)
 
-        // Fetch summary data
+        // Fetch summary data (includes timeline)
         const summaryData = await getMetricsSummaryByOrganization(organizationId, { period: timeRange })
         setMetricsData(summaryData)
-
-        // Fetch timeline data
-        const timeline = await getMetricsByOrganization(organizationId, { period: timeRange })
-        setTimelineData(timeline)
       } catch (error) {
         console.error("Error fetching analytics data:", error)
       } finally {
@@ -177,14 +172,14 @@ export default function Analytics() {
     )
   }
 
-  if (!metricsData) {
+  if (!metricsData || !metricsData.summary || !metricsData.latest) {
     return (
       <div className="flex items-center justify-center h-[600px]">
         <div className="text-center space-y-4">
           <Activity className="h-16 w-16 text-muted-foreground mx-auto" />
           <div>
             <h3 className="text-lg font-semibold mb-2">No Analytics Data Available</h3>
-            <p className="text-sm text-muted-foreground">Start generating metrics to see your analytics</p>
+            <p className="text-sm text-muted-foreground">Continue using Intelli to see your analytics</p>
           </div>
         </div>
       </div>
@@ -193,34 +188,37 @@ export default function Analytics() {
 
   const { summary, latest } = metricsData
 
-  // Calculate trends
-  const totalEscalations = summary.total_pending + summary.total_assigned + summary.total_resolved
-  const resolutionRate = totalEscalations > 0 ? (summary.total_resolved / totalEscalations) * 100 : 0
+  // Calculate trends with safety checks
+  const totalPending = summary.total_pending ?? 0
+  const totalAssigned = summary.total_assigned ?? 0
+  const totalResolved = summary.total_resolved ?? 0
+  const totalEscalations = totalPending + totalAssigned + totalResolved
+  const resolutionRate = totalEscalations > 0 ? (totalResolved / totalEscalations) * 100 : 0
 
   // Prepare escalation distribution data
   const escalationData = [
-    { name: "Pending", value: summary.total_pending, color: CHART_COLORS.warning },
-    { name: "Assigned", value: summary.total_assigned, color: CHART_COLORS.primary },
-    { name: "Resolved", value: summary.total_resolved, color: CHART_COLORS.success },
+    { name: "Pending", value: totalPending, color: CHART_COLORS.warning },
+    { name: "Assigned", value: totalAssigned, color: CHART_COLORS.primary },
+    { name: "Resolved", value: totalResolved, color: CHART_COLORS.success },
   ]
 
   // Prepare channel data
   const channelData = [
     {
       name: "Website",
-      conversations: latest.conversations_per_channel.channels.website?.number_of_conversations || 0,
-      messages: latest.conversations_per_channel.channels.website?.number_of_messages || 0,
-      escalations: latest.conversations_per_channel.channels.website?.number_of_escalations.total || 0,
-      avgResolution: latest.conversations_per_channel.channels.website?.number_of_escalations.average_duration || 0,
+      conversations: latest.conversations_per_channel?.channels?.website?.number_of_conversations || 0,
+      messages: latest.conversations_per_channel?.channels?.website?.number_of_messages || 0,
+      escalations: latest.conversations_per_channel?.channels?.website?.number_of_escalations?.total || 0,
+      avgResolution: latest.conversations_per_channel?.channels?.website?.number_of_escalations?.average_duration || 0,
       icon: "🌐",
       color: CHART_COLORS.primary,
     },
     {
       name: "WhatsApp",
-      conversations: latest.conversations_per_channel.channels.whatsapp?.number_of_conversations || 0,
-      messages: latest.conversations_per_channel.channels.whatsapp?.number_of_messages || 0,
-      escalations: latest.conversations_per_channel.channels.whatsapp?.number_of_escalations.total || 0,
-      avgResolution: latest.conversations_per_channel.channels.whatsapp?.number_of_escalations.average_duration || 0,
+      conversations: latest.conversations_per_channel?.channels?.whatsapp?.number_of_conversations || 0,
+      messages: latest.conversations_per_channel?.channels?.whatsapp?.number_of_messages || 0,
+      escalations: latest.conversations_per_channel?.channels?.whatsapp?.number_of_escalations?.total || 0,
+      avgResolution: latest.conversations_per_channel?.channels?.whatsapp?.number_of_escalations?.average_duration || 0,
       icon: (
         <Image
           src="/whatsapp.png"
@@ -235,17 +233,18 @@ export default function Analytics() {
   ]
 
   // Prepare conversations over time data
+  const timelineData = metricsData?.timeline || []
   const conversationsOverTime = timelineData.map((snapshot) => ({
     date: new Date(snapshot.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    whatsapp: snapshot.conversations_per_channel.channels.whatsapp?.number_of_conversations || 0,
-    website: snapshot.conversations_per_channel.channels.website?.number_of_conversations || 0,
-    total: snapshot.num_conversations,
+    whatsapp: snapshot.conversations_per_channel?.channels?.whatsapp?.number_of_conversations || 0,
+    website: snapshot.conversations_per_channel?.channels?.website?.number_of_conversations || 0,
+    total: snapshot.num_conversations ?? 0,
   }))
 
   const messagesOverTime = timelineData.map((snapshot) => ({
     date: new Date(snapshot.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    messages: snapshot.num_messages,
-    escalations: snapshot.num_escalations,
+    messages: snapshot.num_messages ?? 0,
+    escalations: snapshot.num_escalations ?? 0,
   }))
 
   const formatNumber = (num: number) => {
@@ -278,18 +277,18 @@ export default function Analytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="AI Token Usage"
-          value={formatNumber(summary.total_tokens_used)}
-          change={summary.avg_tokens_remaining > 0 ? 12.5 : 0}
-          subtitle={`${formatNumber(Math.round(summary.avg_tokens_remaining))} remaining`}
+          value={formatNumber(summary.total_tokens_used ?? 0)}
+          change={(summary.avg_tokens_remaining ?? 0) > 0 ? 12.5 : 0}
+          subtitle={`${formatNumber(Math.round(summary.avg_tokens_remaining ?? 0))} remaining`}
           icon={Zap}
           color={CHART_COLORS.cyan}
           trend="up"
         />
         <MetricCard
           title="Total Conversations"
-          value={formatNumber(summary.total_conversations)}
+          value={formatNumber(summary.total_conversations ?? 0)}
           change={8.3}
-          subtitle={`${formatNumber(summary.total_messages)} messages`}
+          subtitle={`${formatNumber(summary.total_messages ?? 0)} messages`}
           icon={MessageSquare}
           color={CHART_COLORS.purple}
           trend="up"
@@ -298,16 +297,16 @@ export default function Analytics() {
           title="Resolution Rate"
           value={`${resolutionRate.toFixed(1)}%`}
           change={resolutionRate}
-          subtitle={`${summary.total_resolved} resolved`}
+          subtitle={`${totalResolved} resolved`}
           icon={CheckCircle}
           color={CHART_COLORS.success}
           trend={resolutionRate > 50 ? "up" : "down"}
         />
         <MetricCard
           title="Pending Issues"
-          value={summary.total_pending}
+          value={totalPending}
           change={-5.2}
-          subtitle={`${summary.total_assigned} assigned`}
+          subtitle={`${totalAssigned} assigned`}
           icon={Clock}
           color={CHART_COLORS.warning}
           trend="down"
