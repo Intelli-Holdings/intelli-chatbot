@@ -57,7 +57,7 @@ export default function CampaignsPage() {
     failed: 0,
   });
 
-  const { campaigns, totalCount, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
+  const { campaigns, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     channel: channelFilter !== 'all' ? channelFilter : undefined,
     page: currentPage,
