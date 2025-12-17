@@ -105,6 +105,11 @@ export class CampaignService {
    * Fetch campaigns with filters
    * Returns paginated response with count, next, previous, and results
    */
+  static async fetchCampaigns(organizationId: string, filters?: {
+    channel?: string;
+    status?: string;
+    page?: number;
+    pageSize?: number;
   }): Promise<{ campaigns: Campaign[]; count: number; next: string | null; previous: string | null }> {
     try {
       if (!organizationId) {
