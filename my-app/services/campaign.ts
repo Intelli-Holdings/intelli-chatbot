@@ -110,17 +110,10 @@ export class CampaignService {
     status?: string;
     page?: number;
     pageSize?: number;
-<<<<<<< HEAD
-  }): Promise<{ campaigns: Campaign[], totalCount: number }> {
-    try {
-      if (!organizationId) {
-        return { campaigns: [], totalCount: 0 };
-=======
   }): Promise<{ campaigns: Campaign[]; count: number; next: string | null; previous: string | null }> {
     try {
       if (!organizationId) {
         return { campaigns: [], count: 0, next: null, previous: null };
->>>>>>> 91468eea (fix: statistic display on campaign)
       }
 
       const params = new URLSearchParams();
@@ -140,22 +133,6 @@ export class CampaignService {
 
       const data = await response.json();
 
-<<<<<<< HEAD
-      // Handle paginated response
-      if (data.results && typeof data.count === 'number') {
-        return {
-          campaigns: data.results,
-          totalCount: data.count
-        };
-      }
-
-      // Handle non-paginated response
-      const campaigns = Array.isArray(data) ? data : [];
-      return {
-        campaigns,
-        totalCount: campaigns.length
-      };
-=======
       // Handle paginated response format
       if (data.results) {
         return {
