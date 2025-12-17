@@ -50,22 +50,35 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
 
   // Refresh stats for active campaigns
   useEffect(() => {
-    if (!open || campaign.status !== 'active' || !organizationId) return;
+    if (!open || !organizationId) return;
 
     const refreshStats = async () => {
       try {
-        const updatedStats = await CampaignService.getCampaignStats(campaign.id, organizationId!);
-        setStats(updatedStats);
+        const summary = await CampaignService.getCampaignStats(campaign.id, organizationId!);
+
+        // Extract stats from the summary response
+        if (summary.whatsapp_campaign?.statistics) {
+          const backendStats = summary.whatsapp_campaign.statistics;
+          setStats({
+            sent: backendStats.sent || 0,
+            delivered: backendStats.delivered || 0,
+            failed: backendStats.failed || 0,
+            read: backendStats.read || 0,
+            replied: backendStats.replied || 0,
+            progress: backendStats.progress || 0
+          });
+        }
       } catch (error) {
-        // Error refreshing stats
+        console.error('Error refreshing stats:', error);
       }
     };
 
-    // Refresh immediately and then every 30 seconds
+    // Refresh immediately and then every 30 seconds for ready/scheduled campaigns
     refreshStats();
-    const interval = setInterval(refreshStats, 30000);
-
-    return () => clearInterval(interval);
+    if (campaign.status === 'ready' || campaign.status === 'scheduled') {
+      const interval = setInterval(refreshStats, 30000);
+      return () => clearInterval(interval);
+    }
   }, [campaign.id, campaign.status, open, organizationId]);
 
   const handlePause = async () => {
@@ -100,7 +113,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
+      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
       case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -146,7 +159,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {campaign.status === 'active' && (
+              {campaign.status === 'ready' && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -172,7 +185,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs defaultValue="stats" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="stats">Statistics</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>
@@ -274,18 +287,26 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Contact ID</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Message</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Sent At</TableHead>
-                            <TableHead>Delivered At</TableHead>
-                            <TableHead>Read At</TableHead>
-                            <TableHead>Notes</TableHead>
+                            <TableHead>Sent</TableHead>
+                            <TableHead>Delivered</TableHead>
+                            <TableHead>Read</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {recipients.map((recipient) => (
                             <TableRow key={recipient.id}>
-                              <TableCell className="font-mono">{recipient.contact_id}</TableCell>
+                              <TableCell>
+                                <div className="font-medium text-foreground">{recipient.contact_phone || '-'}</div>
+                                <div className="text-xs text-muted-foreground">{recipient.contact_name}</div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm text-foreground line-clamp-2">
+                                  {recipient.message_content || '—'}
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Badge
                                   className={
@@ -300,24 +321,19 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <span className="text-xs">
-                                  {recipient.sent_at ? formatUTCForDisplay(recipient.sent_at) : '-'}
+                                <span className="text-xs text-muted-foreground">
+                                  {recipient.sent_at ? formatUTCForDisplay(recipient.sent_at) : '—'}
                                 </span>
                               </TableCell>
                               <TableCell>
-                                <span className="text-xs">
-                                  {recipient.delivered_at ? formatUTCForDisplay(recipient.delivered_at) : '-'}
+                                <span className="text-xs text-muted-foreground">
+                                  {recipient.delivered_at ? formatUTCForDisplay(recipient.delivered_at) : '—'}
                                 </span>
                               </TableCell>
                               <TableCell>
-                                <span className="text-xs">
-                                  {recipient.read_at ? formatUTCForDisplay(recipient.read_at) : '-'}
+                                <span className="text-xs text-muted-foreground">
+                                  {recipient.read_at ? formatUTCForDisplay(recipient.read_at) : '—'}
                                 </span>
-                              </TableCell>
-                              <TableCell>
-                                {recipient.error_message && (
-                                  <span className="text-red-600 text-sm">{recipient.error_message}</span>
-                                )}
                               </TableCell>
                             </TableRow>
                           ))}

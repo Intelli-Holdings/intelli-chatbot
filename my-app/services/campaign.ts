@@ -4,7 +4,7 @@ interface Campaign {
   description: string;
   channel: 'whatsapp' | 'sms' | 'email';
   phone_number?: string;
-  status: 'draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'failed';
+  status: 'draft' | 'scheduled' | 'ready' | 'paused' | 'completed' | 'failed';
   organization: string;
   scheduled_at?: string;
   created_at: string;
@@ -103,16 +103,24 @@ export class CampaignService {
 
   /**
    * Fetch campaigns with filters
+   * Returns paginated response with count, next, previous, and results
    */
   static async fetchCampaigns(organizationId: string, filters?: {
     channel?: string;
     status?: string;
     page?: number;
     pageSize?: number;
+<<<<<<< HEAD
   }): Promise<{ campaigns: Campaign[], totalCount: number }> {
     try {
       if (!organizationId) {
         return { campaigns: [], totalCount: 0 };
+=======
+  }): Promise<{ campaigns: Campaign[]; count: number; next: string | null; previous: string | null }> {
+    try {
+      if (!organizationId) {
+        return { campaigns: [], count: 0, next: null, previous: null };
+>>>>>>> 91468eea (fix: statistic display on campaign)
       }
 
       const params = new URLSearchParams();
@@ -132,6 +140,7 @@ export class CampaignService {
 
       const data = await response.json();
 
+<<<<<<< HEAD
       // Handle paginated response
       if (data.results && typeof data.count === 'number') {
         return {
@@ -146,6 +155,30 @@ export class CampaignService {
         campaigns,
         totalCount: campaigns.length
       };
+=======
+      // Handle paginated response format
+      if (data.results) {
+        return {
+          campaigns: data.results,
+          count: data.count || data.results.length,
+          next: data.next || null,
+          previous: data.previous || null
+        };
+      }
+
+      // Handle non-paginated array response
+      if (Array.isArray(data)) {
+        return {
+          campaigns: data,
+          count: data.length,
+          next: null,
+          previous: null
+        };
+      }
+
+      // Fallback
+      return { campaigns: [], count: 0, next: null, previous: null };
+>>>>>>> 91468eea (fix: statistic display on campaign)
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       throw error;
@@ -326,7 +359,7 @@ static async updateCampaign(
    */
   static async resumeCampaign(campaignId: string, organizationId: string): Promise<void> {
     try {
-      await this.updateCampaign(campaignId, organizationId, { status: 'active' } as any);
+      await this.updateCampaign(campaignId, organizationId, { status: 'ready' } as any);
     } catch (error) {
       console.error('Error resuming campaign:', error);
       throw error;

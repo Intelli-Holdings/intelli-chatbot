@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Upload, Plus, Eye, Calendar, Users, MessageSquare, Clock, Play, Pause, BarChart3, Download, Filter, Search, CheckCheck, User, ImageIcon, PlayCircle, FileText, ExternalLink, Phone  } from 'lucide-react';
+import { Upload, Plus, Eye, Calendar, Users, MessageSquare, Clock, Play, Pause, BarChart3, Download, Filter, Search, CheckCheck, User, ImageIcon, PlayCircle, FileText, ExternalLink, Phone, Loader2  } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,12 +47,12 @@ export default function BroadcastCampaignPage() {
     status: statusFilter !== 'all' ? statusFilter : undefined,
   });
 
-  // Real-time stats polling for active campaigns
+  // Real-time stats polling for ready campaigns
   useEffect(() => {
     if (!selectedAppService) return;
 
-    const activeCampaigns = campaigns.filter((c: any) => c.status === 'active');
-    if (activeCampaigns.length === 0) return;
+    const readyCampaigns = campaigns.filter((c: any) => c.status === 'ready');
+    if (readyCampaigns.length === 0) return;
 
     const pollInterval = setInterval(() => {
       // Poll for stats updates every 30 seconds
@@ -91,7 +91,7 @@ export default function BroadcastCampaignPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
+      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
       case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -145,7 +145,7 @@ export default function BroadcastCampaignPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="ready">Ready</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="paused">Paused</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -165,8 +165,20 @@ export default function BroadcastCampaignPage() {
               </CardHeader>
               <CardContent>
                 {loading ? (
-                  <div className="text-center py-8">Loading campaigns...</div>
-                ) : filteredCampaigns.length === 0 ? (
+                  <div className="py-10">
+                    <Card className="border-dashed border-border/60">
+                      <CardContent className="flex flex-col items-center justify-center gap-3 py-10">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                        </div>
+                        <div className="space-y-1 text-center">
+                          <p className="text-base font-semibold text-foreground">Loading campaigns</p>
+                          <p className="text-sm text-muted-foreground">Fetching your latest templates and campaigns...</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : filteredCampaigns.length === 0 && !loading ? (
                   <div className="text-center py-8">
                     <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No campaigns found</h3>

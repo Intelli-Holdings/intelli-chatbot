@@ -48,11 +48,4 @@ next-env.d.ts
 *.xml
 .idea/*.xml
 /idea
-.vscode.env
-.env.*
-.env
-.env.*
-.env
-.env.*
-my-app/.env
-my-app/.env.*
+.vscode

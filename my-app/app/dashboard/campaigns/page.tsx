@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,11 +46,55 @@ export default function CampaignsPage() {
   const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [statusCounts, setStatusCounts] = useState({
+    total: 0,
+    ready: 0,
+    scheduled: 0,
+    completed: 0,
+  });
 
-  const { campaigns, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
+  const { campaigns, totalCount, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     channel: channelFilter !== 'all' ? channelFilter : undefined,
+    page: currentPage,
+    pageSize: 20,
   });
+
+  // Fetch status counts for accurate statistics
+  useEffect(() => {
+    const fetchStatusCounts = async () => {
+      if (!organizationId) return;
+
+      try {
+        const channelParam = channelFilter !== 'all' ? channelFilter : undefined;
+
+        // Fetch counts for each status in parallel
+        const [totalData, readyData, scheduledData, completedData] = await Promise.all([
+          CampaignService.fetchCampaigns(organizationId, { channel: channelParam }),
+          CampaignService.fetchCampaigns(organizationId, { status: 'ready', channel: channelParam }),
+          CampaignService.fetchCampaigns(organizationId, { status: 'scheduled', channel: channelParam }),
+          CampaignService.fetchCampaigns(organizationId, { status: 'completed', channel: channelParam }),
+        ]);
+
+        setStatusCounts({
+          total: totalData.count,
+          ready: readyData.count,
+          scheduled: scheduledData.count,
+          completed: completedData.count,
+        });
+      } catch (err) {
+        console.error('Error fetching status counts:', err);
+      }
+    };
+
+    fetchStatusCounts();
+  }, [organizationId, channelFilter]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, channelFilter, searchTerm]);
 
   const handleViewCampaign = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
@@ -157,7 +201,7 @@ export default function CampaignsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
+      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
       case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -186,28 +230,33 @@ export default function CampaignsPage() {
     {
       title: 'Total Campaigns',
       value: totalCount,
+      value: statusCounts.total,
       icon: MessageSquare,
       color: 'text-blue-600'
     },
     {
-      title: 'Active Campaigns',
-      value: campaigns.filter((c: Campaign) => c.status === 'active').length,
+      title: 'Ready Campaigns',
+      value: statusCounts.ready,
       icon: Play,
       color: 'text-green-600'
     },
     {
       title: 'Scheduled',
-      value: campaigns.filter((c: Campaign) => c.status === 'scheduled').length,
+      value: statusCounts.scheduled,
       icon: Clock,
       color: 'text-orange-600'
     },
     {
       title: 'Completed',
-      value: campaigns.filter((c: Campaign) => c.status === 'completed').length,
+      value: statusCounts.completed,
       icon: BarChart3,
       color: 'text-purple-600'
     }
   ];
+
+  const totalPages = Math.ceil(totalCount / 20);
+  const hasNextPage = currentPage < totalPages;
+  const hasPrevPage = currentPage > 1;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -337,7 +386,7 @@ export default function CampaignsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="ready">Ready</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="paused">Paused</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -349,13 +398,25 @@ export default function CampaignsPage() {
 
             {/* Campaign Table */}
             {loading ? (
-              <div className="text-center py-8">Loading campaigns...</div>
+              <div className="py-10">
+                <Card className="border-dashed border-border/60">
+                  <CardContent className="flex flex-col items-center justify-center gap-3 py-10">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                    </div>
+                    <div className="space-y-1 text-center">
+                      <p className="text-base font-semibold text-foreground">Loading campaigns</p>
+                      <p className="text-sm text-muted-foreground">Fetching your latest campaigns and statuses...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             ) : error ? (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
-            ) : filteredCampaigns.length === 0 ? (
-              <div className="text-center py-8">
+            ) : filteredCampaigns.length === 0 && !loading ? (
+              <div className="text-center py-10">
                 <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No campaigns found</h3>
                 <p className="text-muted-foreground mb-4">
@@ -454,7 +515,7 @@ export default function CampaignsPage() {
                               Edit
                             </DropdownMenuItem>
 
-                            {campaign.status === 'active' && (
+                            {campaign.status === 'ready' && (
                               <DropdownMenuItem onClick={() => handlePauseCampaign(campaign.id)}>
                                 <Pause className="h-4 w-4 mr-2" />
                                 Pause
@@ -483,6 +544,58 @@ export default function CampaignsPage() {
                   ))}
                 </TableBody>
               </Table>
+            )}
+
+            {/* Pagination Controls */}
+            {!loading && filteredCampaigns.length > 0 && totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Showing page {currentPage} of {totalPages} ({totalCount} total campaigns)
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={!hasPrevPage}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={!hasNextPage}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
