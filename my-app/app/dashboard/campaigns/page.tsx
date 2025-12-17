@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X, Loader2, MessageCircleDashed, MessageSquareText, MailCheck, MessageCircle, MessageCircleMore} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,44 +55,52 @@ export default function CampaignsPage() {
     draft: 0,
   });
 
+  const pageSize = 100;
   const { campaigns, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     channel: channelFilter !== 'all' ? channelFilter : undefined,
     page: currentPage,
-    pageSize: 20,
+    pageSize: pageSize,
   });
 
-  // Fetch status counts for accurate statistics
-  useEffect(() => {
-    const fetchStatusCounts = async () => {
-      if (!organizationId) return;
+  // Fetch status counts for accurate statistics - always fetches total counts from backend
+  const fetchStatusCounts = useCallback(async () => {
+    if (!organizationId) return;
 
-      try {
-        const channelParam = channelFilter !== 'all' ? channelFilter : undefined;
+    try {
+      const channelParam = channelFilter !== 'all' ? channelFilter : undefined;
 
-        // Fetch counts for each status in parallel
-        const [totalData, readyData, scheduledData, completedData, draftData] = await Promise.all([
-          CampaignService.fetchCampaigns(organizationId, { channel: channelParam }),
-          CampaignService.fetchCampaigns(organizationId, { status: 'ready', channel: channelParam }),
-          CampaignService.fetchCampaigns(organizationId, { status: 'scheduled', channel: channelParam }),
-          CampaignService.fetchCampaigns(organizationId, { status: 'completed', channel: channelParam }),
-          CampaignService.fetchCampaigns(organizationId, { status: 'draft', channel: channelParam }),
-        ]);
+      // Fetch counts for each status in parallel - without page/pageSize to get accurate totals
+      const [totalData, readyData, scheduledData, completedData, draftData] = await Promise.all([
+        CampaignService.fetchCampaigns(organizationId, { channel: channelParam }),
+        CampaignService.fetchCampaigns(organizationId, { status: 'ready', channel: channelParam }),
+        CampaignService.fetchCampaigns(organizationId, { status: 'scheduled', channel: channelParam }),
+        CampaignService.fetchCampaigns(organizationId, { status: 'completed', channel: channelParam }),
+        CampaignService.fetchCampaigns(organizationId, { status: 'draft', channel: channelParam }),
+      ]);
 
-        setStatusCounts({
-          total: totalData.count || totalData.campaigns?.length || 0,
-          ready: readyData.count || readyData.campaigns?.length || 0,
-          scheduled: scheduledData.count || scheduledData.campaigns?.length || 0,
-          completed: completedData.count || completedData.campaigns?.length || 0,
-          draft: draftData.count || draftData.campaigns?.length || 0,
-        });
-      } catch (err) {
-        console.error('Error fetching status counts:', err);
-      }
-    };
-
-    fetchStatusCounts();
+      // Use count from backend which represents total across all pages
+      setStatusCounts({
+        total: totalData.count,
+        ready: readyData.count,
+        scheduled: scheduledData.count,
+        completed: completedData.count,
+        draft: draftData.count,
+      });
+    } catch (err) {
+      console.error('Error fetching status counts:', err);
+    }
   }, [organizationId, channelFilter]);
+
+  useEffect(() => {
+    fetchStatusCounts();
+  }, [fetchStatusCounts]);
+
+  // Combined refresh function for campaigns and stats
+  const refreshAll = useCallback(async () => {
+    await refetch();
+    await fetchStatusCounts();
+  }, [refetch, fetchStatusCounts]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -123,7 +131,8 @@ export default function CampaignsPage() {
     try {
       await CampaignService.pauseCampaign(campaignId, organizationId);
       toast.success('Campaign paused successfully');
-      refetch();
+      await refetch();
+      await fetchStatusCounts();
     } catch (error) {
       toast.error('Failed to pause campaign');
     }
@@ -134,7 +143,8 @@ export default function CampaignsPage() {
     try {
       await CampaignService.resumeCampaign(campaignId, organizationId);
       toast.success('Campaign resumed successfully');
-      refetch();
+      await refetch();
+      await fetchStatusCounts();
     } catch (error) {
       toast.error('Failed to resume campaign');
     }
@@ -168,7 +178,9 @@ export default function CampaignsPage() {
       }
 
       setShowDeleteDialog(false);
-      refetch();
+      await refetch();
+      // Refresh stats to reflect the deletion
+      await fetchStatusCounts();
     } catch (error) {
       toast.error('Failed to delete campaign(s)');
     } finally {
@@ -233,36 +245,36 @@ export default function CampaignsPage() {
     {
       title: 'Total Campaigns',
       value: statusCounts.total,
-      icon: MessageSquare,
+      icon: MessageSquareText,
       color: 'text-blue-600'
     },
     {
       title: 'Ready',
       value: statusCounts.ready,
-      icon: Play,
-      color: 'text-green-600'
+      icon: MessageCircle,
+      color: 'text-purple-600'
     },
     {
       title: 'Scheduled',
       value: statusCounts.scheduled,
-      icon: Clock,
+      icon: MessageCircleMore,
       color: 'text-orange-600'
     },
     {
       title: 'Completed',
       value: statusCounts.completed,
-      icon: BarChart3,
-      color: 'text-purple-600'
+      icon:  MailCheck,
+      color: 'text-green-600'
     },
     {
       title: 'Drafts',
       value: statusCounts.draft,
-      icon: MessageSquare,
+      icon: MessageCircleDashed,
       color: 'text-slate-600'
     }
   ];
 
-  const totalPages = Math.ceil(totalCount / 20);
+  const totalPages = Math.ceil(totalCount / pageSize);
   const hasNextPage = currentPage < totalPages;
   const hasPrevPage = currentPage > 1;
 
@@ -613,9 +625,10 @@ export default function CampaignsPage() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <CampaignCreationForm
               appService={selectedAppService}
-              onSuccess={() => {
+              onSuccess={async () => {
                 setShowCreateForm(false);
-                refetch();
+                await refetch();
+                await fetchStatusCounts();
               }}
             />
           </DialogContent>
@@ -634,10 +647,11 @@ export default function CampaignsPage() {
               <CampaignCreationForm
                 appService={selectedAppService}
                 draftCampaign={draftToContinue}
-                onSuccess={() => {
+                onSuccess={async () => {
                   setShowDraftForm(false);
                   setDraftToContinue(null);
-                  refetch();
+                  await refetch();
+                  await fetchStatusCounts();
                 }}
               />
             )}
@@ -653,10 +667,11 @@ export default function CampaignsPage() {
             {selectedCampaign && (
               <CampaignEditForm
                 campaign={selectedCampaign}
-                onSuccess={() => {
+                onSuccess={async () => {
                   setShowEditForm(false);
                   setSelectedCampaign(null);
-                  refetch();
+                  await refetch();
+                  await fetchStatusCounts();
                 }}
                 onCancel={() => {
                   setShowEditForm(false);
@@ -676,7 +691,7 @@ export default function CampaignsPage() {
               setShowCampaignDetails(false);
               setSelectedCampaign(null);
             }}
-            onRefresh={refetch}
+            onRefresh={refreshAll}
           />
         )}
 
