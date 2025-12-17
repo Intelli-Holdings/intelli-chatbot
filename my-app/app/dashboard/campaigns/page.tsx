@@ -51,7 +51,10 @@ export default function CampaignsPage() {
     total: 0,
     ready: 0,
     scheduled: 0,
+    paused: 0,
     completed: 0,
+    draft: 0,
+    failed: 0,
   });
 
   const { campaigns, totalCount, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
@@ -70,18 +73,24 @@ export default function CampaignsPage() {
         const channelParam = channelFilter !== 'all' ? channelFilter : undefined;
 
         // Fetch counts for each status in parallel
-        const [totalData, readyData, scheduledData, completedData] = await Promise.all([
+        const [totalData, readyData, scheduledData, pausedData, completedData, draftData, failedData] = await Promise.all([
           CampaignService.fetchCampaigns(organizationId, { channel: channelParam }),
           CampaignService.fetchCampaigns(organizationId, { status: 'ready', channel: channelParam }),
           CampaignService.fetchCampaigns(organizationId, { status: 'scheduled', channel: channelParam }),
+          CampaignService.fetchCampaigns(organizationId, { status: 'paused', channel: channelParam }),
           CampaignService.fetchCampaigns(organizationId, { status: 'completed', channel: channelParam }),
+          CampaignService.fetchCampaigns(organizationId, { status: 'draft', channel: channelParam }),
+          CampaignService.fetchCampaigns(organizationId, { status: 'failed', channel: channelParam }),
         ]);
 
         setStatusCounts({
-          total: totalData.count,
-          ready: readyData.count,
-          scheduled: scheduledData.count,
-          completed: completedData.count,
+          total: totalData.count || totalData.campaigns?.length || 0,
+          ready: readyData.count || readyData.campaigns?.length || 0,
+          scheduled: scheduledData.count || scheduledData.campaigns?.length || 0,
+          paused: pausedData.count || pausedData.campaigns?.length || 0,
+          completed: completedData.count || completedData.campaigns?.length || 0,
+          draft: draftData.count || draftData.campaigns?.length || 0,
+          failed: failedData.count || failedData.campaigns?.length || 0,
         });
       } catch (err) {
         console.error('Error fetching status counts:', err);
@@ -229,13 +238,12 @@ export default function CampaignsPage() {
   const statsCards = [
     {
       title: 'Total Campaigns',
-      value: totalCount,
       value: statusCounts.total,
       icon: MessageSquare,
       color: 'text-blue-600'
     },
     {
-      title: 'Ready Campaigns',
+      title: 'Ready',
       value: statusCounts.ready,
       icon: Play,
       color: 'text-green-600'
@@ -247,10 +255,28 @@ export default function CampaignsPage() {
       color: 'text-orange-600'
     },
     {
+      title: 'Paused',
+      value: statusCounts.paused,
+      icon: Pause,
+      color: 'text-yellow-600'
+    },
+    {
       title: 'Completed',
       value: statusCounts.completed,
       icon: BarChart3,
       color: 'text-purple-600'
+    },
+    {
+      title: 'Drafts',
+      value: statusCounts.draft,
+      icon: MessageSquare,
+      color: 'text-slate-600'
+    },
+    {
+      title: 'Failed',
+      value: statusCounts.failed,
+      icon: MessageSquare,
+      color: 'text-red-600'
     }
   ];
 

@@ -43,12 +43,8 @@ export function useCampaigns(
     try {
       const parsedFilters = filtersJson ? JSON.parse(filtersJson) : undefined;
       const data = await CampaignService.fetchCampaigns(organizationId, parsedFilters);
-      setCampaigns(data.campaigns);
-<<<<<<< HEAD
-      setTotalCount(data.totalCount);
-=======
-      setTotalCount(data.count);
->>>>>>> 91468eea (fix: statistic display on campaign)
+      setCampaigns(data.campaigns || []);
+      setTotalCount(typeof data.count === 'number' ? data.count : data.campaigns?.length || 0);
     } catch (err) {
       console.error('Error fetching campaigns:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch campaigns');
@@ -97,14 +93,14 @@ export function useWhatsAppCampaigns(
     try {
       const parsedFilters = filtersJson ? JSON.parse(filtersJson) : undefined;
       const data = await CampaignService.fetchWhatsAppCampaigns(organizationId, parsedFilters);
-<<<<<<< HEAD
-      setCampaigns(data.campaigns);
-      setTotalCount(data.totalCount);
-=======
-      // fetchWhatsAppCampaigns still returns an array, so we handle it differently
-      setCampaigns(data);
-      setTotalCount(data.length); // For now, use array length
->>>>>>> 91468eea (fix: statistic display on campaign)
+      setCampaigns(Array.isArray(data) ? data : data.results || []);
+      setTotalCount(
+        typeof (data as any).count === 'number'
+          ? (data as any).count
+          : Array.isArray(data)
+          ? data.length
+          : data.results?.length || 0
+      );
     } catch (err) {
       console.error('Error fetching WhatsApp campaigns:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch WhatsApp campaigns');
