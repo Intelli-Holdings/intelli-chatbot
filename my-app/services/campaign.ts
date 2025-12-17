@@ -155,7 +155,6 @@ export class CampaignService {
 
       // Fallback
       return { campaigns: [], count: 0, next: null, previous: null };
->>>>>>> 91468eea (fix: statistic display on campaign)
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       throw error;

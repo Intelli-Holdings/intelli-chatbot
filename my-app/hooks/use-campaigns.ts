@@ -93,14 +93,8 @@ export function useWhatsAppCampaigns(
     try {
       const parsedFilters = filtersJson ? JSON.parse(filtersJson) : undefined;
       const data = await CampaignService.fetchWhatsAppCampaigns(organizationId, parsedFilters);
-      setCampaigns(Array.isArray(data) ? data : data.results || []);
-      setTotalCount(
-        typeof (data as any).count === 'number'
-          ? (data as any).count
-          : Array.isArray(data)
-          ? data.length
-          : data.results?.length || 0
-      );
+      setCampaigns(data.campaigns || []);
+      setTotalCount(data.totalCount ?? data.campaigns?.length ?? 0);
     } catch (err) {
       console.error('Error fetching WhatsApp campaigns:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch WhatsApp campaigns');
