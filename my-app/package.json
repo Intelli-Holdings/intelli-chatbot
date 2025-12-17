@@ -1,12 +1,12 @@
 {
-  "name": "intelli",
-  "version": "0.2.0",
+  "name": "my-app",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bun run --bun next dev",
-    "build": "bun run --bun next build",
-    "start": "bun run --bun next start",
-    "lint": "bun run --bun next lint"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@ai-sdk/azure": "^1.1.9",

@@ -22,6 +22,8 @@ interface CampaignEditFormProps {
 export default function CampaignEditForm({ campaign, onSuccess, onCancel }: CampaignEditFormProps) {
   const organizationId = useActiveOrganizationId();
   const [loading, setLoading] = useState(false);
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const immediateExecutionDelayMs = 10_000; // 10 seconds buffer before firing immediates
 
   const [formData, setFormData] = useState({
     name: campaign.name || '',
@@ -107,6 +109,29 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
         organizationId,
         updateData
       );
+
+      // Re-schedule or execute WhatsApp campaigns after updates
+      if (campaign.channel === 'whatsapp') {
+        const targetWhatsAppId = campaign.whatsapp_campaign_id || campaign.id;
+        const executeNow = !formData.scheduled_at || formData.scheduled_at.trim() === '';
+        const scheduledAt = !executeNow ? new Date(formData.scheduled_at).toISOString() : undefined;
+
+        try {
+          if (executeNow) {
+            await delay(immediateExecutionDelayMs);
+          }
+
+          await CampaignService.executeWhatsAppCampaign(
+            targetWhatsAppId,
+            organizationId,
+            executeNow,
+            scheduledAt
+          );
+        } catch (execError) {
+          console.error('Error scheduling/executing WhatsApp campaign after edit:', execError);
+          toast.error(execError instanceof Error ? execError.message : 'Failed to schedule campaign');
+        }
+      }
 
       toast.success('Campaign updated successfully');
       onSuccess();

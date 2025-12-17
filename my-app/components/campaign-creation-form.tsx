@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, File, X, AlertCircle } from 'lucide-react';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
-import { CampaignService, type CreateCampaignData } from '@/services/campaign';
+import { CampaignService, type Campaign, type CreateCampaignData } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { useCampaignTimezone } from '@/hooks/use-campaign-timezone';
 import { convertUTCToLocalDateTimeString } from '@/lib/timezone-utils';
@@ -24,6 +24,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useImportMappings } from '@/hooks/use-import-mappings';
 import ImportMappingDialog from '@/components/import-mapping-dialog';
 import Papa from 'papaparse';
+import { autoMapCSVToFields, type AutoMappingResult, type FieldDefinition } from '@/lib/auto-mapping-engine';
+import { transformCSVToRecipients, validateMappings, getRequiredFields } from '@/lib/csv-transform-utils';
+import MappingPreviewPanel from '@/components/mapping-preview-panel';
 
 interface Contact {
   id: string;
@@ -42,9 +45,10 @@ interface Tag {
 interface CampaignCreationFormProps {
   appService: any;
   onSuccess: () => void;
+  draftCampaign?: Campaign | null;
 }
 
-export default function CampaignCreationForm({ appService, onSuccess }: CampaignCreationFormProps) {
+export default function CampaignCreationForm({ appService, onSuccess, draftCampaign = null }: CampaignCreationFormProps) {
   const organizationId = useActiveOrganizationId();
   const [step, setStep] = useState(1);
   const [campaignType, setCampaignType] = useState<'template' | 'simple'>('template');
@@ -103,6 +107,11 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
   const [recipientSelectionMode, setRecipientSelectionMode] = useState<'manual' | 'csv'>('manual');
   const [csvImportStep, setCsvImportStep] = useState<'upload' | 'map' | 'verify'>('upload');
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({});
+  const [autoMappingResults, setAutoMappingResults] = useState<AutoMappingResult | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [importedRecipientsCount, setImportedRecipientsCount] = useState(0);
+  const hasInitializedDraft = useRef(false);
+  const hasSyncedDraftTemplate = useRef(false);
 
   const { mappings, loading: mappingsLoading } = useImportMappings(organizationId || '', formData.channel);
 
@@ -116,6 +125,14 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
 
   const { templates, loading: templatesLoading } = useWhatsAppTemplates(appService);
   const approvedTemplates = templates.filter(t => t.status === 'APPROVED');
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const immediateExecutionDelayMs = 10_000; // 10 seconds buffer before firing immediates
+
+  useEffect(() => {
+    hasInitializedDraft.current = false;
+    hasSyncedDraftTemplate.current = false;
+  }, [draftCampaign?.id]);
 
   // Fetch contacts using the same logic as /dashboard/contacts (paginated, smaller page size)
   // Returns true on success, false on failure.
@@ -205,6 +222,73 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
 
     fetchData();
   }, [organizationId, fetchContacts]);
+
+  // Prefill form when continuing a draft campaign
+  useEffect(() => {
+    if (!draftCampaign || hasInitializedDraft.current) return;
+
+    setCreatedCampaignId(draftCampaign.id);
+    if (draftCampaign.whatsapp_campaign_id) {
+      setCreatedWhatsAppCampaignId(draftCampaign.whatsapp_campaign_id);
+    } else if (draftCampaign.channel === 'whatsapp') {
+      setCreatedWhatsAppCampaignId(draftCampaign.id);
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      name: draftCampaign.name || '',
+      description: draftCampaign.description || '',
+      channel: draftCampaign.channel as 'whatsapp' | 'sms' | 'email',
+      templateName: draftCampaign.payload?.template_name || '',
+      templateLanguage: draftCampaign.payload?.template_language || '',
+      bodyParameters: draftCampaign.payload?.body_parameters || prev.bodyParameters,
+      headerParameters: draftCampaign.payload?.header_parameters || prev.headerParameters,
+      messageContent: draftCampaign.payload?.message_content || '',
+    }));
+
+    if (draftCampaign.payload?.template_name) {
+      setCampaignType('template');
+    } else if (draftCampaign.payload?.message_content) {
+      setCampaignType('simple');
+    }
+
+    if (draftCampaign.scheduled_at) {
+      setScheduleNow(false);
+      handleScheduleChange(convertUTCToLocalDateTimeString(draftCampaign.scheduled_at));
+    }
+
+    // Jump the user into recipient step so they can continue the flow
+    setStep(3);
+
+    hasInitializedDraft.current = true;
+  }, [draftCampaign, handleScheduleChange, setScheduleNow]);
+
+  useEffect(() => {
+    if (!draftCampaign || campaignType !== 'template' || hasSyncedDraftTemplate.current) return;
+
+    const templateName = draftCampaign.payload?.template_name || draftCampaign.template?.name;
+    const template = approvedTemplates.find(t => t.name === templateName);
+
+    if (template) {
+      const { bodyVariables, headerVariables, buttonVariables } = extractTemplateVariables(template);
+      setFormData(prev => ({
+        ...prev,
+        templateName: template.name,
+        templateLanguage: template.language,
+        bodyParameters: bodyVariables,
+        headerParameters: headerVariables,
+        buttonParameters: buttonVariables,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        bodyParameters: draftCampaign.payload?.body_parameters || prev.bodyParameters,
+        headerParameters: draftCampaign.payload?.header_parameters || prev.headerParameters,
+      }));
+    }
+
+    hasSyncedDraftTemplate.current = true;
+  }, [approvedTemplates, campaignType, draftCampaign]);
 
   const loadMoreContacts = async () => {
     if (!organizationId) return;
@@ -353,6 +437,124 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
     }
   };
 
+  const updateDraftCampaign = async () => {
+    if (!draftCampaign || !organizationId || !createdCampaignId) {
+      toast.error('Campaign not ready to update');
+      return false;
+    }
+
+    setCreatingCampaign(true);
+    try {
+      const updateData: any = {
+        name: formData.name,
+        description: formData.description,
+        channel: formData.channel,
+        organization: organizationId,
+      };
+
+      if (formData.channel === 'whatsapp' && appService?.phone_number) {
+        updateData.phone_number = appService.phone_number;
+      }
+
+      const scheduleValue = getScheduleForAPI();
+      const fallbackNow = new Date().toISOString();
+      updateData.scheduled_at = scheduleValue || fallbackNow;
+
+      if (campaignType === 'template') {
+        const selectedTemplate = approvedTemplates.find(t => t.name === formData.templateName);
+        if (selectedTemplate) {
+          updateData.template_id = selectedTemplate.id;
+
+          const templatePayload: any = {
+            template: {
+              meta_template_id: selectedTemplate.id,
+              name: selectedTemplate.name,
+              language: selectedTemplate.language,
+              category: selectedTemplate.category,
+              components: selectedTemplate.components.map((component: any) => {
+                const comp: any = {
+                  type: component.type
+                };
+
+                if (component.type === 'HEADER') {
+                  comp.format = component.format;
+                  if (component.text) comp.text = component.text;
+                } else if (component.type === 'BODY') {
+                  comp.text = component.text;
+                } else if (component.type === 'FOOTER') {
+                  comp.text = component.text;
+                } else if (component.type === 'BUTTONS') {
+                  comp.buttons = component.buttons?.map((btn: any) => ({
+                    type: btn.type,
+                    text: btn.text,
+                    url: btn.url,
+                    phone_number: btn.phone_number
+                  }));
+                }
+
+                return comp;
+              })
+            }
+          };
+
+          const bodyComponent = selectedTemplate.components.find((c: any) => c.type === 'BODY');
+          if (bodyComponent?.text) {
+            const bodyText = bodyComponent.text;
+            const paramMatches = bodyText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+            templatePayload.body_params = paramMatches;
+          } else {
+            templatePayload.body_params = [];
+          }
+
+          const headerComponent = selectedTemplate.components.find((c: any) => c.type === 'HEADER');
+          if (headerComponent?.format === 'TEXT' && headerComponent?.text) {
+            const headerText = headerComponent.text;
+            const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+            templatePayload.header_params = headerMatches;
+          }
+
+          const buttonsComponent = selectedTemplate.components.find((c: any) => c.type === 'BUTTONS');
+          const buttonParams: string[] = [];
+
+          if (buttonsComponent?.buttons) {
+            buttonsComponent.buttons.forEach((button: any) => {
+              if (button.type === 'URL' && button.url) {
+                const urlMatches = button.url.match(/\{\{(\w+|\d+)\}\}/g) || [];
+                buttonParams.push(...urlMatches);
+              }
+              if (button.type === 'COPY_CODE' && button.example) {
+                buttonParams.push('{{copy_code}}');
+              }
+            });
+          }
+
+          templatePayload.button_params = buttonParams;
+
+          updateData.payload = templatePayload;
+        }
+      } else {
+        updateData.payload = {
+          message_content: formData.messageContent,
+        };
+      }
+
+      await CampaignService.updateCampaign(
+        createdCampaignId,
+        organizationId,
+        updateData
+      );
+
+      toast.success('Draft updated');
+      return true;
+    } catch (error) {
+      console.error('Error updating draft campaign:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update draft');
+      return false;
+    } finally {
+      setCreatingCampaign(false);
+    }
+  };
+
   // Create campaign with current form data
   const createCampaign = async () => {
     if (!appService || !organizationId) {
@@ -372,12 +574,11 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
 
       // Only add scheduled_at if it has a value
       const scheduleValue = getScheduleForAPI();
-      if (scheduleValue) {
-        campaignData.scheduled_at = scheduleValue;
-      }
+      const fallbackNow = new Date().toISOString();
+      campaignData.scheduled_at = scheduleValue || fallbackNow;
 
       // Add phone_number for WhatsApp campaigns
-      if (formData.channel === 'whatsapp' && appService.phone_number) {
+      if (formData.channel === 'whatsapp' && appService?.phone_number) {
         campaignData.phone_number = appService.phone_number;
       }
 
@@ -537,6 +738,32 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
             setCsvHeaders(headers);
             setCsvData(results.data as Array<Record<string, string>>);
 
+            // NEW: Auto-mapping - only if we have template parameters
+            if (campaignType === 'template' && formData.templateName) {
+              const contactFieldDefs: FieldDefinition[] = contactFieldOptions
+                .filter(f => !f.value.startsWith('header_') && !f.value.startsWith('body_') && !f.value.startsWith('button_'))
+                .map(f => ({
+                  value: f.value,
+                  label: f.label,
+                  required: f.value === 'phone',
+                }));
+
+              const autoResults = autoMapCSVToFields(
+                headers,
+                contactFieldDefs,
+                {
+                  header: formData.headerParameters.length,
+                  body: formData.bodyParameters.length,
+                  button: formData.buttonParameters.length,
+                }
+              );
+
+              setAutoMappingResults(autoResults);
+              setColumnMappings(autoResults.mappings);
+
+              toast.success(`Auto-mapped ${Object.keys(autoResults.mappings).length} of ${headers.length} columns`);
+            }
+
             // Move to mapping step
             setCsvImportStep('map');
 
@@ -653,78 +880,81 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
       // Step 2: Poll for import status
       let importComplete = false;
       let attempts = 0;
-      const maxAttempts = 30; // 30 seconds max
+      const maxAttempts = 120; // 2 minutes max (increased from 30 seconds)
+      let lastStatus = '';
 
       while (!importComplete && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
 
-        const statusResponse = await fetch(`/api/contacts/import/${importJobId}`);
-        if (statusResponse.ok) {
+        try {
+          const statusResponse = await fetch(`/api/contacts/import/${importJobId}`);
+
+          if (!statusResponse.ok) {
+            console.warn(`Import status check failed (attempt ${attempts + 1}/${maxAttempts}):`, statusResponse.status);
+
+            // If we get a 404, the job might have been cleaned up
+            if (statusResponse.status === 404) {
+              throw new Error('Import job not found - it may have been cancelled or expired');
+            }
+
+            // Continue trying for other errors
+            attempts++;
+            continue;
+          }
+
           const statusData = await statusResponse.json();
 
-          if (statusData.status === 'completed') {
+          // Show progress updates when status changes or every 30 seconds
+          const statusUpper = statusData.status?.toUpperCase();
+          if (statusData.status !== lastStatus || attempts % 30 === 0) {
+            const statusMessage = statusUpper === 'RUNNING'
+              ? `Processing contacts... (${attempts}s elapsed)`
+              : statusUpper === 'PENDING'
+              ? `Import queued... (${attempts}s elapsed)`
+              : `Import status: ${statusData.status}`;
+            toast.info(statusMessage);
+            lastStatus = statusData.status;
+          }
+
+          // Backend uses 'SUCCESS' (uppercase) for completed imports
+          if (statusUpper === 'SUCCESS') {
             importComplete = true;
-            toast.success(`Import completed! ${statusData.contacts_created || 0} contacts imported`);
+            toast.success(`Import completed! ${statusData.created_count || statusData.contacts_created || 0} contacts imported`);
 
-            // Step 3: Use edited CSV data and column mappings to build recipients array
+            // Step 3: Transform CSV data to recipients using new transformation utility
             try {
-              // Helper function to get value from row based on mapping
-              const getMappedValue = (row: any, targetField: string): string => {
-                // Find the CSV column that maps to this field
-                const csvColumn = Object.keys(columnMappings).find(
-                  col => columnMappings[col] === targetField
-                );
-                return csvColumn ? (row[csvColumn] || '') : '';
-              };
+              const transformResult = transformCSVToRecipients(
+                csvData,
+                columnMappings,
+                {
+                  header: formData.headerParameters.length,
+                  body: formData.bodyParameters.length,
+                  button: formData.buttonParameters.length,
+                },
+                {
+                  validatePhone: true,
+                  validateParams: true,
+                  skipInvalidRows: true,
+                }
+              );
 
-              // Build recipients array from the edited CSV data using mappings
-              const recipients = csvData
-                .filter((row: any) => {
-                  // Find phone column from mappings
-                  const phoneValue = getMappedValue(row, 'phone');
-                  return phoneValue && phoneValue.trim() !== '';
-                })
-                .map((row: any) => {
-                  const recipient: any = {
-                    phone: getMappedValue(row, 'phone'),
-                    fullname: getMappedValue(row, 'fullname') || '',
-                    email: getMappedValue(row, 'email') || '',
-                    template_params: {
-                      header_params: [],
-                      body_params: [],
-                      button_params: []
-                    }
-                  };
-
-                  // Extract header parameters based on mappings
-                  for (let i = 0; i < formData.headerParameters.length; i++) {
-                    const value = getMappedValue(row, `header_${i}`);
-                    recipient.template_params.header_params.push(value);
-                  }
-
-                  // Extract body parameters based on mappings
-                  for (let i = 0; i < formData.bodyParameters.length; i++) {
-                    const value = getMappedValue(row, `body_${i}`);
-                    recipient.template_params.body_params.push(value);
-                  }
-
-                  // Extract button parameters based on mappings
-                  for (let i = 0; i < formData.buttonParameters.length; i++) {
-                    const value = getMappedValue(row, `button_${i}`);
-                    recipient.template_params.button_params.push(value);
-                  }
-
-                  return recipient;
-                });
+              // Show validation errors if any
+              if (transformResult.errors.length > 0) {
+                console.warn('CSV validation errors:', transformResult.errors);
+                toast.warning(`${transformResult.errors.length} row(s) with errors were skipped`);
+              }
 
               // Step 4: Add recipients to campaign
-              if (recipients.length > 0) {
+              if (transformResult.recipients.length > 0) {
                 await CampaignService.addWhatsAppCampaignRecipients(
                   createdWhatsAppCampaignId,
                   organizationId,
-                  { recipients }
+                  { recipients: transformResult.recipients }
                 );
-                toast.success(`${recipients.length} recipients added to campaign`);
+                setImportedRecipientsCount(prev => prev + transformResult.recipients.length);
+                toast.success(`${transformResult.recipients.length} recipients added with personalized parameters`);
+              } else {
+                toast.error('No valid recipients found in CSV');
               }
             } catch (error) {
               console.error('Error adding recipients to campaign:', error);
@@ -732,16 +962,38 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
             }
 
             break;
-          } else if (statusData.status === 'failed') {
-            throw new Error(statusData.error || 'Import failed');
+          } else if (statusUpper === 'FAILED') {
+            throw new Error(statusData.message || statusData.error || 'Import failed');
           }
+        } catch (fetchError) {
+          // Log network errors but continue polling unless it's a critical error
+          if (fetchError instanceof Error && fetchError.message.includes('Import job not found')) {
+            throw fetchError;
+          }
+          console.warn('Error checking import status:', fetchError);
         }
 
         attempts++;
       }
 
       if (!importComplete) {
-        toast.warning('Import is taking longer than expected. Please check status manually.');
+        const timeoutMessage = 'Import is taking longer than expected. This could mean:\n' +
+          '1. Large file is still processing\n' +
+          '2. Backend service may be slow\n' +
+          '3. Import job may be stuck\n\n' +
+          'Please check your contacts list or try importing again with a smaller file.';
+        toast.error(timeoutMessage, { duration: 10000 });
+        console.error('Import timeout after', attempts, 'attempts. Job ID:', importJobId);
+
+        // Still clear the form to allow retry
+        setSelectedFile(null);
+        setCsvHeaders([]);
+        setCsvData([]);
+        setCsvImportStep('upload');
+        setColumnMappings({});
+        if (fileInputRef.current) fileInputRef.current.value = '';
+
+        throw new Error('Import timeout - please try again with a smaller file or contact support');
       }
 
       // Clear the file after successful import
@@ -772,6 +1024,62 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
     toast.success('Mapping created and selected');
   };
 
+  const verifyRecipientsExist = async () => {
+    if (!createdWhatsAppCampaignId || !organizationId) return true;
+    try {
+      const result = await CampaignService.getWhatsAppCampaignRecipients(
+        createdWhatsAppCampaignId,
+        organizationId,
+        { page_size: 1 }
+      );
+
+      const total = typeof result.count === 'number'
+        ? result.count
+        : Array.isArray(result)
+        ? result.length
+        : result.results?.length || 0;
+
+      if (total === 0) {
+        toast.error('No recipients found for this campaign. Please import or select recipients before launching.');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error verifying recipients:', error);
+      return true; // Do not block launch on verification error
+    }
+  };
+
+  // Ensure we have up-to-date campaign IDs before execute
+  const ensureCampaignIds = async () => {
+    if (!organizationId) return false;
+    if (createdWhatsAppCampaignId && createdCampaignId) return true;
+
+    try {
+      if (!createdCampaignId && draftCampaign?.id) {
+        setCreatedCampaignId(draftCampaign.id);
+      }
+
+      const idToFetch = createdCampaignId || draftCampaign?.id;
+      if (!idToFetch) return false;
+
+      const fresh = await CampaignService.getCampaign(idToFetch, organizationId);
+
+      if (fresh?.id) {
+        setCreatedCampaignId(fresh.id);
+      }
+      if (fresh?.whatsapp_campaign_id) {
+        setCreatedWhatsAppCampaignId(fresh.whatsapp_campaign_id);
+      } else if (fresh?.channel === 'whatsapp') {
+        setCreatedWhatsAppCampaignId(fresh.id);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error refreshing campaign ids before execute:', error);
+      return false;
+    }
+  };
+
   // Handle select all contacts
   const handleSelectAllContacts = (checked: boolean) => {
     if (checked) {
@@ -788,34 +1096,36 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
         return formData.name.trim() !== '' && formData.description.trim() !== '';
       case 2:
         if (campaignType === 'template') {
-          if (!formData.templateName) {
-          
-            return false;
-          }
-          return true;
+          return !!formData.templateName;
         }
         return formData.messageContent.trim() !== '';
       case 3:
+        const manualRecipientsSelected = formData.selectedContacts.length > 0 || formData.selectedTags.length > 0;
+        const csvRecipientsImported = importedRecipientsCount > 0;
+        if (campaignType === 'template' && !formData.templateName) {
+          return false;
+        }
+
         // For templates with variables, validate that all selected recipients have parameter values
         if (campaignType === 'template' && hasTemplateVariables) {
-          const selectedRecipients = formData.selectedContacts;
-          if (selectedRecipients.length === 0 && formData.selectedTags.length === 0) {
-           
+          if (!manualRecipientsSelected && !csvRecipientsImported) {
             return false;
           }
 
-          // Check if all selected contacts have all required parameters filled
-          const totalParams = formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length;
-          for (const contactId of selectedRecipients) {
-            const params = recipientParameters[contactId] || {};
-            const filledParams = Object.keys(params).filter(k => params[k].trim() !== '').length;
-            if (filledParams < totalParams) {
-           
-              return false;
+          // Only enforce manual parameter entry when the user selected contacts directly
+          if (formData.selectedContacts.length > 0) {
+            const totalParams = formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length;
+            for (const contactId of formData.selectedContacts) {
+              const params = recipientParameters[contactId] || {};
+              const filledParams = Object.keys(params).filter(k => params[k].trim() !== '').length;
+              if (filledParams < totalParams) {
+                return false;
+              }
             }
           }
+          return true;
         }
-        return formData.selectedContacts.length > 0 || formData.selectedTags.length > 0;
+        return manualRecipientsSelected || csvRecipientsImported;
       case 4:
         return true; // Review step, always valid
       default:
@@ -830,9 +1140,14 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
     }
 
     // Create campaign after step 2 (message content)
-    if (step === 2 && !createdCampaignId) {
-      const success = await createCampaign();
-      if (!success) return;
+    if (step === 2) {
+      if (!createdCampaignId) {
+        const success = await createCampaign();
+        if (!success) return;
+      } else if (draftCampaign) {
+        const updated = await updateDraftCampaign();
+        if (!updated) return;
+      }
     }
 
     // Move to next step, respecting the max step count
@@ -852,6 +1167,22 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
 
     setLoading(true);
     try {
+      const idsReady = await ensureCampaignIds();
+      if (!idsReady || !createdWhatsAppCampaignId) {
+        toast.error('Unable to prepare campaign IDs for execution. Please try reopening the draft.');
+        setLoading(false);
+        return;
+      }
+
+      // Ensure draft campaigns are synced before execution
+      if (draftCampaign) {
+        const updated = await updateDraftCampaign();
+        if (!updated) {
+          setLoading(false);
+          return;
+        }
+      }
+
       // Add recipients if campaign is WhatsApp
       if (formData.channel === 'whatsapp') {
         console.log('=== RECIPIENT SUBMISSION DEBUG ===');
@@ -924,6 +1255,12 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
           );
 
           console.log('Recipients with parameters added successfully');
+
+          const ok = await verifyRecipientsExist();
+          if (!ok) {
+            setLoading(false);
+            return;
+          }
         } else {
           // Use legacy format: Add recipients by tag_ids/contact_ids (no parameters)
           console.log('=== USING LEGACY RECIPIENT FORMAT ===');
@@ -969,14 +1306,25 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
             );
 
             console.log('Recipients added successfully');
+
+            const ok = await verifyRecipientsExist();
+            if (!ok) {
+              setLoading(false);
+              return;
+            }
           }
         }
 
         // Execute the campaign
+        if (scheduleNow) {
+          await delay(immediateExecutionDelayMs);
+        }
+
         await CampaignService.executeWhatsAppCampaign(
           createdWhatsAppCampaignId,
           organizationId,
-          scheduleNow
+          scheduleNow,
+          scheduleNow ? undefined : scheduledAtUTC || new Date().toISOString()
         );
       }
 
@@ -1021,6 +1369,9 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
       );
       count += contactsWithTag.length;
     });
+
+    // Include recipients that were imported via CSV for this campaign
+    count += importedRecipientsCount;
 
     return count;
   };
@@ -1227,63 +1578,227 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
             {/* Step 3: Select Recipients & Parameters */}
             {step === 3 && (
               <div className="space-y-6">
-                {/* Recipient Selection Mode Tabs */}
-                <Tabs value={recipientSelectionMode} onValueChange={(value: any) => setRecipientSelectionMode(value)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-1 p-1 bg-muted/50 rounded-lg">
-                    <TabsTrigger value="csv" className="rounded-md">CSV Import</TabsTrigger>
-                  </TabsList>                
+                {campaignType === 'template' && !formData.templateName && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      Select a template in Step 2 before adding recipients. Recipients can only be added once a template is chosen.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                  {/* CSV Import Tab */}
-                  <TabsContent value="csv" className="space-y-6 mt-6">
-                    {/* Import Mapping Selection */}
-                    <div className="space-y-3">
-                      <Label className="text-base font-semibold">Step 1: Select Import Mapping (Optional)</Label>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <Select
-                            value={selectedMappingId || 'none'}
-                            onValueChange={(value) => setSelectedMappingId(value === 'none' ? null : value)}
-                            disabled={mappingsLoading}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a mapping..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">No mapping (use default)</SelectItem>
-                              {mappings.map(mapping => (
-                                <SelectItem key={mapping.id} value={mapping.id}>
-                                  {mapping.name}
-                                  {mapping.description && (
-                                    <span className="text-xs text-muted-foreground ml-2">
-                                      - {mapping.description}
-                                    </span>
-                                  )}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                {importedRecipientsCount > 0 && (
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-sm text-green-800">
+                      {importedRecipientsCount} recipient{importedRecipientsCount === 1 ? '' : 's'} already imported for this campaign. You can proceed or import additional rows.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Selection Mode Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Card
+                    className={`cursor-pointer border ${recipientSelectionMode === 'manual' ? 'border-primary shadow-lg' : 'border-border/60'} ${campaignType === 'template' && !formData.templateName ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      if (campaignType === 'template' && !formData.templateName) return;
+                      setRecipientSelectionMode('manual');
+                    }}
+                  >
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <UserPlus className="h-5 w-5 text-primary" />
+                          <div className="font-semibold">Manual Selection</div>
                         </div>
-                        <Button
-                          variant="outline"
-                          onClick={handleOpenMappingDialog}
-                          disabled={csvHeaders.length === 0}
-                        >
-                          Create Mapping
-                        </Button>
+                        {recipientSelectionMode === 'manual' && (
+                          <Badge variant="secondary">Active</Badge>
+                        )}
                       </div>
-                      {selectedMappingId && (
-                        <Alert className="bg-blue-50 border-blue-200">
-                          <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                          <AlertDescription className="text-blue-800 text-sm">
-                            Using import mapping. CSV columns will be automatically mapped to contact fields.
-                          </AlertDescription>
+                      <p className="text-sm text-muted-foreground">
+                        Pick contacts from your list and fill template parameters per contact.
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card
+                    className={`cursor-pointer border ${recipientSelectionMode === 'csv' ? 'border-primary shadow-lg' : 'border-border/60'} ${campaignType === 'template' && !formData.templateName ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      if (campaignType === 'template' && !formData.templateName) return;
+                      setRecipientSelectionMode('csv');
+                    }}
+                  >
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Upload className="h-5 w-5 text-primary" />
+                          <div className="font-semibold">CSV Import</div>
+                        </div>
+                        {recipientSelectionMode === 'csv' && (
+                          <Badge variant="secondary">Active</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Upload a CSV and map columns to template variables.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Manual Selection */}
+                {recipientSelectionMode === 'manual' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base font-semibold">Select Contacts</Label>
+                        <p className="text-sm text-muted-foreground">Choose recipients from your contact list.</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="text-xs">
+                          Selected: <span className="font-semibold ml-1 text-foreground">{formData.selectedContacts.length}</span>
+                        </Badge>
+                        {hasTemplateVariables && (
+                          <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                            {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length} params / contact
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col md:flex-row gap-3">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search contacts by name or phone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9"
+                          />
+                        </div>
+                        {hasMore && (
+                          <Button variant="outline" onClick={loadMoreContacts} disabled={loadingContacts}>
+                            {loadingContacts ? 'Loading...' : 'Load More'}
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {filteredContacts.map(contact => (
+                          <Card
+                            key={contact.id}
+                            className={`cursor-pointer ${formData.selectedContacts.includes(contact.id) ? 'border-primary shadow-sm' : 'border-border/60'}`}
+                            onClick={() => handleContactToggle(contact.id)}
+                          >
+                            <CardContent className="p-4 space-y-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <div className="font-semibold text-foreground">{contact.fullname || 'Unnamed Contact'}</div>
+                                  <div className="text-sm text-muted-foreground">{contact.phone}</div>
+                                  {contact.email && (
+                                    <div className="text-xs text-muted-foreground">{contact.email}</div>
+                                  )}
+                                </div>
+                                <Checkbox
+                                  checked={formData.selectedContacts.includes(contact.id)}
+                                  onCheckedChange={() => handleContactToggle(contact.id)}
+                                  className="mt-1"
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {filteredContacts.length === 0 && (
+                        <Alert>
+                          <AlertDescription>No contacts match your search.</AlertDescription>
                         </Alert>
                       )}
                     </div>
 
+                    {/* Parameter inputs per selected contact */}
+                    {campaignType === 'template' && hasTemplateVariables && formData.selectedContacts.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-base font-semibold">Template Parameters</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Fill required values for each selected recipient.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3">
+                          {formData.selectedContacts.map(contactId => {
+                            const contact = contacts.find(c => c.id === contactId);
+                            if (!contact) return null;
+                            const params = recipientParameters[contactId] || {};
+                            return (
+                              <Card key={contactId}>
+                                <CardHeader className="pb-2">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <CardTitle className="text-sm">{contact.fullname || 'Unnamed Contact'}</CardTitle>
+                                      <CardDescription>{contact.phone}</CardDescription>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      Params required: {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length}
+                                    </Badge>
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {formData.headerParameters.map((param, idx) => (
+                                    <div key={`header_${idx}`}>
+                                      <Label className="text-sm font-medium">Header {idx + 1}</Label>
+                                      <Input
+                                        value={params[`header_${idx}`] || ''}
+                                        onChange={(e) => handleParameterChange(contactId, `header_${idx}`, e.target.value)}
+                                        placeholder={`Enter value for header ${idx + 1}`}
+                                      />
+                                    </div>
+                                  ))}
+                                  {formData.bodyParameters.map((param, idx) => (
+                                    <div key={`body_${idx}`}>
+                                      <Label className="text-sm font-medium">{param.parameter_name || `Body ${idx + 1}`}</Label>
+                                      <Input
+                                        value={params[`body_${idx}`] || ''}
+                                        onChange={(e) => handleParameterChange(contactId, `body_${idx}`, e.target.value)}
+                                        placeholder={`Enter value for ${param.parameter_name || `body ${idx + 1}`}`}
+                                      />
+                                    </div>
+                                  ))}
+                                  {formData.buttonParameters.map((param, idx) => (
+                                    <div key={`button_${idx}`}>
+                                      <Label className="text-sm font-medium">Button {idx + 1}</Label>
+                                      <Input
+                                        value={params[`button_${idx}`] || ''}
+                                        onChange={(e) => handleParameterChange(contactId, `button_${idx}`, e.target.value)}
+                                        placeholder={`Enter value for button ${idx + 1}`}
+                                      />
+                                    </div>
+                                  ))}
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* CSV Import */}
+                {recipientSelectionMode === 'csv' && (
+                  <div className="space-y-6">
+                    {campaignType === 'template' && hasTemplateVariables && (
+                      <Alert className="bg-blue-50 border-blue-200">
+                        <AlertDescription className="text-sm text-blue-800">
+                          This template requires {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length} parameter value{formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length === 1 ? '' : 's'} per recipient. In your CSV, include columns for phone plus each parameter and map them on the next step.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {/* File Upload Section */}
                     <div className="space-y-3">
-                      <Label className="text-base font-semibold">Step 2: Upload CSV File</Label>
+                      <Label className="text-base font-semibold">Step 1: Upload CSV File</Label>
                       <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
                         <input
                           ref={fileInputRef}
@@ -1340,85 +1855,212 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
                       </div>
                     </div>
 
-                    {/* Column Mapping UI */}
+                    {/* Column Mapping UI - Simplified Inline Editing */}
                     {csvImportStep === 'map' && csvHeaders.length > 0 && (
-                      <div className="space-y-3">
-                        <Label className="text-base font-semibold">Step 3: Map CSV Columns to Contact Fields</Label>
-                        <Card>
-                          <CardContent className="p-6">
-                            <div className="space-y-4">
-                              <p className="text-sm text-muted-foreground">
-                                Map each CSV column to a contact field or template parameter. This will determine how your CSV data is imported.
-                              </p>
-                              <div className="max-h-96 overflow-auto">
-                                <Table>
-                                  <TableHeader className="sticky top-0 bg-muted z-10">
-                                    <TableRow>
-                                      <TableHead className="w-1/2">CSV Column</TableHead>
-                                      <TableHead className="w-1/2">Maps To</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {csvHeaders.map((header, index) => (
-                                      <TableRow key={index}>
-                                        <TableCell className="font-medium">{header}</TableCell>
-                                        <TableCell>
-                                          <Select
-                                            value={columnMappings[header] || ''}
-                                            onValueChange={(value) => {
-                                              setColumnMappings(prev => ({
-                                                ...prev,
-                                                [header]: value
-                                              }));
-                                            }}
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select field..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="skip">Skip this column</SelectItem>
-                                              {contactFieldOptions.map(option => (
-                                                <SelectItem key={option.value} value={option.value}>
-                                                  {option.label}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </TableCell>
-                                      </TableRow>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-base font-semibold">Step 2: Map CSV to Template Variables</Label>
+                          {autoMappingResults && (
+                            <Badge variant="secondary" className="bg-green-100 text-green-700">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              {Object.keys(autoMappingResults.mappings).length} auto-mapped
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Left: Mappings - Inline Editable */}
+                          <Card className="border-border/60">
+                            <CardHeader>
+                              <CardTitle className="text-sm">Column Mappings</CardTitle>
+                              <CardDescription className="text-xs">
+                                Match CSV columns to template variables
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                              <div className="space-y-3 max-h-96 overflow-auto p-2">
+                                {/* Contact Fields */}
+                                <div className="space-y-2">
+                                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">Contact Info</h4>
+                                  {contactFieldOptions
+                                    .filter(f => ['phone', 'fullname', 'email'].includes(f.value))
+                                    .map(field => (
+                                      <div key={field.value} className="flex items-center gap-2">
+                                        <div className="w-32 text-sm font-medium truncate" title={field.label}>
+                                          {field.label}
+                                          {field.value === 'phone' && <span className="text-red-500 ml-1">*</span>}
+                                        </div>
+                                        <span className="text-muted-foreground">→</span>
+                                        <Select
+                                          value={Object.entries(columnMappings).find(([k, v]) => k === field.value)?.[1] || ''}
+                                          onValueChange={(csvCol) => {
+                                            setColumnMappings(prev => ({
+                                              ...prev,
+                                              [field.value]: csvCol
+                                            }));
+                                          }}
+                                        >
+                                          <SelectTrigger className="flex-1 h-8">
+                                            <SelectValue placeholder="Select column..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {csvHeaders.map(h => (
+                                              <SelectItem key={h} value={h}>{h}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
                                     ))}
-                                  </TableBody>
-                                </Table>
+                                </div>
+
+                                {/* Template Parameters */}
+                                {campaignType === 'template' && (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0) && (
+                                  <div className="space-y-2 pt-3 border-t">
+                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase">Template Variables</h4>
+
+                                    {/* Body params */}
+                                    {formData.bodyParameters.map((param, idx) => (
+                                      <div key={`body_${idx}`} className="flex items-center gap-2">
+                                        <div className="w-32 text-sm font-medium truncate" title={param.parameter_name || `Body ${idx + 1}`}>
+                                          {param.parameter_name || `Body ${idx + 1}`}
+                                          <span className="text-red-500 ml-1">*</span>
+                                        </div>
+                                        <span className="text-muted-foreground">→</span>
+                                        <Select
+                                          value={Object.entries(columnMappings).find(([k]) => k === `body_${idx}`)?.[1] || ''}
+                                          onValueChange={(csvCol) => {
+                                            setColumnMappings(prev => ({
+                                              ...prev,
+                                              [`body_${idx}`]: csvCol
+                                            }));
+                                          }}
+                                        >
+                                          <SelectTrigger className="flex-1 h-8">
+                                            <SelectValue placeholder="Select column..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {csvHeaders.map(h => (
+                                              <SelectItem key={h} value={h}>{h}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    ))}
+
+                                    {/* Header params */}
+                                    {formData.headerParameters.map((param, idx) => (
+                                      <div key={`header_${idx}`} className="flex items-center gap-2">
+                                        <div className="w-32 text-sm font-medium truncate">Header {idx + 1}</div>
+                                        <span className="text-muted-foreground">→</span>
+                                        <Select
+                                          value={Object.entries(columnMappings).find(([k]) => k === `header_${idx}`)?.[1] || ''}
+                                          onValueChange={(csvCol) => {
+                                            setColumnMappings(prev => ({
+                                              ...prev,
+                                              [`header_${idx}`]: csvCol
+                                            }));
+                                          }}
+                                        >
+                                          <SelectTrigger className="flex-1 h-8">
+                                            <SelectValue placeholder="Select column..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {csvHeaders.map(h => (
+                                              <SelectItem key={h} value={h}>{h}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    ))}
+
+                                    {/* Button params */}
+                                    {formData.buttonParameters.map((param, idx) => (
+                                      <div key={`button_${idx}`} className="flex items-center gap-2">
+                                        <div className="w-32 text-sm font-medium truncate">Button {idx + 1}</div>
+                                        <span className="text-muted-foreground">→</span>
+                                        <Select
+                                          value={Object.entries(columnMappings).find(([k]) => k === `button_${idx}`)?.[1] || ''}
+                                          onValueChange={(csvCol) => {
+                                            setColumnMappings(prev => ({
+                                              ...prev,
+                                              [`button_${idx}`]: csvCol
+                                            }));
+                                          }}
+                                        >
+                                          <SelectTrigger className="flex-1 h-8">
+                                            <SelectValue placeholder="Select column..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {csvHeaders.map(h => (
+                                              <SelectItem key={h} value={h}>{h}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex items-center justify-between pt-4 border-t">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => {
-                                    setCsvImportStep('upload');
-                                    setColumnMappings({});
-                                  }}
-                                >
-                                  Back to Upload
-                                </Button>
-                                <Button
-                                  onClick={() => {
-                                    // Validate that phone field is mapped
-                                    const phoneMapping = Object.values(columnMappings).find(v => v === 'phone');
-                                    if (!phoneMapping) {
-                                      toast.error('Please map at least one column to Phone Number');
-                                      return;
-                                    }
-                                    setCsvImportStep('verify');
-                                    toast.success('Mapping configured. Please verify the data.');
-                                  }}
-                                  disabled={Object.keys(columnMappings).length === 0}
-                                >
-                                  Continue to Verification
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
+                            </CardContent>
+                          </Card>
+
+                          {/* Right: Live Preview */}
+                          <div className="space-y-3">
+                            {campaignType === 'template' && formData.templateName && csvData.length > 0 && (
+                              <MappingPreviewPanel
+                                template={approvedTemplates.find(t => t.name === formData.templateName)}
+                                csvData={csvData.slice(0, 3)}
+                                mappings={columnMappings}
+                                maxPreviews={3}
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-between pt-4 border-t">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setCsvImportStep('upload');
+                              setColumnMappings({});
+                              setAutoMappingResults(null);
+                            }}
+                          >
+                            ← Back
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              // Validate mappings
+                              const requiredFields = getRequiredFields({
+                                header: formData.headerParameters.length,
+                                body: formData.bodyParameters.length,
+                                button: formData.buttonParameters.length,
+                              });
+
+                              const validation = validateMappings(
+                                columnMappings,
+                                csvHeaders,
+                                requiredFields
+                              );
+
+                              if (!validation.valid) {
+                                validation.errors.forEach(err => toast.error(err));
+                                return;
+                              }
+
+                              if (validation.warnings.length > 0) {
+                                validation.warnings.forEach(warn => toast.warning(warn));
+                              }
+
+                              setCsvImportStep('verify');
+                            }}
+                            disabled={!columnMappings['phone']}
+                            size="lg"
+                          >
+                            Continue to Import →
+                          </Button>
+                        </div>
                       </div>
                     )}
 
@@ -1426,7 +2068,7 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
                     {csvImportStep === 'verify' && csvData.length > 0 && csvHeaders.length > 0 && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <Label className="text-base font-semibold">Step 4: Review & Edit CSV Data</Label>
+                          <Label className="text-base font-semibold">Step 3: Review & Edit CSV Data</Label>
                           <Button
                             variant="outline"
                             size="sm"
@@ -1491,7 +2133,7 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
                     {/* Options */}
                     {csvImportStep === 'verify' && (
                       <div className="space-y-3">
-                        <Label className="text-base font-semibold">Step 5: Import Options</Label>
+                        <Label className="text-base font-semibold">Step 4: Import Options</Label>
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             id="create-if-not-exists"
@@ -1546,8 +2188,8 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
                         </Button>
                       </div>
                     )}
-                  </TabsContent>
-                </Tabs>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1600,7 +2242,7 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
                                 </Badge>
                               </div>
 
-                              {hasTemplateVariables && formData.selectedContacts.length > 0 && (
+                              {hasTemplateVariables && (formData.selectedContacts.length > 0 || importedRecipientsCount > 0) && (
                                 <>
                                   <div className="border-t border-border/30"></div>
                                   <div className="space-y-2">
@@ -1608,7 +2250,7 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
                                     <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded border border-green-200 dark:border-green-900">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                                       <span className="text-sm text-green-800 dark:text-green-200">
-                                        {formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s) configured for {formData.selectedContacts.length} recipient(s)
+                                        {formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s) configured for {formData.selectedContacts.length + importedRecipientsCount} recipient(s)
                                       </span>
                                     </div>
                                   </div>
@@ -1631,6 +2273,21 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
                       <h3 className="text-lg font-semibold text-foreground mb-4">Recipients</h3>
                       <Card className="bg-muted/30 border-border/50">
                         <CardContent className="p-4 space-y-4">
+                          {importedRecipientsCount > 0 && (
+                            <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                <div>
+                                  <div className="text-sm font-semibold text-green-800">{importedRecipientsCount} recipient{importedRecipientsCount === 1 ? '' : 's'} imported via CSV</div>
+                                  <div className="text-xs text-green-700">Already attached to this campaign</div>
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="text-xs border-green-300 bg-white text-green-800">
+                                CSV Import
+                              </Badge>
+                            </div>
+                          )}
+
                           {formData.selectedContacts.length > 0 && (
                             <div>
                               <div className="text-sm font-semibold text-muted-foreground mb-3">Selected Contacts:</div>
@@ -1749,6 +2406,17 @@ export default function CampaignCreationForm({ appService, onSuccess }: Campaign
           channel={formData.channel}
           csvHeaders={csvHeaders}
           templateId={formData.templateName ? approvedTemplates.find(t => t.name === formData.templateName)?.id : undefined}
+          templateParameters={campaignType === 'template' && formData.templateName ? {
+            header: formData.headerParameters.map((_, idx) => ({ index: idx })),
+            body: formData.bodyParameters.map((p, idx) => ({
+              index: idx,
+              name: p.parameter_name,
+            })),
+            button: formData.buttonParameters.map((p, idx) => ({
+              index: idx,
+              subType: p.sub_type,
+            })),
+          } : undefined}
           onMappingCreated={handleMappingCreated}
         />
       </div>

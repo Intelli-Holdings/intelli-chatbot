@@ -18,6 +18,7 @@ export const env = createEnv({
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().min(1),
+    NEXT_PUBLIC_API_BASE_URL: z.string().url().default("https://dev-backend-intelliconcierge-jvap.onrender.com"),
     // Meta/Facebook API
     NEXT_PUBLIC_FACEBOOK_APP_ID: z.string().optional(),
     NEXT_PUBLIC_FACEBOOK_APP_SECRET: z.string().optional(),
@@ -38,6 +39,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
     // Meta/Facebook API
     NEXT_PUBLIC_FACEBOOK_APP_ID: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID,
     NEXT_PUBLIC_FACEBOOK_APP_SECRET: process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET,

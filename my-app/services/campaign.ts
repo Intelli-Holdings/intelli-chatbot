@@ -4,7 +4,7 @@ interface Campaign {
   description: string;
   channel: 'whatsapp' | 'sms' | 'email';
   phone_number?: string;
-  status: 'draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'failed';
+  status: 'draft' | 'scheduled' | 'ready' | 'paused' | 'completed' | 'failed';
   organization: string;
   scheduled_at?: string;
   created_at: string;
@@ -103,16 +103,17 @@ export class CampaignService {
 
   /**
    * Fetch campaigns with filters
+   * Returns paginated response with count, next, previous, and results
    */
   static async fetchCampaigns(organizationId: string, filters?: {
     channel?: string;
     status?: string;
     page?: number;
     pageSize?: number;
-  }): Promise<Campaign[]> {
+  }): Promise<{ campaigns: Campaign[]; count: number; next: string | null; previous: string | null }> {
     try {
       if (!organizationId) {
-        return [];
+        return { campaigns: [], count: 0, next: null, previous: null };
       }
 
       const params = new URLSearchParams();
@@ -131,7 +132,30 @@ export class CampaignService {
       }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : data.results || [];
+
+      // Handle paginated response format
+      if (data.results) {
+        return {
+          campaigns: data.results,
+          count: data.count || data.results.length,
+          next: data.next || null,
+          previous: data.previous || null
+        };
+      }
+
+      // Handle non-paginated array response
+      if (Array.isArray(data)) {
+        return {
+          campaigns: data,
+          count: data.length,
+          next: null,
+          previous: null
+        };
+      }
+
+      // Fallback
+      return { campaigns: [], count: 0, next: null, previous: null };
+>>>>>>> 91468eea (fix: statistic display on campaign)
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       throw error;
@@ -183,10 +207,10 @@ export class CampaignService {
     status?: string;
     page?: number;
     pageSize?: number;
-  }): Promise<Campaign[]> {
+  }): Promise<{ campaigns: Campaign[], totalCount: number }> {
     try {
       if (!organizationId) {
-        return [];
+        return { campaigns: [], totalCount: 0 };
       }
 
       const params = new URLSearchParams();
@@ -204,7 +228,21 @@ export class CampaignService {
       }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : data.results || [];
+
+      // Handle paginated response
+      if (data.results && typeof data.count === 'number') {
+        return {
+          campaigns: data.results,
+          totalCount: data.count
+        };
+      }
+
+      // Handle non-paginated response
+      const campaigns = Array.isArray(data) ? data : [];
+      return {
+        campaigns,
+        totalCount: campaigns.length
+      };
     } catch (error) {
       console.error('Error fetching WhatsApp campaigns:', error);
       throw error;
@@ -298,7 +336,7 @@ static async updateCampaign(
    */
   static async resumeCampaign(campaignId: string, organizationId: string): Promise<void> {
     try {
-      await this.updateCampaign(campaignId, organizationId, { status: 'active' } as any);
+      await this.updateCampaign(campaignId, organizationId, { status: 'ready' } as any);
     } catch (error) {
       console.error('Error resuming campaign:', error);
       throw error;
@@ -408,23 +446,37 @@ static async updateCampaign(
   static async executeWhatsAppCampaign(
     campaignId: string,
     organizationId: string,
-    executeNow: boolean = true
+    executeNow: boolean = true,
+    scheduledAt?: string
   ): Promise<any> {
     try {
+      const payload: Record<string, any> = {
+        organization_id: organizationId,
+        execute_now: executeNow,
+      };
+
+      if (scheduledAt) {
+        payload.scheduled_at = scheduledAt;
+      }
+
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          organization_id: organizationId,
-          execute_now: executeNow,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to execute campaign');
+        let errorMessage = 'Failed to execute campaign';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.detail || errorData.message || errorMessage;
+        } catch {
+          const text = await response.text();
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(`${errorMessage} (status ${response.status})`);
       }
 
       return await response.json();

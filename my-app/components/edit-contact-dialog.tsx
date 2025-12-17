@@ -10,6 +10,7 @@ import { TagInput } from "@/components/contacts-tag-input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { toast } from "sonner"
+import ContactCustomFields from "./contact-custom-fields"
 
 interface Tag {
   id: number
@@ -271,6 +272,12 @@ export function EditContactDialog({ open, onOpenChange, contact, tags, onSuccess
             </Button>
           </div>
         </form>
+
+        {contact?.id && (
+          <div className="mt-6">
+            <ContactCustomFields contactId={contact.id.toString()} />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
