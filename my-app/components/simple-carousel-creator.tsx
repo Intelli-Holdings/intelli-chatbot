@@ -110,10 +110,11 @@ export default function SimpleCarouselCreator({
     setIsUploadingMedia(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('accessToken', appService.access_token);
+      formData.append('media_file', file);
+      formData.append('appservice_phone_number', appService.phone_number);
+      formData.append('upload_type', 'resumable');
 
-      const response = await fetch('/api/whatsapp/upload-media', {
+      const response = await fetch('/api/whatsapp/templates/upload_media', {
         method: 'POST',
         body: formData,
       });

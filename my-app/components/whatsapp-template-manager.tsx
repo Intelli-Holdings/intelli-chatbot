@@ -17,9 +17,10 @@ import TestMessageDialog from '@/components/test-message-dialog';
 
 interface WhatsAppTemplateManagerProps {
   appService: AppService | null;
+  organizationId?: string | null;
 }
 
-const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appService }) => {
+const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appService, organizationId }) => {
   const {
     templates,
     loading,
@@ -475,6 +476,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
         <TestMessageDialog
           template={templateToTest}
           appService={appService}
+          organizationId={organizationId}
           isOpen={isTestDialogOpen}
           onClose={() => {
             setIsTestDialogOpen(false);

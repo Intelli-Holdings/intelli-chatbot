@@ -103,6 +103,7 @@ export default function CreateTemplateForm({
     headerText: "",
     headerMediaFile: null as File | null,
     headerMediaPreview: "",
+    headerMediaVariable: false, // Toggle for variable vs fixed media
     body: "",
     footer: "",
     buttonType: "NONE" as "NONE" | "CALL_TO_ACTION" | "QUICK_REPLY",
@@ -227,18 +228,15 @@ export default function CreateTemplateForm({
       throw new Error("App service not provided");
     }
 
-    if (!appService.access_token || appService.access_token === "undefined") {
-      throw new Error("Valid access token not available");
-    }
-
     try {
       setIsUploadingMedia(true);
 
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("accessToken", appService.access_token);
+      formData.append("media_file", file);
+      formData.append("appservice_phone_number", appService.phone_number);
+      formData.append("upload_type", "resumable");
 
-      const response = await fetch("/api/whatsapp/upload-media", {
+      const response = await fetch("/api/whatsapp/templates/upload_media", {
         method: "POST",
         body: formData,
       });
@@ -262,7 +260,7 @@ export default function CreateTemplateForm({
 
       return data.handle;
     } catch (error) {
-      console.error("Meta upload error:", error);
+      console.error("Backend upload error:", error);
       throw error;
     } finally {
       setIsUploadingMedia(false);
@@ -922,6 +920,27 @@ export default function CreateTemplateForm({
                           template approval
                         </AlertDescription>
                       </Alert>
+
+                      <div className="flex items-center space-x-2">
+                        <input
+                          id="headerMediaVariable"
+                          type="checkbox"
+                          checked={templateData.headerMediaVariable}
+                          onChange={(e) =>
+                            setTemplateData({
+                              ...templateData,
+                              headerMediaVariable: e.target.checked,
+                            })
+                          }
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        <label
+                          htmlFor="headerMediaVariable"
+                          className="text-sm text-gray-700 cursor-pointer"
+                        >
+                          Allow different {templateData.headerType.toLowerCase()} per contact in campaigns
+                        </label>
+                      </div>
 
                       <input
                         ref={fileInputRef}

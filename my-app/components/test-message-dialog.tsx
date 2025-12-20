@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { type WhatsAppTemplate } from '@/services/whatsapp';
-import { WhatsAppService } from '@/services/whatsapp';
 import { Upload, Image as ImageIcon, Video, FileText, Loader2, Info, MapPin } from 'lucide-react';
 
 interface TestMessageDialogProps {
@@ -16,6 +15,7 @@ interface TestMessageDialogProps {
   appService: any;
   isOpen: boolean;
   onClose: () => void;
+  organizationId?: string | null;
 }
 
 interface LocationData {
@@ -25,10 +25,11 @@ interface LocationData {
   address: string;
 }
 
-export default function TestMessageDialog({ template, appService, isOpen, onClose }: TestMessageDialogProps) {
+export default function TestMessageDialog({ template, appService, isOpen, onClose, organizationId }: TestMessageDialogProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [variables, setVariables] = useState<string[]>([]);
   const [headerVariables, setHeaderVariables] = useState<string[]>([]);
+  const [buttonVariables, setButtonVariables] = useState<string[]>([]);
   const [headerMediaFile, setHeaderMediaFile] = useState<File | null>(null);
   const [headerMediaHandle, setHeaderMediaHandle] = useState<string>('');
   const [locationData, setLocationData] = useState<LocationData>({
@@ -43,29 +44,34 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
+    const extractPlaceholderCount = (text?: string) => {
+      if (!text) return 0;
+      const matches = text.match(/\{\{(\d+)\}\}/g) || [];
+      return matches.length;
+    };
+
     if (template) {
       // Extract body variables
       const bodyComponent = template.components?.find(c => c.type === 'BODY');
-      if (bodyComponent?.text) {
-        const variableMatches = bodyComponent.text.match(/\{\{(\d+)\}\}/g) || [];
-        const uniqueVariables = new Set(
-          variableMatches.map(match => {
-            const numberMatch = match.match(/\d+/);
-            return numberMatch ? parseInt(numberMatch[0]) : 0;
-          })
-        );
-        const maxVariableNum = uniqueVariables.size > 0 ? Math.max(...Array.from(uniqueVariables)) : 0;
-        setVariables(new Array(maxVariableNum).fill(''));
-      }
+      const bodyCount = extractPlaceholderCount(bodyComponent?.text);
+      setVariables(bodyCount > 0 ? new Array(bodyCount).fill('') : []);
 
-      // Extract header variables (for variable media templates)
+      // Extract header variables from header text (if any placeholders)
       const headerComponent = template.components?.find(c => c.type === 'HEADER');
-      if (headerComponent?.example?.header_handle || headerComponent?.example?.header_text) {
-        const headerParams = headerComponent.example.header_handle || headerComponent.example.header_text || [];
-        setHeaderVariables(new Array(headerParams.length).fill(''));
-      } else {
-        setHeaderVariables([]);
+      const headerCount = extractPlaceholderCount(headerComponent?.text);
+      setHeaderVariables(headerCount > 0 ? new Array(headerCount).fill('') : []);
+
+      // Extract button variables from URL buttons
+      const buttonsComponent = template.components?.find(c => c.type === 'BUTTONS');
+      let buttonCount = 0;
+      if (buttonsComponent?.buttons?.length) {
+        buttonsComponent.buttons.forEach((btn: any) => {
+          if (btn.type === 'URL' && btn.url) {
+            buttonCount += extractPlaceholderCount(btn.url);
+          }
+        });
       }
+      setButtonVariables(buttonCount > 0 ? new Array(buttonCount).fill('') : []);
 
       // Reset media and location state
       setHeaderMediaFile(null);
@@ -82,7 +88,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
   // Check if template has media header and whether it's variable or fixed
   const getHeaderMediaInfo = () => {
     const headerComponent = template?.components?.find(c => c.type === 'HEADER');
-    
+
     if (!headerComponent?.format) {
       return { hasMedia: false, isVariable: false, format: undefined, isLocation: false };
     }
@@ -102,10 +108,13 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       return { hasMedia: false, isVariable: false, format: undefined, isLocation: false };
     }
 
+    // Check if media is variable or fixed
+    // Variable media headers have a "text" field with placeholder like "{{1}}"
+    const isVariable = !!(headerComponent as any).text;
 
     return {
       hasMedia: true,
-      isVariable: false, // Media headers are fixed - use template's pre-uploaded media
+      isVariable: isVariable, // Variable if has text field, fixed if not
       format: headerComponent.format as 'IMAGE' | 'VIDEO' | 'DOCUMENT',
       isLocation: false
     };
@@ -116,24 +125,21 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       throw new Error('App service not provided');
     }
 
-    if (!appService.access_token || appService.access_token === 'undefined') {
-      console.error('Invalid access token in appService:', appService);
-      throw new Error('Valid access token not available');
-    }
-
     try {
       setIsUploadingMedia(true);
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('accessToken', appService.access_token);
 
-      console.log('Uploading media to Resumable Upload API...', {
+      const formData = new FormData();
+      formData.append('media_file', file);
+      formData.append('appservice_phone_number', appService.phone_number);
+      formData.append('upload_type', 'resumable');
+
+      console.log('Uploading media via backend...', {
         fileName: file.name,
-        fileSize: file.size
+        fileSize: file.size,
+        appServicePhone: appService.phone_number
       });
 
-      const response = await fetch('/api/whatsapp/upload-media', {
+      const response = await fetch('/api/whatsapp/templates/upload_media', {
         method: 'POST',
         body: formData
       });
@@ -152,14 +158,14 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
       const data = await response.json();
       console.log('Media upload response:', data);
-      
+
       if (!data.handle) {
         throw new Error('No media handle received from upload');
       }
-      
+
       return data.handle;
     } catch (error) {
-      console.error('Meta upload error:', error);
+      console.error('Backend upload error:', error);
       throw error;
     } finally {
       setIsUploadingMedia(false);
@@ -222,6 +228,12 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
   const handleSendTest = async () => {
     if (!template || !appService) return;
 
+    const orgId = organizationId || appService?.organizationId || appService?.organization_id;
+    if (!orgId) {
+      toast.error("Organization is required to send a test message");
+      return;
+    }
+
     if (!phoneNumber.trim()) {
       toast.error("Phone number is required");
       return;
@@ -234,38 +246,39 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     }
 
     const headerInfo = getHeaderMediaInfo();
-    
+
     // Validate location data if template has location header
     if (headerInfo.isLocation && !validateLocationData()) {
+      return;
+    }
+
+    // Validate media upload if template has media header
+    if (headerInfo.hasMedia && headerInfo.isVariable && !headerMediaHandle) {
+      toast.error(`Please upload ${headerInfo.format?.toLowerCase()} for the template header`);
+      return;
+    }
+
+    // Validate all required parameters are filled
+    const emptyHeader = headerVariables.some(v => !v.trim());
+    const emptyBody = variables.some(v => !v.trim());
+    const emptyButtons = buttonVariables.some(v => !v.trim());
+
+    if (headerVariables.length && emptyHeader) {
+      toast.error("Please fill in all header parameter values");
+      return;
+    }
+    if (variables.length && emptyBody) {
+      toast.error("Please fill in all body parameter values");
+      return;
+    }
+    if (buttonVariables.length && emptyButtons) {
+      toast.error("Please fill in all button parameter values");
       return;
     }
 
     setIsSending(true);
 
     try {
-      const components = [];
-
-      // Add location header component
-      if (headerInfo.isLocation) {
-        components.push({
-          type: "header",
-          parameters: [
-            {
-              type: "location",
-              location: {
-                latitude: locationData.latitude,
-                longitude: locationData.longitude,
-                name: locationData.name,
-                address: locationData.address
-              }
-            }
-          ]
-        });
-      }
-      
-      // Note: For IMAGE/VIDEO/DOCUMENT headers, we DON'T add a header component
-      // The template will automatically use its pre-uploaded media from the template definition
-
       // Add body component if there are variables
       if (variables.length > 0) {
         const filledVariables = variables.filter(v => v.trim());
@@ -275,34 +288,50 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
           return;
         }
 
-        components.push({
-          type: "body",
-          parameters: variables.map((value, index) => ({
-            type: "text",
-            text: value || `Sample Value ${index + 1}`
-          }))
-        });
       }
 
-      const messageData = {
-        messaging_product: "whatsapp",
-        to: cleanNumber,
-        type: "template",
-        template: {
-          name: template.name,
-          language: {
-            code: template.language
-          },
-          components: components.length > 0 ? components : undefined
-        }
+      // Button parameters (URL placeholders)
+
+      const headerComponent = template.components?.find(c => c.type === 'HEADER');
+      const headerFormat = headerComponent?.format || 'TEXT';
+
+      // Determine header params based on header type
+      let finalHeaderParams = headerVariables;
+
+      // For fixed media headers (not variable), don't send header_params
+      // The template will use its pre-uploaded example media
+      if (headerInfo.hasMedia && !headerInfo.isVariable) {
+        finalHeaderParams = [];
+      }
+      // For variable media headers, use the uploaded media handle
+      else if (headerInfo.hasMedia && headerInfo.isVariable && headerMediaHandle) {
+        finalHeaderParams = [headerMediaHandle];
+      }
+
+      const payload = {
+        organization: orgId,
+        template_name: template.name,
+        template_language: template.language,
+        header_format: headerFormat,
+        phone_number: cleanNumber,
+        header_params: finalHeaderParams,
+        body_params: variables,
+        button_params: buttonVariables,
+        location: headerInfo.isLocation ? locationData : undefined,
+        appservice_id: appService?.id,
+        appservice_phone_number: appService?.phone_number,
       };
 
-      console.log('Sending message with data:', JSON.stringify(messageData, null, 2));
+      const res = await fetch(`/api/whatsapp/templates/${template.id}/send_test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      await WhatsAppService.sendMessage(
-        appService,
-        messageData
-      );
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result?.error || "Failed to send message");
+      }
 
       toast.success("Message sent successfully!");
       onClose();
@@ -311,6 +340,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       setPhoneNumber('');
       setVariables([]);
       setHeaderVariables([]);
+      setButtonVariables([]);
       setHeaderMediaFile(null);
       setHeaderMediaHandle('');
       setLocationData({
@@ -452,7 +482,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  This template requires you to upload media for each message sent.
+                  This template requires {headerInfo.format?.toLowerCase()} media. Upload a file or provide a publicly accessible URL to Meta's CDN or your own server.
                 </AlertDescription>
               </Alert>
 
@@ -537,6 +567,30 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             </Alert>
           )}
 
+          {/* Header variables */}
+          {headerVariables.length > 0 && (
+            <div className="space-y-2">
+              <Label>Header Parameters</Label>
+              {headerVariables.map((value, index) => (
+                <div key={index} className="space-y-1">
+                  <Label htmlFor={`header-var-${index}`} className="text-sm">
+                    Header Variable {index + 1}
+                  </Label>
+                  <Input
+                    id={`header-var-${index}`}
+                    placeholder={`Value for header {{${index + 1}}}`}
+                    value={value}
+                    onChange={(e) => {
+                      const next = [...headerVariables];
+                      next[index] = e.target.value;
+                      setHeaderVariables(next);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Body variables */}
           {variables.length > 0 && (
             <div className="space-y-2">
@@ -551,6 +605,30 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
                     placeholder={`Value for {{${index + 1}}}`}
                     value={variable}
                     onChange={(e) => updateVariable(index, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Button variables */}
+          {buttonVariables.length > 0 && (
+            <div className="space-y-2">
+              <Label>Button URL Parameters</Label>
+              {buttonVariables.map((value, index) => (
+                <div key={index} className="space-y-1">
+                  <Label htmlFor={`button-var-${index}`} className="text-sm">
+                    Button Variable {index + 1}
+                  </Label>
+                  <Input
+                    id={`button-var-${index}`}
+                    placeholder={`Value for button {{${index + 1}}}`}
+                    value={value}
+                    onChange={(e) => {
+                      const next = [...buttonVariables];
+                      next[index] = e.target.value;
+                      setButtonVariables(next);
+                    }}
                   />
                 </div>
               ))}

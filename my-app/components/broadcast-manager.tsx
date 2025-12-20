@@ -205,11 +205,11 @@ export default function BroadcastManager({
     try {
       const result = await WhatsAppService.uploadMediaToMeta(
         mediaFileInput,
-        appService.access_token
+        appService.phone_number
       );
 
       setMediaHandle(result.handle);
-      toast.success("Media uploaded successfully to Meta!");
+      toast.success("Media uploaded successfully!");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to upload media"

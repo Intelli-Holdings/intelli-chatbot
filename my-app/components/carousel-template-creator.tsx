@@ -129,17 +129,18 @@ export default function CarouselTemplateCreator({
   };
 
   const uploadMediaToMeta = async (file: File): Promise<string> => {
-    if (!appService?.access_token || appService.access_token === 'undefined') {
-      throw new Error('Valid access token not available');
+    if (!appService) {
+      throw new Error('App service not provided');
     }
 
     try {
       setIsUploadingMedia(true);
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('accessToken', appService.access_token);
+      formData.append('media_file', file);
+      formData.append('appservice_phone_number', appService.phone_number);
+      formData.append('upload_type', 'resumable');
 
-      const response = await fetch('/api/whatsapp/upload-media', {
+      const response = await fetch('/api/whatsapp/templates/upload_media', {
         method: 'POST',
         body: formData
       });
@@ -161,7 +162,7 @@ export default function CarouselTemplateCreator({
       }
       return data.handle;
     } catch (error) {
-      console.error('Meta upload error:', error);
+      console.error('Backend upload error:', error);
       throw error;
     } finally {
       setIsUploadingMedia(false);

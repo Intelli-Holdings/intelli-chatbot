@@ -1164,18 +1164,19 @@ static formatTemplateComponents(components: any[]): any[] {
   }
 
   /**
-   * Upload media using the API endpoint
+   * Upload media using the backend API endpoint
    */
   static async uploadMediaToMeta(
     file: File,
-    accessToken: string
+    appServicePhone: string
   ): Promise<{ handle: string; fileType: string }> {
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('accessToken', accessToken);
+      formData.append('media_file', file);
+      formData.append('appservice_phone_number', appServicePhone);
+      formData.append('upload_type', 'resumable');
 
-      const response = await fetch('/api/whatsapp/upload-media', {
+      const response = await fetch('/api/whatsapp/templates/upload_media', {
         method: 'POST',
         body: formData,
       });
@@ -1188,7 +1189,7 @@ static formatTemplateComponents(components: any[]): any[] {
       const data = await response.json();
       return {
         handle: data.handle,
-        fileType: data.fileType
+        fileType: data.fileType || data.file_type
       };
     } catch (error) {
       console.error('Error uploading media:', error);

@@ -360,18 +360,29 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       });
     }
 
-    // Extract header variables (if TEXT header with variable)
+    // Extract header variables
     const headerComponent = template.components?.find((c: any) => c.type === 'HEADER');
-    if (headerComponent?.format === 'TEXT' && headerComponent?.text) {
-      const headerText = headerComponent.text;
-      const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+    if (headerComponent) {
+      const headerFormat = headerComponent.format?.toUpperCase();
 
-      headerMatches.forEach(() => {
-        headerVariables.push({
-          type: 'text',
-          text: '', // User will fill this
+      if (headerFormat === 'TEXT' && headerComponent.text) {
+        // TEXT header with variables
+        const headerText = headerComponent.text;
+        const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+
+        headerMatches.forEach(() => {
+          headerVariables.push({
+            type: 'text',
+            text: '', // User will fill this
+          });
         });
-      });
+      } else if (headerFormat === 'IMAGE' || headerFormat === 'VIDEO' || headerFormat === 'DOCUMENT') {
+        // MEDIA header - requires media URL or ID
+        headerVariables.push({
+          type: headerFormat.toLowerCase(),
+          text: '', // User will provide media URL or ID
+        });
+      }
     }
 
     // Extract button variables (URL buttons with parameters and COPY_CODE buttons)
@@ -1745,16 +1756,32 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                   </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                  {formData.headerParameters.map((param, idx) => (
-                                    <div key={`header_${idx}`}>
-                                      <Label className="text-sm font-medium">Header {idx + 1}</Label>
-                                      <Input
-                                        value={params[`header_${idx}`] || ''}
-                                        onChange={(e) => handleParameterChange(contactId, `header_${idx}`, e.target.value)}
-                                        placeholder={`Enter value for header ${idx + 1}`}
-                                      />
-                                    </div>
-                                  ))}
+                                  {formData.headerParameters.map((param, idx) => {
+                                    const isMediaHeader = ['image', 'video', 'document'].includes(param.type);
+                                    const mediaTypeLabel = param.type.charAt(0).toUpperCase() + param.type.slice(1);
+
+                                    return (
+                                      <div key={`header_${idx}`}>
+                                        <Label className="text-sm font-medium">
+                                          {isMediaHeader ? `${mediaTypeLabel} URL or ID` : `Header ${idx + 1}`}
+                                        </Label>
+                                        <Input
+                                          value={params[`header_${idx}`] || ''}
+                                          onChange={(e) => handleParameterChange(contactId, `header_${idx}`, e.target.value)}
+                                          placeholder={
+                                            isMediaHeader
+                                              ? `Enter ${param.type} URL (https://...) or media ID`
+                                              : `Enter value for header ${idx + 1}`
+                                          }
+                                        />
+                                        {isMediaHeader && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Provide a publicly accessible URL or a Meta media ID/handle
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                   {formData.bodyParameters.map((param, idx) => (
                                     <div key={`body_${idx}`}>
                                       <Label className="text-sm font-medium">{param.parameter_name || `Body ${idx + 1}`}</Label>
@@ -1948,30 +1975,38 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     ))}
 
                                     {/* Header params */}
-                                    {formData.headerParameters.map((param, idx) => (
-                                      <div key={`header_${idx}`} className="flex items-center gap-2">
-                                        <div className="w-32 text-sm font-medium truncate">Header {idx + 1}</div>
-                                        <span className="text-muted-foreground">→</span>
-                                        <Select
-                                          value={Object.entries(columnMappings).find(([k]) => k === `header_${idx}`)?.[1] || ''}
-                                          onValueChange={(csvCol) => {
-                                            setColumnMappings(prev => ({
-                                              ...prev,
-                                              [`header_${idx}`]: csvCol
-                                            }));
-                                          }}
-                                        >
-                                          <SelectTrigger className="flex-1 h-8">
-                                            <SelectValue placeholder="Select column..." />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {csvHeaders.map(h => (
-                                              <SelectItem key={h} value={h}>{h}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    ))}
+                                    {formData.headerParameters.map((param, idx) => {
+                                      const isMediaHeader = ['image', 'video', 'document'].includes(param.type);
+                                      const mediaTypeLabel = param.type.charAt(0).toUpperCase() + param.type.slice(1);
+                                      const label = isMediaHeader ? `${mediaTypeLabel} URL` : `Header ${idx + 1}`;
+
+                                      return (
+                                        <div key={`header_${idx}`} className="flex items-center gap-2">
+                                          <div className="w-32 text-sm font-medium truncate" title={label}>
+                                            {label}
+                                          </div>
+                                          <span className="text-muted-foreground">→</span>
+                                          <Select
+                                            value={Object.entries(columnMappings).find(([k]) => k === `header_${idx}`)?.[1] || ''}
+                                            onValueChange={(csvCol) => {
+                                              setColumnMappings(prev => ({
+                                                ...prev,
+                                                [`header_${idx}`]: csvCol
+                                              }));
+                                            }}
+                                          >
+                                            <SelectTrigger className="flex-1 h-8">
+                                              <SelectValue placeholder="Select column..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {csvHeaders.map(h => (
+                                                <SelectItem key={h} value={h}>{h}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      );
+                                    })}
 
                                     {/* Button params */}
                                     {formData.buttonParameters.map((param, idx) => (

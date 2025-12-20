@@ -336,19 +336,15 @@ export function CustomizeTemplateDialog({
       throw new Error('App service not provided');
     }
 
-    if (!appService.access_token || appService.access_token === 'undefined') {
-      console.error('Invalid access token in appService:', appService);
-      throw new Error('Valid access token not available');
-    }
-
     try {
       setIsUploadingMedia(true);
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('accessToken', appService.access_token);
 
-      const response = await fetch('/api/whatsapp/upload-media', {
+      const formData = new FormData();
+      formData.append('media_file', file);
+      formData.append('appservice_phone_number', appService.phone_number);
+      formData.append('upload_type', 'resumable');
+
+      const response = await fetch('/api/whatsapp/templates/upload_media', {
         method: 'POST',
         body: formData
       });
@@ -366,14 +362,14 @@ export function CustomizeTemplateDialog({
       }
 
       const data = await response.json();
-      
+
       if (!data.handle) {
         throw new Error('No media handle received from upload');
       }
-      
+
       return data.handle;
     } catch (error) {
-      console.error('Meta upload error:', error);
+      console.error('Backend upload error:', error);
       throw error;
     } finally {
       setIsUploadingMedia(false);

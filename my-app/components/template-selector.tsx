@@ -10,19 +10,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
+import TestMessageDialog from '@/components/test-message-dialog';
 
 interface TemplateSelectorProps {
   appService: any;
   mode?: 'select' | 'browse';
   onSelect?: (template: any) => void;
+  organizationId?: string | null;
 }
 
-export default function TemplateSelector({ appService, mode = 'browse', onSelect }: TemplateSelectorProps) {
+export default function TemplateSelector({ appService, mode = 'browse', onSelect, organizationId }: TemplateSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [templateToTest, setTemplateToTest] = useState<any>(null);
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
 
   const { templates, loading, error } = useWhatsAppTemplates(appService);
 
@@ -250,14 +254,15 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
           <DialogHeader>
             <DialogTitle>{selectedTemplate?.name}</DialogTitle>
             <DialogDescription>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className={getStatusColor(selectedTemplate?.status || '')}>
-                  {selectedTemplate?.status}
-                </Badge>
-                <Badge variant="outline">{selectedTemplate?.category}</Badge>
-                <Badge variant="secondary">{selectedTemplate?.language}</Badge>
-              </div>
+              Template metadata
             </DialogDescription>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge className={getStatusColor(selectedTemplate?.status || '')}>
+                {selectedTemplate?.status}
+              </Badge>
+              <Badge variant="outline">{selectedTemplate?.category}</Badge>
+              <Badge variant="secondary">{selectedTemplate?.language}</Badge>
+            </div>
           </DialogHeader>
           
           {selectedTemplate && (
@@ -269,7 +274,15 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
               
               {selectedTemplate.status === 'APPROVED' && (
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTemplateToTest(selectedTemplate);
+                      setIsTestDialogOpen(true);
+                    }}
+                  >
                     <Send className="h-4 w-4 mr-2" />
                     Send Test
                   </Button>
@@ -306,6 +319,16 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
           )}
         </DialogContent>
       </Dialog>
+      <TestMessageDialog
+        template={templateToTest}
+        appService={appService}
+        organizationId={organizationId}
+        isOpen={isTestDialogOpen}
+        onClose={() => {
+          setIsTestDialogOpen(false);
+          setTemplateToTest(null);
+        }}
+      />
     </div>
   );
 }

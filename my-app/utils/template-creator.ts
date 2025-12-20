@@ -259,7 +259,7 @@ export class TemplateCreationHandler {
    * Creates header component based on type
    */
   private static createHeaderComponent(templateData: any): TemplateComponent | null {
-    const { headerType, headerText, headerVariables, headerMediaHandle, customVariableValues } = templateData
+    const { headerType, headerText, headerVariables, headerMediaHandle, headerMediaVariable, customVariableValues } = templateData
 
     switch (headerType) {
       case 'TEXT':
@@ -307,13 +307,20 @@ export class TemplateCreationHandler {
         }
 
         // CRITICAL FIX: header_handle must be array format
-        return {
+        const mediaHeader: any = {
           type: 'HEADER',
           format: headerType as any,
           example: {
             header_handle: [headerMediaHandle]
           }
         }
+
+        // Add placeholder for variable media (different media per contact)
+        if (headerMediaVariable) {
+          mediaHeader.text = '{{1}}'
+        }
+
+        return mediaHeader
 
       case 'LOCATION':
         return {

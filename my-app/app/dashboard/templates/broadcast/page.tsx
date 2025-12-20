@@ -264,6 +264,7 @@ export default function BroadcastCampaignPage() {
                   ) : (
                     <TemplateSelector 
                       appService={selectedAppService}
+                      organizationId={organizationId}
                       mode="browse"
                     />
                   )}
