@@ -282,7 +282,7 @@ export default function Assistants() {
         <CardContent>
           <CardTitle className="mt-2">Select an Organization</CardTitle>
           <AlertDescription className="mt-1 font-medium">
-            Please select an organization to view its assistants. If there is none; create one and go to playground to create widget using the assistant you created.
+            Please select an organization to view its assistants. If there is none; create one and go to widgets page to create a widget using the assistant you created.
           </AlertDescription>
         </CardContent>
       </Card>

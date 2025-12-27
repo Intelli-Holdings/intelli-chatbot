@@ -92,7 +92,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
       }
 
       toast.success(
-        "Assistant created successfully; Please visit the playground to create a widget with this assistant",
+        "Assistant created successfully; Please visit the widgets page to create a widget with this assistant",
       )
       setOpen(false)
       onAssistantCreated()

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import MessageInput from "./messageInput"
 import { extractMedia } from "@/utils/extractMedia"
 import { AudioPlayer, VideoPlayer, ImagePreview, formatMessage } from "@/utils/formatMessage"
@@ -11,7 +12,7 @@ import { format, parseISO, isToday, isYesterday } from "date-fns"
 import ConversationHeader from "./conversationsHeader"
 import { ScrollToBottomButton } from "@/app/dashboard/conversations/components/scroll-to-bottom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Download, FolderDown, File, FileImage, Music, Video, FileText, ChevronDown, ChevronUp } from "lucide-react"
+import { Download, FolderDown, File, FileImage, Music, Video, FileText } from "lucide-react"
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from "@/utils/exportUtils"
 import "./message-bubble.css"
 import ResolveReminder from "@/components/resolve-reminder"
@@ -20,6 +21,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { ReactionPicker } from "@/components/reaction-picker"
+import { MessageStatus } from "@/app/dashboard/conversations/components/message-status"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
@@ -28,6 +30,11 @@ interface ConversationViewProps {
   phoneNumber: string
   organizationId?: string
   fetchMessages?: (conversationId: string) => Promise<Conversation["messages"]>
+  isMessagesLoading?: boolean
+  initialFetchEnabled?: boolean
+  initialScrollTop?: number | null
+  onScrollPositionChange?: (conversationId: number, scrollTop: number) => void
+  onMessagesUpdate?: (conversationId: number, messages: Conversation["messages"]) => void
 }
 
 // Helper types for media previews
@@ -38,7 +45,18 @@ interface MediaPreviewState {
   filename?: string
 }
 
-export default function ChatArea({ conversation, conversations, phoneNumber, organizationId, fetchMessages }: ConversationViewProps) {
+export default function ChatArea({
+  conversation,
+  conversations,
+  phoneNumber,
+  organizationId,
+  fetchMessages,
+  isMessagesLoading,
+  initialFetchEnabled = true,
+  initialScrollTop = null,
+  onScrollPositionChange,
+  onMessagesUpdate,
+}: ConversationViewProps) {
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const [message, setMessage] = useState("")
@@ -51,7 +69,6 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
     url: "",
     type: "",
   })
-  const [isReminderExpanded, setIsReminderExpanded] = useState(true)
   const [isAiSupport, setIsAiSupport] = useState<boolean>()
   const [wsInstance, setWsInstance] = useState<WebSocket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
@@ -62,6 +79,19 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
   const { toast } = useToast()
   const router = useRouter()
   const params = useParams()
+  const [isFetchingMessages, setIsFetchingMessages] = useState(false)
+  const isLoadingMessages = typeof isMessagesLoading === "boolean" ? isMessagesLoading : isFetchingMessages
+  const scrollRestoreConversationId = useRef<number | null>(null)
+  const scrollUpdateFrameRef = useRef<number | null>(null)
+  const lastConversationIdRef = useRef<number | null>(null)
+
+  const messageSkeletons = [
+    { align: "left", width: "w-[60%]" },
+    { align: "right", width: "w-[45%]" },
+    { align: "left", width: "w-[70%]" },
+    { align: "right", width: "w-[50%]" },
+    { align: "left", width: "w-[55%]" },
+  ]
 
   const handleReactionSelect = async (message: ChatMessage, emoji: string, currentReaction?: string) => {
     if (!conversation) return
@@ -91,16 +121,20 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
     const newEmoji = isRemoving ? "" : emoji
 
     // Optimistic update
-    setCurrentMessages((prev) =>
-      (prev || []).map((msg) =>
+    setCurrentMessages((prev) => {
+      const nextMessages = (prev || []).map((msg) =>
         msg.id === message.id
           ? {
               ...msg,
               reaction: newEmoji ? { emoji: newEmoji, created_at: new Date().toISOString() } : undefined,
             }
           : msg,
-      ),
-    )
+      )
+      if (onMessagesUpdate && conversation) {
+        onMessagesUpdate(conversation.id, nextMessages)
+      }
+      return nextMessages
+    })
 
     try {
       // Send reaction to WhatsApp API
@@ -131,8 +165,8 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
       console.error("Failed to send reaction:", error)
 
       // Revert optimistic update on error
-      setCurrentMessages((prev) =>
-        (prev || []).map((msg) =>
+      setCurrentMessages((prev) => {
+        const nextMessages = (prev || []).map((msg) =>
           msg.id === message.id
             ? {
                 ...msg,
@@ -141,8 +175,12 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
                   : undefined,
               }
             : msg,
-        ),
-      )
+        )
+        if (onMessagesUpdate && conversation) {
+          onMessagesUpdate(conversation.id, nextMessages)
+        }
+        return nextMessages
+      })
 
       toast({
         description: error instanceof Error ? error.message : "Failed to send reaction. Please try again.",
@@ -168,42 +206,103 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
 
   // Set initial messages when conversation changes
   useEffect(() => {
-    if (conversation) {
-      // If conversation already has messages, use them
-      if (conversation.messages && conversation.messages.length > 0) {
-        setCurrentMessages(conversation.messages)
+    if (!conversation) return
+
+    const isSameConversation = lastConversationIdRef.current === conversation.id
+    if (isSameConversation) {
+      const incomingMessages = conversation.messages ?? []
+      if (incomingMessages.length > 0 && incomingMessages !== currentMessages) {
+        setCurrentMessages(incomingMessages)
         setLastMessageId(
-          conversation.messages.length > 0 ? Math.max(...conversation.messages.map((msg) => msg.id)) : null,
+          incomingMessages.length > 0 ? Math.max(...incomingMessages.map((msg) => msg.id)) : null,
         )
-      } else if (fetchMessages) {
-        // If no messages but fetchMessages is available, fetch them
-        const loadMessages = async () => {
-          try {
-            const messages = await fetchMessages(conversation.customer_number || conversation.recipient_id)
-            setCurrentMessages(messages)
-            setLastMessageId((messages?.length ?? 0) > 0 ? Math.max(...(messages ?? []).map((msg) => msg.id)) : null)
-          } catch (error) {
-            console.error("Failed to fetch messages for conversation:", error)
-            setCurrentMessages([])
-            setLastMessageId(null)
+      }
+      return
+    }
+
+    lastConversationIdRef.current = conversation.id
+    let isActive = true
+    setIsInitialLoad(true)
+    setShouldAutoScroll(initialScrollTop === null)
+
+    const existingMessages = conversation.messages ?? []
+    if (existingMessages.length > 0) {
+      setCurrentMessages(existingMessages)
+      setLastMessageId(Math.max(...existingMessages.map((msg) => msg.id)))
+      setIsFetchingMessages(false)
+      return () => {
+        isActive = false
+      }
+    }
+
+    setCurrentMessages([])
+    setLastMessageId(null)
+
+    if (fetchMessages && initialFetchEnabled) {
+      setIsFetchingMessages(true)
+      const loadMessages = async () => {
+        try {
+          const messages = await fetchMessages(conversation.customer_number || conversation.recipient_id)
+          if (!isActive) return
+          setCurrentMessages(messages)
+          setLastMessageId((messages?.length ?? 0) > 0 ? Math.max(...(messages ?? []).map((msg) => msg.id)) : null)
+          if (onMessagesUpdate) {
+            onMessagesUpdate(conversation.id, messages)
+          }
+        } catch (error) {
+          if (!isActive) return
+          console.error("Failed to fetch messages for conversation:", error)
+          setCurrentMessages([])
+          setLastMessageId(null)
+        } finally {
+          if (isActive) {
+            setIsFetchingMessages(false)
           }
         }
-        loadMessages()
-      } else {
-        // No messages and no fetch function
-        setCurrentMessages([])
-        setLastMessageId(null)
+      }
+      loadMessages()
+    } else {
+      setIsFetchingMessages(false)
+    }
+
+    return () => {
+      isActive = false
+    }
+  }, [conversation, currentMessages, fetchMessages, initialFetchEnabled, initialScrollTop, onMessagesUpdate])
+
+  useEffect(() => {
+    if (isLoadingMessages) return
+    const timer = setTimeout(() => setIsInitialLoad(false), 150)
+    return () => clearTimeout(timer)
+  }, [isLoadingMessages])
+
+  useEffect(() => {
+    if (!conversation || isLoadingMessages) return
+    if (!scrollAreaRef.current) return
+    if (scrollRestoreConversationId.current === conversation.id) return
+
+    const frame = requestAnimationFrame(() => {
+      const container = scrollAreaRef.current
+      if (!container) return
+
+      if (typeof initialScrollTop === "number") {
+        container.scrollTop = initialScrollTop
+      } else if (dummyRef.current) {
+        dummyRef.current.scrollIntoView({ behavior: "auto" })
       }
 
-      // Reset initial load flag when conversation changes
-      setIsInitialLoad(true)
-      setTimeout(() => setIsInitialLoad(false), 500)
-    }
-  }, [conversation, fetchMessages])
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+      setShouldAutoScroll(distanceFromBottom <= 120)
+      scrollRestoreConversationId.current = conversation.id
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [conversation, isLoadingMessages, initialScrollTop])
 
   // Reset unread messages when conversation is viewed (mimicking WhatsApp Web behavior)
   useEffect(() => {
-    if (conversation && (conversation.unread_messages || 0) > 0) {
+    if (!conversation || isLoadingMessages) return
+    if ((conversation.unread_messages || 0) > 0) {
       // Add a small delay to ensure the user has actually "viewed" the conversation
       const resetTimer = setTimeout(async () => {
         try {
@@ -230,7 +329,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
 
       return () => clearTimeout(resetTimer)
     }
-  }, [conversation, phoneNumber])
+  }, [conversation, phoneNumber, isLoadingMessages])
 
   // Listen for AI support changes from the header component
   useEffect(() => {
@@ -255,13 +354,19 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
 
   // Listen for new messages from WebSocketHandler
   useEffect(() => {
+    const activeConversationId = conversation?.id ?? null
     const handleNewMessage = (event: CustomEvent) => {
       const newMessage = event.detail.message
       console.log("New message received:", newMessage)
       if (newMessage) {
-        setCurrentMessages((prev) => [...(prev || []), newMessage])
+        setCurrentMessages((prev) => {
+          const nextMessages = [...(prev || []), newMessage]
+          if (activeConversationId && onMessagesUpdate) {
+            onMessagesUpdate(activeConversationId, nextMessages)
+          }
+          return nextMessages
+        })
         setLastMessageId(newMessage.id)
-        setShouldAutoScroll(true)
       }
     }
 
@@ -282,7 +387,7 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
       window.removeEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
       window.removeEventListener("websocketConnectionChange", handleConnectionChange as unknown as EventListener)
     }
-  }, [])
+  }, [conversation?.id, onMessagesUpdate])
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -292,12 +397,28 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
   }, [currentMessages, shouldAutoScroll])
 
   const handleScroll = () => {
-    if (scrollAreaRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
-      const isScrolledToBottom = scrollHeight - scrollTop <= clientHeight + 100
-      setShouldAutoScroll(isScrolledToBottom)
+    if (!scrollAreaRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
+    const isScrolledToBottom = scrollHeight - scrollTop <= clientHeight + 100
+    setShouldAutoScroll(isScrolledToBottom)
+
+    if (conversation && onScrollPositionChange) {
+      if (scrollUpdateFrameRef.current) {
+        cancelAnimationFrame(scrollUpdateFrameRef.current)
+      }
+      scrollUpdateFrameRef.current = requestAnimationFrame(() => {
+        onScrollPositionChange(conversation.id, scrollTop)
+      })
     }
   }
+
+  useEffect(() => {
+    return () => {
+      if (scrollUpdateFrameRef.current) {
+        cancelAnimationFrame(scrollUpdateFrameRef.current)
+      }
+    }
+  }, [])
 
   // Function to fetch and merge new messages from the server
   const refreshMessages = useCallback(async () => {
@@ -314,12 +435,21 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
           // First time loading - set all messages
           setCurrentMessages(allMessages)
           setLastMessageId(highestNewId)
+          if (onMessagesUpdate) {
+            onMessagesUpdate(conversation.id, allMessages)
+          }
         } else if (highestNewId > lastMessageId) {
           // There are new messages - find only the new ones
           const actualNewMessages = allMessages.filter((msg) => msg.id > lastMessageId)
 
           if (actualNewMessages.length > 0) {
-            setCurrentMessages((prev) => [...(prev || []), ...actualNewMessages])
+            setCurrentMessages((prev) => {
+              const nextMessages = [...(prev || []), ...actualNewMessages]
+              if (onMessagesUpdate) {
+                onMessagesUpdate(conversation.id, nextMessages)
+              }
+              return nextMessages
+            })
             setLastMessageId(highestNewId)
             toast({
               description: `${actualNewMessages.length} new message${actualNewMessages.length > 1 ? "s" : ""} received`,
@@ -338,11 +468,11 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
     } finally {
       setIsRefreshing(false)
     }
-  }, [conversation, fetchMessages, lastMessageId, toast])
+  }, [conversation, fetchMessages, lastMessageId, onMessagesUpdate, toast])
 
   // Set up polling to fetch latest messages when AI support is not active
   useEffect(() => {
-    if (!conversation || !fetchMessages || isAiSupport) return
+    if (!conversation || !fetchMessages || isAiSupport || isLoadingMessages) return
 
     // Initial fetch after a short delay to avoid conflicts
     const initialTimer = setTimeout(() => {
@@ -358,24 +488,34 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
       clearTimeout(initialTimer)
       clearInterval(pollInterval)
     }
-  }, [conversation, fetchMessages, isAiSupport, refreshMessages])
+  }, [conversation, fetchMessages, isAiSupport, isLoadingMessages, refreshMessages])
 
   // Optimistic UI update on message send
-  const handleMessageSent = useCallback((newMessageContent: string) => {
-    const optimisticMessage = {
-      id: Date.now(),
-      answer: newMessageContent,
-      sender: "customer",
-      created_at: new Date().toISOString(),
-      read: false,
-      content: null,
-      media: null,
-      type: "text",
-    }
-    setCurrentMessages((prev) => [...(prev || []), optimisticMessage])
-    setLastMessageId(optimisticMessage.id)
-    setShouldAutoScroll(true)
-  }, [])
+  const handleMessageSent = useCallback(
+    (newMessageContent: string) => {
+      if (!conversation) return
+      const optimisticMessage = {
+        id: Date.now(),
+        answer: newMessageContent,
+        sender: "customer",
+        created_at: new Date().toISOString(),
+        read: false,
+        content: null,
+        media: null,
+        type: "text",
+      }
+      setCurrentMessages((prev) => {
+        const nextMessages = [...(prev || []), optimisticMessage]
+        if (onMessagesUpdate) {
+          onMessagesUpdate(conversation.id, nextMessages)
+        }
+        return nextMessages
+      })
+      setLastMessageId(optimisticMessage.id)
+      setShouldAutoScroll(true)
+    },
+    [conversation, onMessagesUpdate],
+  )
 
   if (!conversation) {
     return (
@@ -389,8 +529,9 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
     const groups: { [key: string]: Conversation["messages"] } = {}
 
     // Sort messages by created_at to ensure chronological order
-    const sortedMessages =
-      messages?.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) || []
+    const sortedMessages = [...(messages ?? [])].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    )
 
     sortedMessages.forEach((message) => {
       const date = format(parseISO(message.created_at), "yyyy-MM-dd")
@@ -413,8 +554,8 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
       dateString = format(messageDate, "MMMM d, yyyy")
     }
     return (
-      <div className="flex justify-center my-4">
-        <span className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">{dateString}</span>
+      <div className="flex justify-center my-3">
+        <span className="px-3 py-1.5 text-[11px] font-medium text-[#54656f] bg-white/90 rounded-md shadow-sm">{dateString}</span>
       </div>
     )
   }
@@ -456,14 +597,14 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-3 bg-white border-l border-gray-200">
+    <div className="flex flex-col h-full bg-[#efeae2]">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-[#f0f2f5] border-b border-[#e9edef]">
         <ConversationHeader
           conversation={conversation}
           phoneNumber={phoneNumber}
           onAiSupportChange={(isActive) => setIsAiSupport(isActive)}
         />
-        
+
       </div>
 
       {/* Always render WebSocketHandler when conversation exists, regardless of who's handling it */}
@@ -474,66 +615,55 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
         />
       )}
 
-      {/* WebSocket connection status indicator - show only when human support is active */}
-      {!isAiSupport && (
-        <div className="bg-green-50 border-green-200 border-b px-4 py-1 text-sm flex items-center justify-between">
-          <div className="flex items-center">
+      {/* Compact toolbar with connection status, reminder, and export */}
+      <div className="bg-[#f0f2f5] border-b border-[#e9edef] px-3 py-2 flex items-center gap-3">
+        {/* WebSocket connection status - show only when human support is active */}
+        {!isAiSupport && (
+          <div className="flex items-center gap-1.5 text-xs text-[#54656f] shrink-0">
             <span
-              className={`inline-block w-2 h-2 rounded-full mr-2 ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+              className={`inline-block w-2 h-2 rounded-full ${isConnected ? "bg-[#25d366] animate-pulse" : "bg-orange-500"}`}
             ></span>
-            {isConnected ? "Live connection active" : "Connecting..."}
+            <span className="text-[11px] font-medium">
+              {isConnected ? "Live" : "Connecting..."}
+            </span>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="bg-white border-gray-100">
-        <div
-          className="flex px-2 py-1 items-center justify-end border-b cursor-pointer"
-          onClick={() => setIsReminderExpanded(!isReminderExpanded)}
-        >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem className="font-medium" disabled>
-                Conversation
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleExport("pdf")}>
-                <FileText className="mr-2 h-4 w-4" />
-                Export as PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleExport("csv")}>
-                <FileText className="mr-2 h-4 w-4" />
-                Export as CSV
-              </DropdownMenuItem>
-              <div className="h-px bg-muted my-1" />
-              <DropdownMenuItem className="font-medium" disabled>
-                Contacts
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleExportContacts("pdf")}>
-                <FolderDown className="mr-2 h-4 w-4" />
-                Export as PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => handleExportContacts("csv")}>
-                <FolderDown className="mr-2 h-4 w-4" />
-                Export as CSV
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <span className="text-xs p-2 font-medium text-gray-500">Important Reminder</span>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-            {isReminderExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </div>
-        <div className={`transition-all duration-300 overflow-hidden ${isReminderExpanded ? "max-h-30" : "max-h-0"}`}>
-          <div className="px-1 py-1">
-            <ResolveReminder />
-          </div>
-        </div>
+        <ResolveReminder className="flex-1" />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 text-xs shrink-0">
+              <Download className="mr-1.5 h-3.5 w-3.5" />
+              Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem className="font-medium text-xs" disabled>
+              Conversation
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleExport("pdf")}>
+              <FileText className="mr-2 h-3.5 w-3.5" />
+              <span className="text-xs">Export as PDF</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleExport("csv")}>
+              <FileText className="mr-2 h-3.5 w-3.5" />
+              <span className="text-xs">Export as CSV</span>
+            </DropdownMenuItem>
+            <div className="h-px bg-muted my-1" />
+            <DropdownMenuItem className="font-medium text-xs" disabled>
+              Contacts
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleExportContacts("pdf")}>
+              <FolderDown className="mr-2 h-3.5 w-3.5" />
+              <span className="text-xs">Export as PDF</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleExportContacts("csv")}>
+              <FolderDown className="mr-2 h-3.5 w-3.5" />
+              <span className="text-xs">Export as CSV</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div
         className="flex-1 overflow-y-auto p-4"
@@ -545,156 +675,177 @@ export default function ChatArea({ conversation, conversations, phoneNumber, org
         onScroll={handleScroll}
         ref={scrollAreaRef}
       >
-        <div className="flex flex-col gap-2">
-          {Object.entries(groupedMessages)
-            .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-            .map(([date, messages]) => (
-              <div className="" key={date}>
-                {renderDateSeparator(date)}
-                {(messages ?? []).map((message) => {
-                  // Extract media from content if it exists
-                  const contentMedia = message.content ? extractMedia(message.content) : null
-                  const contentHasMedia = contentMedia?.type && contentMedia?.url
-
-                  return (
-                    <div key={message.id} className="flex flex-col mb-4">
-            {message.content && (
+        {isLoadingMessages ? (
+          <div className="flex flex-col gap-4 pt-2">
+            <div className="flex justify-center">
+              <span className="text-xs font-medium text-gray-500">Loading messages...</span>
+            </div>
+            {messageSkeletons.map((skeleton, index) => (
               <div
-                className={cn(
-                  "message-bubble message-customer group",
-                  !expandedMessages.includes(message.id) && "collapsed",
-                  message.reaction?.emoji && "has-reaction",
-                )}
-                onMouseEnter={() => setHoveredMessageId(message.id)}
-                onMouseLeave={() => setHoveredMessageId(null)}
+                key={`${skeleton.align}-${index}`}
+                className={cn("flex", skeleton.align === "right" ? "justify-end" : "justify-start")}
               >
-                <div className="message-tail message-tail-left" />
-                <div className="text-sm">
-                  {contentHasMedia ? (
-                    <>
-                      {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
-                      {contentMedia?.type === "image" && contentMedia?.url && (
-                        <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
-                      )}
-                      {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
-                      {/* Display remaining text if any */}
-                      {contentMedia?.displayText && contentMedia.displayText.trim() && (
-                        <div className="mt-2">{formatMessage(contentMedia.displayText)}</div>
-                      )}
-                    </>
-                  ) : (
-                    formatMessage(message.content)
-                  )}
-                </div>
-                <span className="text-[10px] text-white/80 mt-1 block">
-                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-                {message.reaction?.emoji && (
-                  <span className="text-[10px] text-white/80 mt-1 block">{message.reaction.emoji}</span>
-                )}
-                {message.whatsapp_message_id && (
-                  <div className="absolute -top-3 right-2">
-                    <ReactionPicker
-                      onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
-                      currentReaction={message.reaction?.emoji}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {message.answer && (
-              <div
-                className={cn(
-                  "message-bubble group",
-                  message.sender === "ai" ? "message-assistant" : "message-human",
-                  message.reaction?.emoji && "has-reaction",
-                )}
-                onMouseEnter={() => setHoveredMessageId(message.id)}
-                onMouseLeave={() => setHoveredMessageId(null)}
-              >
-                <div
-                  className={`message-tail ${
-                    message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
-                  }`}
-                />
-                <div className="text-sm">{formatMessage(message.answer)}</div>
-                <span
-                  className={`text-[10px] ${message.sender === "ai" ? "text-black/60" : "text-white/80"} mt-1 block`}
-                >
-                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                  {message.sender === "ai" ? "AI" : "Human"}
-                  {message.pending && " (sending...)"}
-                </span>
-                {message.reaction?.emoji && (
-                  <span className="text-[10px] text-white/80 mt-1 block">{message.reaction.emoji}</span>
-                )}
-                {message.whatsapp_message_id && (
-                  <div className="absolute -top-3 right-2">
-                    <ReactionPicker
-                      onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
-                      currentReaction={message.reaction?.emoji}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            {message.media && (
-              <div
-                className={cn("message-bubble message-customer group", message.reaction?.emoji && "has-reaction")}
-                onMouseEnter={() => setHoveredMessageId(message.id)}
-                onMouseLeave={() => setHoveredMessageId(null)}
-              >
-                <div className="message-tail message-tail-left" />
-                <div className="text-sm cursor-pointer" onClick={() => {}}>
-                  <div className="max-w-xs rounded-lg overflow-hidden shadow">
-                    {message.type === "image" ? (
-                      <Image
-                        src={message.media || "/placeholder.svg"}
-                        alt="Image"
-                        className="w-full h-auto rounded-lg"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
-                        {getFileIcon(message.type)}
-                        <span className="text-sm truncate">Attachment</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <span className="text-[10px] text-white/80 mt-1 block">
-                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-                {message.reaction?.emoji && (
-                  <span className="text-[10px] text-white/80 mt-1 block">{message.reaction.emoji}</span>
-                )}
-                {message.whatsapp_message_id && (
-                  <div className="absolute -top-3 right-2">
-                    <ReactionPicker
-                      onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
-                      currentReaction={message.reaction?.emoji}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-                  )
-                })}
+                <Skeleton className={cn("h-12 rounded-2xl", skeleton.width)} />
               </div>
             ))}
-          {(currentMessages?.length ?? 0) === 0 && (
-            <div className="flex items-center justify-center h-40">
-              <span className="px-4 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">
-                No Messages Yet
-              </span>
+          </div>
+        ) : (
+          <div className={cn("flex flex-col gap-2 transition-opacity duration-300", isInitialLoad ? "opacity-0" : "opacity-100")}>
+            {Object.entries(groupedMessages)
+              .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+              .map(([date, messages]) => (
+                <div className="" key={date}>
+                  {renderDateSeparator(date)}
+                  {(messages ?? []).map((message) => {
+                    // Extract media from content if it exists
+                    const contentMedia = message.content ? extractMedia(message.content) : null
+                    const contentHasMedia = contentMedia?.type && contentMedia?.url
+
+                    return (
+                      <div key={message.id} className="flex flex-col mb-4">
+              {message.content && (
+                <div
+                  className={cn(
+                    "message-bubble message-customer group",
+                    !expandedMessages.includes(message.id) && "collapsed",
+                    message.reaction?.emoji && "has-reaction",
+                  )}
+                  onMouseEnter={() => setHoveredMessageId(message.id)}
+                  onMouseLeave={() => setHoveredMessageId(null)}
+                >
+                  <div className="message-tail message-tail-left" />
+                  <div className="text-sm">
+                    {contentHasMedia ? (
+                      <>
+                        {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
+                        {contentMedia?.type === "image" && contentMedia?.url && (
+                          <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
+                        )}
+                        {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
+                        {/* Display remaining text if any */}
+                        {contentMedia?.displayText && contentMedia.displayText.trim() && (
+                          <div className="mt-2">{formatMessage(contentMedia.displayText)}</div>
+                        )}
+                      </>
+                    ) : (
+                      formatMessage(message.content)
+                    )}
+                  </div>
+                  <span className="text-[11px] text-[#667781] mt-1 block">
+                    {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  {message.reaction?.emoji && (
+                    <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
+                  )}
+                  {message.whatsapp_message_id && (
+                    <div className="absolute -top-3 right-2">
+                      <ReactionPicker
+                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                        currentReaction={message.reaction?.emoji}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {message.answer && (
+                <div
+                  className={cn(
+                    "message-bubble group",
+                    message.sender === "ai" ? "message-assistant" : "message-human",
+                    message.reaction?.emoji && "has-reaction",
+                  )}
+                  onMouseEnter={() => setHoveredMessageId(message.id)}
+                  onMouseLeave={() => setHoveredMessageId(null)}
+                >
+                  <div
+                    className={`message-tail ${
+                      message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
+                    }`}
+                  />
+                  <div className="text-sm">{formatMessage(message.answer)}</div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-[11px] text-[#667781]">
+                      {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    {/* Message status indicator for sent messages */}
+                    {(message.sender === "customer" || message.sender === "human") && (
+                      <MessageStatus
+                        status={message.pending ? 'sending' : message.status || 'delivered'}
+                        className="text-[#667781]"
+                      />
+                    )}
+                  </div>
+                  {message.reaction?.emoji && (
+                    <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
+                  )}
+                  {message.whatsapp_message_id && (
+                    <div className="absolute -top-3 right-2">
+                      <ReactionPicker
+                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                        currentReaction={message.reaction?.emoji}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              {message.media && (
+                <div
+                  className={cn("message-bubble message-customer group", message.reaction?.emoji && "has-reaction")}
+                  onMouseEnter={() => setHoveredMessageId(message.id)}
+                  onMouseLeave={() => setHoveredMessageId(null)}
+                >
+                  <div className="message-tail message-tail-left" />
+                  <div className="text-sm cursor-pointer" onClick={() => {}}>
+                    <div className="max-w-xs rounded-lg overflow-hidden shadow">
+                      {message.type === "image" ? (
+                        <Image
+                          src={message.media || "/placeholder.svg"}
+                          alt="Image"
+                          className="w-full h-auto rounded-lg"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
+                          {getFileIcon(message.type)}
+                          <span className="text-sm truncate">Attachment</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-[#667781] mt-1 block">
+                    {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  {message.reaction?.emoji && (
+                    <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
+                  )}
+                  {message.whatsapp_message_id && (
+                    <div className="absolute -top-3 right-2">
+                      <ReactionPicker
+                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                        currentReaction={message.reaction?.emoji}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-          <div className="h-4" ref={dummyRef} />
-          <ScrollToBottomButton targetRef={dummyRef} threshold={150} />
-        </div>
+                    )
+                  })}
+                </div>
+              ))}
+            {(currentMessages?.length ?? 0) === 0 && (
+              <div className="flex items-center justify-center h-40">
+                <span className="px-4 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">
+                  No Messages Yet
+                </span>
+              </div>
+            )}
+            <div className="h-4" ref={dummyRef} />
+            <ScrollToBottomButton targetRef={dummyRef} threshold={150} />
+          </div>
+        )}
       </div>
-      <div className="p-2 gap-2">
+      <div className="p-2 bg-[#f0f2f5] border-t border-[#e9edef]">
         <MessageInput
           customerNumber={conversation.customer_number || conversation.recipient_id}
           phoneNumber={phoneNumber}

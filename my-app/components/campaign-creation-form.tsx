@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus } from 'lucide-react';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -86,6 +86,11 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [createdWhatsAppCampaignId, setCreatedWhatsAppCampaignId] = useState<string | null>(null);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [recipientParameters, setRecipientParameters] = useState<Record<string, Record<string, string>>>({});
+  const [headerMediaMode, setHeaderMediaMode] = useState<'per-recipient' | 'global'>('per-recipient');
+  const [globalHeaderMediaFile, setGlobalHeaderMediaFile] = useState<File | null>(null);
+  const [globalHeaderMediaHandle, setGlobalHeaderMediaHandle] = useState<string>('');
+  const [globalHeaderMediaId, setGlobalHeaderMediaId] = useState<string>('');
+  const [isUploadingHeaderMedia, setIsUploadingHeaderMedia] = useState(false);
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -97,6 +102,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
   // CSV Import state
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const headerMediaFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<Array<Record<string, string>>>([]);
@@ -430,6 +436,18 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     return { bodyVariables, headerVariables, buttonVariables };
   };
 
+  // Reset media mode/state when template changes
+  useEffect(() => {
+    const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
+    if (!hasMediaHeader) {
+      setHeaderMediaMode('per-recipient');
+      setGlobalHeaderMediaFile(null);
+      setGlobalHeaderMediaHandle('');
+      setGlobalHeaderMediaId('');
+      setIsUploadingHeaderMedia(false);
+    }
+  }, [formData.headerParameters]);
+
   // Handle template selection
   const handleTemplateSelect = async (templateName: string) => {
     const template = approvedTemplates.find(t => t.name === templateName);
@@ -445,7 +463,71 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         headerParameters: headerVariables,
         buttonParameters: buttonVariables,
       }));
+      setHeaderMediaMode('per-recipient');
+      setGlobalHeaderMediaFile(null);
+      setGlobalHeaderMediaHandle('');
+      setGlobalHeaderMediaId('');
+      setIsUploadingHeaderMedia(false);
     }
+  };
+
+  const uploadGlobalHeaderMedia = async (file: File) => {
+    if (!organizationId) {
+      toast.error('Organization is required to upload media');
+      return;
+    }
+    if (!appService?.phone_number) {
+      toast.error('App Service phone number is required to upload media');
+      return;
+    }
+
+    try {
+      setIsUploadingHeaderMedia(true);
+      const formData = new FormData();
+      formData.append('media_file', file);
+      formData.append('upload_type', 'media');
+      formData.append('organization', organizationId);
+      formData.append('appservice_phone_number', appService.phone_number);
+      if (appService?.phone_number_id) {
+        formData.append('phone_number_id', appService.phone_number_id);
+      }
+      if (appService?.id) {
+        formData.append('appservice_id', appService.id);
+      }
+
+      const res = await fetch('/api/whatsapp/templates/upload_media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to upload media');
+      }
+
+      if (!data.id && !data.handle) {
+        throw new Error('Media upload did not return an ID');
+      }
+
+      setGlobalHeaderMediaHandle(data.id || data.handle);
+      setGlobalHeaderMediaId(data.id || '');
+      toast.success('Header media uploaded');
+    } catch (error) {
+      console.error('Global header media upload failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload media');
+      setGlobalHeaderMediaFile(null);
+      setGlobalHeaderMediaHandle('');
+      setGlobalHeaderMediaId('');
+    } finally {
+      setIsUploadingHeaderMedia(false);
+    }
+  };
+
+  const handleGlobalMediaFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setGlobalHeaderMediaFile(file);
+    await uploadGlobalHeaderMedia(file);
   };
 
   const updateDraftCampaign = async () => {
@@ -655,6 +737,26 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
             const headerText = headerComponent.text;
             const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
             templatePayload.header_params = headerMatches;
+          } else if (headerComponent?.format && ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION'].includes(headerComponent.format)) {
+            // Media header: Check if we have a global media ID
+            if (headerMediaMode === 'global' && (globalHeaderMediaId || globalHeaderMediaHandle)) {
+              const mediaId = globalHeaderMediaId || globalHeaderMediaHandle;
+              const headerFormat = headerComponent.format.toLowerCase();
+
+              // Add to header_parameters in the format WhatsApp API expects
+              templatePayload.header_parameters = [{
+                type: headerFormat,
+                [headerFormat]: {
+                  id: mediaId
+                }
+              }];
+
+              console.log(`✅ Added global ${headerFormat} media to campaign payload:`, mediaId);
+            } else if (headerMediaMode === 'per-recipient') {
+              // Per-recipient mode: Don't include header_parameters in campaign payload
+              // Recipients will provide their own media IDs
+              console.log('📋 Per-recipient media mode: Media will be provided per contact');
+            }
           }
 
           // Extract button params from URL buttons and COPY_CODE buttons
@@ -1125,7 +1227,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
           // Only enforce manual parameter entry when the user selected contacts directly
           if (formData.selectedContacts.length > 0) {
-            const totalParams = formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length;
+            const totalParams = getPerRecipientParamCount();
             for (const contactId of formData.selectedContacts) {
               const params = recipientParameters[contactId] || {};
               const filledParams = Object.keys(params).filter(k => params[k].trim() !== '').length;
@@ -1200,10 +1302,18 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         console.log('Selected contacts:', formData.selectedContacts);
         console.log('Selected tags:', formData.selectedTags);
         console.log('Has template variables:', hasTemplateVariables);
+        const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
+        const mediaValue = globalHeaderMediaId || globalHeaderMediaHandle;
 
         // If template has variables, use new format with per-recipient parameters
         if (hasTemplateVariables && formData.selectedContacts.length > 0) {
           console.log('=== USING NEW RECIPIENT FORMAT WITH PARAMETERS ===');
+
+          if (hasMediaHeader && headerMediaMode === 'global' && !mediaValue) {
+            toast.error('Upload header media before sending');
+            setLoading(false);
+            return;
+          }
 
           // Build recipients array with template parameters
           const recipientsWithParams = formData.selectedContacts.map(contactId => {
@@ -1224,8 +1334,21 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
             // Build header_params array
             const header_params: string[] = [];
-            for (let i = 0; i < formData.headerParameters.length; i++) {
-              header_params.push(params[`header_${i}`] || '');
+            if (hasMediaHeader && headerMediaMode === 'global') {
+              // Global media mode: Leave header_params EMPTY for recipients
+              // Campaign payload already has the media ID in header_parameters
+              // Recipients will use campaign defaults
+              console.log(`📌 Global media mode: Recipient will use campaign default media`);
+            } else if (hasMediaHeader && headerMediaMode === 'per-recipient') {
+              // Per-recipient mode: Each recipient provides their own media ID
+              for (let i = 0; i < formData.headerParameters.length; i++) {
+                header_params.push(params[`header_${i}`] || '');
+              }
+            } else {
+              // Text header or other param types
+              for (let i = 0; i < formData.headerParameters.length; i++) {
+                header_params.push(params[`header_${i}`] || '');
+              }
             }
 
             // Build body_params array
@@ -1351,6 +1474,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
   const hasTemplateVariables = campaignType === 'template' &&
     (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0);
+  const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
+  const getPerRecipientParamCount = () => {
+    const mediaHeaderCount = formData.headerParameters.filter(p => ['image', 'video', 'document'].includes(p.type)).length;
+    const headerCount = headerMediaMode === 'global' ? formData.headerParameters.length - mediaHeaderCount : formData.headerParameters.length;
+    return headerCount + formData.bodyParameters.length + formData.buttonParameters.length;
+  };
 
   const stepTitles = [
     'Campaign Details',
@@ -1669,11 +1798,105 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                         </Badge>
                         {hasTemplateVariables && (
                           <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
-                            {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length} params / contact
+                            {getPerRecipientParamCount()} params / contact
                           </Badge>
                         )}
                       </div>
                     </div>
+
+                    {campaignType === 'template' && hasMediaHeader && (
+                      <Card className="border-border/60 bg-muted/30">
+                        <CardHeader>
+                          <CardTitle className="text-sm">Header media</CardTitle>
+                          <CardDescription className="text-xs">
+                            Use one upload for everyone or allow per-recipient media.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <RadioGroup
+                            value={headerMediaMode}
+                            onValueChange={(val: 'per-recipient' | 'global') => setHeaderMediaMode(val)}
+                            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                          >
+                            <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${headerMediaMode === 'global' ? 'border-primary bg-primary/5' : 'border-border/60'}`}>
+                              <RadioGroupItem value="global" />
+                              <div>
+                                <div className="font-medium">Same media for everyone</div>
+                                <p className="text-xs text-muted-foreground">Upload once and reuse across all recipients.</p>
+                              </div>
+                            </label>
+                            <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${headerMediaMode === 'per-recipient' ? 'border-primary bg-primary/5' : 'border-border/60'}`}>
+                              <RadioGroupItem value="per-recipient" />
+                              <div>
+                                <div className="font-medium">Customize per recipient</div>
+                                <p className="text-xs text-muted-foreground">Provide a different media URL/ID for each contact.</p>
+                              </div>
+                            </label>
+                          </RadioGroup>
+
+                          {headerMediaMode === 'global' && (
+                            <div className="space-y-2">
+                              <input
+                                ref={headerMediaFileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,video/mp4,application/pdf"
+                                className="hidden"
+                                onChange={handleGlobalMediaFileChange}
+                              />
+                              {globalHeaderMediaFile ? (
+                                <div className="flex items-center justify-between p-3 border rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm">{globalHeaderMediaFile.name}</span>
+                                    {isUploadingHeaderMedia && (
+                                      <span className="text-xs text-blue-600 flex items-center gap-1">
+                                        <Loader2 className="h-3 w-3 animate-spin" /> Uploading...
+                                      </span>
+                                    )}
+                                    {!isUploadingHeaderMedia && (globalHeaderMediaId || globalHeaderMediaHandle) && (
+                                      <span className="text-xs text-green-600">✓ Uploaded</span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setGlobalHeaderMediaFile(null);
+                                      setGlobalHeaderMediaHandle('');
+                                      setGlobalHeaderMediaId('');
+                                    }}
+                                    disabled={isUploadingHeaderMedia}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => headerMediaFileInputRef.current?.click()}
+                                  disabled={isUploadingHeaderMedia}
+                                >
+                                  {isUploadingHeaderMedia ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4 mr-2" />
+                                      Upload header media
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                Accepted: JPG, PNG, MP4, PDF. Uploaded to WhatsApp and reused for this campaign.
+                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
 
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-col md:flex-row gap-3">
@@ -1743,21 +1966,22 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                             if (!contact) return null;
                             const params = recipientParameters[contactId] || {};
                             return (
-                              <Card key={contactId}>
-                                <CardHeader className="pb-2">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <CardTitle className="text-sm">{contact.fullname || 'Unnamed Contact'}</CardTitle>
-                                      <CardDescription>{contact.phone}</CardDescription>
-                                    </div>
-                                    <Badge variant="outline" className="text-xs">
-                                      Params required: {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length}
-                                    </Badge>
-                                  </div>
-                                </CardHeader>
+                                  <Card key={contactId}>
+                                    <CardHeader className="pb-2">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <CardTitle className="text-sm">{contact.fullname || 'Unnamed Contact'}</CardTitle>
+                                          <CardDescription>{contact.phone}</CardDescription>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">
+                                          Params required: {getPerRecipientParamCount()}
+                                        </Badge>
+                                      </div>
+                                    </CardHeader>
                                 <CardContent className="space-y-3">
                                   {formData.headerParameters.map((param, idx) => {
                                     const isMediaHeader = ['image', 'video', 'document'].includes(param.type);
+                                    if (isMediaHeader && headerMediaMode === 'global') return null;
                                     const mediaTypeLabel = param.type.charAt(0).toUpperCase() + param.type.slice(1);
 
                                     return (
@@ -1819,8 +2043,83 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                       <Alert className="bg-blue-50 border-blue-200">
                         <AlertDescription className="text-sm text-blue-800">
                           This template requires {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length} parameter value{formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length === 1 ? '' : 's'} per recipient. In your CSV, include columns for phone plus each parameter and map them on the next step.
+                          {hasMediaHeader && headerMediaMode === 'per-recipient' && (
+                            <div className="mt-2 font-medium">
+                              📸 Per-recipient media mode: Include a column with WhatsApp media IDs or URLs for each contact.
+                            </div>
+                          )}
                         </AlertDescription>
                       </Alert>
+                    )}
+
+                    {/* Global Media Upload for CSV Import */}
+                    {campaignType === 'template' && hasMediaHeader && headerMediaMode === 'global' && (
+                      <Card className="border-border/60 bg-muted/30">
+                        <CardHeader>
+                          <CardTitle className="text-sm">Header media (Same for all recipients)</CardTitle>
+                          <CardDescription className="text-xs">
+                            Upload media once to use for all contacts in your CSV.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <input
+                            ref={headerMediaFileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,video/mp4,application/pdf"
+                            className="hidden"
+                            onChange={handleGlobalMediaFileChange}
+                          />
+                          {globalHeaderMediaFile ? (
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{globalHeaderMediaFile.name}</span>
+                                {isUploadingHeaderMedia && (
+                                  <span className="text-xs text-blue-600 flex items-center gap-1">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Uploading...
+                                  </span>
+                                )}
+                                {!isUploadingHeaderMedia && (globalHeaderMediaId || globalHeaderMediaHandle) && (
+                                  <span className="text-xs text-green-600">✓ Uploaded</span>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setGlobalHeaderMediaFile(null);
+                                  setGlobalHeaderMediaHandle('');
+                                  setGlobalHeaderMediaId('');
+                                }}
+                                disabled={isUploadingHeaderMedia}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => headerMediaFileInputRef.current?.click()}
+                              disabled={isUploadingHeaderMedia}
+                            >
+                              {isUploadingHeaderMedia ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload header media
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Accepted: JPG, PNG, MP4, PDF. This media will be used for all CSV recipients.
+                          </p>
+                        </CardContent>
+                      </Card>
                     )}
 
                     {/* File Upload Section */}
@@ -1940,10 +2239,10 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     ))}
                                 </div>
 
-                                {/* Template Parameters */}
-                                {campaignType === 'template' && (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0) && (
-                                  <div className="space-y-2 pt-3 border-t">
-                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase">Template Variables</h4>
+                                  {/* Template Parameters */}
+                                  {campaignType === 'template' && (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0) && (
+                                    <div className="space-y-2 pt-3 border-t">
+                                      <h4 className="text-xs font-semibold text-muted-foreground uppercase">Template Variables</h4>
 
                                     {/* Body params */}
                                     {formData.bodyParameters.map((param, idx) => (
@@ -1977,6 +2276,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     {/* Header params */}
                                     {formData.headerParameters.map((param, idx) => {
                                       const isMediaHeader = ['image', 'video', 'document'].includes(param.type);
+                                      if (isMediaHeader && headerMediaMode === 'global') return null;
                                       const mediaTypeLabel = param.type.charAt(0).toUpperCase() + param.type.slice(1);
                                       const label = isMediaHeader ? `${mediaTypeLabel} URL` : `Header ${idx + 1}`;
 
@@ -2285,7 +2585,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded border border-green-200 dark:border-green-900">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                                       <span className="text-sm text-green-800 dark:text-green-200">
-                                        {formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s) configured for {formData.selectedContacts.length + importedRecipientsCount} recipient(s)
+                                        {getPerRecipientParamCount()} parameter(s) configured for {formData.selectedContacts.length + importedRecipientsCount} recipient(s)
                                       </span>
                                     </div>
                                   </div>

@@ -17,7 +17,6 @@ export function DashComponent() {
     <OnbordaProvider>
       <Onborda 
       steps={steps}
-      showOnborda={true}
       shadowRgb="55,48,160"
       shadowOpacity="0.2"
       cardComponent={CustomCard}

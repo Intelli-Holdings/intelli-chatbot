@@ -13,14 +13,14 @@ import Link from 'next/link';
 import { useOnborda } from "onborda";
 import Channels from './channels';
 import WhatsappOnboarding from '@/components/WhatsappOnboarding';
-import Workground from '@/components/Workground';
+import UnifiedWidgets from '@/components/UnifiedWidgets';
 
 const Dashboard: React.FC = () => {
-    const { startOnborda } = useOnborda();
+    const { startOnborda, closeOnborda } = useOnborda();
     const handleStartOnborda = () => {
         startOnborda('mainTour');
     };
-    const { startNextStep } = useNextStep();
+    const { startNextStep, closeNextStep } = useNextStep();
     const [isBannerVisible, setIsBannerVisible] = useState(true);
     const { isLoaded, isSignedIn, user } = useUser();
     const [mounted, setMounted] = useState(false);
@@ -30,6 +30,11 @@ const Dashboard: React.FC = () => {
     React.useEffect(() => {
         setMounted(true);
     }, []);
+
+    React.useEffect(() => {
+        closeOnborda();
+        closeNextStep();
+    }, [closeOnborda, closeNextStep]);
 
     const onClickHandler = (tourName: string) => {
         setIsBannerVisible(false);
@@ -54,7 +59,7 @@ const Dashboard: React.FC = () => {
             emoji: "🌐",
             title: "Create a Website Widget",
             description: "Use your assistant to create a widget",
-            href: "/dashboard/playground"
+            href: "/dashboard/widgets"
         },
         {
             id: "onborda-step4",
@@ -174,7 +179,7 @@ const Dashboard: React.FC = () => {
             {/* Website Widget Dialog */}
             <Dialog open={websiteDialogOpen} onOpenChange={setWebsiteDialogOpen}>
                 <DialogContent className="max-w-4xl">
-                    <Workground />
+                    <UnifiedWidgets />
                 </DialogContent>
             </Dialog>
         </div>

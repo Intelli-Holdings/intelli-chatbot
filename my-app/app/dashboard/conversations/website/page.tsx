@@ -1,17 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { formatDistanceToNow, format } from "date-fns";
+import React, { useState, useEffect, useRef } from "react";
+import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import { CountryInfo } from "@/components/country-info";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -20,39 +14,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Search, Settings, MoreVertical, ArrowUp, Loader2 } from "lucide-react";
+import { Search, Send, MoreVertical, Phone, Video, Check, CheckCheck, User } from "lucide-react";
 import { toast } from "sonner";
 import { marked } from "marked";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
 
-const markdownStyles = `
-  .markdown-content {
-    overflow-wrap: break-word;
-  }
-  .markdown-content p {
-    margin-bottom: 0.5em;
-  }
-  .markdown-content ul {
-    list-style-type: disc;
-    padding-left: 1.5em;
-    margin-bottom: 0.5em;
-  }
-  .markdown-content h1, 
-  .markdown-content h2, 
-  .markdown-content h3 {
-    font-weight: bold;
-    margin-top: 0.5em;
-    margin-bottom: 0.5em;
-  }
-`;
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+interface Message {
+  id: number;
+  content: string;
+  answer: string;
+  timestamp: string;
+  sender_type?: string;
+}
 
 interface Visitor {
   id: number;
@@ -63,12 +38,9 @@ interface Visitor {
   ip_address: string;
   created_at: string;
   last_seen: string;
-  messages: Array<{
-    id: number;
-    content: string;
-    answer: string;
-    timestamp: string;
-  }>;
+  is_handle_by_human: boolean;
+  messages: Message[];
+  unread_count?: number;
 }
 
 interface Widget {
@@ -77,155 +49,162 @@ interface Widget {
   widget_key: string;
 }
 
-function formatDate(dateString: string): string {
+// Format time like WhatsApp
+function formatMessageTime(dateString: string): string {
   const date = new Date(dateString);
-  const now = new Date();
-  const distance = formatDistanceToNow(date, { addSuffix: true });
 
-  if (distance.includes("less than a minute ago")) {
-    return "just now";
-  } else if (distance.includes("minute") || distance.includes("hour")) {
-    return distance;
+  if (isToday(date)) {
+    return format(date, 'HH:mm');
+  } else if (isYesterday(date)) {
+    return 'Yesterday';
   } else {
-    return format(date, "EEEE do MMMM yyyy");
+    return format(date, 'dd/MM/yyyy');
   }
 }
 
-export default function WebsiteConvosPage() {
+// Get display name for visitor
+function getVisitorDisplayName(visitor: Visitor): string {
+  return visitor.visitor_name || visitor.visitor_email || visitor.visitor_phone || visitor.visitor_id;
+}
+
+// Get last message preview
+function getLastMessagePreview(visitor: Visitor): string {
+  if (!visitor.messages || visitor.messages.length === 0) return 'No messages yet';
+
+  const lastMessage = visitor.messages[visitor.messages.length - 1];
+  const text = lastMessage.answer || lastMessage.content;
+  return text.length > 50 ? text.substring(0, 50) + '...' : text;
+}
+
+export default function WebsiteConversationsPage() {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
   const [selectedWidgetKey, setSelectedWidgetKey] = useState<string>("");
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
-  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
-  const [markedLoaded, setMarkedLoaded] = useState(false);
+  const [showVisitorInfo, setShowVisitorInfo] = useState(false);
   const activeOrganizationId = useActiveOrganizationId();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
-  const [isHumanSupport, setIsHumanSupport] = useState(false);
-  const [isSupportActionLoading, setIsSupportActionLoading] = useState(false);
-  const [supportAction, setSupportAction] = useState<"takeover" | "handover" | null>(null);
+  // Auto-scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-  const fetchWidgets = async (orgId: string) => {
+  useEffect(() => {
+    scrollToBottom();
+  }, [selectedVisitor?.messages]);
+
+  // Fetch widgets
+  useEffect(() => {
+    if (activeOrganizationId) {
+      fetchWidgets();
+    }
+  }, [activeOrganizationId]);
+
+  // Fetch visitors when widget changes
+  useEffect(() => {
+    if (selectedWidgetKey) {
+      fetchVisitors();
+    }
+  }, [selectedWidgetKey]);
+
+  // Setup WebSocket for real-time updates
+  useEffect(() => {
+    if (!activeOrganizationId) return;
+
+    const ws = new WebSocket(
+      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
+    );
+
+    ws.onopen = () => {
+      console.log("WebSocket connected");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("WebSocket message:", data);
+
+        // Handle new messages
+        if (data.type === 'business_forward' || data.type === 'new_chat') {
+          fetchVisitors(); // Refresh visitor list
+        }
+      } catch (error) {
+        console.error("WebSocket message error:", error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    wsRef.current = ws;
+
+    return () => {
+      ws.close();
+    };
+  }, [activeOrganizationId]);
+
+  const fetchWidgets = async () => {
+    if (!activeOrganizationId) return;
+
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${API_BASE_URL}/widgets/organization/${orgId}/all/`
+        `${API_BASE_URL}/widgets/organization/${activeOrganizationId}/all/`
       );
-      if (!response.ok) {
-        throw new Error(`Failed to fetch widgets: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error("Failed to fetch widgets");
 
       const data = await response.json();
       setWidgets(data);
-      setSelectedWidgetKey(data[0]?.widget_key || "");
+      if (data.length > 0 && !selectedWidgetKey) {
+        setSelectedWidgetKey(data[0].widget_key);
+      }
     } catch (error) {
       console.error("Error fetching widgets:", error);
-      setError("Failed to load widgets.");
-      toast.error("Failed to load widgets.");
+      toast.error("Failed to load widgets");
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (activeOrganizationId) {
-      fetchWidgets(activeOrganizationId);
-    }
-  }, [activeOrganizationId]);
-
-  useEffect(() => {
+  const fetchVisitors = async () => {
     if (!selectedWidgetKey) return;
 
-    const fetchVisitors = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/visitors/`
-        );
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch visitors for widget: ${response.statusText}`
-          );
-        }
-        toast.info("Failed to fetch visitors for widget.");
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/visitors/`
+      );
+      if (!response.ok) throw new Error("Failed to fetch visitors");
 
-        const data = await response.json();
-        setVisitors(
-          data.sort(
-            (a: Visitor, b: Visitor) =>
-              new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
-          )
-        );
-      } catch (error) {
-        console.error("Error fetching visitors:", error);
-        setError("Failed to load visitors.");
-        toast.error("Failed to load visitors.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      const data: Visitor[] = await response.json();
 
-    fetchVisitors();
-  }, [selectedWidgetKey]);
+      // Sort by most recent message
+      const sorted = data.sort((a, b) =>
+        new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
+      );
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 640) {
-        setIsMobileSheetOpen(false);
-      }
-    };
+      // Add unread count (mock for now - you can implement real unread logic)
+      const withUnread = sorted.map(v => ({
+        ...v,
+        unread_count: Math.floor(Math.random() * 5) // Replace with real unread count from backend
+      }));
 
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => {
-    // Add markdown styles
-    const styleElement = document.createElement("style");
-    styleElement.textContent = markdownStyles;
-    document.head.appendChild(styleElement);
-
-    loadDependencies();
-
-    return () => {
-      styleElement.remove();
-    };
-  }, []);
-
-  const loadDependencies = () => {
-    return new Promise<void>((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-      script.onload = () => {
-        // Configure marked options for proper Markdown rendering
-        marked.setOptions({
-          // sanitize: false, // Allow HTML to enable proper list rendering
-          breaks: true,
-          gfm: true, // Enable GitHub Flavored Markdown
-          // headerIds: false, // Disable header IDs to keep it simple
-          //mangle: false // Disable mangling to preserve text
-        });
-        setMarkedLoaded(true);
-        resolve();
-      };
-      document.head.appendChild(script);
-    });
-  };
-
-  const handleVisitorSelect = (visitor: Visitor) => {
-    setSelectedVisitor(visitor);
-    setShowDetails(false);
-    if (window.innerWidth < 640) {
-      setIsMobileSheetOpen(true);
+      setVisitors(withUnread);
+    } catch (error) {
+      console.error("Error fetching visitors:", error);
+      toast.error("Failed to load conversations");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSendReply = () => {
+  const handleSendMessage = async () => {
     if (!selectedVisitor || !replyMessage.trim() || !activeOrganizationId) return;
 
     const lastMessageContent =
@@ -239,47 +218,45 @@ export default function WebsiteConvosPage() {
       message: lastMessageContent,
     };
 
+    const ws = new WebSocket(
+      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
+    );
 
-  const ws = new WebSocket(
-    `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
-  );
+    ws.onopen = () => {
+      ws.send(JSON.stringify(payload));
+      ws.close();
 
-  ws.onopen = () => {
-    ws.send(JSON.stringify(payload));
-    ws.close();
-    setSelectedVisitor((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        messages: [
-          ...prev.messages,
-          {
-            id: Date.now(),
-            content: lastMessageContent,
-            answer: replyMessage,
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      };
-    });
-    setReplyMessage("");
+      // Optimistically add message to UI
+      setSelectedVisitor((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          messages: [
+            ...prev.messages,
+            {
+              id: Date.now(),
+              content: lastMessageContent,
+              answer: replyMessage,
+              timestamp: new Date().toISOString(),
+              sender_type: 'business'
+            },
+          ],
+        };
+      });
+
+      setReplyMessage("");
+      toast.success("Message sent");
+    };
+
+    ws.onerror = () => {
+      toast.error("Failed to send message");
+    };
   };
 
-  ws.onerror = (error) => {
-    console.error("WebSocket error (send reply):", error);
-    toast.error("Failed to send reply. Please try again.");
-  };
-};
-  const filteredVisitors = visitors.filter((visitor) =>
-    visitor.visitor_id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleHandover = () => {
+  const handleTakeover = async () => {
     if (!selectedVisitor || !activeOrganizationId) return;
-    // Toggle action based on the current support state.
-    const action = isHumanSupport ? "handover" : "takeover";
-    setSupportAction(action);
-    setIsSupportActionLoading(true);
+
+    const action = selectedVisitor.is_handle_by_human ? "handover" : "takeover";
 
     const payload = {
       action,
@@ -289,399 +266,423 @@ export default function WebsiteConvosPage() {
 
     const ws = new WebSocket(
       `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
-          
     );
 
     ws.onopen = () => {
       ws.send(JSON.stringify(payload));
       ws.close();
-      setIsHumanSupport(!isHumanSupport);
-      setIsSupportActionLoading(false);
-      setSupportAction(null);
+
+      setSelectedVisitor(prev => prev ? {...prev, is_handle_by_human: !prev.is_handle_by_human} : null);
       toast.success(
-        `Successfully ${action === "takeover" ? "taken over" : "handed over"} AI support`
+        action === "takeover" ? "You are now handling this chat" : "Chat handed over to AI"
       );
     };
 
-    ws.onerror = (error) => {
-      console.error("WebSocket error (handover):", error);
-      setIsSupportActionLoading(false);
-      setSupportAction(null);
-      toast.error("Please try again to takeover support from AI");
+    ws.onerror = () => {
+      toast.error("Action failed. Please try again");
     };
   };
 
+  const filteredVisitors = visitors.filter((visitor) =>
+    getVisitorDisplayName(visitor).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="flex h-screen bg-white">
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold">Website Widget Conversations</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="w-60"></div>
-            <div className="w-60">
-              <Select
-                value={selectedWidgetKey}
-                onValueChange={setSelectedWidgetKey}
-                disabled={isLoading || !useActiveOrganizationId}
-              >
-                <SelectTrigger className="p-2 border rounded">
-                  <SelectValue placeholder="Select a widget" />
-                </SelectTrigger>
-                <SelectContent>
-                  <ScrollArea className="h-60 rounded-md shadow-sm">
-                    <SelectGroup>
-                      {widgets.map((widget) => (
-                        <SelectItem key={widget.id} value={widget.widget_key}>
-                          {widget.widget_name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </ScrollArea>
-                </SelectContent>
-              </Select>
+    <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
+      {/* Left Sidebar - Conversations List */}
+      <div className="w-full md:w-96 bg-white border-r border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="bg-gray-100 p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-semibold">Chats</h1>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
             </div>
+          </div>
+
+          {/* Widget Selector */}
+          <Select value={selectedWidgetKey} onValueChange={setSelectedWidgetKey}>
+            <SelectTrigger className="mb-2">
+              <SelectValue placeholder="Select a widget" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {widgets.map((widget) => (
+                  <SelectItem key={widget.id} value={widget.widget_key}>
+                    {widget.widget_name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              type="text"
+              placeholder="Search conversations..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-white"
+            />
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden border gray-100 rounded-md">
-          {/* Visitor List - Visible on all screens */}
-          <aside className="w-full sm:w-80 border-r gray-200 flex flex-col overflow-hidden">
-            <div className="p-4 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Search visitors..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 w-full"
-                />
+        {/* Conversations List */}
+        <ScrollArea className="flex-1">
+          {isLoading ? (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          ) : filteredVisitors.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">No conversations yet</div>
+          ) : (
+            <div>
+              {filteredVisitors.map((visitor) => {
+                const lastMessage = visitor.messages[visitor.messages.length - 1];
+                const isSelected = selectedVisitor?.id === visitor.id;
+
+                return (
+                  <button
+                    key={visitor.id}
+                    onClick={() => {
+                      setSelectedVisitor(visitor);
+                      setShowVisitorInfo(false);
+                    }}
+                    className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 border-b border-gray-100 transition-colors ${
+                      isSelected ? "bg-gray-100" : ""
+                    }`}
+                  >
+                    {/* Avatar */}
+                    <div className="relative flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-lg">
+                        {getVisitorDisplayName(visitor).charAt(0).toUpperCase()}
+                      </div>
+                      {/* Online indicator */}
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between mb-1">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {getVisitorDisplayName(visitor)}
+                        </h3>
+                        <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                          {lastMessage && formatMessageTime(lastMessage.timestamp)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600 truncate flex-1">
+                          {visitor.is_handle_by_human && (
+                            <span className="text-blue-600 font-medium mr-1">You:</span>
+                          )}
+                          {getLastMessagePreview(visitor)}
+                        </p>
+
+                        {/* Unread badge */}
+                        {visitor.unread_count && visitor.unread_count > 0 && (
+                          <span className="ml-2 bg-green-500 text-white text-xs font-semibold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5">
+                            {visitor.unread_count}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+
+      {/* Right Panel - Chat Area */}
+      <div className="flex-1 flex flex-col bg-[#efeae2]">
+        {selectedVisitor ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                  {getVisitorDisplayName(selectedVisitor).charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    {getVisitorDisplayName(selectedVisitor)}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {selectedVisitor.is_handle_by_human ? "You are handling" : "AI handling"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Video className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Phone className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
+                  onClick={() => setShowVisitorInfo(!showVisitorInfo)}
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
               </div>
             </div>
-            <ScrollArea className="flex-1">
-              {isLoading ? (
-                <div className="p-4 text-center">Loading...</div>
-              ) : error ? (
-                <div className="p-4 text-red-500">{error}</div>
-              ) : (
-                <div className="divide-y">
-                  {filteredVisitors.map((visitor) => {
-                    const latestMessage =
-                      visitor.messages[visitor.messages.length - 1];
-                    return (
-                      <button
-                        key={visitor.id}
-                        className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 ${
-                          selectedVisitor?.id === visitor.id
-                            ? "bg-gray-100"
-                            : ""
-                        }`}
-                        onClick={() => handleVisitorSelect(visitor)}
-                      >
-                        <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-baseline">
-                            <p className="font-medium truncate">
-                              {visitor.visitor_id}
-                            </p>
-                            <span className="text-xs text-gray-500 flex-shrink-0">
-                              {formatDate(visitor.last_seen)}
+
+            {/* Messages Area */}
+            <ScrollArea className="flex-1 p-4" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d9d9d9' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}>
+              <div className="max-w-4xl mx-auto space-y-3">
+                {selectedVisitor.messages.map((message, index) => (
+                  <div key={message.id} className="space-y-2">
+                    {/* Visitor Message */}
+                    {message.content && (
+                      <div className="flex justify-start">
+                        <div className="bg-white rounded-lg shadow-sm max-w-[70%] p-3">
+                          <div className="markdown-content text-gray-800 text-sm">
+                            {message.content}
+                          </div>
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <span className="text-xs text-gray-500">
+                              {format(new Date(message.timestamp), 'HH:mm')}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 truncate">
-                            {latestMessage
-                              ? latestMessage.content || latestMessage.answer
-                              : "No messages yet"}
-                          </p>
                         </div>
-                      </button>
-                    );
-                  })}
+                      </div>
+                    )}
+
+                    {/* Business/AI Response */}
+                    {message.answer && (
+                      <div className="flex justify-end">
+                        <div className="bg-[#d9fdd3] rounded-lg shadow-sm max-w-[70%] p-3">
+                          <div className="markdown-content text-gray-800 text-sm">
+                            {message.answer}
+                          </div>
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <span className="text-xs text-gray-600">
+                              {format(new Date(message.timestamp), 'HH:mm')}
+                            </span>
+                            <CheckCheck className="h-4 w-4 text-blue-500" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Message Input */}
+            <div className="bg-gray-100 border-t border-gray-200 p-4">
+              {/* Takeover/Handover Banner */}
+              {selectedVisitor.is_handle_by_human && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 flex items-center justify-between">
+                  <p className="text-sm text-blue-800">
+                    <strong>You are handling this conversation.</strong> Remember to hand over to AI when done.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTakeover}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                  >
+                    Hand over to AI
+                  </Button>
                 </div>
               )}
-            </ScrollArea>
-          </aside>
 
-          {/* Desktop Chat View - Hidden on mobile */}
-          <main className="flex-1 hidden sm:flex flex-col overflow-hidden">
-            {selectedVisitor ? (
-              <>
-                <div className="p-4 border-b flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-200" />
-                    <div>
-                      <h2 className="font-medium">
-                        {selectedVisitor.visitor_id}
-                      </h2>
-                      <p className="text-sm text-gray-500">
-                        {formatDate(selectedVisitor.last_seen)}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowDetails(!showDetails)}
-                  >
-                    <MoreVertical className="h-5 w-5" />
-                  </Button>
-                </div>
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
-                    {selectedVisitor.messages.map((message) => (
-                      <div key={message.id} className="space-y-2">
-                        {message.content && (
-                          <div className="flex justify-start">
-                            <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-green-200">
-                              {/* eslint-disable-next-line react/no-danger */}
-                              {markedLoaded ? (
-                                <div
-                                  dangerouslySetInnerHTML={{
-                                    __html: marked(message.content) as string,
-                                  }}
-                                />
-                              ) : (
-                                <p className="break-words">{message.content}</p>
-                              )}
-                              <p className="text-xs mt-1 text-gray-500">
-                                {formatDate(message.timestamp)}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        {message.answer && (
-                          <div className="flex justify-end">
-                            <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-blue-500 text-white">
-                              {/* eslint-disable-next-line react/no-danger */}
-                              {markedLoaded ? (
-                                <div
-                                  dangerouslySetInnerHTML={{
-                                    __html: marked(message.answer) as string,
-                                  }}
-                                />
-                              ) : (
-                                <p className="break-words">{message.answer}</p>
-                              )}
-                              <p className="text-xs mt-1 text-blue-100">
-                                {formatDate(message.timestamp)}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-                <div className="p-4 border-t">
-                  <Card className="mx-2 border shadow-sm p-1">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="ml-1 border border-blue-200 rounded-lg shadow-md"
-                    onClick={handleHandover}
-                    disabled={isSupportActionLoading || isLoading}
-                  >
-                    {isSupportActionLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {supportAction === "takeover" ? "Taking over..." : "Handing over..."}
-                    </>
-                    ) : (
-                    isHumanSupport ? "Handover to AI" : "Takeover AI"
-                    )}
-                  </Button>
-
-                    {isHumanSupport && (
-                      <div className="m-2 bg-purple-100 text-red-700 p-2 text-center border rounded-lg">
-                        <p>
-                          Remember to handover to AI when you&apos;re done
-                          sending messages.
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="flex items-center p-1">
-                      <Input
-                        placeholder="Reply to customer..."
-                        value={replyMessage}
-                        onChange={(e) => setReplyMessage(e.target.value)}
-                        className="w-full"
-                      />
-                      <Button
-                        type="submit"
-                        size="icon"
-                        variant="default"
-                        className="ml-2"
-                        onClick={handleSendReply}
-                        disabled={!replyMessage.trim()}
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
-                Select a visitor to start chatting
-              </div>
-            )}
-          </main>
-
-          {/* Mobile Chat Sheet */}
-          {typeof window !== "undefined" && window.innerWidth < 640 && (
-            <Sheet open={isMobileSheetOpen} onOpenChange={setIsMobileSheetOpen}>
-              <SheetContent side="bottom" className="h-[90vh] p-0">
-                {selectedVisitor && (
-                  <div className="flex flex-col h-full">
-                    <SheetHeader className="p-4 border-b">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-200" />
-                        <div>
-                          <SheetTitle>{selectedVisitor.visitor_id}</SheetTitle>
-                          <p className="text-sm text-gray-500">
-                            {formatDate(selectedVisitor.last_seen)}
-                          </p>
-                        </div>
-                      </div>
-                    </SheetHeader>
-                    <ScrollArea className="flex-1 p-4">
-                      <div className="space-y-4">
-                        {selectedVisitor.messages.map((message) => (
-                          <div key={message.id} className="space-y-2">
-                            {message.content && (
-                              <div className="flex justify-start">
-                                <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-gray-100">
-                                  {/* eslint-disable-next-line react/no-danger */}
-                                  {markedLoaded ? (
-                                    <div
-                                      dangerouslySetInnerHTML={{
-                                        __html: marked(
-                                          message.content
-                                        ) as string,
-                                      }}
-                                    />
-                                  ) : (
-                                    <p className="break-words">
-                                      {message.content}
-                                    </p>
-                                  )}
-                                  <p className="text-xs mt-1 text-gray-500">
-                                    {formatDate(message.timestamp)}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                            {message.answer && (
-                              <div className="flex justify-end">
-                                <div className="markdown-content p-3 rounded-lg max-w-[80%] bg-blue-500 text-white">
-                                  {/* eslint-disable-next-line react/no-danger */}
-                                  {markedLoaded ? (
-                                    <div
-                                      dangerouslySetInnerHTML={{
-                                        __html: marked(
-                                          message.answer
-                                        ) as string,
-                                      }}
-                                    />
-                                  ) : (
-                                    <p className="break-words">
-                                      {message.answer}
-                                    </p>
-                                  )}
-                                  <p className="text-xs mt-1 text-blue-100">
-                                    {formatDate(message.timestamp)}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                    <div className="p-4 border-t bg-white">
-                      <Card className="mx-2 border shadow-sm">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="ml-2 border border-blue-200 rounded-xl shadow-md"
-                          onClick={handleHandover}
-                        >
-                          {isHumanSupport ? "Handover to AI" : "Takeover AI"}
-                        </Button>
-
-                        {isHumanSupport && (
-                          <div className="w-full bg-purple-100 text-red-700 p-3 text-center">
-                            <p>
-                              Remember to handover to AI when you&apos;re done
-                              sending messages.
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex items-center p-1">
-                          <Input
-                            placeholder="Reply to customer..."
-                            value={replyMessage}
-                            onChange={(e) => setReplyMessage(e.target.value)}
-                            className="w-full"
-                          />
-                          <Button
-                            type="submit"
-                            size="icon"
-                            variant="default"
-                            className="ml-2"
-                            onClick={handleSendReply}
-                            disabled={!replyMessage.trim()}
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </Card>
-                    </div>
-                  </div>
-                )}
-              </SheetContent>
-            </Sheet>
-          )}
-
-          {/* Details Sidebar - Hidden on mobile */}
-          {showDetails && selectedVisitor && (
-            <aside className="w-80 border-l p-4 hidden lg:block">
-              <h3 className="text-lg font-bold mb-4">Visitor Details</h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Name</p>
-                  <p>{selectedVisitor.visitor_name || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p>{selectedVisitor.visitor_email || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Phone</p>
-                  <p>{selectedVisitor.visitor_phone || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Location</p>
-                  <CountryInfo ip={selectedVisitor.ip_address} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    First Seen
+              {!selectedVisitor.is_handle_by_human && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-3 flex items-center justify-between">
+                  <p className="text-sm text-purple-800">
+                    <strong>AI is handling this conversation.</strong> Take over to respond manually.
                   </p>
-                  <p>{formatDate(selectedVisitor.created_at)}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTakeover}
+                    className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                  >
+                    Take over
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Last Seen</p>
-                  <p>{formatDate(selectedVisitor.last_seen)}</p>
+              )}
+
+              <div className="flex items-end gap-2">
+                <Input
+                  placeholder="Type a message..."
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  className="flex-1 bg-white rounded-full px-4 py-3"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!replyMessage.trim()}
+                  className="rounded-full h-12 w-12 bg-green-600 hover:bg-green-700"
+                  size="icon"
+                >
+                  <Send className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="w-32 h-32 mx-auto bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center">
+                <User className="h-16 w-16 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                  Welcome to Website Chat
+                </h2>
+                <p className="text-gray-600">
+                  Select a conversation to start messaging with your visitors
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Visitor Info Card - Small Overlay */}
+        {showVisitorInfo && selectedVisitor && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/20 z-20 backdrop-blur-sm"
+              onClick={() => setShowVisitorInfo(false)}
+            />
+
+            {/* Info Card */}
+            <div className="absolute top-20 right-8 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-30 overflow-hidden animate-in slide-in-from-top-5 fade-in duration-200">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-lg">Contact Information</h3>
+                  <button
+                    onClick={() => setShowVisitorInfo(false)}
+                    className="hover:bg-white/20 p-1 rounded-full transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
-            </aside>
-          )}
-        </div>
+
+              {/* Content */}
+              <div className="p-5 max-h-[500px] overflow-y-auto">
+                {/* Avatar & Name */}
+                <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-2xl">
+                    {getVisitorDisplayName(selectedVisitor).charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-lg">
+                      {getVisitorDisplayName(selectedVisitor)}
+                    </h4>
+                    <p className="text-sm text-gray-500">Website Visitor</p>
+                  </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="space-y-4">
+                  {selectedVisitor.visitor_email && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 font-medium mb-0.5">Email</p>
+                        <p className="text-sm text-gray-900">{selectedVisitor.visitor_email}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedVisitor.visitor_phone && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 font-medium mb-0.5">Phone</p>
+                        <p className="text-sm text-gray-900">{selectedVisitor.visitor_phone}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 font-medium mb-0.5">Location</p>
+                      <CountryInfo ip={selectedVisitor.ip_address} />
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 font-medium mb-0.5">First Seen</p>
+                      <p className="text-sm text-gray-900">{format(new Date(selectedVisitor.created_at), 'PPp')}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 font-medium mb-0.5">Last Seen</p>
+                      <p className="text-sm text-gray-900">{format(new Date(selectedVisitor.last_seen), 'PPp')}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 pt-3 border-t border-gray-100">
+                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 font-medium mb-0.5">Visitor ID</p>
+                      <p className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">{selectedVisitor.visitor_id}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

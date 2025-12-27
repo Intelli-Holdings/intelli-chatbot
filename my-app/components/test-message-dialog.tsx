@@ -32,6 +32,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
   const [buttonVariables, setButtonVariables] = useState<string[]>([]);
   const [headerMediaFile, setHeaderMediaFile] = useState<File | null>(null);
   const [headerMediaHandle, setHeaderMediaHandle] = useState<string>('');
+  const [headerMediaId, setHeaderMediaId] = useState<string>('');
   const [locationData, setLocationData] = useState<LocationData>({
     latitude: '',
     longitude: '',
@@ -120,9 +121,18 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     };
   };
 
-  const uploadMediaToMeta = async (file: File): Promise<string> => {
+  const uploadMediaToMeta = async (file: File): Promise<{ handle: string; id?: string }> => {
     if (!appService) {
       throw new Error('App service not provided');
+    }
+
+    const resolvedOrg =
+      organizationId ||
+      appService?.organizationId ||
+      appService?.organization_id;
+
+    if (!resolvedOrg) {
+      throw new Error('Organization is required to upload media');
     }
 
     try {
@@ -131,7 +141,14 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       const formData = new FormData();
       formData.append('media_file', file);
       formData.append('appservice_phone_number', appService.phone_number);
-      formData.append('upload_type', 'resumable');
+      formData.append('upload_type', 'media');
+      if (appService.phone_number_id) {
+        formData.append('phone_number_id', appService.phone_number_id);
+      }
+      if (appService.id) {
+        formData.append('appservice_id', appService.id);
+      }
+      formData.append('organization', resolvedOrg);
 
       console.log('Uploading media via backend...', {
         fileName: file.name,
@@ -159,11 +176,11 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       const data = await response.json();
       console.log('Media upload response:', data);
 
-      if (!data.handle) {
+      if (!data.handle && !data.id) {
         throw new Error('No media handle received from upload');
       }
 
-      return data.handle;
+      return { handle: data.id || data.handle, id: data.id };
     } catch (error) {
       console.error('Backend upload error:', error);
       throw error;
@@ -179,8 +196,9 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
     setHeaderMediaFile(file);
 
     try {
-      const handle = await uploadMediaToMeta(file);
+      const { handle, id } = await uploadMediaToMeta(file);
       setHeaderMediaHandle(handle);
+      setHeaderMediaId(id || '');
       toast.success('Media uploaded successfully!');
     } catch (error) {
       console.error('File upload error:', error);
@@ -252,8 +270,8 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       return;
     }
 
-    // Validate media upload if template has media header
-    if (headerInfo.hasMedia && headerInfo.isVariable && !headerMediaHandle) {
+    // Validate media upload if template has media header (fixed or variable)
+    if (headerInfo.hasMedia && !headerMediaHandle) {
       toast.error(`Please upload ${headerInfo.format?.toLowerCase()} for the template header`);
       return;
     }
@@ -298,14 +316,9 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       // Determine header params based on header type
       let finalHeaderParams = headerVariables;
 
-      // For fixed media headers (not variable), don't send header_params
-      // The template will use its pre-uploaded example media
-      if (headerInfo.hasMedia && !headerInfo.isVariable) {
+      // For any media header we rely on the explicit media id/handle fields rather than header_params
+      if (headerInfo.hasMedia) {
         finalHeaderParams = [];
-      }
-      // For variable media headers, use the uploaded media handle
-      else if (headerInfo.hasMedia && headerInfo.isVariable && headerMediaHandle) {
-        finalHeaderParams = [headerMediaHandle];
       }
 
       const payload = {
@@ -320,6 +333,9 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
         location: headerInfo.isLocation ? locationData : undefined,
         appservice_id: appService?.id,
         appservice_phone_number: appService?.phone_number,
+        header_media_id: headerMediaId || headerMediaHandle || undefined,
+        header_media_handle: headerMediaHandle || undefined,
+        header_media_format: headerInfo.format,
       };
 
       const res = await fetch(`/api/whatsapp/templates/${template.id}/send_test`, {
@@ -474,15 +490,15 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
             </div>
           )}
 
-          {/* Media upload section - ONLY for templates with VARIABLE media */}
-          {headerInfo.isVariable && headerInfo.format && headerInfo.format !== 'LOCATION' && (
+          {/* Media upload section - for templates with media headers (variable or fixed) */}
+          {headerInfo.hasMedia && headerInfo.format && headerInfo.format !== 'LOCATION' && (
             <div className="space-y-2">
               <Label>Template Header Media ({headerInfo.format}) *</Label>
               
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  This template requires {headerInfo.format?.toLowerCase()} media. Upload a file or provide a publicly accessible URL to Meta's CDN or your own server.
+                  Upload a {headerInfo.format?.toLowerCase()} to send this template. If Meta stored fixed media, you can still override it here to avoid missing-media errors.
                 </AlertDescription>
               </Alert>
 
@@ -502,7 +518,12 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
                       {headerInfo.format === 'VIDEO' && <Video className="h-4 w-4" />}
                       {headerInfo.format === 'DOCUMENT' && <FileText className="h-4 w-4" />}
                       <span className="text-sm">{headerMediaFile.name}</span>
-                      {headerMediaHandle && (
+                      {isUploadingMedia && (
+                        <span className="text-xs text-blue-600 flex items-center gap-1">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Uploading...
+                        </span>
+                      )}
+                      {!isUploadingMedia && headerMediaHandle && (
                         <span className="text-xs text-green-600">✓ Uploaded</span>
                       )}
                     </div>
@@ -513,13 +534,15 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
                       onClick={() => {
                         setHeaderMediaFile(null);
                         setHeaderMediaHandle('');
+                        setHeaderMediaId('');
                       }}
+                      disabled={isUploadingMedia}
                     >
                       Remove
                     </Button>
                   </div>
                   
-                  {headerMediaHandle && (
+                  {!isUploadingMedia && headerMediaHandle && (
                     <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs">
                       <span className="font-medium text-green-700 dark:text-green-400">
                         ✓ Media handle received and ready to send
@@ -671,6 +694,8 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
               disabled={
                 isSending || 
                 template.status !== 'APPROVED' || 
+                isUploadingMedia ||
+                (headerInfo.hasMedia && !headerMediaId && !headerMediaHandle) ||
                 (headerInfo.isLocation && (!locationData.latitude || !locationData.longitude || !locationData.name || !locationData.address))
               }
             >

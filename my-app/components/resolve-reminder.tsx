@@ -1,57 +1,61 @@
 "use client"
-import React from 'react';
-import { AlertCircle, Clock } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import React from "react"
+import { Clock, Info } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface ResolveReminderProps {
   className?: string;
 }
 
 const ResolveReminder: React.FC<ResolveReminderProps> = ({ className }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-
   return (
-    <Collapsible 
-      open={isOpen} 
-      onOpenChange={setIsOpen}
-      className={`w-full p-1 ${className}`}
-    >
-      <Alert variant="default" className="bg-amber-50 border-amber-200">
-        <AlertCircle className="h-4 w-4 text-red-600" />
-        <div className="flex-1">
-          <AlertTitle className="text-red-800 flex items-center gap-2">
-            <Clock className="h-4 w-4" /> 24-Hour Response Window
-          </AlertTitle>
-          <AlertDescription className="text-red-700 text-sm">
-            Resolve escalations within 24 hours to maintain messaging privileges.
-          </AlertDescription>
+    <Popover>
+      <PopoverTrigger asChild>
+        <div className={`flex items-center gap-2 px-3 py-1.5 bg-[#fff4e6] border border-[#ffe0b2] rounded-md cursor-pointer hover:bg-[#ffeccc] transition-colors ${className}`}>
+          <Clock className="h-3.5 w-3.5 text-[#f57c00] shrink-0" />
+          <span className="text-[11px] font-medium text-[#e65100] flex-1">
+            24h Response Window
+          </span>
+          <Info className="h-3.5 w-3.5 text-[#f57c00] shrink-0" />
         </div>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="text-red-700 hover:text-red-900 hover:bg-red-100">
-            {isOpen ? 'Show Less' : 'Learn More'}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-1 px-4 py-3 text-sm border-0 text-red-600">
-        <p className="mb-2">
-          <strong>WhatsApp Policy:</strong> You may only reply to customer messages within 24 hours of their last message. 
-          After this window closes, you&apos;ll need to restart the conversation which costs your business extra messaging credits.
-        </p>
-        <p className="mb-2">
-          <strong>Why this matters:</strong> If you don&apos;t respond to escalations promptly, you may lose the ability to 
-          message customers about their current issues without incurring extra/added costs.
-        </p>
-        <p>
-          <strong>Best practice:</strong> Resolve all customer inquiries as quickly as possible to reduce expenses, maintain 
-          continuous communication and provide better customer service.
-        </p>
-      </CollapsibleContent>
-      </Alert>
-      
-      
-    </Collapsible>
-  );
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-4" align="start">
+        <div className="space-y-3">
+          <div className="flex items-start gap-2">
+            <Clock className="h-5 w-5 text-[#f57c00] shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-sm text-[#111b21] mb-1">
+                24-Hour Response Window
+              </h4>
+              <p className="text-xs text-[#667781] leading-relaxed">
+                Respond to escalations within 24 hours to maintain WhatsApp messaging privileges.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-xs text-[#667781]">
+            <div className="bg-[#f0f2f5] p-2 rounded-md">
+              <p className="font-medium text-[#111b21] mb-1">WhatsApp Policy</p>
+              <p className="leading-relaxed">
+                You can only reply within 24 hours of the customer's last message. After this window, you'll need to restart the conversation at extra cost.
+              </p>
+            </div>
+
+            <div className="bg-[#f0f2f5] p-2 rounded-md">
+              <p className="font-medium text-[#111b21] mb-1">Best Practice</p>
+              <p className="leading-relaxed">
+                Resolve inquiries quickly to reduce costs, maintain continuous communication, and provide better service.
+              </p>
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 };
 
 export default ResolveReminder;

@@ -61,11 +61,6 @@ const data = {
       icon: Bot,
     },
     {
-      title: "Playground",
-      url: "/dashboard/playground",
-      icon: PaintRoller,
-    },
-    {
       title: "Widgets",
       url: "/dashboard/widgets",
       icon: Globe,

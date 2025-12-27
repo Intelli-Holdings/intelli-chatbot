@@ -135,7 +135,6 @@ export default function RootLayout({
             </NextStepProvider>
             </AptabaseProvider>
             <ToastProvider />
-            <Toaster />         
           </body>          
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />

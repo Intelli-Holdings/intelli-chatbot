@@ -28,6 +28,7 @@ function DashboardLayoutContent({
 
   return (
     <SidebarProvider
+      defaultOpen={true}
       style={
         {
           "--sidebar-width": "17rem",

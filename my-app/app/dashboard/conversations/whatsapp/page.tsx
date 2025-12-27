@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import ChatSidebar from "@/app/dashboard/conversations/components/chat-sidebar"
 import ChatArea from "@/app/dashboard/conversations/components/chat-area"
@@ -10,31 +10,44 @@ import { useMediaQuery } from "@/app/hooks/use-media-query"
 import type { Conversation } from "@/app/dashboard/conversations/components/types"
 import { toast } from "sonner"
 import LoadingProgress from "@/components/loading-progress"
+import { useSearchParams } from "next/navigation"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""
 
+type ReadConversationsMap = Record<string, string>
+
 // Helper function to get read conversations from localStorage
-const getReadConversations = (phoneNumber: string): Set<string> => {
-  if (typeof window === "undefined") return new Set()
+const getReadConversations = (phoneNumber: string): ReadConversationsMap => {
+  if (typeof window === "undefined") return {}
   try {
     const stored = localStorage.getItem(`readConversations_${phoneNumber}`)
-    return new Set(stored ? JSON.parse(stored) : [])
+    if (!stored) return {}
+    const parsed = JSON.parse(stored)
+    if (Array.isArray(parsed)) {
+      return {}
+    }
+    if (parsed && typeof parsed === "object") {
+      return parsed as ReadConversationsMap
+    }
+    return {}
   } catch {
-    return new Set()
+    return {}
   }
 }
 
 // Helper function to save read conversations to localStorage
-const saveReadConversations = (phoneNumber: string, readConversations: Set<string>) => {
+const saveReadConversations = (phoneNumber: string, readConversations: ReadConversationsMap) => {
   if (typeof window === "undefined") return
   try {
-    localStorage.setItem(`readConversations_${phoneNumber}`, JSON.stringify(Array.from(readConversations)))
+    localStorage.setItem(`readConversations_${phoneNumber}`, JSON.stringify(readConversations))
   } catch (error) {
     console.error("Failed to save read conversations to localStorage:", error)
   }
 }
 
 export default function WhatsAppConvosPage() {
+  const searchParams = useSearchParams()
+  const customerParam = searchParams.get('customer')
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -48,6 +61,65 @@ export default function WhatsAppConvosPage() {
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState("")
   const [isInitializing, setIsInitializing] = useState(true)
+  const [loadingConversationId, setLoadingConversationId] = useState<number | null>(null)
+  const selectedConversationRef = useRef<number | null>(null)
+  const messageCacheRef = useRef<Record<number, Conversation["messages"]>>({})
+  const scrollPositionsRef = useRef<Record<number, number>>({})
+  const conversationsRef = useRef<Conversation[]>([])
+  const hasAutoSelectedRef = useRef(false)
+
+  useEffect(() => {
+    conversationsRef.current = conversations
+  }, [conversations])
+
+  const resolveUpdatedAt = useCallback((current: string, latest?: string) => {
+    if (!latest) return current
+    const currentTime = current ? new Date(current).getTime() : 0
+    const latestTime = new Date(latest).getTime()
+    return latestTime > currentTime ? latest : current
+  }, [])
+
+  const handleScrollPositionChange = useCallback((conversationId: number, scrollTop: number) => {
+    scrollPositionsRef.current[conversationId] = scrollTop
+  }, [])
+
+  const handleMessagesUpdate = useCallback(
+    (conversationId: number, messages: Conversation["messages"]) => {
+      const normalizedMessages = messages ?? []
+      messageCacheRef.current[conversationId] = normalizedMessages
+      const latestMessage = normalizedMessages.length > 0 ? normalizedMessages[normalizedMessages.length - 1] : null
+      const latestTimestamp = latestMessage?.created_at
+
+      setConversations((prev) => {
+        let didChange = false
+        const next = prev.map((conv) => {
+          if (conv.id !== conversationId) return conv
+          if (conv.messages === normalizedMessages) return conv
+
+          didChange = true
+          return {
+            ...conv,
+            messages: normalizedMessages,
+            updated_at: resolveUpdatedAt(conv.updated_at, latestTimestamp),
+            unread_messages: conv.id === selectedConversationRef.current ? 0 : conv.unread_messages,
+          }
+        })
+
+        return didChange ? next : prev
+      })
+
+      setSelectedConversation((prev) => {
+        if (!prev || prev.id !== conversationId) return prev
+        if (prev.messages === normalizedMessages) return prev
+        return {
+          ...prev,
+          messages: normalizedMessages,
+          updated_at: resolveUpdatedAt(prev.updated_at, latestTimestamp),
+        }
+      })
+    },
+    [resolveUpdatedAt],
+  )
 
   useEffect(() => {
     if (!activeOrganizationId) return
@@ -105,17 +177,29 @@ export default function WhatsAppConvosPage() {
         // Get previously read conversations from localStorage
         const readConversations = getReadConversations(phoneNumber)
 
-        const conversationsWithMessages = (data.results || []).map((conv: any) => ({
-          ...conv,
-          messages: [],
-          phone_number: phoneNumber,
-          recipient_id: conv.customer_number,
-          attachments: [],
-        }))
+        const conversationsWithMessages = (data.results || []).map((conv: any) => {
+          const cachedMessages = messageCacheRef.current[conv.id] ?? []
+          const latestCachedTimestamp =
+            cachedMessages.length > 0 ? cachedMessages[cachedMessages.length - 1]?.created_at : undefined
+          return {
+            ...conv,
+            messages: cachedMessages,
+            updated_at: resolveUpdatedAt(conv.updated_at, latestCachedTimestamp),
+            phone_number: phoneNumber,
+            recipient_id: conv.customer_number,
+            attachments: [],
+          }
+        })
 
         // Reset unread messages on backend for previously read conversations
         const resetPromises = conversationsWithMessages
-          .filter((conv: any) => readConversations.has(conv.customer_number) && (conv.unread_messages || 0) > 0)
+          .filter((conv: any) => {
+            const lastReadAt = readConversations[conv.customer_number]
+            if (!lastReadAt) return false
+            const lastReadTime = new Date(lastReadAt).getTime()
+            const updatedAtTime = conv.updated_at ? new Date(conv.updated_at).getTime() : 0
+            return (conv.unread_messages || 0) > 0 && updatedAtTime <= lastReadTime
+          })
           .map(async (conv: any) => {
             try {
               await fetch(`/api/appservice/reset/unread_messages/${phoneNumber}/${conv.customer_number}/`, {
@@ -158,7 +242,7 @@ export default function WhatsAppConvosPage() {
     }
 
     fetchConversations()
-  }, [phoneNumber, activeOrganizationId])
+  }, [phoneNumber, activeOrganizationId, resolveUpdatedAt])
 
   // Function to load more conversations
   const loadMoreConversations = async () => {
@@ -174,13 +258,19 @@ export default function WhatsAppConvosPage() {
         throw new Error(`HTTP error! status: ${res.status}`)
       }
       const data = await res.json()
-      const newConversationsWithMessages = (data.results || []).map((conv: any) => ({
-        ...conv,
-        messages: [], // Initially empty - will be loaded when conversation is selected
-        phone_number: phoneNumber,
-        recipient_id: conv.customer_number,
-        attachments: [],
-      }))
+      const newConversationsWithMessages = (data.results || []).map((conv: any) => {
+        const cachedMessages = messageCacheRef.current[conv.id] ?? []
+        const latestCachedTimestamp =
+          cachedMessages.length > 0 ? cachedMessages[cachedMessages.length - 1]?.created_at : undefined
+        return {
+          ...conv,
+          messages: cachedMessages,
+          updated_at: resolveUpdatedAt(conv.updated_at, latestCachedTimestamp),
+          phone_number: phoneNumber,
+          recipient_id: conv.customer_number,
+          attachments: [],
+        }
+      })
 
       setConversations((prev) => [...prev, ...newConversationsWithMessages])
       setHasMore(data.next !== null)
@@ -223,32 +313,63 @@ export default function WhatsAppConvosPage() {
   }
 
   const handleSelectConversation = async (conversation: Conversation) => {
+    selectedConversationRef.current = conversation.id
+    const cachedMessages = messageCacheRef.current[conversation.id] ?? []
+    const initialMessages =
+      conversation.messages && conversation.messages.length > 0 ? conversation.messages : cachedMessages
+    const hydratedConversation =
+      initialMessages && initialMessages.length > 0 ? { ...conversation, messages: initialMessages } : conversation
+
+    if (initialMessages && initialMessages.length > 0) {
+      messageCacheRef.current[conversation.id] = initialMessages
+    }
+
+    setSelectedConversation(hydratedConversation)
     // Don't reset unread messages immediately - wait until messages are loaded and viewed
 
-    // Fetch messages for the selected conversation if not already loaded
-    if (!conversation.messages || conversation.messages.length === 0) {
-      const messages = await fetchMessagesForConversation(conversation.customer_number)
+    if (!initialMessages || initialMessages.length === 0) {
+      setLoadingConversationId(conversation.id)
+      try {
+        const messages = await fetchMessagesForConversation(conversation.customer_number)
+        messageCacheRef.current[conversation.id] = messages
+        handleMessagesUpdate(conversation.id, messages)
 
-      // Update the conversation with fetched messages
-      const updatedConversation = {
-        ...conversation,
-        messages: messages,
+        if (selectedConversationRef.current === conversation.id) {
+          setSelectedConversation({
+            ...conversation,
+            messages,
+          })
+        }
+      } catch (error) {
+        console.error("Failed to fetch messages for selected conversation:", error)
+        toast.error("Failed to load messages")
+      } finally {
+        if (selectedConversationRef.current === conversation.id) {
+          setLoadingConversationId(null)
+        }
       }
-
-      // Update the conversations list to cache the messages
-      setConversations((prev) =>
-        prev.map((conv) => (conv.customer_number === conversation.customer_number ? updatedConversation : conv)),
-      )
-
-      setSelectedConversation(updatedConversation)
     } else {
-      setSelectedConversation(conversation)
+      setLoadingConversationId(null)
     }
 
     if (isMobile) {
       setIsSheetOpen(true)
     }
   }
+
+  // Auto-select conversation from URL parameter
+  useEffect(() => {
+    if (!customerParam || hasAutoSelectedRef.current || conversations.length === 0 || isInitializing) return
+
+    const targetConversation = conversations.find(
+      (conv) => conv.customer_number === customerParam || conv.recipient_id === customerParam
+    )
+
+    if (targetConversation) {
+      hasAutoSelectedRef.current = true
+      handleSelectConversation(targetConversation)
+    }
+  }, [customerParam, conversations, isInitializing])
 
   // Listen for unread messages reset events from ChatArea component
   useEffect(() => {
@@ -259,12 +380,18 @@ export default function WhatsAppConvosPage() {
 
       // Mark this conversation as read in localStorage
       const readConversations = getReadConversations(phoneNumber)
-      readConversations.add(customerNumber)
+      const readAt =
+        conversationsRef.current.find((conv) => conv.customer_number === customerNumber)?.updated_at ||
+        new Date().toISOString()
+      readConversations[customerNumber] = readAt
       saveReadConversations(phoneNumber, readConversations)
 
       // Update the conversations list to reset unread count
       setConversations((prev) =>
         prev.map((conv) => (conv.customer_number === customerNumber ? { ...conv, unread_messages: 0 } : conv)),
+      )
+      setSelectedConversation((prev) =>
+        prev?.customer_number === customerNumber ? { ...prev, unread_messages: 0 } : prev,
       )
     }
 
@@ -278,8 +405,8 @@ export default function WhatsAppConvosPage() {
   // Show loading screen during initialization
   if (isInitializing) {
     return (
-      <div className="flex h-screen max-h-screen overflow-hidden border rounded-xl border-gray-200">
-        <div className="flex-1 flex items-center justify-center">
+      <div className="flex h-screen max-h-screen overflow-hidden rounded-lg border border-[#e9edef] bg-white">
+        <div className="flex-1 flex items-center justify-center bg-[#f0f2f5]">
           <LoadingProgress
             isLoading={true}
             loadingType="initial"
@@ -292,7 +419,7 @@ export default function WhatsAppConvosPage() {
   }
 
   return (
-    <div className="flex h-screen max-h-screen overflow-hidden border rounded-xl border-gray-200">
+    <div className="flex h-screen max-h-screen overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
       <ChatSidebar
         conversations={conversations}
         onSelectConversation={handleSelectConversation}
@@ -302,7 +429,7 @@ export default function WhatsAppConvosPage() {
         loadMore={loadMoreConversations}
         isLoadingMore={isLoadingMore}
       />
-      <div className="flex-1 relative">
+      <div className="flex-1 relative bg-[#efeae2]">
         {selectedConversation ? (
           <ChatArea
             conversation={selectedConversation}
@@ -310,9 +437,14 @@ export default function WhatsAppConvosPage() {
             phoneNumber={phoneNumber}
             organizationId={activeOrganizationId ?? undefined}
             fetchMessages={fetchMessagesForConversation}
+            isMessagesLoading={loadingConversationId === selectedConversation.id}
+            initialFetchEnabled={false}
+            initialScrollTop={scrollPositionsRef.current[selectedConversation.id] ?? null}
+            onScrollPositionChange={handleScrollPositionChange}
+            onMessagesUpdate={handleMessagesUpdate}
           />
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full bg-[#f0f2f5]">
             <DownloadPage />
           </div>
         )}
@@ -329,6 +461,11 @@ export default function WhatsAppConvosPage() {
                 phoneNumber={phoneNumber}
                 organizationId={activeOrganizationId ?? undefined}
                 fetchMessages={fetchMessagesForConversation}
+                isMessagesLoading={loadingConversationId === selectedConversation.id}
+                initialFetchEnabled={false}
+                initialScrollTop={scrollPositionsRef.current[selectedConversation.id] ?? null}
+                onScrollPositionChange={handleScrollPositionChange}
+                onMessagesUpdate={handleMessagesUpdate}
               />
             )}
           </SheetContent>
