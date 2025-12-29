@@ -25,9 +25,10 @@ interface WidgetPreviewProps {
     animation_style: string
   }
   isOpen?: boolean
+  onToggleOpen?: () => void
 }
 
-const WidgetPreview = ({ widget, isOpen = true }: WidgetPreviewProps) => {
+const WidgetPreview = ({ widget, isOpen = true, onToggleOpen }: WidgetPreviewProps) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'contact'>('chat')
 
   // Backend uses fixed 60x60px chat bubble, widget_size only affects chat window
@@ -68,7 +69,7 @@ const WidgetPreview = ({ widget, isOpen = true }: WidgetPreviewProps) => {
   }
 
   return (
-    <div className="relative w-full h-[600px] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg border overflow-hidden">
+    <div className="relative w-full min-h-[700px] h-[800px] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg border overflow-hidden">
       {/* CSS Animations */}
       <style jsx>{`
         @keyframes pulseBorder {
@@ -134,6 +135,30 @@ const WidgetPreview = ({ widget, isOpen = true }: WidgetPreviewProps) => {
       <div className="absolute top-4 left-4 bg-white dark:bg-gray-800 px-3 py-1 rounded-full text-xs font-semibold text-gray-600 dark:text-gray-300 shadow-sm z-10">
         Live Preview
       </div>
+
+      {/* Widget State Toggle */}
+      {onToggleOpen && (
+        <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-lg z-10 flex items-center gap-2">
+          <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Widget State:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Closed</span>
+            <button
+              type="button"
+              onClick={onToggleOpen}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                isOpen ? "bg-blue-600" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                  isOpen ? "translate-x-5" : "translate-x-1"
+                }`}
+              />
+            </button>
+            <span className="text-xs text-gray-500">Open</span>
+          </div>
+        </div>
+      )}
 
       {/* Mock website content */}
       <div className="absolute inset-0 flex items-center justify-center p-8">

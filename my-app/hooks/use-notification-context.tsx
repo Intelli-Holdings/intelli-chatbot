@@ -49,7 +49,7 @@ type ChannelIcons = {
 const CHANNEL_ICONS: ChannelIcons = {
   whatsapp: {
     icon: "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg",
-    bgColor: "bg-green-500",
+    bgColor: "bg-[#007fff]",
     textColor: "text-white"
   },
   facebook: {

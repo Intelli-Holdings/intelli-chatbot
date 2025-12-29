@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -14,7 +16,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader, PlusCircle } from 'lucide-react'
+import {
+  Loader,
+  PlusCircle,
+  Palette,
+  Settings,
+  Rocket,
+  Eye,
+  Code,
+  CheckCircle2,
+  Upload as UploadIcon,
+  Sparkles,
+  Layout
+} from 'lucide-react'
 import { toast } from "sonner"
 import Image from "next/image"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
@@ -249,475 +263,539 @@ export default function UnifiedWidgets() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2 h-12">
           <TabsTrigger value="create" className="flex items-center gap-2">
             <PlusCircle className="h-4 w-4" />
-            Create Widget
+            <span>Create Widget</span>
           </TabsTrigger>
-          <TabsTrigger value="manage">My Widgets</TabsTrigger>
+          <TabsTrigger value="manage" className="flex items-center gap-2">
+            <Layout className="h-4 w-4" />
+            <span>My Widgets</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="create" className="mt-6">
-          <div className="flex flex-col md:flex-row gap-4 p-2 border border-dotted border-2 rounded-lg">
-            {/* Left Side: Form */}
-            <div className="md:w-1/2 bg-white shadow-md p-6 rounded-lg border border-gray-200 rounded-xl">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <h2 className="text-xl font-semibold mb-4">Create a Website Widget</h2>
-
-                {!selectedOrganizationId && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-                    <div className="flex items-center space-x-2">
-                      <Loader className="animate-spin h-4 w-4 text-blue-600" />
-                      <span className="text-sm text-blue-600">Loading organization...</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Side: Configuration Form */}
+            <div className="space-y-6">
+              <Card className="border-2">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle>Widget Configuration</CardTitle>
+                      <CardDescription>Customize your chat widget appearance and behavior</CardDescription>
                     </div>
                   </div>
-                )}
-
-                <Tabs defaultValue="basic" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="basic">Basic</TabsTrigger>
-                    <TabsTrigger value="styling">Styling</TabsTrigger>
-                    <TabsTrigger value="advanced">Advanced</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="basic" className="space-y-4 mt-4">
-                    {userMemberships?.data && userMemberships.data.length > 1 && (
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">
-                          Organization
-                        </label>
-                        <Select
-                          value={selectedOrganizationId}
-                          onValueChange={setSelectedOrganizationId}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an organization" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              {userMemberships.data.map((membership) => (
-                                <SelectItem
-                                  key={membership.organization.id}
-                                  value={membership.organization.id}
-                                >
-                                  {membership.organization.name}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {!selectedOrganizationId && (
+                      <Card className="bg-blue-50 border-blue-200">
+                        <CardContent className="p-4">
+                          <div className="flex items-center space-x-3">
+                            <Loader className="animate-spin h-5 w-5 text-blue-600" />
+                            <span className="text-sm text-blue-700 font-medium">Loading organization...</span>
+                          </div>
+                        </CardContent>
+                      </Card>
                     )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">
-                        Assistant
-                      </label>
-                      <Select
-                        value={selectedAssistantId}
-                        onValueChange={setSelectedAssistantId}
-                        disabled={isLoadingAssistants}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={isLoadingAssistants ? "Loading assistants..." : "Choose an assistant"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {assistants.map((assistant) => (
-                              <SelectItem key={assistant.assistant_id} value={assistant.assistant_id}>
-                                {assistant.name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Tabs defaultValue="basic" className="w-full">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="basic" className="gap-2">
+                          <Settings className="h-4 w-4" />
+                          Basic
+                        </TabsTrigger>
+                        <TabsTrigger value="styling" className="gap-2">
+                          <Palette className="h-4 w-4" />
+                          Styling
+                        </TabsTrigger>
+                        <TabsTrigger value="advanced" className="gap-2">
+                          <Rocket className="h-4 w-4" />
+                          Advanced
+                        </TabsTrigger>
+                      </TabsList>
 
-                    <InputField
-                      label="Widget Name"
-                      value={widgetName}
-                      onChange={setWidgetName}
-                    />
+                      <TabsContent value="basic" className="space-y-4 mt-4">
+                        {userMemberships?.data && userMemberships.data.length > 1 && (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Organization</Label>
+                            <Select
+                              value={selectedOrganizationId}
+                              onValueChange={setSelectedOrganizationId}
+                            >
+                              <SelectTrigger className="h-10">
+                                <SelectValue placeholder="Select an organization" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectGroup>
+                                  {userMemberships.data.map((membership) => (
+                                    <SelectItem
+                                      key={membership.organization.id}
+                                      value={membership.organization.id}
+                                    >
+                                      {membership.organization.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">
-                        Avatar
-                      </label>
-                      <div className="flex items-center space-x-4">
-                        <div className="relative w-12 h-12 rounded-full overflow-hidden">
-                          <Image
-                            src={avatarUrl}
-                            alt="Assistant Avatar"
-                            fill
-                            className="object-cover"
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">
+                            Assistant <Badge variant="secondary" className="ml-2">Required</Badge>
+                          </Label>
+                          <Select
+                            value={selectedAssistantId}
+                            onValueChange={setSelectedAssistantId}
+                            disabled={isLoadingAssistants}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder={isLoadingAssistants ? "Loading assistants..." : "Choose an assistant"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                {assistants.map((assistant) => (
+                                  <SelectItem key={assistant.assistant_id} value={assistant.assistant_id}>
+                                    {assistant.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">Select which AI assistant powers this widget</p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Widget Name</Label>
+                          <Input
+                            value={widgetName}
+                            onChange={(e) => setWidgetName(e.target.value)}
+                            placeholder="Enter widget name"
+                            className="h-10"
                           />
                         </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          Upload Avatar
-                        </Button>
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          className="hidden"
-                          accept="image/jpeg,image/png"
-                          onChange={handleAvatarUpload}
-                        />
-                      </div>
-                    </div>
 
-                    <InputField
-                      label="Website URL"
-                      value={websiteUrl}
-                      onChange={setWebsiteUrl}
-                    />
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Avatar</Label>
+                          <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
+                            <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-primary/20">
+                              <Image
+                                src={avatarUrl}
+                                alt="Assistant Avatar"
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="gap-2"
+                              >
+                                <UploadIcon className="h-4 w-4" />
+                                Upload Avatar
+                              </Button>
+                              <p className="text-xs text-muted-foreground mt-1">JPG or PNG, max 5MB</p>
+                            </div>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              className="hidden"
+                              accept="image/jpeg,image/png"
+                              onChange={handleAvatarUpload}
+                            />
+                          </div>
+                        </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-1">
-                        Brand Color
-                      </label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="color"
-                          value={brandColor}
-                          onChange={(e) => setBrandColor(e.target.value)}
-                          className="w-12 h-10 p-1 border border-rounded-xl border-gray-300 rounded-md cursor-pointer"
-                          title="Pick a color"
-                        />
-                        <Input
-                          type="text"
-                          value={brandColor}
-                          onChange={(e) => setBrandColor(e.target.value)}
-                          placeholder="#007fff"
-                          title="Enter color code"
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Website URL</Label>
+                          <Input
+                            value={websiteUrl}
+                            onChange={(e) => setWebsiteUrl(e.target.value)}
+                            placeholder="https://yourwebsite.com"
+                            type="url"
+                            className="h-10"
+                          />
+                          <p className="text-xs text-muted-foreground">Where will this widget be deployed?</p>
+                        </div>
 
-                    <InputField
-                      label="Greeting Message"
-                      value={greetingMessage}
-                      onChange={setGreetingMessage}
-                    />
-                  </TabsContent>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Brand Color</Label>
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <Input
+                                type="color"
+                                value={brandColor}
+                                onChange={(e) => setBrandColor(e.target.value)}
+                                className="w-16 h-10 p-1 cursor-pointer"
+                                title="Pick a color"
+                              />
+                            </div>
+                            <Input
+                              type="text"
+                              value={brandColor}
+                              onChange={(e) => setBrandColor(e.target.value)}
+                              placeholder="#007fff"
+                              className="flex-1 h-10 font-mono"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">Primary color for your widget</p>
+                        </div>
 
-                  <TabsContent value="styling" className="space-y-4 mt-4">
-                    <div>
-                      <Label>Widget Position</Label>
-                      <Select value={widgetPosition} onValueChange={setWidgetPosition}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                          <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                          <SelectItem value="top-right">Top Right</SelectItem>
-                          <SelectItem value="top-left">Top Left</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Greeting Message</Label>
+                          <Input
+                            value={greetingMessage}
+                            onChange={(e) => setGreetingMessage(e.target.value)}
+                            placeholder="Hello! I'm here to help."
+                            className="h-10"
+                          />
+                        </div>
+                      </TabsContent>
 
-                    <div>
-                      <Label>Widget Size</Label>
-                      <Select value={widgetSize} onValueChange={setWidgetSize}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="small">Small</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="large">Large</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      <TabsContent value="styling" className="space-y-4 mt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Widget Position</Label>
+                            <Select value={widgetPosition} onValueChange={setWidgetPosition}>
+                              <SelectTrigger className="h-10">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                                <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                                <SelectItem value="top-right">Top Right</SelectItem>
+                                <SelectItem value="top-left">Top Left</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                    <div>
-                      <Label>Header Color</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="color"
-                          value={headerColor}
-                          onChange={(e) => setHeaderColor(e.target.value)}
-                          className="w-12 h-10 p-1 border border-gray-300 rounded-md cursor-pointer"
-                        />
-                        <Input
-                          type="text"
-                          value={headerColor}
-                          onChange={(e) => setHeaderColor(e.target.value)}
-                          placeholder="#007fff"
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Widget Size</Label>
+                            <Select value={widgetSize} onValueChange={setWidgetSize}>
+                              <SelectTrigger className="h-10">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="small">Small</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="large">Large</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
 
-                    <div>
-                      <Label>Visitor Message Color</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="color"
-                          value={visitorMessageColor}
-                          onChange={(e) => setVisitorMessageColor(e.target.value)}
-                          className="w-12 h-10 p-1 border border-gray-300 rounded-md cursor-pointer"
-                        />
-                        <Input
-                          type="text"
-                          value={visitorMessageColor}
-                          onChange={(e) => setVisitorMessageColor(e.target.value)}
-                          placeholder="#007fff"
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Header Color</Label>
+                          <div className="flex items-center gap-3">
+                            <Input
+                              type="color"
+                              value={headerColor}
+                              onChange={(e) => setHeaderColor(e.target.value)}
+                              className="w-16 h-10 p-1 cursor-pointer"
+                            />
+                            <Input
+                              type="text"
+                              value={headerColor}
+                              onChange={(e) => setHeaderColor(e.target.value)}
+                              placeholder="#007fff"
+                              className="flex-1 h-10 font-mono"
+                            />
+                          </div>
+                        </div>
 
-                    <div>
-                      <Label>Business Message Color</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="color"
-                          value={businessMessageColor}
-                          onChange={(e) => setBusinessMessageColor(e.target.value)}
-                          className="w-12 h-10 p-1 border border-gray-300 rounded-md cursor-pointer"
-                        />
-                        <Input
-                          type="text"
-                          value={businessMessageColor}
-                          onChange={(e) => setBusinessMessageColor(e.target.value)}
-                          placeholder="#F0F0F0"
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Visitor Message Color</Label>
+                          <div className="flex items-center gap-3">
+                            <Input
+                              type="color"
+                              value={visitorMessageColor}
+                              onChange={(e) => setVisitorMessageColor(e.target.value)}
+                              className="w-16 h-10 p-1 cursor-pointer"
+                            />
+                            <Input
+                              type="text"
+                              value={visitorMessageColor}
+                              onChange={(e) => setVisitorMessageColor(e.target.value)}
+                              placeholder="#007fff"
+                              className="flex-1 h-10 font-mono"
+                            />
+                          </div>
+                        </div>
 
-                    <div>
-                      <Label>Font Family</Label>
-                      <Select value={fontFamily} onValueChange={setFontFamily}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Arial, sans-serif">Arial</SelectItem>
-                          <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
-                          <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
-                          <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                          <SelectItem value="'Segoe UI', Tahoma, sans-serif">Segoe UI</SelectItem>
-                          <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
-                          <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TabsContent>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Business Message Color</Label>
+                          <div className="flex items-center gap-3">
+                            <Input
+                              type="color"
+                              value={businessMessageColor}
+                              onChange={(e) => setBusinessMessageColor(e.target.value)}
+                              className="w-16 h-10 p-1 cursor-pointer"
+                            />
+                            <Input
+                              type="text"
+                              value={businessMessageColor}
+                              onChange={(e) => setBusinessMessageColor(e.target.value)}
+                              placeholder="#F0F0F0"
+                              className="flex-1 h-10 font-mono"
+                            />
+                          </div>
+                        </div>
 
-                  <TabsContent value="advanced" className="space-y-4 mt-4">
-                    <InputField
-                      label="Help Text"
-                      value={helpText}
-                      onChange={setHelpText}
-                    />
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Font Family</Label>
+                          <Select value={fontFamily} onValueChange={setFontFamily}>
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                              <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
+                              <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
+                              <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                              <SelectItem value="'Segoe UI', Tahoma, sans-serif">Segoe UI</SelectItem>
+                              <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
+                              <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </TabsContent>
 
-                    <InputField
-                      label="Button Text"
-                      value={buttonText}
-                      onChange={setButtonText}
-                    />
+                      <TabsContent value="advanced" className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Help Text</Label>
+                          <Input
+                            value={helpText}
+                            onChange={(e) => setHelpText(e.target.value)}
+                            placeholder="Need Help? Chat With US !"
+                            className="h-10"
+                          />
+                        </div>
 
-                    <div>
-                      <Label>Font Size (px)</Label>
-                      <Input
-                        type="number"
-                        value={fontSize}
-                        onChange={(e) => setFontSize(parseInt(e.target.value))}
-                        min={10}
-                        max={24}
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Button Text</Label>
+                          <Input
+                            value={buttonText}
+                            onChange={(e) => setButtonText(e.target.value)}
+                            placeholder="Chat with us"
+                            className="h-10"
+                          />
+                        </div>
 
-                    <div>
-                      <Label>Border Radius (px)</Label>
-                      <Input
-                        type="number"
-                        value={borderRadius}
-                        onChange={(e) => setBorderRadius(parseInt(e.target.value))}
-                        min={0}
-                        max={30}
-                      />
-                    </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Font Size (px)</Label>
+                            <Input
+                              type="number"
+                              value={fontSize}
+                              onChange={(e) => setFontSize(parseInt(e.target.value))}
+                              min={10}
+                              max={24}
+                              className="h-10"
+                            />
+                          </div>
 
-                    <div>
-                      <Label>Chat Window Width (px)</Label>
-                      <Input
-                        type="number"
-                        value={chatWindowWidth}
-                        onChange={(e) => setChatWindowWidth(parseInt(e.target.value))}
-                        min={300}
-                        max={600}
-                      />
-                    </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Border Radius (px)</Label>
+                            <Input
+                              type="number"
+                              value={borderRadius}
+                              onChange={(e) => setBorderRadius(parseInt(e.target.value))}
+                              min={0}
+                              max={30}
+                              className="h-10"
+                            />
+                          </div>
+                        </div>
 
-                    <div>
-                      <Label>Chat Window Height (px)</Label>
-                      <Input
-                        type="number"
-                        value={chatWindowHeight}
-                        onChange={(e) => setChatWindowHeight(parseInt(e.target.value))}
-                        min={400}
-                        max={800}
-                      />
-                    </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Window Width (px)</Label>
+                            <Input
+                              type="number"
+                              value={chatWindowWidth}
+                              onChange={(e) => setChatWindowWidth(parseInt(e.target.value))}
+                              min={300}
+                              max={600}
+                              className="h-10"
+                            />
+                          </div>
 
-                    <div>
-                      <Label>Animation Style</Label>
-                      <Select value={animationStyle} onValueChange={setAnimationStyle}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="slide">Slide</SelectItem>
-                          <SelectItem value="fade">Fade</SelectItem>
-                          <SelectItem value="bounce">Bounce</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Window Height (px)</Label>
+                            <Input
+                              type="number"
+                              value={chatWindowHeight}
+                              onChange={(e) => setChatWindowHeight(parseInt(e.target.value))}
+                              min={400}
+                              max={800}
+                              className="h-10"
+                            />
+                          </div>
+                        </div>
 
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="enableSound"
-                        checked={enableSound}
-                        onChange={(e) => setEnableSound(e.target.checked)}
-                        className="w-4 h-4"
-                      />
-                      <Label htmlFor="enableSound">Enable Sound Notifications</Label>
-                    </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">Animation Style</Label>
+                          <Select value={animationStyle} onValueChange={setAnimationStyle}>
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="slide">Slide</SelectItem>
+                              <SelectItem value="fade">Fade</SelectItem>
+                              <SelectItem value="bounce">Bounce</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="showPoweredBy"
-                        checked={showPoweredBy}
-                        onChange={(e) => setShowPoweredBy(e.target.checked)}
-                        className="w-4 h-4"
-                      />
-                      <Label htmlFor="showPoweredBy">Show "Powered by IntelliConcierge"</Label>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                        <div className="space-y-3 pt-2">
+                          <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                id="enableSound"
+                                checked={enableSound}
+                                onChange={(e) => setEnableSound(e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-300"
+                              />
+                              <Label htmlFor="enableSound" className="cursor-pointer font-medium">Enable Sound Notifications</Label>
+                            </div>
+                          </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-blue-600 bg-blue-600 hover:bg-blue-700 mt-4"
-                  disabled={loading || !selectedOrganizationId || !selectedAssistantId || isLoadingAssistants}
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <Loader className="animate-spin h-5 w-5" />
-                      <span>Creating Widget...</span>
-                    </div>
-                  ) : isLoadingAssistants ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <Loader className="animate-spin h-5 w-5" />
-                      <span>Loading Assistants...</span>
-                    </div>
-                  ) : !selectedOrganizationId ? (
-                    "Waiting for Organization..."
-                  ) : !selectedAssistantId ? (
-                    "Select an Assistant"
-                  ) : (
-                    "Create Widget"
-                  )}
-                </Button>
-              </form>
+                          <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                id="showPoweredBy"
+                                checked={showPoweredBy}
+                                onChange={(e) => setShowPoweredBy(e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-300"
+                              />
+                              <Label htmlFor="showPoweredBy" className="cursor-pointer font-medium">Show "Powered by IntelliConcierge"</Label>
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+
+                    <Button
+                      type="submit"
+                      className="w-full h-11 bg-primary hover:bg-primary/90 gap-2"
+                      disabled={loading || !selectedOrganizationId || !selectedAssistantId || isLoadingAssistants}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader className="animate-spin h-5 w-5" />
+                          <span>Creating Widget...</span>
+                        </>
+                      ) : isLoadingAssistants ? (
+                        <>
+                          <Loader className="animate-spin h-5 w-5" />
+                          <span>Loading Assistants...</span>
+                        </>
+                      ) : !selectedOrganizationId ? (
+                        "Waiting for Organization..."
+                      ) : !selectedAssistantId ? (
+                        "Select an Assistant"
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-5 w-5" />
+                          Create Widget
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Right Side: Live Preview */}
-            <div className="md:w-1/2 flex flex-col items-center justify-center space-y-4">
-              {createdWidgetKey && (
-                <div className="w-full">
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      variant={previewMode === "static" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPreviewMode("static")}
-                    >
-                      Preview
-                    </Button>
-                    <Button
-                      variant={previewMode === "live" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPreviewMode("live")}
-                    >
-                      Live Test
-                    </Button>
-                    <Button
-                      onClick={() => setShowDeploymentDialog(true)}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      size="sm"
-                    >
-                      Deploy
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {previewMode === "live" && createdWidgetKey ? (
-                <WidgetCommunication
-                  widgetKey={createdWidgetKey}
-                  widgetName={widgetName}
-                  avatarUrl={avatarUrl}
-                  brandColor={brandColor}
-                  greetingMessage={greetingMessage}
-                />
-              ) : (
-                <div className="w-full">
-                  <div className="mb-4 flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border">
-                    <Label className="text-sm font-semibold">Preview Widget State</Label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Closed</span>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewOpen(!previewOpen)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          previewOpen ? "bg-blue-600" : "bg-gray-200"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            previewOpen ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                      <span className="text-xs text-muted-foreground">Open</span>
+            <div className="w-full">
+              <Card className="border-2">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Eye className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Live Preview</CardTitle>
+                        <CardDescription>See your widget in action</CardDescription>
+                      </div>
                     </div>
+                    {createdWidgetKey && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant={previewMode === "static" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPreviewMode("static")}
+                        >
+                          Preview
+                        </Button>
+                        <Button
+                          variant={previewMode === "live" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPreviewMode("live")}
+                        >
+                          Live Test
+                        </Button>
+                        <Button
+                          onClick={() => setShowDeploymentDialog(true)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          size="sm"
+                        >
+                          Deploy
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <WidgetPreview
-                    widget={{
-                      widget_name: widgetName,
-                      avatar_url: avatarUrl,
-                      brand_color: brandColor,
-                      greeting_message: greetingMessage,
-                      help_text: helpText,
-                      button_text: buttonText,
-                      widget_position: widgetPosition as any,
-                      widget_size: widgetSize as any,
-                      header_color: headerColor,
-                      visitor_message_color: visitorMessageColor,
-                      business_message_color: businessMessageColor,
-                      font_family: fontFamily,
-                      font_size: fontSize,
-                      border_radius: borderRadius,
-                      chat_window_width: chatWindowWidth,
-                      chat_window_height: chatWindowHeight,
-                      enable_sound: enableSound,
-                      show_powered_by: showPoweredBy,
-                      animation_style: animationStyle
-                    }}
-                    isOpen={previewOpen}
-                  />
-                </div>
-              )}
+                </CardHeader>
+                <CardContent>
+                  {previewMode === "live" && createdWidgetKey ? (
+                    <WidgetCommunication
+                      widgetKey={createdWidgetKey}
+                      widgetName={widgetName}
+                      avatarUrl={avatarUrl}
+                      brandColor={brandColor}
+                      greetingMessage={greetingMessage}
+                    />
+                  ) : (
+                    <WidgetPreview
+                      widget={{
+                        widget_name: widgetName,
+                        avatar_url: avatarUrl,
+                        brand_color: brandColor,
+                        greeting_message: greetingMessage,
+                        help_text: helpText,
+                        button_text: buttonText,
+                        widget_position: widgetPosition as any,
+                        widget_size: widgetSize as any,
+                        header_color: headerColor,
+                        visitor_message_color: visitorMessageColor,
+                        business_message_color: businessMessageColor,
+                        font_family: fontFamily,
+                        font_size: fontSize,
+                        border_radius: borderRadius,
+                        chat_window_width: chatWindowWidth,
+                        chat_window_height: chatWindowHeight,
+                        enable_sound: enableSound,
+                        show_powered_by: showPoweredBy,
+                        animation_style: animationStyle
+                      }}
+                      isOpen={previewOpen}
+                      onToggleOpen={() => setPreviewOpen(!previewOpen)}
+                    />
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </TabsContent>
@@ -734,22 +812,6 @@ export default function UnifiedWidgets() {
           websiteUrl={websiteUrl}
         />
       )}
-    </div>
-  )
-}
-
-function InputField({ label, value, onChange, type = "text" }: any) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-foreground mb-1">
-        {label}
-      </label>
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        type={type}
-        placeholder={`Enter ${label.toLowerCase()}`}
-      />
     </div>
   )
 }

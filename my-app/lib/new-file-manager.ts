@@ -340,6 +340,8 @@ export const getFileTypeIcon = (fileType: string): string => {
 };
 
 export const validateFileUpload = (file: File): { isValid: boolean; error?: string } => {
+  // These file types are supported by OpenAI's Vector Store API
+  // Reference: https://platform.openai.com/docs/assistants/tools/file-search
   const allowedTypes = [
     'application/pdf',
     'application/msword',
@@ -373,6 +375,8 @@ export const validateFileUpload = (file: File): { isValid: boolean; error?: stri
 };
 
 export const isAllowedFileType = (fileType: string): boolean => {
+  // These file types are supported by OpenAI's Vector Store API
+  // Reference: https://platform.openai.com/docs/assistants/tools/file-search
   const allowedTypes = [
     'application/pdf',
     'application/msword',

@@ -27,7 +27,7 @@ export function AssigneeSelector({ assignees, selectedAssignees, onSelect, onClo
   return (
     <div className="w-[300px] border rounded-lg bg-background shadow-md">
       <div className="flex items-center justify-between p-2 border-b">
-        <Badge variant="secondary" className="gap-10">
+        <Badge variant="default" className="gap-10 bg-[#007fff] text-white border-[#0067d6]">
           <span>Assignees</span>
           {selectedAssignees.length > 0 && <span className="ml-1">{selectedAssignees.length}</span>}
         </Badge>
@@ -55,7 +55,7 @@ export function AssigneeSelector({ assignees, selectedAssignees, onSelect, onClo
                       <AvatarFallback className="bg-primary/10 text-sm">{assignee.initials}</AvatarFallback>
                     </Avatar>
                     {assignee.online && (
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#007fff] ring-2 ring-background" />
                     )}
                   </div>
                   <span>{assignee.name}</span>
@@ -69,4 +69,3 @@ export function AssigneeSelector({ assignees, selectedAssignees, onSelect, onClo
     </div>
   )
 }
-

@@ -163,7 +163,7 @@ export function WidgetCommunication({
   };
 
   return (
-    <div className="relative w-full h-[600px] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-xl shadow-inner overflow-hidden border border-slate-200">
+    <div className="relative w-full min-h-[700px] h-[800px] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-xl shadow-inner overflow-hidden border border-slate-200">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 opacity-40">
         <div className="absolute top-10 left-10 w-32 h-32 bg-blue-200 rounded-full blur-3xl"></div>

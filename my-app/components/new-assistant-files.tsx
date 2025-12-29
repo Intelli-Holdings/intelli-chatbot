@@ -159,6 +159,8 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       setFiles((prevFiles) => [...prevFiles, ...validFiles]);
     },
     accept: {
+      // Only file types supported by OpenAI's Vector Store API
+      // CSV and Excel files are NOT supported by OpenAI
       'application/pdf': ['.pdf'],
       'application/msword': ['.doc'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
@@ -169,9 +171,13 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       'application/json': ['.json'],
       'text/html': ['.html'],
       'application/x-python': ['.py'],
+      'text/x-python': ['.py'],
       'application/x-sh': ['.sh'],
+      'text/x-sh': ['.sh'],
       'application/x-tex': ['.tex'],
+      'text/x-tex': ['.tex'],
       'application/typescript': ['.ts'],
+      'text/typescript': ['.ts'],
     },
     maxSize: 512 * 1024 * 1024, // 512MB
   });
@@ -559,7 +565,10 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                   <div>
                     <p>Drag and drop files here, or click to select</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Supports: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, HTML (Max: 512MB)
+                      Supports: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JSON, HTML, PY, SH, TEX, TS (Max: 512MB)
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1 italic">
+                      Note: CSV and Excel files are not supported by OpenAI
                     </p>
                   </div>
                 )}

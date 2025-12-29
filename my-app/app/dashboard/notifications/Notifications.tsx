@@ -482,7 +482,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       case 'video':
         return <Video className="h-4 w-4 text-purple-500" />
       case 'audio':
-        return <Music className="h-4 w-4 text-green-500" />
+        return <Music className="h-4 w-4 text-[#007fff]" />
       case 'document':
         return <FileText className="h-4 w-4 text-orange-500" />
       default:
@@ -501,7 +501,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
     return (
       <div
         key={notification.id}
-        className={`bg-white hover:bg-[#f5f6f6] transition-colors duration-150 px-4 py-3 ${isSelected ? 'ring-2 ring-[#00a884] ring-inset' : ''}`}
+        className={`bg-white hover:bg-[#f5f6f6] transition-colors duration-150 px-4 py-3 ${isSelected ? 'ring-2 ring-[#007fff] ring-inset' : ''}`}
       >
         {/* Header: Customer info, channel, and actions */}
         <div className="flex items-start justify-between mb-2">
@@ -520,20 +520,20 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                   <AvatarImage src={channelIcon || "/placeholder.svg"} alt={notification.channel} />
                 ) : (
                   channelIcon || (
-                    <AvatarFallback className="bg-[#00a884] text-white text-xs">
+                    <AvatarFallback className="bg-[#007fff] text-white text-xs">
                       {(notification.channel?.[0] || "N").toUpperCase()}
                     </AvatarFallback>
                   )
                 )
               })()}
-              <AvatarFallback className="bg-[#00a884] text-white text-xs">
+              <AvatarFallback className="bg-[#007fff] text-white text-xs">
                 {(notification.channel?.[0] || "N").toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <h3
-                  className="text-[14px] font-semibold text-[#111b21] hover:text-[#00a884] cursor-pointer truncate"
+                  className="text-[14px] font-semibold text-[#111b21] hover:text-[#007fff] cursor-pointer truncate"
                   onClick={() => handleNavigateToConversation(notification)}
                 >
                   {notification.chatsession?.customer_name || "Unknown Customer"}
@@ -564,7 +564,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-[11px] text-[#00a884] hover:bg-[#f0f2f5]"
+                className="h-7 px-2 text-[11px] text-[#007fff] hover:bg-[#f0f2f5]"
                 onClick={() => handleResolveNotification(notification.id.toString())}
                 disabled={isLoading[`resolve-${notification.id}`]}
               >
@@ -672,7 +672,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 px-2 text-[11px] text-[#00a884] hover:bg-[#f0f2f5]"
+                    className="h-6 px-2 text-[11px] text-[#007fff] hover:bg-[#f0f2f5]"
                     onClick={() => setShowAssigneeSelect(notification.id.toString())}
                   >
                     <UserPlus className="h-3 w-3 mr-1" />
@@ -698,10 +698,10 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       <CardHeader className="border-b border-[#e9edef] pb-3 pt-3 bg-[#f0f2f5]">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center space-x-2 text-[17px] font-semibold text-[#111b21]">
-            <Bell className="h-5 w-5 text-[#00a884]" />
+            <Bell className="h-5 w-5 text-[#007fff]" />
             <span>Notifications</span>
             {selectedNotifications.size > 0 && (
-              <Badge className="bg-[#00a884] text-white hover:bg-[#008f6f] ml-2">
+              <Badge className="bg-[#007fff] text-white hover:bg-[#0067d6] ml-2">
                 {selectedNotifications.size} selected
               </Badge>
             )}
@@ -735,7 +735,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                 variant={viewMode === 'list' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('list')}
-                className={`h-8 px-3 rounded-r-none ${viewMode === 'list' ? 'bg-[#00a884] hover:bg-[#008f6f] text-white' : 'hover:bg-[#f0f2f5] text-[#667781]'}`}
+                className={`h-8 px-3 rounded-r-none ${viewMode === 'list' ? '!bg-[#007fff] hover:!bg-[#0067d6] !text-white' : 'hover:bg-[#f0f2f5] text-[#667781]'}`}
               >
                 <LayoutList className="h-3.5 w-3.5" />
               </Button>
@@ -743,7 +743,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                 variant={viewMode === 'grouped' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('grouped')}
-                className={`h-8 px-3 rounded-none border-l border-r border-[#e9edef] ${viewMode === 'grouped' ? 'bg-[#00a884] hover:bg-[#008f6f] text-white' : 'hover:bg-[#f0f2f5] text-[#667781]'}`}
+                className={`h-8 px-3 rounded-none border-l border-r border-[#e9edef] ${viewMode === 'grouped' ? '!bg-[#007fff] hover:!bg-[#0067d6] !text-white' : 'hover:bg-[#f0f2f5] text-[#667781]'}`}
               >
                 <Phone className="h-3.5 w-3.5" />
               </Button>
@@ -751,7 +751,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                 variant={viewMode === 'kanban' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('kanban')}
-                className={`h-8 px-3 rounded-l-none ${viewMode === 'kanban' ? 'bg-[#00a884] hover:bg-[#008f6f] text-white' : 'hover:bg-[#f0f2f5] text-[#667781]'}`}
+                className={`h-8 px-3 rounded-l-none ${viewMode === 'kanban' ? '!bg-[#007fff] hover:!bg-[#0067d6] !text-white' : 'hover:bg-[#f0f2f5] text-[#667781]'}`}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
               </Button>
@@ -773,7 +773,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                   size="sm"
                   onClick={bulkResolveNotifications}
                   disabled={isLoading['bulk-resolve']}
-                  className="h-8 px-3 text-xs bg-[#00a884] hover:bg-[#008f6f] text-white"
+                  className="h-8 px-3 text-xs !bg-[#007fff] hover:!bg-[#0067d6] !text-white"
                 >
                   {isLoading['bulk-resolve'] ? (
                     <RefreshCcw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
@@ -804,7 +804,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       <CardContent className="p-0">
         {notificationsLoading ? (
           <div className="flex justify-center items-center h-[200px] bg-white">
-            <RefreshCcw className="h-6 w-6 text-[#00a884] animate-spin" />
+            <RefreshCcw className="h-6 w-6 text-[#007fff] animate-spin" />
             <span className="ml-2 text-[13px] text-[#667781]">Loading notifications...</span>
           </div>
         ) : error ? (
@@ -861,7 +861,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                                 ) : (
                                   <ChevronDown className="h-4 w-4 text-[#667781]" />
                                 )}
-                                <Phone className="h-4 w-4 text-[#00a884]" />
+                                <Phone className="h-4 w-4 text-[#007fff]" />
                                 <div className="flex flex-col items-start">
                                   <span className="text-[14px] font-semibold text-[#111b21]">
                                     {customerName}
@@ -873,7 +873,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                               </div>
                               <div className="flex items-center gap-2">
                                 {unreadCount > 0 && (
-                                  <Badge className="bg-[#00a884] text-white hover:bg-[#008f6f] text-[10px] h-5 px-2">
+                                  <Badge className="bg-[#007fff] text-white hover:bg-[#0067d6] text-[10px] h-5 px-2">
                                     {unreadCount}
                                   </Badge>
                                 )}
@@ -930,10 +930,10 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                 {/* Resolved Column */}
                 <div className="flex-1 min-w-[400px]">
                   <div className="bg-white rounded-lg border border-[#e9edef] shadow-sm">
-                    <div className="px-4 py-3 border-b border-[#e9edef] bg-[#e8f5e9]">
+                    <div className="px-4 py-3 border-b border-[#e9edef] bg-[#e6f2ff]">
                       <div className="flex items-center justify-between">
                         <h3 className="text-[15px] font-semibold text-[#111b21]">Resolved</h3>
-                        <Badge className="bg-[#4caf50] text-white hover:bg-[#388e3c] text-[10px] h-5 px-2">
+                        <Badge className="bg-[#007fff] text-white hover:bg-[#0067d6] text-[10px] h-5 px-2">
                           {groupedByStatus.resolved.length}
                         </Badge>
                       </div>
@@ -998,7 +998,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                       disabled={isPaginationLoading}
                       className={`h-7 w-7 p-0 text-xs ${
                         currentPage === pageNum
-                          ? "bg-[#00a884] hover:bg-[#008f6f] text-white border-[#00a884]"
+                          ? "bg-[#007fff] hover:bg-[#0067d6] text-white border-[#007fff]"
                           : "border-[#e9edef] hover:bg-white"
                       }`}
                     >

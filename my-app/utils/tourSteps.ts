@@ -9,43 +9,43 @@ export const steps: Tours = [
       {
         icon: "👋",
         title: "Welcome to Intelli",
-        content: "Command center is the heart of all your business interactions. Let’s get started!",
+        content: "Start here to get a quick snapshot of your workspace and access the tour anytime.",
         selector: "#onborda-step1",
         side: "left",
         showControls: true,
         showSkip: true
       },
       {
-        icon: "🪄",
-        title: "Set Up Your Assistant",
-        content: "Upload information about your business, to enable the assistant to match your brand’s voice, and update details whenever you need.",
+        icon: "📈",
+        title: "Live Insights",
+        content: "Monitor key KPIs and performance trends compared to last month.",
         selector: "#onborda-step2",
         side: "right",
         showControls: true,
         showSkip: true
       },
       {
-        icon: "🌐",
-        title: "Add a Website Widget",
-        content: "Bring your assistant to life on your website! Customize its color, name, and greeting to reflect your brand and connect with your audience.",
+        icon: "👥",
+        title: "Contact Management",
+        content: "Track total contacts, follow-ups, conversions, and inbound leads at a glance.",
         selector: "#onborda-step3",
-        side: "right",
-        showControls: true,
-        showSkip: true
-      },
-      {
-        icon: "📦",
-        title: "Connect to Whatsapp",
-        content: "Link your assistant to WhatsApp to handle inquiries. Watch as it manages conversations and simplifies communication behind the scenes.",
-        selector: "#onborda-step4",
         side: "left",
         showControls: true,
         showSkip: true
       },
       {
-        icon: "🔔",
-        title: "Stay Notified",
-        content: "Stay on top of time-sensitive messages with instant notifications. Resolve your customers’ concerns quickly and efficiently to keep them satisfied.",
+        icon: "⚠️",
+        title: "Priority Issues",
+        content: "Stay on top of time-sensitive requests and high priority conversations.",
+        selector: "#onborda-step4",
+        side: "right",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "⚙️",
+        title: "Token Usage",
+        content: "Keep an eye on AI usage and costs so you can plan ahead.",
         selector: "#onborda-step5",
         side: "top",
         showControls: true,
@@ -53,19 +53,19 @@ export const steps: Tours = [
       },
       {
         icon: "💬",
-        title: "Manage Conversations",
-        content: "Take control whenever needed. Use your inbox to view and respond to customer messages in real time.",
+        title: "Conversations",
+        content: "Review total and active conversations, response times, and satisfaction.",
         selector: "#onborda-step6",
         side: "left",
         showControls: true,
         showSkip: true
       },
       {
-        icon: "📊",
-        title: "Track Your Analytics",
-        content: "Monitor essential metrics like response times, engagement rates, and customer satisfaction to improve your business performance.",
+        icon: "🚀",
+        title: "Launch Channels",
+        content: "Create assistants and deploy them across your customer channels.",
         selector: "#onborda-step7",
-        side: "top",
+        side: "right",
         showControls: true,
         showSkip: true
       }
