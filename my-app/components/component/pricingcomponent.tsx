@@ -58,8 +58,8 @@ const PricingComponent = () => {
         'Multichannel package',
       ],
       description: 'Tailored solutions for large-scale organizations.',
-      buttonText: 'Contact Sales',
-      link: 'https://cal.com/intelli/enterprise-sales',
+      buttonText: 'Book a Discovery Call',
+      link: 'https://cal.com/intelli-demo/30min',
     },
   ];
 
