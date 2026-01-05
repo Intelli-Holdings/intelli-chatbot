@@ -17,14 +17,28 @@ interface EmptyStateProps {
   userName?: string;
   onWhatsAppSetup?: () => void;
   onWebsiteSetup?: () => void;
+  stats?: {
+    totalConversations?: number;
+    totalMessages?: number;
+    activeTickets?: number;
+    tokenUsagePercent?: number;
+    channelStats?: {
+      whatsapp?: number;
+      website?: number;
+    };
+  };
 }
 
 export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
   userName = "there",
   onWhatsAppSetup,
-  onWebsiteSetup
+  onWebsiteSetup,
+  stats
 }) => {
   const router = useRouter();
+
+  // Debug: Log the stats being passed
+  console.log('[EmptyState] Received stats:', stats);
 
   return (
     <div className="space-y-6">
@@ -36,10 +50,10 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Welcome to IntelliConcierge, <span className="text-[#007fff]">{userName}</span>!
+              Welcome to Intelli, <span className="text-[#007fff]">{userName}</span>!
             </h1>
             <p className="mt-2 text-lg text-gray-600">
-              Let's get you started with your AI-powered customer engagement platform
+              Let&apos;s get you started with your AI-powered customer engagement platform
             </p>
           </div>
         </div>
@@ -141,35 +155,91 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
         </div>
       </div>
 
-      {/* What You'll See */}
+      {/* Quick Stats Overview */}
       <Card className="rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50">
             <BarChart3 className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">What You'll See Here</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Quick Stats Overview</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Once you start engaging with customers, this dashboard will show:
+              {stats && (stats.totalConversations ?? 0) > 0
+                ? "Your engagement metrics at a glance"
+                : "Your metrics will appear here once you start engaging with customers"}
             </p>
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mt-4">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className={`rounded-lg border p-3 ${
+            stats && (stats.totalConversations ?? 0) > 0
+              ? 'border-blue-200 bg-blue-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}>
             <p className="text-xs font-medium text-gray-500">Total Conversations</p>
-            <p className="text-2xl font-bold text-gray-300 mt-1">0</p>
+            <p className={`text-2xl font-bold mt-1 ${
+              stats && (stats.totalConversations ?? 0) > 0
+                ? 'text-blue-600'
+                : 'text-gray-300'
+            }`}>
+              {stats?.totalConversations?.toLocaleString() ?? 0}
+            </p>
+            {stats && stats.channelStats && (((stats.channelStats.whatsapp ?? 0) + (stats.channelStats.website ?? 0)) > 0) && (
+              <div className="mt-2 flex gap-2 text-xs">
+                {(stats.channelStats.whatsapp ?? 0) > 0 && (
+                  <span className="text-green-600">
+                    WhatsApp: {stats.channelStats.whatsapp}
+                  </span>
+                )}
+                {(stats.channelStats.website ?? 0) > 0 && (
+                  <span className="text-blue-600">
+                    Web: {stats.channelStats.website}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className={`rounded-lg border p-3 ${
+            stats && (stats.totalMessages ?? 0) > 0
+              ? 'border-purple-200 bg-purple-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}>
             <p className="text-xs font-medium text-gray-500">Messages Sent</p>
-            <p className="text-2xl font-bold text-gray-300 mt-1">0</p>
+            <p className={`text-2xl font-bold mt-1 ${
+              stats && (stats.totalMessages ?? 0) > 0
+                ? 'text-purple-600'
+                : 'text-gray-300'
+            }`}>
+              {stats?.totalMessages?.toLocaleString() ?? 0}
+            </p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className={`rounded-lg border p-3 ${
+            stats && (stats.activeTickets ?? 0) > 0
+              ? 'border-orange-200 bg-orange-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}>
             <p className="text-xs font-medium text-gray-500">Active Tickets</p>
-            <p className="text-2xl font-bold text-gray-300 mt-1">0</p>
+            <p className={`text-2xl font-bold mt-1 ${
+              stats && (stats.activeTickets ?? 0) > 0
+                ? 'text-orange-600'
+                : 'text-gray-300'
+            }`}>
+              {stats?.activeTickets?.toLocaleString() ?? 0}
+            </p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className={`rounded-lg border p-3 ${
+            stats && (stats.tokenUsagePercent ?? 0) > 0
+              ? 'border-green-200 bg-green-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}>
             <p className="text-xs font-medium text-gray-500">Token Usage</p>
-            <p className="text-2xl font-bold text-gray-300 mt-1">0%</p>
+            <p className={`text-2xl font-bold mt-1 ${
+              stats && (stats.tokenUsagePercent ?? 0) > 0
+                ? 'text-green-600'
+                : 'text-gray-300'
+            }`}>
+              {stats?.tokenUsagePercent ?? 0}%
+            </p>
           </div>
         </div>
       </Card>
@@ -183,7 +253,7 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900">Need Help Getting Started?</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Check out our documentation or click the "Take Tour" button above to learn about all features.
+              Check out our documentation or click the &quot;Take Tour&quot; button above to learn about all features.
             </p>
           </div>
         </div>

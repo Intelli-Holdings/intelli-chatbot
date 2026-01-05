@@ -178,7 +178,11 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
 
         <div className="flex items-center gap-2">
           <Button
-            className="h-9 px-3 text-xs border-[#00a884] bg-[#00a884] hover:bg-[#008f6f] text-white rounded-md shadow-sm transition-colors"
+            className={`h-9 px-3 text-xs text-white rounded-md shadow-sm transition-colors ${
+              isAiSupport
+                ? "bg-[#007fff] hover:bg-[#0066cc] border-[#007fff]"
+                : "bg-green-600 hover:bg-green-700 border-green-600"
+            }`}
             onClick={handleToggleAISupport}
           >
             {isAiSupport ? "Take Over" : "Hand to AI"}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from 'react-query';
 
 export type CustomFieldType = 'text' | 'number' | 'date' | 'boolean' | 'enum';
 
@@ -52,114 +53,105 @@ interface UseCustomFieldsReturn {
   deleteCustomField: (id: string) => Promise<void>;
 }
 
+const normalizeList = <T,>(data: any): T[] => {
+  if (Array.isArray(data)) return data;
+  return data?.results || [];
+};
+
 export function useCustomFields(organizationId?: string): UseCustomFieldsReturn {
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = ['custom-fields', organizationId];
 
-  const fetchCustomFields = useCallback(async () => {
+  const fetchCustomFields = useCallback(async (): Promise<CustomField[]> => {
     if (!organizationId) {
-      setCustomFields([]);
-      return;
+      return [];
     }
 
-    setLoading(true);
-    setError(null);
+    const response = await fetch(`/api/contacts/custom-fields?organization=${organizationId}`);
 
-    try {
-      const response = await fetch(`/api/contacts/custom-fields?organization=${organizationId}`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch custom fields');
-      }
-
-      const data = await response.json();
-      setCustomFields(Array.isArray(data) ? data : data.results || []);
-    } catch (err) {
-      console.error('Error fetching custom fields:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch custom fields');
-      setCustomFields([]);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch custom fields');
     }
+
+    const data = await response.json();
+    return normalizeList<CustomField>(data);
   }, [organizationId]);
 
-  useEffect(() => {
-    fetchCustomFields();
-  }, [fetchCustomFields]);
+  const query = useQuery(queryKey, fetchCustomFields, {
+    enabled: Boolean(organizationId),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const createCustomField = useCallback(async (data: CreateCustomFieldData): Promise<CustomField> => {
-    try {
-      const response = await fetch('/api/contacts/custom-fields', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+    const response = await fetch('/api/contacts/custom-fields', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create custom field');
-      }
-
-      const newField = await response.json();
-      setCustomFields(prev => [...prev, newField]);
-      return newField;
-    } catch (err) {
-      console.error('Error creating custom field:', err);
-      throw err;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create custom field');
     }
-  }, []);
+
+    const newField = await response.json();
+    queryClient.setQueryData<CustomField[]>(queryKey, (old) => {
+      const existing = old || [];
+      return [...existing, newField];
+    });
+
+    return newField;
+  }, [queryClient, queryKey]);
 
   const updateCustomField = useCallback(async (id: string, data: UpdateCustomFieldData): Promise<CustomField> => {
-    try {
-      const response = await fetch(`/api/contacts/custom-fields/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+    const response = await fetch(`/api/contacts/custom-fields/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update custom field');
-      }
-
-      const updatedField = await response.json();
-      setCustomFields(prev => prev.map(field => field.id === id ? updatedField : field));
-      return updatedField;
-    } catch (err) {
-      console.error('Error updating custom field:', err);
-      throw err;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update custom field');
     }
-  }, []);
+
+    const updatedField = await response.json();
+    queryClient.setQueryData<CustomField[]>(queryKey, (old) => {
+      const existing = old || [];
+      return existing.map(field => field.id === id ? updatedField : field);
+    });
+
+    return updatedField;
+  }, [queryClient, queryKey]);
 
   const deleteCustomField = useCallback(async (id: string): Promise<void> => {
-    try {
-      const response = await fetch(`/api/contacts/custom-fields/${id}`, {
-        method: 'DELETE',
-      });
+    const response = await fetch(`/api/contacts/custom-fields/${id}`, {
+      method: 'DELETE',
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete custom field');
-      }
-
-      setCustomFields(prev => prev.filter(field => field.id !== id));
-    } catch (err) {
-      console.error('Error deleting custom field:', err);
-      throw err;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete custom field');
     }
-  }, []);
+
+    queryClient.setQueryData<CustomField[]>(queryKey, (old) => {
+      const existing = old || [];
+      return existing.filter(field => field.id !== id);
+    });
+  }, [queryClient, queryKey]);
 
   return {
-    customFields,
-    loading,
-    error,
-    refetch: fetchCustomFields,
+    customFields: query.data || [],
+    loading: query.isLoading,
+    error: query.error instanceof Error ? query.error.message : null,
+    refetch: async () => {
+      await query.refetch();
+    },
     createCustomField,
     updateCustomField,
     deleteCustomField,
@@ -193,84 +185,69 @@ interface UseCustomFieldValuesReturn {
 }
 
 export function useCustomFieldValues(contactId?: string): UseCustomFieldValuesReturn {
-  const [values, setValues] = useState<CustomFieldValue[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = ['custom-field-values', contactId];
 
-  const fetchValues = useCallback(async () => {
+  const fetchValues = useCallback(async (): Promise<CustomFieldValue[]> => {
     if (!contactId) {
-      setValues([]);
-      return;
+      return [];
     }
 
-    setLoading(true);
-    setError(null);
+    const response = await fetch(`/api/contacts/custom-field-values?contact=${contactId}`);
 
-    try {
-      const response = await fetch(`/api/contacts/custom-field-values?contact=${contactId}`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch custom field values');
-      }
-
-      const data = await response.json();
-      setValues(Array.isArray(data) ? data : data.results || []);
-    } catch (err) {
-      console.error('Error fetching custom field values:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch custom field values');
-      setValues([]);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch custom field values');
     }
+
+    const data = await response.json();
+    return normalizeList<CustomFieldValue>(data);
   }, [contactId]);
 
-  useEffect(() => {
-    fetchValues();
-  }, [fetchValues]);
+  const query = useQuery(queryKey, fetchValues, {
+    enabled: Boolean(contactId),
+    staleTime: 60 * 1000,
+  });
 
   const createOrUpdateValue = useCallback(async (data: CreateCustomFieldValueData): Promise<CustomFieldValue> => {
-    try {
-      const response = await fetch('/api/contacts/custom-field-values', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+    const response = await fetch('/api/contacts/custom-field-values', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save custom field value');
-      }
-
-      const newValue = await response.json();
-
-      // Update local state
-      setValues(prev => {
-        const existingIndex = prev.findIndex(
-          v => v.custom_field === data.custom_field && v.contact === data.contact
-        );
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = newValue;
-          return updated;
-        }
-        return [...prev, newValue];
-      });
-
-      return newValue;
-    } catch (err) {
-      console.error('Error saving custom field value:', err);
-      throw err;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to save custom field value');
     }
-  }, []);
+
+    const newValue = await response.json();
+
+    queryClient.setQueryData<CustomFieldValue[]>(queryKey, (old) => {
+      const existing = old || [];
+      const existingIndex = existing.findIndex(value =>
+        value.id === newValue.id || (value.custom_field === newValue.custom_field && value.contact === newValue.contact)
+      );
+      if (existingIndex >= 0) {
+        const updated = [...existing];
+        updated[existingIndex] = newValue;
+        return updated;
+      }
+      return [...existing, newValue];
+    });
+
+    return newValue;
+  }, [queryClient, queryKey]);
 
   return {
-    values,
-    loading,
-    error,
-    refetch: fetchValues,
+    values: query.data || [],
+    loading: query.isLoading,
+    error: query.error instanceof Error ? query.error.message : null,
+    refetch: async () => {
+      await query.refetch();
+    },
     createOrUpdateValue,
   };
 }

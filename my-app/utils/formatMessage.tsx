@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect, useMemo } from "react"
 import data from "@emoji-mart/data"
 import Picker from "@emoji-mart/react"
 
@@ -907,6 +907,20 @@ const formatContent = (text: string): React.ReactNode => {
   return React.createElement("div", { className: "space-y-2" }, formattedLines)
 }
 
+const normalizeMessageText = (value: MessageContentProps["text"]): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === "string") return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  if (typeof value === "object" && "text" in value && typeof (value as { text?: unknown }).text === "string") {
+    return (value as { text: string }).text
+  }
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
 export const MessageContent: React.FC<MessageContentProps> = ({
   text,
   isExpanded = false,
@@ -915,22 +929,22 @@ export const MessageContent: React.FC<MessageContentProps> = ({
   reactions = {},
   onAddReaction = () => {},
 }) => {
-  const [formattedContent, setFormattedContent] = useState<React.ReactNode | null>(null)
-
-  useEffect(() => {
-    if (text) {
-      setFormattedContent(formatContent(text))
-    } else {
-      setFormattedContent(null)
+  const safeText = useMemo(() => normalizeMessageText(text), [text])
+  const formattedContent = useMemo(() => {
+    if (!safeText) return null
+    try {
+      return formatContent(safeText)
+    } catch {
+      return safeText
     }
-  }, [text])
+  }, [safeText])
 
   return (
     <div className={`message-content ${!isExpanded ? "collapsed" : ""}`}>
       {replyTo && <ReplyPreview replyTo={replyTo} />}
       <div className="prose prose-sm">{formattedContent}</div>
       {Object.keys(reactions).length > 0 && <MessageReactions reactions={reactions} onAddReaction={onAddReaction} />}
-      {text && text.split("\n").length > 4 && (
+      {safeText && safeText.split("\n").length > 4 && (
         <button onClick={onToggle} className="read-more hover:opacity-80">
           {isExpanded ? "Read less" : "Read more"}
         </button>
@@ -961,7 +975,7 @@ export const FormattedMessage: React.FC<{
 }
 
 export const formatMessage = (
-  text: string,
+  text: string | null,
   options?: {
     replyTo?: {
       sender: string

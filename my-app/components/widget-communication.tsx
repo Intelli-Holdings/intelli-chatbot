@@ -502,7 +502,7 @@ function LiveWidgetPreview({
                   </div>
                   <div className="text-center">
                     <h3 className="text-lg font-bold text-gray-800 mb-1">Thanks for reaching out!</h3>
-                    <p className="text-sm text-gray-600">We'll get back to you soon.</p>
+                    <p className="text-sm text-gray-600">We&apos;ll get back to you soon.</p>
                   </div>
                 </div>
               ) : (

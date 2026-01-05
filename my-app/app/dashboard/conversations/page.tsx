@@ -1,137 +1,45 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
-import { MessageSquare, Globe } from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
 import WebsiteWidgetCard from "@/components/conversations-website";
+import { useWhatsAppAppServices } from "@/hooks/use-whatsapp-appservices";
+import { useWhatsAppChatSessions } from "@/hooks/use-whatsapp-chat-sessions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// Interfaces
-interface ChatSession {
-  id: number;
-  customer_number: string;
-  updated_at: string;
-}
-
-interface AppService {
-  id: number;
-  business: {
-    id: number;
-    name: string;
-    slug: string;
-    owner: string;
-    org_id: string;
-    created_at: string;
-  };
-  phone_number_id: string;
-  phone_number: string;
-  app_secret: string;
-  created_at: string;
-  chatsessions: ChatSession[];
-  whatsapp_business_account_id: string;
-}
-
-interface Widget {
-  id: number;
-  widget_name: string;
-  widget_key: string;
-}
-
-interface Visitor {
-  id: number;
-  visitor_id: string;
-  visitor_email: string | null;
-  visitor_name: string | null;
-  visitor_phone: string | null;
-  ip_address: string;
-  created_at: string;
-  last_seen: string;
-  messages: Message[];
-}
-
-interface Message {
-  id: number;
-  content: string;
-  answer: string;
-  timestamp: string;
-}
-
-async function fetchChatSessions(phoneNumber: string, orgId: string): Promise<ChatSession[]> {
-  try {
-    const res = await fetch(`/api/appservice/paginated/conversations/whatsapp/chat_sessions/org/${orgId}/${phoneNumber}/`);
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    const data = await res.json();
-    return data.results || [];
-  } catch (error) {
-    console.error("Failed to fetch chat sessions:", error);
-    return [];
-  }
-}
-
-async function fetchAppServices(orgId: string): Promise<AppService[]> {
-  try {
-    const res = await fetch(`/api/appservice/paginated/org/${orgId}/appservices/`);
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    const data = await res.json();
-    const appServices = data.results || [];
-
-    // Fetch chat sessions for the first app service only (since you typically have one)
-    if (appServices.length > 0 && appServices[0].phone_number) {
-      appServices[0].chatsessions = await fetchChatSessions(appServices[0].phone_number, orgId);
-    }
-
-    return appServices;
-  } catch (error) {
-    console.error("Failed to fetch app services:", error);
-    return [];
-  }
-}
-
 function StatsCards() {
-  const [appServices, setAppServices] = useState<AppService[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const orgId = useActiveOrganizationId();
+  const {
+    primaryPhoneNumber,
+    isLoading: appServicesLoading,
+    error: appServicesError,
+  } = useWhatsAppAppServices(orgId || undefined);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!orgId) return; 
-      try {
-        const appServicesData = await fetchAppServices(orgId);
-        setAppServices(appServicesData);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setIsLoading(false);
-      }
-    };
+  const {
+    totalCount: totalWhatsAppConversations,
+    isLoading: sessionsLoading,
+    error: sessionsError,
+  } = useWhatsAppChatSessions(orgId || undefined, primaryPhoneNumber, 12);
 
-    fetchData();
-  }, [orgId]);
+  const isLoading = appServicesLoading || sessionsLoading;
 
-  const totalWhatsAppConversations = appServices.reduce(
-    (total, service) => total + (service.chatsessions?.length || 0),
-    0
-  );
+  if (appServicesError) {
+    console.error("Failed to fetch app services:", appServicesError);
+  }
+
+  if (sessionsError) {
+    console.error("Failed to fetch WhatsApp chat sessions:", sessionsError);
+  }
 
   if (isLoading) {
     return <p>Loading...</p>;
@@ -156,8 +64,8 @@ function StatsCards() {
         <CardContent>
           <div className="text-xl font-bold">{`${totalWhatsAppConversations} chats`}</div>
           <p className="text-xs text-muted-foreground">
-            {appServices.length > 0 
-              ? `Monitor conversations for ${appServices[0]?.phone_number}` 
+            {primaryPhoneNumber
+              ? `Monitor conversations for ${primaryPhoneNumber}`
               : "View whatsapp chats"
             }
           </p>
@@ -178,8 +86,6 @@ export default function ConversationsPage() {
   if (!user) {
     return <div>Loading user...</div>;
   }
-
-  const userEmail = user.emailAddresses[0].emailAddress;
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { WhatsAppService, type WhatsAppTemplate, type AppService } from '@/services/whatsapp';
 
 export interface UseWhatsAppTemplatesReturn {
@@ -15,111 +15,109 @@ export interface UseWhatsAppTemplatesReturn {
  * Custom hook to fetch and manage WhatsApp templates
  */
 export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsAppTemplatesReturn => {
-  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = ['whatsapp-templates', appService?.id ?? appService?.whatsapp_business_account_id ?? null];
+  const canFetch = Boolean(appService?.whatsapp_business_account_id);
+  const configError = appService && !appService.whatsapp_business_account_id
+    ? 'App service configuration not available'
+    : null;
 
-  const fetchTemplates = useCallback(async () => {
+  const fetchTemplates = async (): Promise<WhatsAppTemplate[]> => {
     if (!appService?.whatsapp_business_account_id) {
-      setError('App service configuration not available');
-      return;
+      return [];
     }
 
-    setLoading(true);
-    setError(null);
+    return WhatsAppService.fetchTemplates(appService);
+  };
 
-    try {
-      const templateData = await WhatsAppService.fetchTemplates(appService);
-      setTemplates(templateData);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch templates';
-      setError(errorMessage);
-      console.error('Error fetching templates:', err);
-    } finally {
-      setLoading(false);
+  const query = useQuery(queryKey, fetchTemplates, {
+    enabled: canFetch,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const createMutation = useMutation(
+    (templateData: any) => WhatsAppService.createTemplate(appService as AppService, templateData),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(queryKey);
+      },
     }
-  }, [appService]);
+  );
+
+  const updateMutation = useMutation(
+    ({ templateId, templateData }: { templateId: string; templateData: any }) =>
+      WhatsAppService.updateTemplate(templateId, appService as AppService, templateData),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(queryKey);
+      },
+    }
+  );
+
+  const deleteMutation = useMutation(
+    (templateName: string) => WhatsAppService.deleteTemplate(appService as AppService, templateName),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(queryKey);
+      },
+    }
+  );
 
   const createTemplate = async (templateData: any): Promise<boolean> => {
     if (!appService?.whatsapp_business_account_id) {
-      setError('App service configuration not available');
       return false;
     }
 
     try {
-      setLoading(true);
-      await WhatsAppService.createTemplate(appService, templateData);
-      
-      // Refetch templates after creation
-      await fetchTemplates();
+      await createMutation.mutateAsync(templateData);
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
-      setError(errorMessage);
       console.error('Error creating template:', err);
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   const updateTemplate = async (templateId: string, templateData: any): Promise<boolean> => {
     if (!appService?.whatsapp_business_account_id) {
-      setError('App service configuration not available');
       return false;
     }
 
     try {
-      setLoading(true);
-      await WhatsAppService.updateTemplate(templateId, appService, templateData);
-      
-      // Refetch templates after update
-      await fetchTemplates();
+      await updateMutation.mutateAsync({ templateId, templateData });
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update template';
-      setError(errorMessage);
       console.error('Error updating template:', err);
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   const deleteTemplate = async (templateName: string): Promise<boolean> => {
     if (!appService?.whatsapp_business_account_id) {
-      setError('App service configuration not available');
       return false;
     }
 
     try {
-      setLoading(true);
-      await WhatsAppService.deleteTemplate(appService, templateName);
-      
-      // Refetch templates after deletion
-      await fetchTemplates();
+      await deleteMutation.mutateAsync(templateName);
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete template';
-      setError(errorMessage);
       console.error('Error deleting template:', err);
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (appService?.whatsapp_business_account_id) {
-      fetchTemplates();
-    }
-  }, [appService, fetchTemplates]);
-
   return {
-    templates,
-    loading,
-    error,
-    refetch: fetchTemplates,
+    templates: query.data || [],
+    loading:
+      query.isLoading ||
+      query.isFetching ||
+      createMutation.isLoading ||
+      updateMutation.isLoading ||
+      deleteMutation.isLoading,
+    error: configError || (query.error instanceof Error ? query.error.message : null),
+    refetch: async () => {
+      if (!canFetch) return;
+      await query.refetch();
+    },
     createTemplate,
     updateTemplate,
     deleteTemplate,

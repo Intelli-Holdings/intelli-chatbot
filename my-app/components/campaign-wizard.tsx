@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useQueryClient } from "react-query"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -42,9 +43,11 @@ import {
   Rocket,
 } from "lucide-react"
 import { toast } from "sonner"
-import { WhatsAppService, type WhatsAppTemplate } from "@/services/whatsapp"
+import { useWhatsAppTemplates } from "@/hooks/use-whatsapp-templates"
 import { CampaignService, type CreateCampaignData } from "@/services/campaign"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
+import { useContactTags } from "@/hooks/use-contact-tags"
+import { usePaginatedContacts } from "@/hooks/use-contacts"
 
 type WizardStep = "details" | "template" | "audience" | "schedule" | "review"
 type LaunchOption = "draft" | "immediate" | "scheduled"
@@ -59,15 +62,26 @@ interface CampaignWizardProps {
 
 export function CampaignWizard({ appService, open, onClose, onSuccess }: CampaignWizardProps) {
   const organizationId = useActiveOrganizationId()
+  const queryClient = useQueryClient()
 
   const [currentStep, setCurrentStep] = useState<WizardStep>("details")
   const [submitting, setSubmitting] = useState(false)
-  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([])
-  const [templatesLoading, setTemplatesLoading] = useState(false)
-  const [contacts, setContacts] = useState<any[]>([])
-  const [contactsLoading, setContactsLoading] = useState(false)
-  const [tags, setTags] = useState<any[]>([])
-  const [tagsLoading, setTagsLoading] = useState(false)
+  const queryOrganizationId = open ? organizationId : undefined
+  const templateAppService = open ? (appService ?? null) : null
+  const { templates, loading: templatesLoading, error: templatesError } = useWhatsAppTemplates(templateAppService)
+  const { contacts, isLoading: contactsLoading, error: contactsError } = usePaginatedContacts<any>(
+    queryOrganizationId,
+    1,
+    50
+  )
+  const { tags, isLoading: tagsLoading, error: tagsError } = useContactTags(queryOrganizationId)
+
+  const invalidateCampaignQueries = () => {
+    if (!organizationId) return
+    queryClient.invalidateQueries(["campaigns", organizationId])
+    queryClient.invalidateQueries(["campaign-status-counts", organizationId])
+    queryClient.invalidateQueries(["whatsapp-campaigns", organizationId])
+  }
 
   // Form state
   const [campaignName, setCampaignName] = useState("")
@@ -137,85 +151,23 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
   const templateRequiresBodyParams = bodyPlaceholders.length > 0
   const shouldSendHeaderParams = templateRequiresHeaderParams || (overrideMedia && templateHasMediaHeader)
 
-  // Fetch templates when dialog opens or appService changes
-  const fetchTemplates = useCallback(async () => {
-    if (!appService) {
-      console.log("No appService available")
-      return
+  useEffect(() => {
+    if (templatesError) {
+      toast.error(templatesError)
     }
-
-    setTemplatesLoading(true)
-    try {
-      console.log("Fetching templates for appService:", appService.id)
-      const fetchedTemplates = await WhatsAppService.fetchTemplates(appService)
-      console.log("Fetched templates:", fetchedTemplates)
-      setTemplates(fetchedTemplates)
-    } catch (error) {
-      console.error("Error fetching templates:", error)
-      toast.error("Failed to load templates")
-      setTemplates([])
-    } finally {
-      setTemplatesLoading(false)
-    }
-  }, [appService])
+  }, [templatesError])
 
   useEffect(() => {
-    if (open && appService) {
-      fetchTemplates()
-    }
-  }, [open, appService, fetchTemplates])
-
-  // Fetch real tags (segments)
-  const fetchTags = useCallback(async () => {
-    if (!organizationId) return
-
-    setTagsLoading(true)
-    try {
-      const response = await fetch(`/api/contacts/tags?organization=${organizationId}`)
-      if (!response.ok) throw new Error('Failed to fetch tags')
-
-      const data = await response.json()
-      setTags(data.results || data || [])
-    } catch (error) {
-      console.error('Error fetching tags:', error)
+    if (tagsError) {
       toast.error('Failed to load tags')
-      setTags([])
-    } finally {
-      setTagsLoading(false)
     }
-  }, [organizationId])
+  }, [tagsError])
 
   useEffect(() => {
-    if (open && organizationId) {
-      fetchTags()
-    }
-  }, [open, organizationId, fetchTags])
-
-  // Fetch real contacts
-  const fetchContacts = useCallback(async () => {
-    if (!organizationId) return
-
-    setContactsLoading(true)
-    try {
-      const response = await fetch(`/api/contacts/contacts?organization=${organizationId}`)
-      if (!response.ok) throw new Error('Failed to fetch contacts')
-
-      const data = await response.json()
-      setContacts(data.results || data || [])
-    } catch (error) {
-      console.error('Error fetching contacts:', error)
+    if (contactsError) {
       toast.error('Failed to load contacts')
-      setContacts([])
-    } finally {
-      setContactsLoading(false)
     }
-  }, [organizationId])
-
-  useEffect(() => {
-    if (open && organizationId) {
-      fetchContacts()
-    }
-  }, [open, organizationId, fetchContacts])
+  }, [contactsError])
 
   const filteredContacts = contacts.filter((c: any) =>
     c.fullname?.toLowerCase().includes(contactSearch.toLowerCase()) ||
@@ -644,6 +596,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
         toast.success("Campaign saved as draft")
       }
 
+      invalidateCampaignQueries()
       onSuccess()
       onClose()
     } catch (error: any) {
@@ -948,7 +901,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
                           <Alert className="bg-blue-50 border-blue-200">
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>
-                              You'll be able to specify a {mediaHeaderType?.toLowerCase()} URL for each recipient in the next step
+                              You&apos;ll be able to specify a {mediaHeaderType?.toLowerCase()} URL for each recipient in the next step
                             </AlertDescription>
                           </Alert>
                         )}
@@ -1062,7 +1015,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
                         <AlertDescription>
                           {selectedSegmentData.contact_count !== undefined ? (
                             <>
-                              <strong>{selectedSegmentData.contact_count.toLocaleString()}</strong> contacts in "{selectedSegmentData.name}"
+                              <strong>{selectedSegmentData.contact_count.toLocaleString()}</strong> contacts in &quot;{selectedSegmentData.name}&quot;
                             </>
                           ) : (
                             <>Tag: <strong>{selectedSegmentData.name}</strong></>
@@ -1472,7 +1425,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
                   <CheckCircle2 className="h-4 w-4" />
                   <AlertDescription>
                     {launchOption
-                      ? <>Everything looks good! Click "{launchOption === "draft" ? "Save Campaign" : launchOption === "immediate" ? "Launch Campaign" : "Schedule Campaign"}" to finalize.</>
+                      ? <>Everything looks good! Click &quot;{launchOption === "draft" ? "Save Campaign" : launchOption === "immediate" ? "Launch Campaign" : "Schedule Campaign"}&quot; to finalize.</>
                       : "Choose a launch option to finish."}
                   </AlertDescription>
                 </Alert>

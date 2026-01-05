@@ -6,13 +6,14 @@ import ChatSidebar from "@/app/dashboard/conversations/components/chat-sidebar"
 import ChatArea from "@/app/dashboard/conversations/components/chat-area"
 import DownloadPage from "@/app/dashboard/conversations/components/download-page"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
+import { useWhatsAppAppServices } from "@/hooks/use-whatsapp-appservices"
+import { useWhatsAppChatSessions } from "@/hooks/use-whatsapp-chat-sessions"
+import { useWhatsAppChatMessages } from "@/hooks/use-whatsapp-chat-messages"
 import { useMediaQuery } from "@/app/hooks/use-media-query"
 import type { Conversation } from "@/app/dashboard/conversations/components/types"
 import { toast } from "sonner"
 import LoadingProgress from "@/components/loading-progress"
 import { useSearchParams } from "next/navigation"
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""
 
 type ReadConversationsMap = Record<string, string>
 
@@ -51,13 +52,8 @@ export default function WhatsAppConvosPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState("")
   const isMobile = useMediaQuery("(max-width: 768px)")
   const activeOrganizationId = useActiveOrganizationId()
-  const [loading, setLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [page, setPage] = useState(1)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState("")
   const [isInitializing, setIsInitializing] = useState(true)
@@ -67,6 +63,27 @@ export default function WhatsAppConvosPage() {
   const scrollPositionsRef = useRef<Record<number, number>>({})
   const conversationsRef = useRef<Conversation[]>([])
   const hasAutoSelectedRef = useRef(false)
+
+  const {
+    primaryPhoneNumber,
+    isLoading: appServicesLoading,
+    error: appServicesError,
+  } = useWhatsAppAppServices(activeOrganizationId || undefined)
+
+  const phoneNumber = primaryPhoneNumber
+
+  const {
+    sessions,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isLoading: sessionsLoading,
+    error: sessionsError,
+  } = useWhatsAppChatSessions(activeOrganizationId || undefined, phoneNumber, 12)
+
+  const { fetchMessages, getCachedMessages, setCachedMessages } = useWhatsAppChatMessages(phoneNumber)
+  const listLoading = sessionsLoading && conversations.length === 0
+  const listHasMore = Boolean(hasNextPage)
 
   useEffect(() => {
     conversationsRef.current = conversations
@@ -87,6 +104,11 @@ export default function WhatsAppConvosPage() {
     (conversationId: number, messages: Conversation["messages"]) => {
       const normalizedMessages = messages ?? []
       messageCacheRef.current[conversationId] = normalizedMessages
+      const conversationMatch = conversationsRef.current.find((conv) => conv.id === conversationId)
+      const customerNumber = conversationMatch?.customer_number || conversationMatch?.recipient_id
+      if (customerNumber) {
+        setCachedMessages(customerNumber, normalizedMessages)
+      }
       const latestMessage = normalizedMessages.length > 0 ? normalizedMessages[normalizedMessages.length - 1] : null
       const latestTimestamp = latestMessage?.created_at
 
@@ -118,194 +140,150 @@ export default function WhatsAppConvosPage() {
         }
       })
     },
-    [resolveUpdatedAt],
+    [resolveUpdatedAt, setCachedMessages],
   )
 
   useEffect(() => {
     if (!activeOrganizationId) return
 
-    async function fetchPhoneNumber() {
-      try {
-        setLoadingMessage("Fetching phone configuration...")
-        setLoadingProgress(20)
-
-        const res = await fetch(`/api/appservice/paginated/org/${activeOrganizationId}/appservices/`)
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`)
-        }
-        const data = await res.json()
-        const number = data.results?.[0]?.phone_number || ""
-        setPhoneNumber(number)
-
-        setLoadingProgress(40)
-        setLoadingMessage("Phone configuration loaded")
-      } catch (error) {
-        console.error("Failed to fetch phone number:", error)
-        toast.error("Failed to fetch phone configuration")
-      }
+    if (appServicesLoading) {
+      setLoadingMessage("Fetching phone configuration...")
+      setLoadingProgress(20)
+      return
     }
 
-    fetchPhoneNumber()
-  }, [activeOrganizationId])
+    if (appServicesError) {
+      toast.error(appServicesError)
+      setIsInitializing(false)
+      return
+    }
 
-  // Fetch initial conversations
+    if (phoneNumber) {
+      setLoadingProgress(40)
+      setLoadingMessage("Phone configuration loaded")
+    }
+  }, [activeOrganizationId, appServicesLoading, appServicesError, phoneNumber])
+
   useEffect(() => {
     if (!phoneNumber || !activeOrganizationId) return
 
-    async function fetchConversations() {
-      setLoading(true)
-      setLoadingProgress(50)
+    if (sessionsLoading) {
+      setLoadingProgress(60)
       setLoadingMessage("Loading conversations...")
-
-      try {
-        const startTime = Date.now()
-        const res = await fetch(
-          `/api/appservice/paginated/conversations/whatsapp/chat_sessions/org/${activeOrganizationId}/${phoneNumber}/?page=1&page_size=12`,
-        )
-
-        setLoadingProgress(75)
-        setLoadingMessage("Processing chat data...")
-
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`)
-        }
-        const data = await res.json()
-
-        setLoadingProgress(90)
-        setLoadingMessage("Preparing conversations...")
-
-        // Get previously read conversations from localStorage
-        const readConversations = getReadConversations(phoneNumber)
-
-        const conversationsWithMessages = (data.results || []).map((conv: any) => {
-          const cachedMessages = messageCacheRef.current[conv.id] ?? []
-          const latestCachedTimestamp =
-            cachedMessages.length > 0 ? cachedMessages[cachedMessages.length - 1]?.created_at : undefined
-          return {
-            ...conv,
-            messages: cachedMessages,
-            updated_at: resolveUpdatedAt(conv.updated_at, latestCachedTimestamp),
-            phone_number: phoneNumber,
-            recipient_id: conv.customer_number,
-            attachments: [],
-          }
-        })
-
-        // Reset unread messages on backend for previously read conversations
-        const resetPromises = conversationsWithMessages
-          .filter((conv: any) => {
-            const lastReadAt = readConversations[conv.customer_number]
-            if (!lastReadAt) return false
-            const lastReadTime = new Date(lastReadAt).getTime()
-            const updatedAtTime = conv.updated_at ? new Date(conv.updated_at).getTime() : 0
-            return (conv.unread_messages || 0) > 0 && updatedAtTime <= lastReadTime
-          })
-          .map(async (conv: any) => {
-            try {
-              await fetch(`/api/appservice/reset/unread_messages/${phoneNumber}/${conv.customer_number}/`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              })
-              // Update local state after successful reset
-              conv.unread_messages = 0
-            } catch (error) {
-              console.error(`Failed to reset unread messages for ${conv.customer_number}:`, error)
-            }
-          })
-
-        // Wait for all reset operations to complete
-        if (resetPromises.length > 0) {
-          setLoadingMessage("Syncing read status...")
-          await Promise.all(resetPromises)
-        }
-
-        setConversations(conversationsWithMessages)
-        setHasMore(data.next !== null)
-        setPage(1)
-
-        setLoadingProgress(100)
-        setLoadingMessage("Ready!")
-
-        // Small delay to show completion
-        setTimeout(() => {
-          setIsInitializing(false)
-        }, 500)
-      } catch (error) {
-        console.error("Failed to fetch conversations:", error)
-        toast.error("Failed to fetch conversations")
-        setIsInitializing(false)
-      } finally {
-        setLoading(false)
-      }
+      return
     }
 
-    fetchConversations()
-  }, [phoneNumber, activeOrganizationId, resolveUpdatedAt])
+    if (sessionsError) {
+      toast.error(sessionsError)
+      setIsInitializing(false)
+      return
+    }
 
-  // Function to load more conversations
-  const loadMoreConversations = async () => {
-    if (!phoneNumber || !activeOrganizationId || !hasMore || isLoadingMore) return
+    let isActive = true
 
-    setIsLoadingMore(true)
-    try {
-      const nextPage = page + 1
-      const res = await fetch(
-        `/api/appservice/paginated/conversations/whatsapp/chat_sessions/org/${activeOrganizationId}/${phoneNumber}/?page=${nextPage}&page_size=12`,
-      )
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`)
-      }
-      const data = await res.json()
-      const newConversationsWithMessages = (data.results || []).map((conv: any) => {
-        const cachedMessages = messageCacheRef.current[conv.id] ?? []
+    const syncConversations = async () => {
+      const readConversations = getReadConversations(phoneNumber)
+      const previousById = new Map(conversationsRef.current.map((conv) => [conv.id, conv]))
+
+      const conversationsWithMessages = sessions.map((conv: any) => {
+        const existing = previousById.get(conv.id)
+        const customerNumber = conv.customer_number || conv.recipient_id
+        const cachedMessages = getCachedMessages(customerNumber)
+        const fallbackMessages =
+          cachedMessages.length > 0
+            ? cachedMessages
+            : existing?.messages || messageCacheRef.current[conv.id] || []
+
+        if (fallbackMessages.length > 0 && cachedMessages.length === 0) {
+          setCachedMessages(customerNumber, fallbackMessages)
+        }
+
         const latestCachedTimestamp =
-          cachedMessages.length > 0 ? cachedMessages[cachedMessages.length - 1]?.created_at : undefined
+          fallbackMessages.length > 0 ? fallbackMessages[fallbackMessages.length - 1]?.created_at : undefined
+
         return {
           ...conv,
-          messages: cachedMessages,
+          messages: fallbackMessages,
           updated_at: resolveUpdatedAt(conv.updated_at, latestCachedTimestamp),
           phone_number: phoneNumber,
-          recipient_id: conv.customer_number,
-          attachments: [],
+          recipient_id: customerNumber,
+          attachments: conv.attachments || [],
+          unread_messages: existing?.unread_messages ?? conv.unread_messages,
         }
       })
 
-      setConversations((prev) => [...prev, ...newConversationsWithMessages])
-      setHasMore(data.next !== null)
-      setPage(nextPage)
+      const resetPromises = conversationsWithMessages
+        .filter((conv: any) => {
+          const lastReadAt = readConversations[conv.customer_number]
+          if (!lastReadAt) return false
+          const lastReadTime = new Date(lastReadAt).getTime()
+          const updatedAtTime = conv.updated_at ? new Date(conv.updated_at).getTime() : 0
+          return (conv.unread_messages || 0) > 0 && updatedAtTime <= lastReadTime
+        })
+        .map(async (conv: any) => {
+          try {
+            await fetch(`/api/appservice/reset/unread_messages/${phoneNumber}/${conv.customer_number}/`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+            conv.unread_messages = 0
+          } catch (error) {
+            console.error(`Failed to reset unread messages for ${conv.customer_number}:`, error)
+          }
+        })
+
+      if (resetPromises.length > 0) {
+        setLoadingMessage("Syncing read status...")
+        await Promise.all(resetPromises)
+      }
+
+      if (!isActive) return
+
+      setConversations(conversationsWithMessages)
+      setLoadingProgress(100)
+      setLoadingMessage("Ready!")
+      setTimeout(() => {
+        setIsInitializing(false)
+      }, 300)
+    }
+
+    syncConversations().catch((error) => {
+      console.error("Failed to sync conversations:", error)
+      toast.error("Failed to fetch conversations")
+      setIsInitializing(false)
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [
+    phoneNumber,
+    activeOrganizationId,
+    sessions,
+    sessionsLoading,
+    sessionsError,
+    resolveUpdatedAt,
+    getCachedMessages,
+    setCachedMessages,
+  ])
+
+  const loadMoreConversations = async () => {
+    if (!hasNextPage || isFetchingNextPage) return
+    try {
+      await fetchNextPage()
     } catch (error) {
       console.error("Failed to load more conversations:", error)
       toast.error("Failed to load more conversations")
-    } finally {
-      setIsLoadingMore(false)
     }
   }
 
   // Function to fetch messages for a specific conversation
   const fetchMessagesForConversation = async (customerNumber: string) => {
+    if (!customerNumber) return []
     try {
-      const res = await fetch(
-        `/api/appservice/paginated/conversations/whatsapp/chat_sessions/${phoneNumber}/${customerNumber}/`,
-      )
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`)
-      }
-
-      const data = await res.json()
-      // Transform the messages to match the expected format
-      const messages = (data.results || []).map((msg: any) => ({
-        id: msg.id,
-        content: msg.content,
-        answer: msg.answer,
-        created_at: msg.created_at,
-        sender: msg.sender || "ai", 
-      }))
-
-      // Reverse the messages so that the oldest appear first (latest at bottom)
-      return messages.reverse()
+      return await fetchMessages(customerNumber)
     } catch (error) {
       console.error(`Failed to fetch messages for customer ${customerNumber}:`, error)
       return []
@@ -314,14 +292,23 @@ export default function WhatsAppConvosPage() {
 
   const handleSelectConversation = async (conversation: Conversation) => {
     selectedConversationRef.current = conversation.id
-    const cachedMessages = messageCacheRef.current[conversation.id] ?? []
+    const customerNumber = conversation.customer_number || conversation.recipient_id
+    const cachedMessages = customerNumber ? getCachedMessages(customerNumber) : []
+    const fallbackCache = messageCacheRef.current[conversation.id] ?? []
     const initialMessages =
-      conversation.messages && conversation.messages.length > 0 ? conversation.messages : cachedMessages
+      conversation.messages && conversation.messages.length > 0
+        ? conversation.messages
+        : cachedMessages.length > 0
+          ? cachedMessages
+          : fallbackCache
     const hydratedConversation =
       initialMessages && initialMessages.length > 0 ? { ...conversation, messages: initialMessages } : conversation
 
     if (initialMessages && initialMessages.length > 0) {
       messageCacheRef.current[conversation.id] = initialMessages
+      if (customerNumber && cachedMessages.length === 0) {
+        setCachedMessages(customerNumber, initialMessages)
+      }
     }
 
     setSelectedConversation(hydratedConversation)
@@ -330,8 +317,11 @@ export default function WhatsAppConvosPage() {
     if (!initialMessages || initialMessages.length === 0) {
       setLoadingConversationId(conversation.id)
       try {
-        const messages = await fetchMessagesForConversation(conversation.customer_number)
+        const messages = await fetchMessagesForConversation(customerNumber)
         messageCacheRef.current[conversation.id] = messages
+        if (customerNumber) {
+          setCachedMessages(customerNumber, messages)
+        }
         handleMessagesUpdate(conversation.id, messages)
 
         if (selectedConversationRef.current === conversation.id) {
@@ -405,7 +395,7 @@ export default function WhatsAppConvosPage() {
   // Show loading screen during initialization
   if (isInitializing) {
     return (
-      <div className="flex h-screen max-h-screen overflow-hidden rounded-lg border border-[#e9edef] bg-white">
+      <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white">
         <div className="flex-1 flex items-center justify-center bg-[#f0f2f5]">
           <LoadingProgress
             isLoading={true}
@@ -419,15 +409,15 @@ export default function WhatsAppConvosPage() {
   }
 
   return (
-    <div className="flex h-screen max-h-screen overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
+    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
       <ChatSidebar
         conversations={conversations}
         onSelectConversation={handleSelectConversation}
         selectedConversationId={selectedConversation?.id || null}
-        loading={loading}
-        hasMore={hasMore}
+        loading={listLoading}
+        hasMore={listHasMore}
         loadMore={loadMoreConversations}
-        isLoadingMore={isLoadingMore}
+        isLoadingMore={isFetchingNextPage}
       />
       <div className="flex-1 relative bg-[#efeae2]">
         {selectedConversation ? (

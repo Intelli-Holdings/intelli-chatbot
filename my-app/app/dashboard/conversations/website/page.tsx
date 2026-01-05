@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { format, isToday, isYesterday } from "date-fns";
 import { CountryInfo } from "@/components/country-info";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,32 +14,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Send, MoreVertical, Phone, Video, Check, CheckCheck, User } from "lucide-react";
+import { Search, Send, MoreVertical, CheckCheck, User, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { marked } from "marked";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
+import { useWebsiteWidgets } from "@/hooks/use-website-widgets";
+import { useWebsiteVisitors } from "@/hooks/use-website-visitors";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Message {
   id: number;
   content: string;
-  answer: string;
-  timestamp: string;
+  answer?: string;
+  timestamp?: string;
   sender_type?: string;
 }
 
 interface Visitor {
   id: number;
   visitor_id: string;
-  visitor_email: string | null;
-  visitor_name: string | null;
-  visitor_phone: string | null;
-  ip_address: string;
-  created_at: string;
-  last_seen: string;
-  is_handle_by_human: boolean;
-  messages: Message[];
+  visitor_email?: string | null;
+  visitor_name?: string | null;
+  visitor_phone?: string | null;
+  ip_address?: string;
+  created_at?: string;
+  last_seen?: string;
+  is_handle_by_human?: boolean;
+  messages?: Message[];
   unread_count?: number;
 }
 
@@ -77,17 +78,29 @@ function getLastMessagePreview(visitor: Visitor): string {
 }
 
 export default function WebsiteConversationsPage() {
-  const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
   const [selectedWidgetKey, setSelectedWidgetKey] = useState<string>("");
-  const [widgets, setWidgets] = useState<Widget[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
   const [showVisitorInfo, setShowVisitorInfo] = useState(false);
   const activeOrganizationId = useActiveOrganizationId();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+
+  const {
+    widgets,
+    isLoading: widgetsLoading,
+    error: widgetsError,
+  } = useWebsiteWidgets(activeOrganizationId || undefined, API_BASE_URL || "");
+
+  const {
+    visitors: rawVisitors,
+    isLoading: visitorsLoading,
+    error: visitorsError,
+    refetch: refetchVisitors,
+  } = useWebsiteVisitors(selectedWidgetKey, API_BASE_URL || "");
+
+  const isLoading = widgetsLoading || visitorsLoading;
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -98,19 +111,11 @@ export default function WebsiteConversationsPage() {
     scrollToBottom();
   }, [selectedVisitor?.messages]);
 
-  // Fetch widgets
   useEffect(() => {
-    if (activeOrganizationId) {
-      fetchWidgets();
+    if (!selectedWidgetKey && widgets.length > 0) {
+      setSelectedWidgetKey(widgets[0].widget_key);
     }
-  }, [activeOrganizationId]);
-
-  // Fetch visitors when widget changes
-  useEffect(() => {
-    if (selectedWidgetKey) {
-      fetchVisitors();
-    }
-  }, [selectedWidgetKey]);
+  }, [widgets, selectedWidgetKey]);
 
   // Setup WebSocket for real-time updates
   useEffect(() => {
@@ -131,7 +136,7 @@ export default function WebsiteConversationsPage() {
 
         // Handle new messages
         if (data.type === 'business_forward' || data.type === 'new_chat') {
-          fetchVisitors(); // Refresh visitor list
+          refetchVisitors();
         }
       } catch (error) {
         console.error("WebSocket message error:", error);
@@ -147,68 +152,38 @@ export default function WebsiteConversationsPage() {
     return () => {
       ws.close();
     };
-  }, [activeOrganizationId]);
+  }, [activeOrganizationId, refetchVisitors]);
 
-  const fetchWidgets = async () => {
-    if (!activeOrganizationId) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/widgets/organization/${activeOrganizationId}/all/`
-      );
-      if (!response.ok) throw new Error("Failed to fetch widgets");
-
-      const data = await response.json();
-      setWidgets(data);
-      if (data.length > 0 && !selectedWidgetKey) {
-        setSelectedWidgetKey(data[0].widget_key);
-      }
-    } catch (error) {
-      console.error("Error fetching widgets:", error);
-      toast.error("Failed to load widgets");
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (widgetsError) {
+      toast.error(widgetsError);
     }
-  };
+  }, [widgetsError]);
 
-  const fetchVisitors = async () => {
-    if (!selectedWidgetKey) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/widgets/widget/${selectedWidgetKey}/visitors/`
-      );
-      if (!response.ok) throw new Error("Failed to fetch visitors");
-
-      const data: Visitor[] = await response.json();
-
-      // Sort by most recent message
-      const sorted = data.sort((a, b) =>
-        new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
-      );
-
-      // Add unread count (mock for now - you can implement real unread logic)
-      const withUnread = sorted.map(v => ({
-        ...v,
-        unread_count: Math.floor(Math.random() * 5) // Replace with real unread count from backend
-      }));
-
-      setVisitors(withUnread);
-    } catch (error) {
-      console.error("Error fetching visitors:", error);
-      toast.error("Failed to load conversations");
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (visitorsError) {
+      toast.error(visitorsError);
     }
-  };
+  }, [visitorsError]);
+
+  const visitors = useMemo(() => {
+    const sorted = [...rawVisitors].sort((a, b) =>
+      new Date(b.last_seen || 0).getTime() - new Date(a.last_seen || 0).getTime()
+    );
+
+    return sorted.map((visitor) => ({
+      ...visitor,
+      unread_count: Math.floor(Math.random() * 5),
+    }));
+  }, [rawVisitors]);
 
   const handleSendMessage = async () => {
     if (!selectedVisitor || !replyMessage.trim() || !activeOrganizationId) return;
 
-    const lastMessageContent =
-      selectedVisitor.messages[selectedVisitor.messages.length - 1]?.content || "";
+    const lastMessage = selectedVisitor.messages && selectedVisitor.messages.length > 0
+      ? selectedVisitor.messages[selectedVisitor.messages.length - 1]
+      : undefined;
+    const lastMessageContent = lastMessage?.content || "";
 
     const payload = {
       action: "send_message",
@@ -232,7 +207,7 @@ export default function WebsiteConversationsPage() {
         return {
           ...prev,
           messages: [
-            ...prev.messages,
+            ...(prev.messages || []),
             {
               id: Date.now(),
               content: lastMessageContent,
@@ -404,44 +379,54 @@ export default function WebsiteConversationsPage() {
           <>
             {/* Chat Header */}
             <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                className="flex items-center gap-3 px-0 hover:bg-transparent h-auto"
+                onClick={() => setShowVisitorInfo(!showVisitorInfo)}
+              >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
                   {getVisitorDisplayName(selectedVisitor).charAt(0).toUpperCase()}
                 </div>
-                <div>
+                <div className="flex flex-col items-start">
                   <h2 className="font-semibold text-gray-900">
                     {getVisitorDisplayName(selectedVisitor)}
                   </h2>
-                  <p className="text-xs text-gray-500">
-                    {selectedVisitor.is_handle_by_human ? "You are handling" : "AI handling"}
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    click for more info
+                    <ChevronDown className="h-3 w-3" />
                   </p>
                 </div>
-              </div>
+              </Button>
 
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Video className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Phone className="h-5 w-5" />
-                </Button>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full"
-                  onClick={() => setShowVisitorInfo(!showVisitorInfo)}
+                  className={`h-9 px-3 text-xs text-white rounded-md shadow-sm transition-colors ${
+                    !selectedVisitor.is_handle_by_human
+                      ? "bg-[#007fff] hover:bg-[#0066cc] border-[#007fff]"
+                      : "bg-green-600 hover:bg-green-700 border-green-600"
+                  }`}
+                  onClick={handleTakeover}
                 >
-                  <MoreVertical className="h-5 w-5" />
+                  {!selectedVisitor.is_handle_by_human ? "Take Over" : "Hand to AI"}
                 </Button>
               </div>
             </div>
+
+            {/* Reminder banner when human is handling */}
+            {selectedVisitor.is_handle_by_human && (
+              <div className="bg-[#fef4e6] border-b border-[#f9e6c4] px-4 py-2">
+                <p className="text-xs text-[#54656f] text-center">
+                  Remember to hand over to AI when you&apos;re done sending messages.
+                </p>
+              </div>
+            )}
 
             {/* Messages Area */}
             <ScrollArea className="flex-1 p-4" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d9d9d9' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }}>
               <div className="max-w-4xl mx-auto space-y-3">
-                {selectedVisitor.messages.map((message, index) => (
+                {(selectedVisitor.messages || []).map((message, index) => (
                   <div key={message.id} className="space-y-2">
                     {/* Visitor Message */}
                     {message.content && (
@@ -483,39 +468,6 @@ export default function WebsiteConversationsPage() {
 
             {/* Message Input */}
             <div className="bg-gray-100 border-t border-gray-200 p-4">
-              {/* Takeover/Handover Banner */}
-              {selectedVisitor.is_handle_by_human && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 flex items-center justify-between">
-                  <p className="text-sm text-blue-800">
-                    <strong>You are handling this conversation.</strong> Remember to hand over to AI when done.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleTakeover}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                  >
-                    Hand over to AI
-                  </Button>
-                </div>
-              )}
-
-              {!selectedVisitor.is_handle_by_human && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-3 flex items-center justify-between">
-                  <p className="text-sm text-purple-800">
-                    <strong>AI is handling this conversation.</strong> Take over to respond manually.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleTakeover}
-                    className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                  >
-                    Take over
-                  </Button>
-                </div>
-              )}
-
               <div className="flex items-end gap-2">
                 <Input
                   placeholder="Type a message..."
@@ -638,7 +590,7 @@ export default function WebsiteConversationsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs text-gray-500 font-medium mb-0.5">Location</p>
-                      <CountryInfo ip={selectedVisitor.ip_address} />
+                      <CountryInfo ip={selectedVisitor.ip_address || ""} />
                     </div>
                   </div>
 

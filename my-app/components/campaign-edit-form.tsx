@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from 'react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,9 +22,17 @@ interface CampaignEditFormProps {
 
 export default function CampaignEditForm({ campaign, onSuccess, onCancel }: CampaignEditFormProps) {
   const organizationId = useActiveOrganizationId();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   const immediateExecutionDelayMs = 10_000; // 10 seconds buffer before firing immediates
+
+  const invalidateCampaignQueries = () => {
+    if (!organizationId) return;
+    queryClient.invalidateQueries(['campaigns', organizationId]);
+    queryClient.invalidateQueries(['campaign-status-counts', organizationId]);
+    queryClient.invalidateQueries(['whatsapp-campaigns', organizationId]);
+  };
 
   const [formData, setFormData] = useState({
     name: campaign.name || '',
@@ -110,6 +119,8 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
         updateData
       );
 
+      invalidateCampaignQueries();
+
       // Re-schedule or execute WhatsApp campaigns after updates
       if (campaign.channel === 'whatsapp') {
         const targetWhatsAppId = campaign.whatsapp_campaign_id || campaign.id;
@@ -127,6 +138,7 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
             executeNow,
             scheduledAt
           );
+          invalidateCampaignQueries();
         } catch (execError) {
           console.error('Error scheduling/executing WhatsApp campaign after edit:', execError);
           toast.error(execError instanceof Error ? execError.message : 'Failed to schedule campaign');

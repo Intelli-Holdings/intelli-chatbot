@@ -11,7 +11,11 @@ import {
   TrendingUp,
   AlertCircle,
   RefreshCw,
-  BarChart3
+  BarChart3,
+  FileImage,
+  Music,
+  Video,
+  FileText
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +27,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import WhatsappOnboarding from '@/components/WhatsappOnboarding';
 import UnifiedWidgets from '@/components/UnifiedWidgets';
 import Channels from './channels';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 // Recharts imports
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -127,7 +133,95 @@ const MetricCard: React.FC<MetricCardProps> = ({
   );
 };
 
+// Helper function to extract media information from message
+const extractMediaFromMessage = (message: string) => {
+  if (!message) return { type: null, url: '', text: '' }
+
+  // Check for "The customer shared an [type]. Download URL: [url]" format
+  const sharedMediaMatch = message.match(/customer shared (?:an?|the)\s+(image|audio|video|document|file).*?Download URL:\s*(https?:\/\/[^\s]+)/i)
+
+  if (sharedMediaMatch) {
+    const mediaType = sharedMediaMatch[1].toLowerCase()
+    const url = sharedMediaMatch[2]
+
+    return {
+      type: mediaType as 'image' | 'audio' | 'video' | 'document',
+      url: url,
+      text: ''
+    }
+  }
+
+  // Try old format with [IMAGE], [AUDIO], etc. placeholders
+  const imageMatch = message.match(/\[IMAGE\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
+  const audioMatch = message.match(/\[AUDIO\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
+  const videoMatch = message.match(/\[VIDEO\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
+  const documentMatch = message.match(/\[DOCUMENT\]\s*([^\s\]]+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
+
+  if (imageMatch) {
+    return {
+      type: 'image' as const,
+      url: imageMatch[2] || '',
+      text: message.replace(/\[IMAGE\][^\n]*/gi, '').trim()
+    }
+  }
+  if (audioMatch) {
+    return {
+      type: 'audio' as const,
+      url: audioMatch[2] || '',
+      text: message.replace(/\[AUDIO\][^\n]*/gi, '').trim()
+    }
+  }
+  if (videoMatch) {
+    return {
+      type: 'video' as const,
+      url: videoMatch[2] || '',
+      text: message.replace(/\[VIDEO\][^\n]*/gi, '').trim()
+    }
+  }
+  if (documentMatch) {
+    return {
+      type: 'document' as const,
+      url: documentMatch[2] || '',
+      fileName: documentMatch[1] || 'Document',
+      text: message.replace(/\[DOCUMENT\][^\n]*/gi, '').trim()
+    }
+  }
+
+  // Check for direct media URLs in the message
+  const urlMatch = message.match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|bmp|webp))/i)
+  if (urlMatch) {
+    return {
+      type: 'image' as const,
+      url: urlMatch[0],
+      text: message.replace(urlMatch[0], '').trim()
+    }
+  }
+
+  return {
+    type: null,
+    url: '',
+    text: message
+  }
+};
+
+// Get icon for media type
+const getMediaIcon = (type: string) => {
+  switch (type) {
+    case 'image':
+      return <FileImage className="h-4 w-4 text-blue-500" />
+    case 'video':
+      return <Video className="h-4 w-4 text-purple-500" />
+    case 'audio':
+      return <Music className="h-4 w-4 text-[#007fff]" />
+    case 'document':
+      return <FileText className="h-4 w-4 text-orange-500" />
+    default:
+      return null
+  }
+};
+
 export const DynamicDashboard: React.FC = () => {
+  const router = useRouter();
   const { organization } = useOrganization();
   const organizationId = organization?.id;
 
@@ -144,6 +238,10 @@ export const DynamicDashboard: React.FC = () => {
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [websiteDialogOpen, setWebsiteDialogOpen] = useState(false);
 
+  const handleEscalationClick = () => {
+    router.push('/dashboard/notifications');
+  };
+
   // Show empty state for new users
   if (isEmpty && !loading) {
     return (
@@ -152,6 +250,16 @@ export const DynamicDashboard: React.FC = () => {
           userName={organization?.name || "there"}
           onWhatsAppSetup={() => setWhatsappDialogOpen(true)}
           onWebsiteSetup={() => setWebsiteDialogOpen(true)}
+          stats={stats ? {
+            totalConversations: stats.totalConversations,
+            totalMessages: stats.totalMessages,
+            activeTickets: stats.activeConversations,
+            tokenUsagePercent: stats.tokenUsagePercent,
+            channelStats: {
+              whatsapp: stats.channelStats.whatsapp,
+              website: stats.channelStats.website,
+            }
+          } : undefined}
         />
 
         {/* Dialogs */}
@@ -397,28 +505,93 @@ export const DynamicDashboard: React.FC = () => {
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-500">
                 <AlertCircle className="h-4 w-4" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-base font-semibold text-gray-900">Recent Escalations</h3>
                 <p className="text-sm text-gray-500">High priority items</p>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-[#007fff] hover:bg-[#f0f2f5]"
+                onClick={handleEscalationClick}
+              >
+                View all
+              </Button>
             </div>
             <div className="space-y-3">
               {stats.recentEscalations.length > 0 ? (
-                stats.recentEscalations.map((escalation) => (
-                  <div key={escalation.id} className="rounded-lg border border-gray-200 bg-white p-3">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      escalation.priority === 'high'
-                        ? 'bg-red-50 text-red-500'
-                        : escalation.priority === 'medium'
-                        ? 'bg-orange-50 text-orange-500'
-                        : 'bg-yellow-50 text-yellow-600'
-                    }`}>
-                      {escalation.priority}
-                    </span>
-                    <p className="mt-2 text-sm text-gray-900">{escalation.message}</p>
-                    <p className="text-xs text-gray-500">{escalation.timestamp}</p>
-                  </div>
-                ))
+                stats.recentEscalations.map((escalation) => {
+                  const mediaInfo = extractMediaFromMessage(escalation.message);
+                  const hasMedia = mediaInfo.type && mediaInfo.url;
+
+                  return (
+                    <div
+                      key={escalation.id}
+                      className="rounded-lg border border-gray-200 bg-white p-3 cursor-pointer hover:bg-[#f5f6f6] transition-colors"
+                      onClick={handleEscalationClick}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          escalation.priority === 'high'
+                            ? 'bg-red-50 text-red-500'
+                            : escalation.priority === 'medium'
+                            ? 'bg-orange-50 text-orange-500'
+                            : 'bg-yellow-50 text-yellow-600'
+                        }`}>
+                          {escalation.priority}
+                        </span>
+                        <span className="text-[10px] text-gray-400 capitalize">{escalation.channel}</span>
+                      </div>
+
+                      {hasMedia && (
+                        <div className="flex gap-2 mb-2">
+                          {/* Media preview */}
+                          {mediaInfo.type === 'image' && mediaInfo.url ? (
+                            <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                              <Image
+                                src={mediaInfo.url}
+                                alt="Preview"
+                                fill
+                                className="object-cover"
+                                sizes="48px"
+                                unoptimized
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center w-12 h-12 rounded-md bg-gray-100 border border-gray-200 shrink-0">
+                              {getMediaIcon(mediaInfo.type || '')}
+                            </div>
+                          )}
+
+                          {/* Text next to media */}
+                          <div className="flex-1 min-w-0">
+                            {mediaInfo.text ? (
+                              <p className="text-xs text-gray-900 line-clamp-2">{mediaInfo.text}</p>
+                            ) : (
+                              <p className="text-xs text-gray-500 italic">
+                                {mediaInfo.type === 'image' && '📷 Image'}
+                                {mediaInfo.type === 'video' && '🎥 Video'}
+                                {mediaInfo.type === 'audio' && '🎵 Audio'}
+                                {mediaInfo.type === 'document' && `📄 ${mediaInfo.fileName || 'Document'}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {!hasMedia && (
+                        <p className="text-xs text-gray-900 line-clamp-2 mb-2">{escalation.message}</p>
+                      )}
+
+                      <div className="flex items-center justify-between text-[10px] text-gray-500">
+                        {escalation.customerName && (
+                          <span className="truncate">{escalation.customerName}</span>
+                        )}
+                        <span className="shrink-0 ml-2">{escalation.timestamp}</span>
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
                 <p className="text-sm text-gray-500 text-center py-4">No recent escalations</p>
               )}

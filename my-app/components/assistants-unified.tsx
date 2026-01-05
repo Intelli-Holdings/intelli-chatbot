@@ -598,7 +598,7 @@ export default function AssistantsUnified() {
           <DialogHeader>
             <DialogTitle>Delete Assistant</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{selectedAssistant?.name}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{selectedAssistant?.name}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -757,7 +757,7 @@ export default function AssistantsUnified() {
                 <CardHeader>
                   <CardTitle className="text-base">Uploaded Files</CardTitle>
                   <CardDescription>
-                    Manage your assistant's knowledge base files
+                    Manage your assistant&apos;s knowledge base files
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

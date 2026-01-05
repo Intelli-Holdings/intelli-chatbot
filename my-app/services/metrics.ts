@@ -63,6 +63,7 @@ export interface DashboardStats {
 
   // Conversation metrics
   totalConversations: number;
+  totalMessages: number;
   activeConversations: number;
   avgResponseTime: string;
 

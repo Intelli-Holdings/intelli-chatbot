@@ -182,7 +182,7 @@ export default function AudiencesDashboard() {
               </div>
               <div className="flex-1">
                 <p className="font-medium">147 new contacts added</p>
-                <p className="text-muted-foreground">From CSV import "BF 2025"</p>
+                <p className="text-muted-foreground">From CSV import &quot;BF 2025&quot;</p>
               </div>
               <span className="text-muted-foreground">2 hours ago</span>
             </div>
@@ -192,7 +192,7 @@ export default function AudiencesDashboard() {
                 <Target className="h-4 w-4 text-purple-600" />
               </div>
               <div className="flex-1">
-                <p className="font-medium">Segment "VIP Customers" updated</p>
+                <p className="font-medium">Segment &quot;VIP Customers&quot; updated</p>
                 <p className="text-muted-foreground">Now contains 1,247 contacts</p>
               </div>
               <span className="text-muted-foreground">1 day ago</span>
@@ -204,7 +204,7 @@ export default function AudiencesDashboard() {
               </div>
               <div className="flex-1">
                 <p className="font-medium">CSV imported successfully</p>
-                <p className="text-muted-foreground">2,145 contacts from "Webinar Q4"</p>
+                <p className="text-muted-foreground">2,145 contacts from &quot;Webinar Q4&quot;</p>
               </div>
               <span className="text-muted-foreground">3 days ago</span>
             </div>

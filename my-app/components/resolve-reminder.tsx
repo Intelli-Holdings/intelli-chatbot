@@ -41,7 +41,7 @@ const ResolveReminder: React.FC<ResolveReminderProps> = ({ className }) => {
             <div className="bg-[#f0f2f5] p-2 rounded-md">
               <p className="font-medium text-[#111b21] mb-1">WhatsApp Policy</p>
               <p className="leading-relaxed">
-                You can only reply within 24 hours of the customer's last message. After this window, you'll need to restart the conversation at extra cost.
+                You can only reply within 24 hours of the customer&apos;s last message. After this window, you&apos;ll need to restart the conversation at extra cost.
               </p>
             </div>
 

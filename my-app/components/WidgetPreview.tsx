@@ -325,7 +325,7 @@ const WidgetPreview = ({ widget, isOpen = true, onToggleOpen }: WidgetPreviewPro
                     }}
                     className="px-3 py-2 max-w-[80%] text-gray-800 dark:text-gray-200 shadow-sm"
                   >
-                    I'd be happy to help! What would you like to know?
+                    I&apos;d be happy to help! What would you like to know?
                   </div>
                 </div>
 

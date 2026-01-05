@@ -5,6 +5,8 @@ import {
   type MetricsSummary,
   type DashboardStats,
 } from '@/services/metrics';
+import { getContactsCount } from '@/services/contacts';
+import { getRecentEscalations } from '@/services/notifications';
 
 export type TimePeriod = 'today' | 'week' | 'month' | 'all';
 
@@ -43,30 +45,94 @@ export const useDashboardMetrics = (
       const dateRange = getDateRangeForPeriod(period);
       const summary: MetricsSummary = await getMetricsSummary(organizationId, dateRange);
 
-      // Check if there's any data
-      if (!summary.latest || summary.summary.record_count === 0) {
-        setIsEmpty(true);
-        setStats(null);
-        setLoading(false);
-        return;
-      }
+      console.log('[Dashboard Metrics] Raw API response:', {
+        hasSummary: !!summary,
+        hasLatest: !!summary?.latest,
+        latestData: summary?.latest,
+        conversationsPerChannel: summary?.latest?.conversations_per_channel,
+      });
 
-      setIsEmpty(false);
-      const latest = summary.latest;
+      // Use latest data or create empty stats
+      const latest = summary.latest || {
+        num_conversations: 0,
+        num_pending: 0,
+        num_assigned: 0,
+        num_resolved: 0,
+        num_escalations: 0,
+        num_messages: 0,
+        used_token: 0,
+        total_token: 0,
+        conversations_per_channel: {
+          channels: {
+            whatsapp: 0,
+            website: 0,
+            email: 0,
+            instagram: 0,
+            messenger: 0,
+          }
+        }
+      };
       const timeline = summary.timeline || [];
+
+      // Helper function to extract channel conversation count
+      // Handles both old nested structure and new simple structure
+      const getChannelCount = (channelData: any): number => {
+        if (!channelData) return 0;
+        // New structure: simple number
+        if (typeof channelData === 'number') return channelData;
+        // Old structure: nested object with number_of_conversations
+        if (typeof channelData === 'object' && channelData.number_of_conversations !== undefined) {
+          return channelData.number_of_conversations;
+        }
+        return 0;
+      };
+
+      const whatsappCount = getChannelCount(latest.conversations_per_channel?.channels?.whatsapp);
+      const websiteCount = getChannelCount(latest.conversations_per_channel?.channels?.website);
+      const emailCount = getChannelCount(latest.conversations_per_channel?.channels?.email);
+      const instagramCount = getChannelCount(latest.conversations_per_channel?.channels?.instagram);
+      const messengerCount = getChannelCount(latest.conversations_per_channel?.channels?.messenger);
+
+      // Check if there's any conversation activity
+      const hasActivity = latest.num_conversations > 0 || whatsappCount > 0 || websiteCount > 0;
+
+      console.log('[Dashboard Metrics] Activity check:', {
+        num_conversations: latest.num_conversations,
+        num_messages: latest.num_messages,
+        whatsapp: whatsappCount,
+        website: websiteCount,
+        raw_whatsapp: latest.conversations_per_channel?.channels?.whatsapp,
+        raw_website: latest.conversations_per_channel?.channels?.website,
+        hasActivity,
+        isEmpty: !hasActivity
+      });
+
+      setIsEmpty(!hasActivity);
+
+      // Fetch additional data in parallel
+      const [contactsCount, recentEscalationsData] = await Promise.all([
+        getContactsCount(organizationId),
+        getRecentEscalations(organizationId, 3),
+      ]);
+
+      // Calculate average response time if we have messages data
+      // Note: This is a simplified calculation. For accurate response time,
+      // the backend should calculate it based on message timestamps
+      const avgResponseTime = latest.num_messages > 0 ? 'N/A' : 'N/A';
 
       // Transform the data into DashboardStats format
       const dashboardStats: DashboardStats = {
-        // Contact metrics (we'll need to add these from contact API later)
-        totalContacts: 0, // TODO: Fetch from contacts API
+        // Contact metrics - now using real data
+        totalContacts: contactsCount,
         needFollowUp: latest.num_pending || 0,
         converted: latest.num_resolved || 0,
         inboundLeads: latest.num_escalations || 0,
 
         // Conversation metrics
         totalConversations: latest.num_conversations || 0,
-        activeConversations: latest.num_pending + latest.num_assigned || 0,
-        avgResponseTime: '2.3 mins', // TODO: Calculate from actual data
+        totalMessages: latest.num_messages || 0,
+        activeConversations: (latest.num_pending || 0) + (latest.num_assigned || 0),
+        avgResponseTime, // Note: Backend should calculate this from message timestamps
 
         // Token metrics
         tokensUsed: latest.used_token || 0,
@@ -84,15 +150,15 @@ export const useDashboardMetrics = (
 
         // Channel breakdown
         channelStats: {
-          whatsapp: latest.conversations_per_channel?.channels?.whatsapp || 0,
-          website: latest.conversations_per_channel?.channels?.website || 0,
-          email: latest.conversations_per_channel?.channels?.email || 0,
-          instagram: latest.conversations_per_channel?.channels?.instagram || 0,
-          messenger: latest.conversations_per_channel?.channels?.messenger || 0,
+          whatsapp: whatsappCount,
+          website: websiteCount,
+          email: emailCount,
+          instagram: instagramCount,
+          messenger: messengerCount,
         },
 
-        // Recent escalations (mock data - would come from a separate API)
-        recentEscalations: generateRecentEscalations(latest.num_escalations),
+        // Recent escalations - now using real data from notifications API
+        recentEscalations: recentEscalationsData,
 
         // Timeline trends
         conversationTrend: timeline.map((metric) => ({
@@ -148,28 +214,6 @@ export const useDashboardMetrics = (
 function calculateTokenCost(tokensUsed: number): number {
   // Simplified cost calculation: $0.01 per 1000 tokens
   return Math.round((tokensUsed / 1000) * 0.01 * 100) / 100;
-}
-
-/**
- * Generate mock recent escalations (would come from API)
- */
-function generateRecentEscalations(count: number): DashboardStats['recentEscalations'] {
-  if (count === 0) return [];
-
-  const messages = [
-    'Customer complaint about delivery delay',
-    'Product quality issue reported',
-    'Billing inquiry requires attention',
-    'Technical support request',
-    'Refund request pending review',
-  ];
-
-  return Array.from({ length: Math.min(count, 3) }, (_, i) => ({
-    id: `escalation-${i}`,
-    priority: i === 0 ? ('high' as const) : i === 1 ? ('medium' as const) : ('low' as const),
-    message: messages[i % messages.length],
-    timestamp: `${Math.floor(Math.random() * 60)} mins ago`,
-  }));
 }
 
 export default useDashboardMetrics;

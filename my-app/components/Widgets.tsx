@@ -60,7 +60,25 @@ interface Widget {
   animation_style: string
 }
 
-const Widgets = () => {
+type WidgetCacheEntry = {
+  widgets: Widget[]
+  fetchedAt: number
+}
+
+type WidgetsProps = {
+  onCreateWidget?: () => void
+}
+
+const widgetsCache = new Map<string, WidgetCacheEntry>()
+
+const getCachedWidgets = (organizationId: string) => widgetsCache.get(organizationId)
+
+const setWidgetsCache = (organizationId: string, widgets: Widget[]) => {
+  if (!organizationId) return
+  widgetsCache.set(organizationId, { widgets, fetchedAt: Date.now() })
+}
+
+const Widgets = ({ onCreateWidget }: WidgetsProps) => {
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("")
@@ -99,14 +117,21 @@ const Widgets = () => {
 
   useEffect(() => {
     if (selectedOrganizationId) {
-      fetchWidgets(selectedOrganizationId)
+      const cached = getCachedWidgets(selectedOrganizationId)
+      if (cached) {
+        setWidgets(cached.widgets)
+        fetchWidgets(selectedOrganizationId, { showLoader: false })
+      } else {
+        fetchWidgets(selectedOrganizationId)
+      }
       // Clear selections when organization changes
       setSelectedWidgets(new Set())
     }
   }, [selectedOrganizationId])
 
-  const fetchWidgets = async (orgId: string) => {
-    setLoading(true)
+  const fetchWidgets = async (orgId: string, options: { showLoader?: boolean } = {}) => {
+    const { showLoader = true } = options
+    if (showLoader) setLoading(true)
     try {
 
       // Add timestamp to prevent browser caching
@@ -125,11 +150,12 @@ const Widgets = () => {
 
       const data = await response.json()
       setWidgets(data)
+      setWidgetsCache(orgId, data)
     } catch (error) {
       console.error("[Widgets] Error fetching widgets:", error)
       toast.error(`Failed to fetch widgets: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
-      setLoading(false)
+      if (showLoader) setLoading(false)
     }
   }
 
@@ -153,7 +179,11 @@ const Widgets = () => {
     setLoading(true)
 
     // Optimistic update: Remove widget from UI immediately
-    setWidgets((prevWidgets) => prevWidgets.filter((w) => w.id !== widgetToDeleteId))
+    setWidgets((prevWidgets) => {
+      const nextWidgets = prevWidgets.filter((w) => w.id !== widgetToDeleteId)
+      setWidgetsCache(selectedOrganizationId, nextWidgets)
+      return nextWidgets
+    })
 
     // Close dialog immediately for better UX
     setIsDeleteDialogOpen(false)
@@ -175,13 +205,13 @@ const Widgets = () => {
       console.log("[Widgets] Widget deleted, refreshing list...")
 
       // Refresh the widget list to ensure consistency with backend
-      await fetchWidgets(selectedOrganizationId)
+      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } catch (error) {
       console.error("[Widgets] Error deleting widget:", error)
       toast.error(`Failed to delete widget: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Revert optimistic update on error
-      await fetchWidgets(selectedOrganizationId)
+      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } finally {
       setLoading(false)
     }
@@ -252,9 +282,11 @@ const Widgets = () => {
         website_url: editWidget.website_url,
         brand_color: brandColor,
       }
-      setWidgets((prevWidgets) =>
-        prevWidgets.map((w) => (w.id === editWidget.id ? optimisticWidget : w))
-      )
+      setWidgets((prevWidgets) => {
+        const nextWidgets = prevWidgets.map((w) => (w.id === editWidget.id ? optimisticWidget : w))
+        setWidgetsCache(selectedOrganizationId, nextWidgets)
+        return nextWidgets
+      })
 
       const response = await fetch(`/api/widgets/widget/${editWidget.widget_key}`, {
         method: "PUT",
@@ -278,19 +310,23 @@ const Widgets = () => {
 
       // Refresh the widget list to show actual updated data from server
       console.log("[Widgets] Refreshing widget list after update...")
-      await fetchWidgets(selectedOrganizationId)
+      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } catch (error) {
       console.error("[Widgets] Error updating widget:", error)
       toast.error(`Failed to update widget: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Revert optimistic update on error
-      await fetchWidgets(selectedOrganizationId)
+      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreateWidget = () => {
+    if (onCreateWidget) {
+      onCreateWidget()
+      return
+    }
     router.push("/dashboard/widgets")
   }
 
@@ -331,7 +367,11 @@ const Widgets = () => {
     setIsBulkDeleteDialogOpen(false)
 
     // Optimistic update
-    setWidgets(prevWidgets => prevWidgets.filter(w => !widgetIdsToDelete.includes(w.id)))
+    setWidgets(prevWidgets => {
+      const nextWidgets = prevWidgets.filter(w => !widgetIdsToDelete.includes(w.id))
+      setWidgetsCache(selectedOrganizationId, nextWidgets)
+      return nextWidgets
+    })
     setSelectedWidgets(new Set())
 
     try {
@@ -354,13 +394,13 @@ const Widgets = () => {
       }
 
       // Refresh the widget list
-      await fetchWidgets(selectedOrganizationId)
+      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } catch (error) {
       console.error("[Widgets] Error during bulk delete:", error)
       toast.error(`Failed to delete widgets: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Revert optimistic update on error
-      await fetchWidgets(selectedOrganizationId)
+      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } finally {
       setLoading(false)
     }
@@ -877,7 +917,7 @@ const Widgets = () => {
 
                   <div className="flex items-center justify-between space-x-2 py-2">
                     <Label htmlFor="show_powered_by" className="text-sm font-semibold cursor-pointer">
-                      Show "Powered by IntelliConcierge"
+                      Show &quot;Powered by Intelli&quot;
                     </Label>
                     <Switch
                       id="show_powered_by"

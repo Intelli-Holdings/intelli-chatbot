@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useQueryClient } from 'react-query';
 import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,9 @@ import { toast } from 'sonner';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
 import { CampaignService, type Campaign, type CreateCampaignData } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { useContactTags } from '@/hooks/use-contact-tags';
+import { useInfiniteContacts } from '@/hooks/use-contacts';
+import { useCustomFields } from '@/hooks/use-custom-fields';
 import { useCampaignTimezone } from '@/hooks/use-campaign-timezone';
 import { convertUTCToLocalDateTimeString } from '@/lib/timezone-utils';
 import { TemplateSelectionPanel } from '@/components/template-selection-panel';
@@ -37,7 +41,7 @@ interface Contact {
 }
 
 interface Tag {
-  id: string;
+  id: string | number;
   name: string;
   slug: string;
 }
@@ -50,8 +54,16 @@ interface CampaignCreationFormProps {
 
 export default function CampaignCreationForm({ appService, onSuccess, draftCampaign = null }: CampaignCreationFormProps) {
   const organizationId = useActiveOrganizationId();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [campaignType, setCampaignType] = useState<'template' | 'simple'>('template');
+
+  const invalidateCampaignQueries = () => {
+    if (!organizationId) return;
+    queryClient.invalidateQueries(['campaigns', organizationId]);
+    queryClient.invalidateQueries(['campaign-status-counts', organizationId]);
+    queryClient.invalidateQueries(['whatsapp-campaigns', organizationId]);
+  };
 
   const {
     scheduledAtUTC,
@@ -92,13 +104,10 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [globalHeaderMediaId, setGlobalHeaderMediaId] = useState<string>('');
   const [isUploadingHeaderMedia, setIsUploadingHeaderMedia] = useState(false);
 
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [customFields, setCustomFields] = useState<Array<{ id: string; name: string; key: string }>>([]);
+  const [showAllTags, setShowAllTags] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingContacts, setLoadingContacts] = useState(false);
 
   // CSV Import state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -121,13 +130,30 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
   const { mappings, loading: mappingsLoading } = useImportMappings(organizationId || '', formData.channel);
 
-  // New pagination / totals state used by contacts fetch logic
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [currentPage, setCurrentPage] = useState(1);
-
   // Reduce page size to 100 to avoid gateway timeouts (was 1000)
   const pageSize = 100;
+  const {
+    contacts,
+    isLoading: contactsLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: contactsError,
+  } = useInfiniteContacts<Contact>(organizationId || undefined, pageSize);
+  const { tags, error: tagsError } = useContactTags(organizationId || undefined);
+  const { customFields: rawCustomFields, error: customFieldsError } = useCustomFields(organizationId || undefined);
+  const customFields = useMemo(
+    () =>
+      rawCustomFields
+        .filter((field) => field.active)
+        .map((field) => ({
+          id: field.id,
+          name: field.name,
+          key: field.key,
+        })),
+    [rawCustomFields]
+  );
+  const loadingContacts = contactsLoading || isFetchingNextPage;
 
   const { templates, loading: templatesLoading } = useWhatsAppTemplates(appService);
   const approvedTemplates = templates.filter(t => t.status === 'APPROVED');
@@ -139,95 +165,23 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     hasInitializedDraft.current = false;
     hasSyncedDraftTemplate.current = false;
   }, [draftCampaign?.id]);
-
-  // Fetch contacts using the same logic as /dashboard/contacts (paginated, smaller page size)
-  // Returns true on success, false on failure.
-  const fetchContacts = useCallback(async (orgId: string, page: number = 1) => {
-    try {
-      setLoadingContacts(true);
-      const response = await fetch(`/api/contacts/contacts?organization=${orgId}&page=${page}&page_size=${pageSize}`);
-      if (!response.ok) throw new Error("Failed to fetch contacts");
-      const data = await response.json();
-
-      // Handle paginated response
-      if (data.results) {
-        if (page === 1) {
-          setContacts(data.results);
-        } else {
-          // Append new batch while keeping previous contacts
-          setContacts(prev => {
-            // Prevent duplicates by id (in case API returns overlapping results)
-            const existingIds = new Set(prev.map(c => c.id));
-            const newItems = data.results.filter((c: Contact) => !existingIds.has(c.id));
-            return [...prev, ...newItems];
-          });
-        }
-        setTotalCount(data.count || 0);
-        setTotalPages(Math.ceil((data.count || 0) / pageSize));
-      } else {
-        const arrayData = Array.isArray(data) ? data : [];
-        if (page === 1) {
-          setContacts(arrayData);
-        } else {
-          setContacts(prev => {
-            const existingIds = new Set(prev.map(c => c.id));
-            const newItems = arrayData.filter((c: Contact) => !existingIds.has(c.id));
-            return [...prev, ...newItems];
-          });
-        }
-      }
-
-      return true;
-    } catch (error) {
-      toast.error("Failed to fetch contacts");
-      console.error('fetchContacts error:', error);
-      return false;
-    } finally {
-      setLoadingContacts(false);
-    }
-  }, [pageSize]);
-
-  // Load initial contacts and tags on mount / when organizationId changes
   useEffect(() => {
-    const fetchData = async () => {
-      if (!organizationId) return;
+    if (contactsError) {
+      toast.error('Failed to load contacts');
+    }
+  }, [contactsError]);
 
-      try {
-        // Fetch first page of contacts (page 1)
-        const ok = await fetchContacts(organizationId, 1);
-        if (ok) {
-          setCurrentPage(1);
-        } else {
-          setCurrentPage(0);
-        }
+  useEffect(() => {
+    if (tagsError) {
+      toast.error('Failed to load tags');
+    }
+  }, [tagsError]);
 
-        // Fetch tags
-        const tagsResponse = await fetch(`/api/contacts/tags?organization=${organizationId}`);
-        if (tagsResponse.ok) {
-          const tagsData = await tagsResponse.json();
-          setTags(tagsData.results || tagsData || []);
-        }
-
-        // Fetch custom fields
-        const customFieldsResponse = await fetch(`/api/contacts/custom-fields?organization=${organizationId}`);
-        if (customFieldsResponse.ok) {
-          const customFieldsData = await customFieldsResponse.json();
-          const fields = customFieldsData.results || customFieldsData || [];
-          // Only include active custom fields
-          setCustomFields(fields.filter((f: any) => f.is_active).map((f: any) => ({
-            id: f.id,
-            name: f.name,
-            key: f.key
-          })));
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load contacts and tags');
-      }
-    };
-
-    fetchData();
-  }, [organizationId, fetchContacts]);
+  useEffect(() => {
+    if (customFieldsError) {
+      toast.error(customFieldsError);
+    }
+  }, [customFieldsError]);
 
   // Prefill form when continuing a draft campaign
   useEffect(() => {
@@ -298,13 +252,11 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
   const loadMoreContacts = async () => {
     if (!organizationId) return;
-    if (loadingContacts) return;
-    const nextPage = currentPage + 1;
-    if (nextPage > totalPages) return;
-    const ok = await fetchContacts(organizationId, nextPage);
-    if (ok) {
-      setCurrentPage(nextPage);
-    } else {
+    if (loadingContacts || !hasNextPage) return;
+    try {
+      await fetchNextPage();
+    } catch (error) {
+      console.error('Error loading more contacts:', error);
       toast.error('Failed to load more contacts');
     }
   };
@@ -637,6 +589,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         updateData
       );
 
+      invalidateCampaignQueries();
       toast.success('Draft updated');
       return true;
     } catch (error) {
@@ -797,6 +750,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       if (campaign.whatsapp_campaign_id) {
         setCreatedWhatsAppCampaignId(campaign.whatsapp_campaign_id);
       }
+      invalidateCampaignQueries();
       toast.success('Campaign created successfully!');
       return true;
     } catch (error) {
@@ -1304,6 +1258,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         console.log('Has template variables:', hasTemplateVariables);
         const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
         const mediaValue = globalHeaderMediaId || globalHeaderMediaHandle;
+        const tagIds = formData.selectedTags.length > 0
+          ? formData.selectedTags.map(slug => {
+              const tag = tags.find(t => t.slug === slug);
+              return tag ? Number(tag.id) : null;
+            }).filter((id): id is number => id !== null)
+          : [];
 
         // If template has variables, use new format with per-recipient parameters
         if (hasTemplateVariables && formData.selectedContacts.length > 0) {
@@ -1385,7 +1345,10 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           await CampaignService.addWhatsAppCampaignRecipients(
             createdWhatsAppCampaignId,
             organizationId,
-            { recipients: recipientsWithParams }
+            {
+              recipients: recipientsWithParams,
+              tag_ids: tagIds.length > 0 ? tagIds : undefined,
+            }
           );
 
           console.log('Recipients with parameters added successfully');
@@ -1398,14 +1361,6 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         } else {
           // Use legacy format: Add recipients by tag_ids/contact_ids (no parameters)
           console.log('=== USING LEGACY RECIPIENT FORMAT ===');
-
-          // Get tag IDs from tag slugs
-          const tagIds = formData.selectedTags.length > 0
-            ? formData.selectedTags.map(slug => {
-                const tag = tags.find(t => t.slug === slug);
-                return tag ? parseInt(tag.id) : null;
-              }).filter((id): id is number => id !== null)
-            : [];
 
           // Get contact IDs - ensure they are numbers
           const contactIds = formData.selectedContacts.length > 0
@@ -1462,6 +1417,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         );
       }
 
+      invalidateCampaignQueries();
       toast.success('Campaign launched successfully!');
       onSuccess();
     } catch (error) {
@@ -1493,6 +1449,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     contact.phone?.includes(searchTerm)
   );
 
+  const displayedTags = showAllTags ? tags : tags.slice(0, 12);
+  const hasMoreTags = tags.length > 12;
+
   const filteredTemplates = approvedTemplates.filter(template =>
     template.name.toLowerCase().includes(templateSearchTerm.toLowerCase()) ||
     template.category?.toLowerCase().includes(templateSearchTerm.toLowerCase())
@@ -1516,7 +1475,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     return count;
   };
 
-  const hasMore = currentPage < totalPages;
+  const hasMore = Boolean(hasNextPage);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 py-8 px-4">
@@ -1893,6 +1852,80 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                 Accepted: JPG, PNG, MP4, PDF. Uploaded to WhatsApp and reused for this campaign.
                               </p>
                             </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {tags.length > 0 && (
+                      <Card className="border-border/60 bg-muted/30">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-sm">Select by Tags</CardTitle>
+                              {formData.selectedTags.length > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {formData.selectedTags.length} selected
+                                </Badge>
+                              )}
+                            </div>
+                            {formData.selectedTags.length > 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setFormData(prev => ({ ...prev, selectedTags: [] }))}
+                                className="h-7 text-xs"
+                              >
+                                <X className="h-3 w-3" />
+                                Clear
+                              </Button>
+                            )}
+                          </div>
+                          <CardDescription className="text-xs">
+                            Selecting tags adds all contacts with those tags to this campaign.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap gap-2">
+                          {displayedTags.map(tag => {
+                            const isSelected = formData.selectedTags.includes(tag.slug);
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => handleTagToggle(tag.slug)}
+                                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                                  isSelected
+                                    ? 'bg-primary/10 text-primary border-primary/40'
+                                    : 'bg-background text-muted-foreground border-border/60 hover:border-border'
+                                }`}
+                              >
+                                {tag.name}
+                                {isSelected && <X className="h-3 w-3" />}
+                              </button>
+                            );
+                          })}
+                          {hasMoreTags && !showAllTags && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowAllTags(true)}
+                              className="h-7 text-xs"
+                            >
+                              +{tags.length - displayedTags.length} more
+                            </Button>
+                          )}
+                          {showAllTags && hasMoreTags && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowAllTags(false)}
+                              className="h-7 text-xs"
+                            >
+                              Show less
+                            </Button>
                           )}
                         </CardContent>
                       </Card>

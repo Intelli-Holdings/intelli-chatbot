@@ -29,7 +29,7 @@ export default function QuickSendPage() {
   const router = useRouter()
   const organizationId = useActiveOrganizationId()
   const { appServices, selectedAppService } = useAppServices()
-  const { templates, loading: templatesLoading } = useWhatsAppTemplates(selectedAppService?.id)
+  const { templates, loading: templatesLoading } = useWhatsAppTemplates(selectedAppService)
 
   const [sendMode, setSendMode] = useState<SendMode>("single")
   const [currentStep, setCurrentStep] = useState<Step>("template")

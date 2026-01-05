@@ -3,8 +3,11 @@
 import { ContactsHeader } from "@/components/contacts-header"
 import { ContactsTable } from "@/components/contacts-table"
 import { ContactsFilter } from "@/components/contacts-filter"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import { useQueryClient } from "react-query"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
+import { useContactTags } from "@/hooks/use-contact-tags"
+import { usePaginatedContacts } from "@/hooks/use-contacts"
 import { toast } from "sonner"
 
 interface Tag {
@@ -30,60 +33,52 @@ interface Contact {
 }
 
 export default function ContactsPage() {
-  const [contacts, setContacts] = useState<Contact[]>([])
-  const [tags, setTags] = useState<Tag[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
   const pageSize = 12
   const organizationId = useActiveOrganizationId()
+  const queryClient = useQueryClient()
 
-  const fetchContacts = useCallback(async (orgId: string, page: number = 1) => {
-    try {
-      setIsLoading(true)
-      const response = await fetch(`/api/contacts/contacts?organization=${orgId}&page=${page}&page_size=${pageSize}`)
-      if (!response.ok) throw new Error("Failed to fetch contacts")
-      const data = await response.json()
+  const {
+    contacts,
+    totalCount,
+    totalPages,
+    isLoading,
+    error: contactsError,
+  } = usePaginatedContacts<Contact>(organizationId || undefined, currentPage, pageSize)
 
-      // Handle paginated response
-      if (data.results) {
-        setContacts(data.results)
-        setTotalCount(data.count || 0)
-        setTotalPages(Math.ceil((data.count || 0) / pageSize))
-      } else {
-        setContacts(Array.isArray(data) ? data : [])
-      }
-    } catch (error) {
-      toast.error("Failed to fetch contacts")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [pageSize])
-
-  const fetchTags = useCallback(async (orgId: string) => {
-    try {
-      const response = await fetch(`/api/contacts/tags?organization=${orgId}`)
-      if (!response.ok) throw new Error("Failed to fetch tags")
-      const data = await response.json()
-      setTags(Array.isArray(data) ? data : data.results || [])
-    } catch (error) {
-      console.error("Failed to fetch tags:", error)
-    }
-  }, [])
+  const {
+    tags,
+    error: tagsError,
+  } = useContactTags(organizationId || undefined)
 
   useEffect(() => {
-    if (organizationId) {
-      fetchContacts(organizationId, currentPage)
-      fetchTags(organizationId)
+    if (contactsError) {
+      toast.error("Failed to fetch contacts")
     }
-  }, [organizationId, currentPage, fetchContacts, fetchTags])
+  }, [contactsError])
+
+  useEffect(() => {
+    if (tagsError) {
+      toast.error("Failed to fetch tags")
+    }
+  }, [tagsError])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const refreshTags = () => {
+    if (!organizationId) return
+    queryClient.invalidateQueries(["contact-tags", organizationId])
+  }
+
+  const refreshContacts = (page: number = currentPage) => {
+    if (!organizationId) return
+    setCurrentPage(page)
+    queryClient.invalidateQueries(["contacts", organizationId])
   }
 
   const filteredContacts = contacts.filter((contact) => {
@@ -109,11 +104,8 @@ export default function ContactsPage() {
         <ContactsHeader
           onSearchChange={setSearchTerm}
           tags={tags}
-          onTagsChange={() => fetchTags(organizationId || "")}
-          onContactsChange={() => {
-            setCurrentPage(1)
-            fetchContacts(organizationId || "", 1)
-          }}
+          onTagsChange={refreshTags}
+          onContactsChange={() => refreshContacts(1)}
         />
         <ContactsFilter
           tags={tags}
@@ -129,7 +121,7 @@ export default function ContactsPage() {
           totalPages={totalPages}
           totalCount={totalCount}
           onPageChange={handlePageChange}
-          onContactsChange={() => fetchContacts(organizationId || "", currentPage)}
+          onContactsChange={() => refreshContacts(currentPage)}
         />
       </div>
     </div>

@@ -99,7 +99,7 @@ export default function TestAuthPage() {
                 <div className="flex gap-2">
                   <span className="px-2 py-1 bg-green-100 text-green-800 rounded font-mono text-xs">GET</span>
                   <code className="text-gray-700">/auth/my-organizations/</code>
-                  <span className="text-gray-500">- Get user's organizations</span>
+                  <span className="text-gray-500">- Get user&apos;s organizations</span>
                 </div>
                 <div className="flex gap-2">
                   <span className="px-2 py-1 bg-green-100 text-green-800 rounded font-mono text-xs">GET</span>

@@ -679,7 +679,7 @@ export default function UnifiedWidgets() {
                                 onChange={(e) => setShowPoweredBy(e.target.checked)}
                                 className="w-4 h-4 rounded border-gray-300"
                               />
-                              <Label htmlFor="showPoweredBy" className="cursor-pointer font-medium">Show "Powered by IntelliConcierge"</Label>
+                              <Label htmlFor="showPoweredBy" className="cursor-pointer font-medium">Show &quot;Powered by Intelli&quot;</Label>
                             </div>
                           </div>
                         </div>
@@ -801,7 +801,7 @@ export default function UnifiedWidgets() {
         </TabsContent>
 
         <TabsContent value="manage" className="mt-6">
-          <Widgets />
+          <Widgets onCreateWidget={() => setActiveTab("create")} />
         </TabsContent>
       </Tabs>
 

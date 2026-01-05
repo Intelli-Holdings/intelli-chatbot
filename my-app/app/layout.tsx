@@ -41,6 +41,9 @@ import {
 // Toast notifications
 import ToastProvider from "@/components/ToastProvider";
 
+// Pointer events fix
+import PointerEventsFix from "@/components/pointer-events-fix";
+
 const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
   ssr: false,
 })
@@ -127,6 +130,7 @@ export default function RootLayout({
                <ConsentGate /> {/* renders MetaPixel only after consent */}
           <AttentionBadge />
             <PostHogPageView />
+            <PointerEventsFix />
             <AptabaseProvider appKey="A-US-3705920924">
             <NextStepProvider>
             <OnboardingProvider>
