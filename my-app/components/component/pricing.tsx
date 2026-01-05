@@ -37,10 +37,10 @@ const pricingPlans = [
   {
     name: 'Custom',
     description:
-      'If you have a large customer base and need a custom solution, this plan is for you.',
+      'If you need a custom solution, this plan is for you. Book a call with our team to discuss your needs.',
     monthlyPrice: null,
     annualPrice: null,
-    link: 'https://cal.com/intelli/entreprise-sales',
+    link: 'https://cal.com/intelli-demo/30min',
     features: [
       'Custom AI assistant',
       'Custom integrations',

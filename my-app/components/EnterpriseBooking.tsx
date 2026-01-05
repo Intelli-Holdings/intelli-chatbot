@@ -39,7 +39,7 @@ const EnterpriseBookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }
           
           <Cal
             namespace="entreprise-sales"
-            calLink="intelli/entreprise-sales"
+            calLink="intelli-demo/30min?user=intelli-demo"
             style={{
               width: "100%",
               height: "100%",
