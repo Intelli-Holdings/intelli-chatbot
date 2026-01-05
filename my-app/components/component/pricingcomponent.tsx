@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import PricingCard from './pricingCard';
-import { Badge } from '@/components/ui/badge';
 
 const PricingComponent = () => {
   const [isAnnual, setIsAnnual] = useState<boolean>(true);
@@ -59,7 +58,7 @@ const PricingComponent = () => {
       ],
       description: 'Tailored solutions for large-scale organizations.',
       buttonText: 'Book a Discovery Call',
-      link: 'https://cal.com/intelli-demo/30min',
+      link: 'https://cal.com/intelli-demo/30min?user=intelli-demo',
     },
   ];
 
