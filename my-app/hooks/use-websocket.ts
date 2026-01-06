@@ -8,6 +8,9 @@ export type WebSocketMessage = {
   type: string
   sender: string
   timestamp: string
+  // Properties for status updates
+  message_id?: string
+  status?: string
   // Add any other properties that might be in your WebSocket messages
 }
 

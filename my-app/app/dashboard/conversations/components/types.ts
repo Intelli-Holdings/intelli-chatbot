@@ -15,7 +15,7 @@ export interface ChatMessage {
   // Message status for WhatsApp-style indicators
   status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
   read?: boolean
-  pending?: boolean
+  pending?: boolean // Flag for optimistic messages before server confirmation
 }
 
 export interface Conversation {

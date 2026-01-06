@@ -16,6 +16,29 @@ import LoadingProgress from "@/components/loading-progress"
 import { useSearchParams } from "next/navigation"
 
 type ReadConversationsMap = Record<string, string>
+const EMPTY_MESSAGES: Conversation["messages"] = []
+const EMPTY_ATTACHMENTS: NonNullable<Conversation["attachments"]> = []
+
+const areConversationsEqual = (left: Conversation[], right: Conversation[]) => {
+  if (left === right) return true
+  if (left.length !== right.length) return false
+
+  for (let index = 0; index < left.length; index += 1) {
+    const prev = left[index]
+    const next = right[index]
+
+    if (prev.id !== next.id) return false
+    if (prev.updated_at !== next.updated_at) return false
+    if ((prev.unread_messages ?? 0) !== (next.unread_messages ?? 0)) return false
+    if (prev.customer_number !== next.customer_number) return false
+    if (prev.recipient_id !== next.recipient_id) return false
+    if (prev.phone_number !== next.phone_number) return false
+    if (prev.messages !== next.messages) return false
+    if ((prev.attachments ?? EMPTY_ATTACHMENTS) !== (next.attachments ?? EMPTY_ATTACHMENTS)) return false
+  }
+
+  return true
+}
 
 // Helper function to get read conversations from localStorage
 const getReadConversations = (phoneNumber: string): ReadConversationsMap => {
@@ -81,7 +104,8 @@ export default function WhatsAppConvosPage() {
     error: sessionsError,
   } = useWhatsAppChatSessions(activeOrganizationId || undefined, phoneNumber, 12)
 
-  const { fetchMessages, getCachedMessages, setCachedMessages } = useWhatsAppChatMessages(phoneNumber)
+  const { fetchMessages, fetchOlderMessages, getCachedMessages, setCachedMessages, hasMore, isLoadingMore, resetPagination } =
+    useWhatsAppChatMessages(phoneNumber)
   const listLoading = sessionsLoading && conversations.length === 0
   const listHasMore = Boolean(hasNextPage)
 
@@ -192,7 +216,7 @@ export default function WhatsAppConvosPage() {
         const fallbackMessages =
           cachedMessages.length > 0
             ? cachedMessages
-            : existing?.messages || messageCacheRef.current[conv.id] || []
+            : existing?.messages || messageCacheRef.current[conv.id] || EMPTY_MESSAGES
 
         if (fallbackMessages.length > 0 && cachedMessages.length === 0) {
           setCachedMessages(customerNumber, fallbackMessages)
@@ -207,7 +231,7 @@ export default function WhatsAppConvosPage() {
           updated_at: resolveUpdatedAt(conv.updated_at, latestCachedTimestamp),
           phone_number: phoneNumber,
           recipient_id: customerNumber,
-          attachments: conv.attachments || [],
+          attachments: conv.attachments ?? EMPTY_ATTACHMENTS,
           unread_messages: existing?.unread_messages ?? conv.unread_messages,
         }
       })
@@ -241,7 +265,9 @@ export default function WhatsAppConvosPage() {
 
       if (!isActive) return
 
-      setConversations(conversationsWithMessages)
+      setConversations((prev) =>
+        areConversationsEqual(prev, conversationsWithMessages) ? prev : conversationsWithMessages,
+      )
       setLoadingProgress(100)
       setLoadingMessage("Ready!")
       setTimeout(() => {
@@ -265,8 +291,6 @@ export default function WhatsAppConvosPage() {
     sessionsLoading,
     sessionsError,
     resolveUpdatedAt,
-    getCachedMessages,
-    setCachedMessages,
   ])
 
   const loadMoreConversations = async () => {
@@ -280,15 +304,18 @@ export default function WhatsAppConvosPage() {
   }
 
   // Function to fetch messages for a specific conversation
-  const fetchMessagesForConversation = async (customerNumber: string) => {
-    if (!customerNumber) return []
-    try {
-      return await fetchMessages(customerNumber)
-    } catch (error) {
-      console.error(`Failed to fetch messages for customer ${customerNumber}:`, error)
-      return []
-    }
-  }
+  const fetchMessagesForConversation = useCallback(
+    async (customerNumber: string) => {
+      if (!customerNumber) return []
+      try {
+        return await fetchMessages(customerNumber)
+      } catch (error) {
+        console.error(`Failed to fetch messages for customer ${customerNumber}:`, error)
+        return []
+      }
+    },
+    [fetchMessages],
+  )
 
   const handleSelectConversation = async (conversation: Conversation) => {
     selectedConversationRef.current = conversation.id
@@ -427,6 +454,9 @@ export default function WhatsAppConvosPage() {
             phoneNumber={phoneNumber}
             organizationId={activeOrganizationId ?? undefined}
             fetchMessages={fetchMessagesForConversation}
+            fetchOlderMessages={fetchOlderMessages}
+            hasMoreMessages={hasMore}
+            isLoadingOlderMessages={isLoadingMore}
             isMessagesLoading={loadingConversationId === selectedConversation.id}
             initialFetchEnabled={false}
             initialScrollTop={scrollPositionsRef.current[selectedConversation.id] ?? null}
@@ -451,6 +481,9 @@ export default function WhatsAppConvosPage() {
                 phoneNumber={phoneNumber}
                 organizationId={activeOrganizationId ?? undefined}
                 fetchMessages={fetchMessagesForConversation}
+                fetchOlderMessages={fetchOlderMessages}
+                hasMoreMessages={hasMore}
+                isLoadingOlderMessages={isLoadingMore}
                 isMessagesLoading={loadingConversationId === selectedConversation.id}
                 initialFetchEnabled={false}
                 initialScrollTop={scrollPositionsRef.current[selectedConversation.id] ?? null}

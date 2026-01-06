@@ -36,14 +36,14 @@
 }
 
 .message-assistant {
-  background-color: #d9fdd3;
+  background-color: #e3d7ff; /* Light purple for AI */
   color: #111b21;
   align-self: flex-end;
   border-top-right-radius: 0;
 }
 
 .message-human {
-  background-color: #d9fdd3;
+  background-color: #d9fdd3; /* Light green for Business/Human */
   color: #111b21;
   align-self: flex-end;
   border-top-right-radius: 0;
@@ -66,14 +66,14 @@
 
 .message-tail-right-assistant {
   border-width: 8px 0 0 8px;
-  border-color: #d9fdd3 transparent transparent transparent;
+  border-color: #e3d7ff transparent transparent transparent; /* Purple tail for AI */
   right: -7px;
   top: 0;
 }
 
 .message-tail-right-human {
   border-width: 8px 0 0 8px;
-  border-color: #d9fdd3 transparent transparent transparent;
+  border-color: #d9fdd3 transparent transparent transparent; /* Green tail for Business */
   right: -7px;
   top: 0;
 }
@@ -217,9 +217,13 @@
   text-decoration-color: rgba(2, 126, 181, 0.4);
 }
 
-.message-bubble.message-assistant a,
+.message-bubble.message-assistant a {
+  color: #6b21a8; /* Purple links for AI messages */
+  text-decoration-color: rgba(107, 33, 168, 0.4);
+}
+
 .message-bubble.message-human a {
-  color: #00634a;
+  color: #00634a; /* Green links for Business messages */
   text-decoration-color: rgba(0, 99, 74, 0.4);
 }
 

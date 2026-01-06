@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { useInfiniteQuery } from "react-query"
 
 interface ChatSessionsResponse<T> {
@@ -65,8 +66,14 @@ export function useWhatsAppChatSessions(
     },
   )
 
-  const sessions = query.data?.pages.flatMap((page) => page.results || []) || []
-  const totalCount = query.data?.pages?.[0]?.count ?? sessions.length
+  const sessions = useMemo(
+    () => query.data?.pages.flatMap((page) => page.results || []) || [],
+    [query.data?.pages],
+  )
+  const totalCount = useMemo(
+    () => query.data?.pages?.[0]?.count ?? sessions.length,
+    [query.data?.pages, sessions.length],
+  )
 
   return {
     sessions,

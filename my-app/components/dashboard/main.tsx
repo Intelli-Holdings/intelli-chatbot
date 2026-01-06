@@ -21,12 +21,11 @@ const Dashboard: React.FC = () => {
 
     React.useEffect(() => {
         setMounted(true);
-    }, []);
-
-    React.useEffect(() => {
+        // Close tour components on mount
         closeOnborda();
         closeNextStep();
-    }, [closeOnborda, closeNextStep]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     if (!isLoaded || !isSignedIn) {
         return null;

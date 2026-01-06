@@ -30,6 +30,9 @@ interface ConversationViewProps {
   phoneNumber: string
   organizationId?: string
   fetchMessages?: (conversationId: string) => Promise<Conversation["messages"]>
+  fetchOlderMessages?: (conversationId: string) => Promise<ChatMessage[]>
+  hasMoreMessages?: boolean
+  isLoadingOlderMessages?: boolean
   isMessagesLoading?: boolean
   initialFetchEnabled?: boolean
   initialScrollTop?: number | null
@@ -51,6 +54,9 @@ export default function ChatArea({
   phoneNumber,
   organizationId,
   fetchMessages,
+  fetchOlderMessages,
+  hasMoreMessages = false,
+  isLoadingOlderMessages = false,
   isMessagesLoading,
   initialFetchEnabled = true,
   initialScrollTop = null,
@@ -64,6 +70,7 @@ export default function ChatArea({
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
   const [lastMessageId, setLastMessageId] = useState<number | null>(null)
   const [currentMessages, setCurrentMessages] = useState<Conversation["messages"]>([])
+  const currentMessagesRef = useRef<Conversation["messages"]>(currentMessages)
   const [mediaPreview, setMediaPreview] = useState<MediaPreviewState>({
     isOpen: false,
     url: "",
@@ -84,6 +91,54 @@ export default function ChatArea({
   const scrollRestoreConversationId = useRef<number | null>(null)
   const scrollUpdateFrameRef = useRef<number | null>(null)
   const lastConversationIdRef = useRef<number | null>(null)
+  const conversationIdRef = useRef<number | null>(null)
+  const onMessagesUpdateRef = useRef<typeof onMessagesUpdate>(onMessagesUpdate)
+  const conversationId = conversation?.id
+  const conversationMessages = conversation?.messages
+  const conversationCustomerNumber = conversation?.customer_number || conversation?.recipient_id
+
+  // Update refs when props change
+  useEffect(() => {
+    conversationIdRef.current = conversation?.id ?? null
+    onMessagesUpdateRef.current = onMessagesUpdate
+  }, [conversation?.id, onMessagesUpdate])
+
+  useEffect(() => {
+    currentMessagesRef.current = currentMessages
+  }, [currentMessages])
+
+  const setMessagesState = useCallback((messages: Conversation["messages"]) => {
+    const nextMessages = messages ?? []
+    currentMessagesRef.current = nextMessages
+    setCurrentMessages(nextMessages)
+  }, [])
+
+  const syncMessagesToParent = useCallback((messages: Conversation["messages"]) => {
+    const nextMessages = messages ?? []
+    const activeConversationId = conversationIdRef.current
+    if (!activeConversationId || !onMessagesUpdateRef.current) return
+    onMessagesUpdateRef.current(activeConversationId, nextMessages)
+  }, [])
+
+  const setMessagesAndSync = useCallback(
+    (messages: Conversation["messages"]) => {
+      const nextMessages = messages ?? []
+      setMessagesState(nextMessages)
+      syncMessagesToParent(nextMessages)
+    },
+    [setMessagesState, syncMessagesToParent],
+  )
+
+  const updateMessagesAndSync = useCallback(
+    (updater: (prev: Conversation["messages"]) => Conversation["messages"]) => {
+      const prevMessages = currentMessagesRef.current ?? []
+      const nextMessages = updater(prevMessages) ?? []
+      setMessagesState(nextMessages)
+      syncMessagesToParent(nextMessages)
+      return nextMessages
+    },
+    [setMessagesState, syncMessagesToParent],
+  )
 
   const messageSkeletons = [
     { align: "left", width: "w-[60%]" },
@@ -121,7 +176,7 @@ export default function ChatArea({
     const newEmoji = isRemoving ? "" : emoji
 
     // Optimistic update
-    setCurrentMessages((prev) => {
+    updateMessagesAndSync((prev) => {
       const nextMessages = (prev || []).map((msg) =>
         msg.id === message.id
           ? {
@@ -130,9 +185,6 @@ export default function ChatArea({
             }
           : msg,
       )
-      if (onMessagesUpdate && conversation) {
-        onMessagesUpdate(conversation.id, nextMessages)
-      }
       return nextMessages
     })
 
@@ -165,7 +217,7 @@ export default function ChatArea({
       console.error("Failed to send reaction:", error)
 
       // Revert optimistic update on error
-      setCurrentMessages((prev) => {
+      updateMessagesAndSync((prev) => {
         const nextMessages = (prev || []).map((msg) =>
           msg.id === message.id
             ? {
@@ -176,9 +228,6 @@ export default function ChatArea({
               }
             : msg,
         )
-        if (onMessagesUpdate && conversation) {
-          onMessagesUpdate(conversation.id, nextMessages)
-        }
         return nextMessages
       })
 
@@ -206,13 +255,13 @@ export default function ChatArea({
 
   // Set initial messages when conversation changes
   useEffect(() => {
-    if (!conversation) return
+    if (!conversationId) return
 
-    const isSameConversation = lastConversationIdRef.current === conversation.id
+    const isSameConversation = lastConversationIdRef.current === conversationId
+    const incomingMessages = conversationMessages ?? []
     if (isSameConversation) {
-      const incomingMessages = conversation.messages ?? []
-      if (incomingMessages.length > 0 && incomingMessages !== currentMessages) {
-        setCurrentMessages(incomingMessages)
+      if (incomingMessages.length > 0 && incomingMessages !== currentMessagesRef.current) {
+        setMessagesState(incomingMessages)
         setLastMessageId(
           incomingMessages.length > 0 ? Math.max(...incomingMessages.map((msg) => msg.id)) : null,
         )
@@ -220,14 +269,14 @@ export default function ChatArea({
       return
     }
 
-    lastConversationIdRef.current = conversation.id
+    lastConversationIdRef.current = conversationId
     let isActive = true
     setIsInitialLoad(true)
     setShouldAutoScroll(initialScrollTop === null)
 
-    const existingMessages = conversation.messages ?? []
+    const existingMessages = incomingMessages
     if (existingMessages.length > 0) {
-      setCurrentMessages(existingMessages)
+      setMessagesState(existingMessages)
       setLastMessageId(Math.max(...existingMessages.map((msg) => msg.id)))
       setIsFetchingMessages(false)
       return () => {
@@ -235,24 +284,21 @@ export default function ChatArea({
       }
     }
 
-    setCurrentMessages([])
+    setMessagesState([])
     setLastMessageId(null)
 
-    if (fetchMessages && initialFetchEnabled) {
+    if (fetchMessages && initialFetchEnabled && conversationCustomerNumber) {
       setIsFetchingMessages(true)
       const loadMessages = async () => {
         try {
-          const messages = await fetchMessages(conversation.customer_number || conversation.recipient_id)
+          const messages = await fetchMessages(conversationCustomerNumber)
           if (!isActive) return
-          setCurrentMessages(messages)
+          setMessagesAndSync(messages)
           setLastMessageId((messages?.length ?? 0) > 0 ? Math.max(...(messages ?? []).map((msg) => msg.id)) : null)
-          if (onMessagesUpdate) {
-            onMessagesUpdate(conversation.id, messages)
-          }
         } catch (error) {
           if (!isActive) return
           console.error("Failed to fetch messages for conversation:", error)
-          setCurrentMessages([])
+          setMessagesState([])
           setLastMessageId(null)
         } finally {
           if (isActive) {
@@ -268,13 +314,22 @@ export default function ChatArea({
     return () => {
       isActive = false
     }
-  }, [conversation, currentMessages, fetchMessages, initialFetchEnabled, initialScrollTop, onMessagesUpdate])
+  }, [
+    conversationId,
+    conversationMessages,
+    conversationCustomerNumber,
+    fetchMessages,
+    initialFetchEnabled,
+    initialScrollTop,
+    setMessagesAndSync,
+    setMessagesState,
+  ])
 
   useEffect(() => {
     if (isLoadingMessages) return
     const timer = setTimeout(() => setIsInitialLoad(false), 150)
     return () => clearTimeout(timer)
-  }, [isLoadingMessages])
+  }, [conversationId, isLoadingMessages])
 
   useEffect(() => {
     if (!conversation || isLoadingMessages) return
@@ -354,23 +409,73 @@ export default function ChatArea({
 
   // Listen for new messages from WebSocketHandler
   useEffect(() => {
-    const activeConversationId = conversation?.id ?? null
     const handleNewMessage = (event: CustomEvent) => {
       const newMessage = event.detail.message
       console.log("New message received:", newMessage)
       if (newMessage) {
-        setCurrentMessages((prev) => {
-          const nextMessages = [...(prev || []), newMessage]
-          if (activeConversationId && onMessagesUpdate) {
-            onMessagesUpdate(activeConversationId, nextMessages)
+        updateMessagesAndSync((messages) => {
+          const nextMessages = messages || []
+
+          // Check if this is a real message replacing an optimistic one
+          // Look for pending messages sent within last 10 seconds
+          const recentPendingIndex = nextMessages.findIndex((msg) => {
+            if (!msg.pending) return false
+
+            // Check if content matches (for text messages)
+            const contentMatches =
+              (msg.answer && newMessage.content && msg.answer.includes(newMessage.content)) ||
+              (msg.answer && newMessage.answer && msg.answer === newMessage.answer)
+
+            // Check if sent recently (within 10 seconds)
+            const msgTime = new Date(msg.created_at).getTime()
+            const newMsgTime = new Date(newMessage.created_at).getTime()
+            const timeDiff = Math.abs(newMsgTime - msgTime)
+            const sentRecently = timeDiff < 10000
+
+            return contentMatches && sentRecently
+          })
+
+          if (recentPendingIndex !== -1) {
+            // Replace optimistic message with real one
+            const updated = [...nextMessages]
+            updated[recentPendingIndex] = {
+              ...newMessage,
+              pending: false,
+              status: newMessage.status || "sent",
+            }
+            console.log("Replaced optimistic message with real message")
+            return updated
+          } else {
+            // Add as new message
+            return [...nextMessages, newMessage]
           }
-          return nextMessages
         })
         setLastMessageId(newMessage.id)
       }
     }
 
     window.addEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
+
+    // Listen for message status updates from WebSocketHandler
+    const handleStatusUpdate = (event: CustomEvent) => {
+      const { message_id, status } = event.detail
+      console.log("Status update received:", { message_id, status })
+
+      if (message_id && status) {
+        updateMessagesAndSync((prev) => {
+          const updated = (prev || []).map((msg) => {
+            if (msg.whatsapp_message_id === message_id) {
+              return { ...msg, status: status }
+            }
+            return msg
+          })
+
+          return updated
+        })
+      }
+    }
+
+    window.addEventListener("messageStatusUpdate", handleStatusUpdate as unknown as EventListener)
 
     // Listen for connection status changes
     const handleConnectionChange = (event: CustomEvent) => {
@@ -385,9 +490,10 @@ export default function ChatArea({
 
     return () => {
       window.removeEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
+      window.removeEventListener("messageStatusUpdate", handleStatusUpdate as unknown as EventListener)
       window.removeEventListener("websocketConnectionChange", handleConnectionChange as unknown as EventListener)
     }
-  }, [conversation?.id, onMessagesUpdate])
+  }, [])
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -396,11 +502,64 @@ export default function ChatArea({
     }
   }, [currentMessages, shouldAutoScroll])
 
+  // Load older messages (for pagination)
+  const loadOlderMessages = useCallback(async () => {
+    if (!conversation || !fetchOlderMessages || isLoadingOlderMessages) return
+
+    const customerNumber = conversation.customer_number || conversation.recipient_id
+    if (!customerNumber) return
+
+    // Save current scroll position before loading
+    const scrollContainer = scrollAreaRef.current
+    if (!scrollContainer) return
+
+    const previousScrollHeight = scrollContainer.scrollHeight
+    const previousScrollTop = scrollContainer.scrollTop
+
+    try {
+      const olderMessages = await fetchOlderMessages(customerNumber)
+
+      if (olderMessages && olderMessages.length > 0) {
+        // Prepend older messages to current messages
+        updateMessagesAndSync((prev) => [...olderMessages, ...(prev || [])])
+
+        // Restore scroll position after DOM update
+        requestAnimationFrame(() => {
+          if (scrollContainer) {
+            const newScrollHeight = scrollContainer.scrollHeight
+            const heightDifference = newScrollHeight - previousScrollHeight
+            scrollContainer.scrollTop = previousScrollTop + heightDifference
+          }
+        })
+      }
+    } catch (error) {
+      console.error("Failed to load older messages:", error)
+      toast({
+        description: "Failed to load older messages",
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
+  }, [conversation, fetchOlderMessages, isLoadingOlderMessages, toast, updateMessagesAndSync])
+
   const handleScroll = () => {
     if (!scrollAreaRef.current) return
     const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
     const isScrolledToBottom = scrollHeight - scrollTop <= clientHeight + 100
     setShouldAutoScroll(isScrolledToBottom)
+
+    // Load older messages when scrolling near the top
+    const isNearTop = scrollTop < 200
+    if (
+      isNearTop &&
+      !isLoadingOlderMessages &&
+      hasMoreMessages &&
+      fetchOlderMessages &&
+      conversation &&
+      !isLoadingMessages
+    ) {
+      loadOlderMessages()
+    }
 
     if (conversation && onScrollPositionChange) {
       if (scrollUpdateFrameRef.current) {
@@ -433,23 +592,14 @@ export default function ChatArea({
 
         if (lastMessageId === null) {
           // First time loading - set all messages
-          setCurrentMessages(allMessages)
+          setMessagesAndSync(allMessages)
           setLastMessageId(highestNewId)
-          if (onMessagesUpdate) {
-            onMessagesUpdate(conversation.id, allMessages)
-          }
         } else if (highestNewId > lastMessageId) {
           // There are new messages - find only the new ones
           const actualNewMessages = allMessages.filter((msg) => msg.id > lastMessageId)
 
           if (actualNewMessages.length > 0) {
-            setCurrentMessages((prev) => {
-              const nextMessages = [...(prev || []), ...actualNewMessages]
-              if (onMessagesUpdate) {
-                onMessagesUpdate(conversation.id, nextMessages)
-              }
-              return nextMessages
-            })
+            updateMessagesAndSync((prev) => [...(prev || []), ...actualNewMessages])
             setLastMessageId(highestNewId)
             toast({
               description: `${actualNewMessages.length} new message${actualNewMessages.length > 1 ? "s" : ""} received`,
@@ -468,7 +618,7 @@ export default function ChatArea({
     } finally {
       setIsRefreshing(false)
     }
-  }, [conversation, fetchMessages, lastMessageId, onMessagesUpdate, toast])
+  }, [conversation, fetchMessages, lastMessageId, toast, setMessagesAndSync, updateMessagesAndSync])
 
   // Set up polling to fetch latest messages when AI support is not active
   useEffect(() => {
@@ -492,29 +642,93 @@ export default function ChatArea({
 
   // Optimistic UI update on message send
   const handleMessageSent = useCallback(
-    (newMessageContent: string) => {
+    (newMessageContent: string, mediaUrl?: string, mediaType?: string) => {
       if (!conversation) return
       const optimisticMessage = {
-        id: Date.now(),
+        id: Date.now(), // Temporary ID
         answer: newMessageContent,
-        sender: "customer",
+        sender: "human",
         created_at: new Date().toISOString(),
         read: false,
         content: null,
-        media: null,
-        type: "text",
+        media: mediaUrl || null,
+        type: mediaType || "text",
+        status: "sending" as const,
+        pending: true, // Flag to identify optimistic messages
       }
-      setCurrentMessages((prev) => {
-        const nextMessages = [...(prev || []), optimisticMessage]
-        if (onMessagesUpdate) {
-          onMessagesUpdate(conversation.id, nextMessages)
-        }
-        return nextMessages
-      })
+      updateMessagesAndSync((prev) => [...(prev || []), optimisticMessage])
       setLastMessageId(optimisticMessage.id)
       setShouldAutoScroll(true)
+
+      return optimisticMessage.id // Return temp ID for tracking
     },
-    [conversation, onMessagesUpdate],
+    [conversation, updateMessagesAndSync],
+  )
+
+  // Handle message send success - update optimistic message
+  const handleMessageSendSuccess = useCallback(
+    (tempId: number, realMessage: any) => {
+      updateMessagesAndSync((prev) =>
+        (prev || []).map((msg) => {
+          if (msg.id === tempId && msg.pending) {
+            // Replace optimistic message with real one
+            return {
+              ...realMessage,
+              pending: false,
+              status: realMessage.status || "sent",
+            }
+          }
+          return msg
+        }),
+      )
+    },
+    [updateMessagesAndSync],
+  )
+
+  // Handle message send failure
+  const handleMessageSendFailure = useCallback(
+    (tempId: number) => {
+      updateMessagesAndSync((prev) =>
+        (prev || []).map((msg) => {
+          if (msg.id === tempId && msg.pending) {
+            return {
+              ...msg,
+              status: "failed" as const,
+              pending: false,
+            }
+          }
+          return msg
+        }),
+      )
+    },
+    [updateMessagesAndSync],
+  )
+
+  // Retry failed message
+  const handleRetryMessage = useCallback(
+    (messageId: number) => {
+      const failedMessage = currentMessages?.find((msg) => msg.id === messageId && msg.status === "failed")
+      if (!failedMessage) return
+
+      // Extract message content
+      const messageContent = failedMessage.answer || failedMessage.content || ""
+
+      // Remove failed message from UI
+      updateMessagesAndSync((prev) => (prev || []).filter((msg) => msg.id !== messageId))
+
+      // Trigger resend via MessageInput component
+      // We'll dispatch a custom event that MessageInput can listen to
+      window.dispatchEvent(
+        new CustomEvent("retryMessage", {
+          detail: {
+            content: messageContent,
+            mediaUrl: failedMessage.media,
+            mediaType: failedMessage.type,
+          },
+        })
+      )
+    },
+    [currentMessages, updateMessagesAndSync],
   )
 
   if (!conversation) {
@@ -616,7 +830,7 @@ export default function ChatArea({
       )}
 
       {/* Compact toolbar with connection status, reminder, and export */}
-      <div className="bg-[#f0f2f5] border-b border-[#e9edef] px-3 py-2 flex items-center gap-3">
+      <div className="bg-[#f0f2f5] border-b border-[#e9edef] px-3 py-2 flex items-center justify-end gap-2">
         {/* WebSocket connection status - show only when human support is active */}
         {!isAiSupport && (
           <div className="flex items-center gap-1.5 text-xs text-[#54656f] shrink-0">
@@ -629,7 +843,16 @@ export default function ChatArea({
           </div>
         )}
 
-        <ResolveReminder className="flex-1" />
+        <ResolveReminder
+          lastCustomerMessageTime={
+            currentMessages && currentMessages.length > 0
+              ? [...currentMessages]
+                  .reverse()
+                  .find((msg) => msg.sender === 'customer')
+                  ?.created_at
+              : undefined
+          }
+        />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -691,6 +914,28 @@ export default function ChatArea({
           </div>
         ) : (
           <div className={cn("flex flex-col gap-2 transition-opacity duration-300", isInitialLoad ? "opacity-0" : "opacity-100")}>
+            {/* Loading indicator for older messages */}
+            {isLoadingOlderMessages && (
+              <div className="flex justify-center py-4">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  <span>Loading older messages...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Show "Load more" button if there are more messages but not currently loading */}
+            {!isLoadingOlderMessages && hasMoreMessages && currentMessages && currentMessages.length > 0 && (
+              <div className="flex justify-center py-2">
+                <button
+                  onClick={loadOlderMessages}
+                  className="text-xs text-gray-600 hover:text-gray-800 px-4 py-2 rounded-lg bg-white/50 hover:bg-white/80 transition-colors"
+                >
+                  Load older messages
+                </button>
+              </div>
+            )}
+
             {Object.entries(groupedMessages)
               .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
               .map(([date, messages]) => (
@@ -714,6 +959,10 @@ export default function ChatArea({
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
                   <div className="message-tail message-tail-left" />
+                  {/* Customer badge */}
+                  <div className="text-[9px] font-semibold text-gray-600 mb-1">
+                    Customer
+                  </div>
                   <div className="text-sm">
                     {contentHasMedia ? (
                       <>
@@ -754,6 +1003,7 @@ export default function ChatArea({
                     "message-bubble group",
                     message.sender === "ai" ? "message-assistant" : "message-human",
                     message.reaction?.emoji && "has-reaction",
+                    message.status === "failed" && "border-2 border-red-400 bg-red-50/50",
                   )}
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
@@ -763,18 +1013,44 @@ export default function ChatArea({
                       message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
                     }`}
                   />
+                  {message.status === "failed" && (
+                    <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
+                      <span>⚠</span>
+                      <span>Failed to send</span>
+                    </div>
+                  )}
+                  {/* Sender badge - AI or Human */}
+                  <div className={cn(
+                    "text-[9px] font-semibold mb-1",
+                    message.sender === "ai" ? "text-purple-600" : "text-green-700"
+                  )}>
+                    {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
+                  </div>
                   <div className="text-sm">{formatMessage(message.answer)}</div>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-[11px] text-[#667781]">
                       {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
-                    {/* Message status indicator for sent messages */}
-                    {(message.sender === "customer" || message.sender === "human") && (
-                      <MessageStatus
-                        status={message.pending ? 'sending' : message.status || 'delivered'}
-                        className="text-[#667781]"
-                      />
+                    {/* Message status indicator for sent messages (only for human/business messages) */}
+                    {message.sender === "human" && (
+                      <>
+                        <MessageStatus
+                          status={message.pending ? 'sending' : message.status || 'delivered'}
+                          className="text-[#667781]"
+                        />
+                        {/* Retry button for failed messages */}
+                        {message.status === "failed" && (
+                          <button
+                            onClick={() => handleRetryMessage(message.id)}
+                            className="ml-2 text-[10px] text-red-600 hover:text-red-700 underline"
+                            title="Retry sending this message"
+                          >
+                            Retry
+                          </button>
+                        )}
+                      </>
                     )}
+                    {/* AI messages don't need status indicators since they're auto-sent */}
                   </div>
                   {message.reaction?.emoji && (
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
@@ -791,11 +1067,40 @@ export default function ChatArea({
               )}
               {message.media && (
                 <div
-                  className={cn("message-bubble message-customer group", message.reaction?.emoji && "has-reaction")}
+                  className={cn(
+                    "message-bubble group",
+                    message.sender === "customer"
+                      ? "message-customer"
+                      : message.sender === "ai"
+                        ? "message-assistant"
+                        : "message-human",
+                    message.reaction?.emoji && "has-reaction"
+                  )}
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div className="message-tail message-tail-left" />
+                  <div
+                    className={
+                      message.sender === "customer"
+                        ? "message-tail message-tail-left"
+                        : message.sender === "ai"
+                          ? "message-tail message-tail-right-assistant"
+                          : "message-tail message-tail-right-human"
+                    }
+                  />
+                  {/* Sender badge */}
+                  {message.sender === "customer" ? (
+                    <div className="text-[9px] font-semibold text-gray-600 mb-1">
+                      Customer
+                    </div>
+                  ) : (
+                    <div className={cn(
+                      "text-[9px] font-semibold mb-1",
+                      message.sender === "ai" ? "text-purple-600" : "text-green-700"
+                    )}>
+                      {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
+                    </div>
+                  )}
                   <div className="text-sm cursor-pointer" onClick={() => {}}>
                     <div className="max-w-xs rounded-lg overflow-hidden shadow">
                       {message.type === "image" ? (
@@ -812,9 +1117,18 @@ export default function ChatArea({
                       )}
                     </div>
                   </div>
-                  <span className="text-[11px] text-[#667781] mt-1 block">
-                    {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-[11px] text-[#667781]">
+                      {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    {/* Message status indicator for sent media (only for human/business messages) */}
+                    {message.sender === "human" && (
+                      <MessageStatus
+                        status={message.pending ? 'sending' : message.status || 'delivered'}
+                        className="text-[#667781]"
+                      />
+                    )}
+                  </div>
                   {message.reaction?.emoji && (
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
                   )}
@@ -850,6 +1164,8 @@ export default function ChatArea({
           customerNumber={conversation.customer_number || conversation.recipient_id}
           phoneNumber={phoneNumber}
           onMessageSent={handleMessageSent}
+          onMessageSendSuccess={handleMessageSendSuccess}
+          onMessageSendFailure={handleMessageSendFailure}
         />
       </div>
     </div>

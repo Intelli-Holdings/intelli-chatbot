@@ -1,13 +1,25 @@
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import { useQueryClient } from "react-query"
 import type { ChatMessage } from "@/app/dashboard/conversations/components/types"
 
-const fetchConversationMessages = async (phoneNumber: string, customerNumber: string): Promise<ChatMessage[]> => {
-  const response = await fetch(
-    `/api/appservice/paginated/conversations/whatsapp/chat_sessions/${phoneNumber}/${customerNumber}/`,
-  )
+interface PaginatedResponse {
+  count: number
+  next: string | null
+  previous: string | null
+  results: ChatMessage[]
+}
+
+const fetchConversationMessages = async (
+  phoneNumber: string,
+  customerNumber: string,
+  pageUrl?: string
+): Promise<PaginatedResponse> => {
+  const url =
+    pageUrl || `/api/appservice/paginated/conversations/whatsapp/chat_sessions/${phoneNumber}/${customerNumber}/`
+
+  const response = await fetch(url)
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
@@ -26,15 +38,25 @@ const fetchConversationMessages = async (phoneNumber: string, customerNumber: st
     status: msg.status,
   }))
 
-  return messages.reverse()
+  return {
+    count: data.count,
+    next: data.next,
+    previous: data.previous,
+    results: messages.reverse(), // Reverse to show oldest first
+  }
 }
 
 export function useWhatsAppChatMessages(phoneNumber?: string) {
   const queryClient = useQueryClient()
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const getCachedMessages = useCallback(
-    (customerNumber: string): ChatMessage[] =>
-      (queryClient.getQueryData(["whatsapp-chat-messages", phoneNumber, customerNumber]) as ChatMessage[]) || [],
+    (customerNumber: string): ChatMessage[] => {
+      const cached = queryClient.getQueryData(["whatsapp-chat-messages", phoneNumber, customerNumber])
+      return Array.isArray(cached) ? (cached as ChatMessage[]) : []
+    },
     [phoneNumber, queryClient],
   )
 
@@ -48,18 +70,59 @@ export function useWhatsAppChatMessages(phoneNumber?: string) {
   const fetchMessages = useCallback(
     async (customerNumber: string): Promise<ChatMessage[]> => {
       if (!phoneNumber) return []
-      return queryClient.fetchQuery(
+
+      const data = await queryClient.fetchQuery(
         ["whatsapp-chat-messages", phoneNumber, customerNumber],
         () => fetchConversationMessages(phoneNumber, customerNumber),
         { staleTime: 15 * 1000 },
       )
+
+      setNextPageUrl(data.next)
+      setHasMore(!!data.next)
+
+      return data.results
     },
     [phoneNumber, queryClient],
   )
 
+  const fetchOlderMessages = useCallback(
+    async (customerNumber: string): Promise<ChatMessage[]> => {
+      if (!phoneNumber || !nextPageUrl || isLoadingMore) return []
+
+      setIsLoadingMore(true)
+
+      try {
+        const data = await fetchConversationMessages(phoneNumber, customerNumber, nextPageUrl)
+
+        setNextPageUrl(data.next)
+        setHasMore(!!data.next)
+
+        // Prepend older messages to existing ones
+        const existingMessages = getCachedMessages(customerNumber)
+        const updatedMessages = [...data.results, ...existingMessages]
+        setCachedMessages(customerNumber, updatedMessages)
+
+        return data.results
+      } finally {
+        setIsLoadingMore(false)
+      }
+    },
+    [phoneNumber, nextPageUrl, isLoadingMore, getCachedMessages, setCachedMessages],
+  )
+
+  const resetPagination = useCallback(() => {
+    setNextPageUrl(null)
+    setHasMore(true)
+    setIsLoadingMore(false)
+  }, [])
+
   return {
     fetchMessages,
+    fetchOlderMessages,
     getCachedMessages,
     setCachedMessages,
+    hasMore,
+    isLoadingMore,
+    resetPagination,
   }
 }

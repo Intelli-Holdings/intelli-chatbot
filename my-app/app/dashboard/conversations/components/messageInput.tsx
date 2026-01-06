@@ -16,10 +16,18 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 interface MessageInputProps {
   customerNumber: string
   phoneNumber: string
-  onMessageSent?: (newMessageContent: string) => void
+  onMessageSent?: (newMessageContent: string, mediaUrl?: string, mediaType?: string) => number | void
+  onMessageSendSuccess?: (tempId: number, realMessage: any) => void
+  onMessageSendFailure?: (tempId: number) => void
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber, onMessageSent }) => {
+const MessageInput: React.FC<MessageInputProps> = ({
+  customerNumber,
+  phoneNumber,
+  onMessageSent,
+  onMessageSendSuccess,
+  onMessageSendFailure
+}) => {
   const [answer, setAnswer] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [files, setFiles] = useState<File[]>([])
@@ -51,6 +59,29 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
     }
   }, [audioUrl])
 
+  // Listen for retry events from failed messages
+  useEffect(() => {
+    const handleRetry = async (event: CustomEvent) => {
+      const { content } = event.detail
+      if (content) {
+        // Set the message content
+        setAnswer(content)
+        // Auto-submit after a brief delay to ensure state is updated
+        setTimeout(() => {
+          const form = document.querySelector('form') as HTMLFormElement
+          if (form) {
+            form.requestSubmit()
+          }
+        }, 100)
+      }
+    }
+
+    window.addEventListener("retryMessage", handleRetry as EventListener)
+    return () => {
+      window.removeEventListener("retryMessage", handleRetry as EventListener)
+    }
+  }, [])
+
   const getMediaType = (file: File): string => {
     if (file.type.startsWith("image/")) return "image"
     if (file.type.startsWith("video/")) return "video"
@@ -62,6 +93,21 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
     if (isSubmitDisabled) return
     setError(null)
     setIsLoading(true)
+
+    // Determine media info for optimistic update
+    let mediaUrl: string | undefined
+    let mediaType: string | undefined
+
+    if (files.length > 0) {
+      mediaUrl = URL.createObjectURL(files[0])
+      mediaType = getMediaType(files[0])
+    } else if (audioBlob) {
+      mediaUrl = audioUrl || undefined
+      mediaType = "audio"
+    }
+
+    // Create optimistic message BEFORE sending
+    const tempId = onMessageSent ? onMessageSent(answer || "Media", mediaUrl, mediaType) : undefined
 
     try {
       const formData = new FormData()
@@ -86,7 +132,10 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
 
       const response = await sendMessage(formData)
       console.log("Message sent successfully:", response)
-      toast.success("Message sent successfully")
+
+      // Note: The real message will come via WebSocket, which will replace the optimistic one
+      // We don't need to manually call onMessageSendSuccess here
+
       setAnswer("")
       setFiles([])
       setAudioBlob(null)
@@ -95,11 +144,15 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
         URL.revokeObjectURL(audioUrl)
         setAudioUrl(null)
       }
-      if (onMessageSent) onMessageSent(answer)
     } catch (e) {
       setError((e as Error).message)
       toast.error("Failed to send message")
       console.error("Error sending message:", e)
+
+      // Mark optimistic message as failed
+      if (tempId && onMessageSendFailure) {
+        onMessageSendFailure(tempId)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -108,6 +161,10 @@ const MessageInput: React.FC<MessageInputProps> = ({ customerNumber, phoneNumber
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
+      // Trigger form submit when Enter is pressed (without Shift)
+      if (!isSubmitDisabled) {
+        handleSubmit(e as any)
+      }
     }
   }
 

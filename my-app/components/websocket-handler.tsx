@@ -39,6 +39,21 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
       try {
         const message: WebSocketMessage = JSON.parse(event.data)
 
+        // Handle status updates separately
+        if (message.type === "status_update") {
+          // Dispatch status update event
+          window.dispatchEvent(
+            new CustomEvent("messageStatusUpdate", {
+              detail: {
+                message_id: message.message_id,
+                status: message.status,
+                timestamp: message.timestamp,
+              },
+            }),
+          )
+          return
+        }
+
         // Generate a unique id for the message
         const newId = Date.now()
 
@@ -54,14 +69,19 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
         // Use the timestamp from the payload if available; otherwise fallback to current time
         const messageTimestamp = message.timestamp || new Date().toISOString()
 
+        // Determine if this is a customer message or business/AI message
+        const isCustomerMessage = message.sender === "customer"
+        const messageContent = message.type === "text" ? message.content : null
+
         // Create the new message object
+        // Customer messages go in 'content' field, Business/AI messages go in 'answer' field
         const newMessage = {
           id: newId,
-          content: message.type === "text" ? message.content : null,
+          content: isCustomerMessage ? messageContent : null,
+          answer: !isCustomerMessage ? messageContent : null,
           sender: message.sender,
           created_at: messageTimestamp,
           read: false,
-          answer: null,
           media: mediaUrl,
           type: message.type,
         }

@@ -238,9 +238,31 @@ export const DynamicDashboard: React.FC = () => {
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [websiteDialogOpen, setWebsiteDialogOpen] = useState(false);
 
-  const handleEscalationClick = () => {
+  const handleEscalationClick = React.useCallback(() => {
     router.push('/dashboard/notifications');
-  };
+  }, [router]);
+
+  const handleWhatsAppSetup = React.useCallback(() => {
+    setWhatsappDialogOpen(true);
+  }, []);
+
+  const handleWebsiteSetup = React.useCallback(() => {
+    setWebsiteDialogOpen(true);
+  }, []);
+
+  const emptyStateStats = React.useMemo(() => {
+    if (!stats) return undefined;
+    return {
+      totalConversations: stats.totalConversations,
+      totalMessages: stats.totalMessages,
+      activeTickets: stats.activeConversations,
+      tokenUsagePercent: stats.tokenUsagePercent,
+      channelStats: {
+        whatsapp: stats.channelStats.whatsapp,
+        website: stats.channelStats.website,
+      }
+    };
+  }, [stats]);
 
   // Show empty state for new users
   if (isEmpty && !loading) {
@@ -248,18 +270,9 @@ export const DynamicDashboard: React.FC = () => {
       <>
         <DashboardEmptyState
           userName={organization?.name || "there"}
-          onWhatsAppSetup={() => setWhatsappDialogOpen(true)}
-          onWebsiteSetup={() => setWebsiteDialogOpen(true)}
-          stats={stats ? {
-            totalConversations: stats.totalConversations,
-            totalMessages: stats.totalMessages,
-            activeTickets: stats.activeConversations,
-            tokenUsagePercent: stats.tokenUsagePercent,
-            channelStats: {
-              whatsapp: stats.channelStats.whatsapp,
-              website: stats.channelStats.website,
-            }
-          } : undefined}
+          onWhatsAppSetup={handleWhatsAppSetup}
+          onWebsiteSetup={handleWebsiteSetup}
+          stats={emptyStateStats}
         />
 
         {/* Dialogs */}
@@ -321,30 +334,6 @@ export const DynamicDashboard: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <Card className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 sm:text-3xl">
-              Dashboard Overview
-            </h1>
-            <p className="text-sm text-gray-600 sm:text-base">
-              Track your customer engagement and performance metrics
-            </p>
-          </div>
-          <Button
-            onClick={() => refetch()}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-            className="h-10 rounded-full px-4 text-sm font-semibold"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-      </Card>
-
       {/* Metrics Section */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -367,14 +356,26 @@ export const DynamicDashboard: React.FC = () => {
         {/* Main Metrics Card */}
         <Card className="rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex flex-col gap-6">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-[#007fff]">
-                <BarChart3 className="h-5 w-5" />
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-[#007fff]">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Performance Metrics</h3>
+                  <p className="text-sm text-gray-500">Key performance indicators</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-semibold text-gray-900">Performance Metrics</h3>
-                <p className="text-sm text-gray-500">Key performance indicators</p>
-              </div>
+              <Button
+                onClick={() => refetch()}
+                variant="outline"
+                size="sm"
+                disabled={loading}
+                className="h-9 rounded-full px-3 text-xs font-semibold"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
 
             <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -686,8 +687,8 @@ export const DynamicDashboard: React.FC = () => {
           </p>
         </div>
         <Channels
-          onWhatsAppCreate={() => setWhatsappDialogOpen(true)}
-          onWebsiteCreate={() => setWebsiteDialogOpen(true)}
+          onWhatsAppCreate={handleWhatsAppSetup}
+          onWebsiteCreate={handleWebsiteSetup}
         />
       </section>
 
