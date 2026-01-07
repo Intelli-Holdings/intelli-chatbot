@@ -54,8 +54,8 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
           return
         }
 
-        // Generate a unique id for the message
-        const newId = Date.now()
+        // Generate a unique id for the message with additional randomness
+        const newId = Date.now() + Math.floor(Math.random() * 10000)
 
         // Extract media URL if applicable
         let mediaUrl = null
@@ -84,6 +84,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
           read: false,
           media: mediaUrl,
           type: message.type,
+          whatsapp_message_id: message.message_id, // Include WhatsApp message ID for deduplication
         }
 
         // Dispatch a custom event to update the chat area with the new message

@@ -421,10 +421,26 @@ export default function ChatArea({
           const recentPendingIndex = nextMessages.findIndex((msg) => {
             if (!msg.pending) return false
 
-            // Check if content matches (for text messages)
+            // For business messages (sender: human), check if content matches
+            if (newMessage.sender === 'human') {
+              // Check if answer content matches (business messages use 'answer' field)
+              const answerMatches =
+                msg.answer && newMessage.answer &&
+                (msg.answer.trim() === newMessage.answer.trim() || msg.answer.includes(newMessage.answer))
+
+              // Check if sent recently (within 10 seconds)
+              const msgTime = new Date(msg.created_at).getTime()
+              const newMsgTime = new Date(newMessage.created_at).getTime()
+              const timeDiff = Math.abs(newMsgTime - msgTime)
+              const sentRecently = timeDiff < 10000
+
+              return answerMatches && sentRecently
+            }
+
+            // For customer messages, check content field
             const contentMatches =
-              (msg.answer && newMessage.content && msg.answer.includes(newMessage.content)) ||
-              (msg.answer && newMessage.answer && msg.answer === newMessage.answer)
+              (msg.content && newMessage.content &&
+               (msg.content.trim() === newMessage.content.trim() || msg.content.includes(newMessage.content)))
 
             // Check if sent recently (within 10 seconds)
             const msgTime = new Date(msg.created_at).getTime()
@@ -446,6 +462,34 @@ export default function ChatArea({
             console.log("Replaced optimistic message with real message")
             return updated
           } else {
+            // Check if message already exists (prevent duplicates)
+            // Check by whatsapp_message_id if available, or by content and timestamp
+            const isDuplicate = nextMessages.some((msg) => {
+              // Check by WhatsApp message ID
+              if (newMessage.whatsapp_message_id && msg.whatsapp_message_id) {
+                return msg.whatsapp_message_id === newMessage.whatsapp_message_id
+              }
+
+              // Check by content and timestamp (within 1 second)
+              const sameContent =
+                (newMessage.answer && msg.answer && msg.answer === newMessage.answer) ||
+                (newMessage.content && msg.content && msg.content === newMessage.content)
+
+              if (sameContent) {
+                const msgTime = new Date(msg.created_at).getTime()
+                const newMsgTime = new Date(newMessage.created_at).getTime()
+                const timeDiff = Math.abs(newMsgTime - msgTime)
+                return timeDiff < 1000 // Within 1 second
+              }
+
+              return false
+            })
+
+            if (isDuplicate) {
+              console.log("Duplicate message detected, skipping")
+              return nextMessages
+            }
+
             // Add as new message
             return [...nextMessages, newMessage]
           }
@@ -644,8 +688,11 @@ export default function ChatArea({
   const handleMessageSent = useCallback(
     (newMessageContent: string, mediaUrl?: string, mediaType?: string) => {
       if (!conversation) return
+      // Generate a unique temporary ID that's very unlikely to collide
+      // Use negative timestamp to avoid collision with real message IDs
+      const tempId = -(Date.now() + Math.random() * 1000)
       const optimisticMessage = {
-        id: Date.now(), // Temporary ID
+        id: tempId, // Unique temporary ID
         answer: newMessageContent,
         sender: "human",
         created_at: new Date().toISOString(),
