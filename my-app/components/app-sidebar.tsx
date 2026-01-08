@@ -71,7 +71,6 @@ const data = {
       icon: MessageSquareDot,
       hasSubmenu: true,
       submenuItems: [
-        { title: "📊 Overview", url: "/dashboard/conversations" },
         { title: "🌐 Website", url: "/dashboard/conversations/website" },
         {
           title: "WhatsApp",

@@ -11,7 +11,8 @@ export interface EscalationEvent extends BaseEvent {
 export interface Event extends BaseEvent {
   id: number;
   system_name: string;
+  type_of_es?: "default" | "organization";
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }
-

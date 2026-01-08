@@ -12,7 +12,7 @@ import { useWhatsAppChatMessages } from "@/hooks/use-whatsapp-chat-messages"
 import { useMediaQuery } from "@/app/hooks/use-media-query"
 import type { Conversation } from "@/app/dashboard/conversations/components/types"
 import { toast } from "sonner"
-import LoadingProgress from "@/components/loading-progress"
+import { WhatsAppSkeletonLoader } from "@/app/dashboard/conversations/components/whatsapp-skeleton-loader"
 import { useSearchParams } from "next/navigation"
 
 type ReadConversationsMap = Record<string, string>
@@ -419,20 +419,9 @@ export default function WhatsAppConvosPage() {
     }
   }, [phoneNumber])
 
-  // Show loading screen during initialization
+  // Show professional skeleton loader during initialization
   if (isInitializing) {
-    return (
-      <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white">
-        <div className="flex-1 flex items-center justify-center bg-[#f0f2f5]">
-          <LoadingProgress
-            isLoading={true}
-            loadingType="initial"
-            currentProgress={loadingProgress}
-            message={loadingMessage}
-          />
-        </div>
-      </div>
-    )
+    return <WhatsAppSkeletonLoader />
   }
 
   return (

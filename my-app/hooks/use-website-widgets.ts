@@ -15,8 +15,8 @@ const normalizeWidgets = (data: any): WebsiteWidget[] => {
   return data?.results || []
 }
 
-const fetchWebsiteWidgets = async (organizationId: string, apiBaseUrl: string): Promise<WebsiteWidget[]> => {
-  const response = await fetch(`${apiBaseUrl}/widgets/organization/${organizationId}/all/`)
+const fetchWebsiteWidgets = async (organizationId: string): Promise<WebsiteWidget[]> => {
+  const response = await fetch(`/api/widgets/organization/${organizationId}`)
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
     throw new Error(errorData.error || "Failed to fetch widgets")
@@ -27,8 +27,8 @@ const fetchWebsiteWidgets = async (organizationId: string, apiBaseUrl: string): 
 
 export function useWebsiteWidgets(organizationId?: string, apiBaseUrl: string = DEFAULT_API_BASE_URL) {
   const query = useQuery(
-    ["website-widgets", organizationId, apiBaseUrl],
-    () => fetchWebsiteWidgets(organizationId as string, apiBaseUrl),
+    ["website-widgets", organizationId],
+    () => fetchWebsiteWidgets(organizationId as string),
     {
       enabled: Boolean(organizationId),
       staleTime: 60 * 1000,
