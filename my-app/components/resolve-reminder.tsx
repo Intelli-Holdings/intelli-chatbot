@@ -139,7 +139,7 @@ const ResolveReminder: React.FC<ResolveReminderProps> = React.memo(({ className,
                   </p>
                   {isExpired ? (
                     <p className="text-xs text-red-600 leading-relaxed">
-                      The 24-hour window has expired. You'll need to use a template message at extra cost to restart the conversation.
+                      The 24-hour window has expired. You&apos;ll need to use a template message at extra cost to restart the conversation.
                     </p>
                   ) : (
                     <p className="text-xs text-[#667781] leading-relaxed">
