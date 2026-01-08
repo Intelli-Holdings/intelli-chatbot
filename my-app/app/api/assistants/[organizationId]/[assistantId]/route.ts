@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
 
 export async function PUT(
   request: NextRequest,
@@ -6,15 +7,35 @@ export async function PUT(
 ) {
   const { organizationId, assistantId } = params
 
+  // Check authentication and get session token
+  const { userId, getToken } = auth()
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
+
+  // Get Clerk JWT token to forward to backend
+  const token = await getToken()
+
+  if (!token) {
+    return NextResponse.json(
+      { error: 'Unable to get authentication token' },
+      { status: 401 }
+    )
+  }
+
   try {
     const body = await request.json()
-
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        "Authorization": `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     })
@@ -43,8 +64,27 @@ export async function DELETE(
 ) {
   const { organizationId, assistantId } = params
 
-  try {
+  // Check authentication and get session token
+  const { userId, getToken } = auth()
 
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
+
+  // Get Clerk JWT token to forward to backend
+  const token = await getToken()
+
+  if (!token) {
+    return NextResponse.json(
+      { error: 'Unable to get authentication token' },
+      { status: 401 }
+    )
+  }
+
+  try {
     const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${assistantId}/`
 
     const response = await fetch(backendUrl, {
@@ -52,6 +92,7 @@ export async function DELETE(
       headers: {
         Accept: "application/json",
         "User-Agent": "NextJS-Proxy/1.0",
+        "Authorization": `Bearer ${token}`,
       },
     })
 

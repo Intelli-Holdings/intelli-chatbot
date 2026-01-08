@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -10,6 +11,26 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { widgetKey: string } }
 ) {
+  // Check authentication and get session token
+  const { userId, getToken } = auth();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  // Get Clerk JWT token to forward to backend
+  const token = await getToken();
+
+  if (!token) {
+    return NextResponse.json(
+      { error: "Unable to get authentication token" },
+      { status: 401 }
+    );
+  }
+
   try {
     const { widgetKey } = params;
 
@@ -20,13 +41,14 @@ export async function GET(
       );
     }
 
-    // Fetch embedding code from backend
+    // Fetch embedding code from backend with Authorization header
     const response = await fetch(
       `${API_BASE_URL}/widgets/widget/${widgetKey}/embedding-code/`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         cache: "no-store", // Disable Next.js fetch cache
       }

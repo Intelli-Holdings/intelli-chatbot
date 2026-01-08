@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useQueryClient } from "react-query";
 import { useDropzone } from "react-dropzone";
 import {
   Card,
@@ -73,6 +74,11 @@ import {
   validateFileUpload,
   isAllowedFileType
 } from "@/lib/new-file-manager";
+import {
+  ASSISTANTS_STALE_TIME_MS,
+  assistantsQueryKey,
+  fetchAssistantsForOrg,
+} from "@/hooks/use-assistants-cache";
 
 interface Assistant {
   id: number;
@@ -101,6 +107,7 @@ const FileStatusIcon = ({ status }: { status: string }) => {
 export function NewAssistantFiles({ organizationId }: { organizationId?: string }) {
   const params = useParams();
   const orgId = organizationId || (params.id as string);
+  const queryClient = useQueryClient();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
@@ -188,14 +195,11 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
 
     setIsFetchingAssistants(true);
     try {
-      const response = await fetch(`/api/assistants/org/${orgId}`);
-      
-      if (!response.ok) {
-        toast.error("Failed to fetch assistants. Please try again.");
-        return;
-      }
-
-      const data: Assistant[] = await response.json();
+      const data = await queryClient.fetchQuery(
+        assistantsQueryKey(orgId),
+        () => fetchAssistantsForOrg<Assistant>(orgId),
+        { staleTime: ASSISTANTS_STALE_TIME_MS },
+      );
       setAssistants(data);
 
       if (data.length > 0) {
@@ -207,7 +211,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
     } finally {
       setIsFetchingAssistants(false);
     }
-  }, [orgId]);
+  }, [orgId, queryClient]);
 
   // Fetch files for selected assistant
   const fetchFiles = useCallback(async () => {

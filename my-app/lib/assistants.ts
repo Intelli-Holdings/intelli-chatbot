@@ -1,10 +1,8 @@
 import { Assistant, CreateAssistantData } from '@/types/assistant';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
 export async function createAssistant(data: CreateAssistantData): Promise<Assistant> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/assistants/`, {
+    const response = await fetch(`/api/assistants/${data.organization_id}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,7 +23,7 @@ export async function createAssistant(data: CreateAssistantData): Promise<Assist
 
 export async function getAssistants(organizationId: string): Promise<Assistant[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/assistants/?organization_id=${organizationId}`);
+    const response = await fetch(`/api/assistants/org/${organizationId}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch assistants');

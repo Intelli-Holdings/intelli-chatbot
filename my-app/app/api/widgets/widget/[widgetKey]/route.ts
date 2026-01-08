@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -6,6 +7,26 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { widgetKey: string } }
 ) {
+  // Check authentication and get session token
+  const { userId, getToken } = auth();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  // Get Clerk JWT token to forward to backend
+  const token = await getToken();
+
+  if (!token) {
+    return NextResponse.json(
+      { error: "Unable to get authentication token" },
+      { status: 401 }
+    );
+  }
+
   try {
     const { widgetKey } = params;
 
@@ -19,11 +40,14 @@ export async function PUT(
     // Get the FormData from the request
     const formData = await request.formData();
 
-    // Forward the FormData to the backend
+    // Forward the FormData to the backend with Authorization header
     const response = await fetch(
       `${API_BASE_URL}/widgets/widget/${widgetKey}/`,
       {
         method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
         body: formData,
       }
     );
@@ -57,6 +81,26 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { widgetKey: string } }
 ) {
+  // Check authentication and get session token
+  const { userId, getToken } = auth();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  // Get Clerk JWT token to forward to backend
+  const token = await getToken();
+
+  if (!token) {
+    return NextResponse.json(
+      { error: "Unable to get authentication token" },
+      { status: 401 }
+    );
+  }
+
   try {
     const { widgetKey } = params;
 
@@ -69,13 +113,14 @@ export async function DELETE(
 
     console.log(`[API] Deleting widget`);
 
-    // Delete widget from backend
+    // Delete widget from backend with Authorization header
     const response = await fetch(
       `${API_BASE_URL}/widgets/widget/${widgetKey}/delete/`,
       {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
       }
     );

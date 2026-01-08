@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useQueryClient } from "react-query"
 import { useOrganizationList } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +33,11 @@ import {
 import { toast } from "sonner"
 import Image from "next/image"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
+import {
+  ASSISTANTS_STALE_TIME_MS,
+  assistantsQueryKey,
+  fetchAssistantsForOrg,
+} from "@/hooks/use-assistants-cache"
 import WidgetPreview from "@/components/WidgetPreview"
 import { WidgetCommunication } from "@/components/widget-communication"
 import { DeploymentDialog } from "@/components/deployment-dialog"
@@ -50,6 +56,7 @@ interface Assistant {
 }
 
 export default function UnifiedWidgets() {
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<string>("create")
   const [loading, setLoading] = useState<boolean>(false)
   const [isLoadingAssistants, setIsLoadingAssistants] = useState<boolean>(true)
@@ -111,19 +118,11 @@ export default function UnifiedWidgets() {
 
     setIsLoadingAssistants(true)
     try {
-      const response = await fetch(`/api/assistants/${selectedOrganizationId}`)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          toast.info("No assistants found. Create one to get started.")
-          setAssistants([])
-          return
-        }
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const data: Assistant[] = await response.json()
+      const data = await queryClient.fetchQuery(
+        assistantsQueryKey(selectedOrganizationId),
+        () => fetchAssistantsForOrg<Assistant>(selectedOrganizationId),
+        { staleTime: ASSISTANTS_STALE_TIME_MS },
+      )
 
       if (!Array.isArray(data)) {
         throw new Error("Invalid response format: expected array of assistants")
@@ -162,7 +161,7 @@ export default function UnifiedWidgets() {
     } finally {
       setIsLoadingAssistants(false)
     }
-  }, [selectedOrganizationId, selectedAssistantId])
+  }, [queryClient, selectedOrganizationId, selectedAssistantId])
 
   useEffect(() => {
     fetchAssistants()

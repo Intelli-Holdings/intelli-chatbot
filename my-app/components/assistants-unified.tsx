@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from "react-query";
 import { useOrganization } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import {
@@ -14,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +58,8 @@ import {
   RefreshCw,
   Eye,
   Trash2,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import {
@@ -76,6 +80,11 @@ import {
   isAllowedFileType,
   type FileStatistics,
 } from '@/lib/new-file-manager';
+import {
+  ASSISTANTS_STALE_TIME_MS,
+  assistantsQueryKey,
+  fetchAssistantsForOrg,
+} from "@/hooks/use-assistants-cache";
 
 interface Assistant {
   id: number;
@@ -115,14 +124,21 @@ const FileStatusIcon = ({ status }: { status: string }) => {
 export default function AssistantsUnified() {
   const { organization } = useOrganization();
   const organizationId = organization?.id;
+  const queryClient = useQueryClient();
 
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const isRefreshing = isLoading && assistants.length > 0;
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedAssistantIds, setSelectedAssistantIds] = useState<string[]>([]);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // File management state
   const [files, setFiles] = useState<AssistantFile[]>([]);
@@ -133,6 +149,11 @@ export default function AssistantsUnified() {
 
   // Form state
   const [formData, setFormData] = useState({ name: '', prompt: '' });
+  const selectedCount = selectedAssistantIds.length;
+  const allSelected =
+    assistants.length > 0 &&
+    assistants.every((assistant) => selectedAssistantIds.includes(assistant.assistant_id));
+  const someSelected = selectedCount > 0 && !allSelected;
 
   // Fetch assistants
   const fetchAssistants = useCallback(async () => {
@@ -140,12 +161,11 @@ export default function AssistantsUnified() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`
+      const data = await queryClient.fetchQuery(
+        assistantsQueryKey(organizationId),
+        () => fetchAssistantsForOrg<Assistant>(organizationId),
+        { staleTime: ASSISTANTS_STALE_TIME_MS },
       );
-      if (!response.ok) throw new Error('Failed to fetch assistants');
-
-      const data: Assistant[] = await response.json();
       setAssistants(data);
     } catch (error) {
       console.error('Error fetching assistants:', error);
@@ -153,7 +173,7 @@ export default function AssistantsUnified() {
     } finally {
       setIsLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, queryClient]);
 
   // Fetch files for selected assistant
   const fetchFiles = useCallback(async (assistantId: string) => {
@@ -194,6 +214,33 @@ export default function AssistantsUnified() {
     fetchAssistants();
   }, [fetchAssistants]);
 
+  useEffect(() => {
+    setSelectedAssistantIds((prev) =>
+      prev.filter((assistantId) =>
+        assistants.some((assistant) => assistant.assistant_id === assistantId),
+      ),
+    );
+  }, [assistants]);
+
+  const toggleAssistantSelection = (assistantId: string, checked?: boolean) => {
+    setSelectedAssistantIds((prev) => {
+      const exists = prev.includes(assistantId);
+      if (checked === true) {
+        return exists ? prev : [...prev, assistantId];
+      }
+      if (!exists) return prev;
+      return prev.filter((id) => id !== assistantId);
+    });
+  };
+
+  const toggleAllAssistants = (checked: boolean | "indeterminate") => {
+    if (checked === true) {
+      setSelectedAssistantIds(assistants.map((assistant) => assistant.assistant_id));
+    } else {
+      setSelectedAssistantIds([]);
+    }
+  };
+
   // Auto-refresh pending files every 60 seconds
   useEffect(() => {
     if (!selectedAssistant) return;
@@ -210,8 +257,9 @@ export default function AssistantsUnified() {
     e.preventDefault();
     if (!organizationId) return;
 
+    setIsCreating(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/`, {
+      const response = await fetch(`/api/assistants/${organizationId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -220,15 +268,47 @@ export default function AssistantsUnified() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to create assistant');
+      const createdAssistant = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(createdAssistant?.error || 'Failed to create assistant');
+      }
 
       toast.success('Assistant created successfully!');
       setIsCreateDialogOpen(false);
       setFormData({ name: '', prompt: '' });
+      if (createdAssistant && createdAssistant.assistant_id) {
+        setAssistants((prev) => {
+          const next = [createdAssistant as Assistant, ...prev];
+          const seen = new Set<string>();
+          return next.filter((assistant) => {
+            const key = assistant.assistant_id || String(assistant.id);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        });
+        queryClient.setQueryData(
+          assistantsQueryKey(organizationId),
+          (prev = []) => {
+            const next = [createdAssistant as Assistant, ...(prev as Assistant[])];
+            const seen = new Set<string>();
+            return next.filter((assistant) => {
+              const key = assistant.assistant_id || String(assistant.id);
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+          },
+        );
+      }
+      queryClient.invalidateQueries(assistantsQueryKey(organizationId));
       fetchAssistants();
     } catch (error) {
       console.error('Error creating assistant:', error);
       toast.error('Failed to create assistant');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -239,7 +319,7 @@ export default function AssistantsUnified() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${selectedAssistant.assistant_id}/`,
+        `/api/assistants/by-id/${selectedAssistant.assistant_id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -250,10 +330,26 @@ export default function AssistantsUnified() {
         }
       );
 
-      if (!response.ok) throw new Error('Failed to update assistant');
+      const updatedAssistant = await response.json().catch(() => null);
+
+      if (!response.ok) throw new Error(updatedAssistant?.error || 'Failed to update assistant');
 
       toast.success('Assistant updated successfully!');
       setIsEditDialogOpen(false);
+      if (selectedAssistant) {
+        const nextAssistants = assistants.map((assistant) =>
+          assistant.assistant_id === selectedAssistant.assistant_id
+            ? { ...assistant, name: formData.name, prompt: formData.prompt, ...(updatedAssistant || {}) }
+            : assistant,
+        );
+        setAssistants(nextAssistants);
+        if (organizationId) {
+          queryClient.setQueryData(assistantsQueryKey(organizationId), nextAssistants);
+        }
+      }
+      if (organizationId) {
+        queryClient.invalidateQueries(assistantsQueryKey(organizationId));
+      }
       fetchAssistants();
     } catch (error) {
       console.error('Error updating assistant:', error);
@@ -267,7 +363,7 @@ export default function AssistantsUnified() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${selectedAssistant.assistant_id}/`,
+        `/api/assistants/by-id/${selectedAssistant.assistant_id}`,
         { method: 'DELETE' }
       );
 
@@ -276,10 +372,63 @@ export default function AssistantsUnified() {
       toast.success('Assistant deleted successfully!');
       setIsDeleteDialogOpen(false);
       setSelectedAssistant(null);
+      setAssistants((prev) =>
+        prev.filter((assistant) => assistant.assistant_id !== selectedAssistant.assistant_id),
+      );
+      if (organizationId) {
+        queryClient.setQueryData(
+          assistantsQueryKey(organizationId),
+          (prev = []) =>
+            (prev as Assistant[]).filter(
+              (assistant) => assistant.assistant_id !== selectedAssistant.assistant_id,
+            ),
+        );
+        queryClient.invalidateQueries(assistantsQueryKey(organizationId));
+      }
       fetchAssistants();
     } catch (error) {
       console.error('Error deleting assistant:', error);
       toast.error('Failed to delete assistant');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!organizationId || selectedAssistantIds.length === 0) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const response = await fetch('/api/assistants/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: selectedAssistantIds,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete assistants');
+      }
+
+      // Update local state by removing deleted assistants
+      const nextAssistants = assistants.filter(
+        (assistant) => !selectedAssistantIds.includes(assistant.assistant_id),
+      );
+      setAssistants(nextAssistants);
+      setSelectedAssistantIds([]);
+      queryClient.setQueryData(assistantsQueryKey(organizationId), nextAssistants);
+      queryClient.invalidateQueries(assistantsQueryKey(organizationId));
+
+      toast.success(data.message || `Successfully deleted ${data.deleted_count} assistant${data.deleted_count > 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error('Error deleting assistants:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete selected assistants');
+    } finally {
+      setIsBulkDeleting(false);
+      setIsBulkDeleteOpen(false);
     }
   };
 
@@ -415,94 +564,227 @@ export default function AssistantsUnified() {
           <p className="text-sm text-muted-foreground">
             Create and manage your AI assistants with custom knowledge bases
           </p>
+          {isRefreshing ? (
+            <div className="mt-1 flex items-center text-xs text-muted-foreground">
+              <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+              Updating list...
+            </div>
+          ) : null}
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Assistant
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedCount > 0 ? (
+            <Button
+              variant="destructive"
+              onClick={() => setIsBulkDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedCount})
+            </Button>
+          ) : null}
+          <div className="inline-flex items-center rounded-md border border-input p-1">
+            <Button
+              type="button"
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("grid")}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Assistant
+          </Button>
+        </div>
       </div>
 
       {/* Assistants Grid */}
-      {isLoading ? (
+      {isLoading && assistants.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="h-[240px] animate-pulse bg-muted" />
           ))}
         </div>
       ) : assistants.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {assistants.map((assistant) => (
-            <Card key={assistant.id} className="h-[240px] flex flex-col hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Bot className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{assistant.name}</CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <BadgeCheck className="h-4 w-4 text-blue-500" />
-                        <span className="text-xs text-muted-foreground">
-                          {assistant.assistant_id.slice(0, 12)}...
-                        </span>
+        viewMode === "grid" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {assistants.map((assistant) => (
+              <Card key={assistant.id} className="h-[240px] flex flex-col hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Bot className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{assistant.name}</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <BadgeCheck className="h-4 w-4 text-blue-500" />
+                          <span className="text-xs text-muted-foreground">
+                            {assistant.assistant_id.slice(0, 12)}...
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedAssistant(assistant);
+                            setFormData({ name: assistant.name, prompt: assistant.prompt });
+                            setIsEditDialogOpen(true);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedAssistant(assistant);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="cursor-pointer text-red-500"
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedAssistant(assistant);
-                          setFormData({ name: assistant.name, prompt: assistant.prompt });
-                          setIsEditDialogOpen(true);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedAssistant(assistant);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                        className="cursor-pointer text-red-500"
-                      >
-                        <Trash className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <div className="flex items-center space-x-2">
-                  <CircleDot className="w-3 h-3 fill-green-500 text-green-500" />
-                  <span className="text-sm">Active</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                  {assistant.prompt}
-                </p>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => handleViewAssistant(assistant)}
-                >
-                  <Files className="h-4 w-4 mr-2" />
-                  Manage Files
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <div className="flex items-center space-x-2">
+                    <CircleDot className="w-3 h-3 fill-green-500 text-green-500" />
+                    <span className="text-sm">Active</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                    {assistant.prompt}
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleViewAssistant(assistant)}
+                  >
+                    <Files className="h-4 w-4 mr-2" />
+                    Manage Files
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[36px]">
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      onCheckedChange={toggleAllAssistants}
+                      aria-label="Select all assistants"
+                    />
+                  </TableHead>
+                  <TableHead>Assistant</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assistants.map((assistant) => (
+                  <TableRow key={assistant.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedAssistantIds.includes(assistant.assistant_id)}
+                        onCheckedChange={(checked) =>
+                          toggleAssistantSelection(assistant.assistant_id, checked === true)
+                        }
+                        aria-label={`Select ${assistant.name}`}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Bot className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{assistant.name}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          ID: {assistant.assistant_id.slice(0, 12)}...
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {assistant.prompt}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <CircleDot className="w-3 h-3 fill-green-500 text-green-500" />
+                        <span className="text-sm">Active</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewAssistant(assistant)}
+                        >
+                          <Files className="h-4 w-4 mr-2" />
+                          Manage Files
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedAssistant(assistant);
+                                setFormData({ name: assistant.name, prompt: assistant.prompt });
+                                setIsEditDialogOpen(true);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedAssistant(assistant);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                              className="cursor-pointer text-red-500"
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )
       ) : (
         <Card className="text-center py-12">
           <CardContent>
@@ -549,10 +831,19 @@ export default function AssistantsUnified() {
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating}>
                 Cancel
               </Button>
-              <Button type="submit">Create Assistant</Button>
+              <Button type="submit" disabled={isCreating}>
+                {isCreating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Assistant'
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -607,6 +898,35 @@ export default function AssistantsUnified() {
             </Button>
             <Button variant="destructive" onClick={handleDeleteAssistant}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Assistants Dialog */}
+      <Dialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Assistants</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedCount} assistant{selectedCount === 1 ? "" : "s"}?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsBulkDeleteOpen(false)}
+              disabled={isBulkDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+            >
+              {isBulkDeleting ? "Deleting..." : "Delete Selected"}
             </Button>
           </DialogFooter>
         </DialogContent>
