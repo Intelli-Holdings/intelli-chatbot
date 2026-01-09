@@ -42,7 +42,7 @@ export default function EscalationEvents({
   className,
 }: EscalationEventsProps) {
   const isPanel = variant === "panel";
-  const activeOrganizationId = useActiveOrganizationId();
+  const activeOrganizationId = useActiveOrganizationId() || undefined;
   const queryClient = useQueryClient();
   const {
     events,
@@ -489,7 +489,7 @@ export default function EscalationEvents({
           ) : filteredEvents.length === 0 ? (
             <div className="text-center py-6">
               <p className="text-[13px] text-[#667781]">
-                No events match "{searchQuery.trim()}"
+                No events match &quot;{searchQuery.trim()}&quot;
               </p>
               <Button
                 variant="ghost"
