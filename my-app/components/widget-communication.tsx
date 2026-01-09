@@ -279,6 +279,7 @@ function LiveWidgetPreview({
   const [inputText, setInputText] = useState("");
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '' });
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [localIsTyping, setLocalIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -293,8 +294,8 @@ function LiveWidgetPreview({
 
       // Show typing indicator in demo mode
       if (demoMode) {
-        setIsTyping(true);
-        setTimeout(() => setIsTyping(false), 1500);
+        setLocalIsTyping(true);
+        setTimeout(() => setLocalIsTyping(false), 1500);
       }
     }
   };
@@ -478,7 +479,7 @@ function LiveWidgetPreview({
             ))}
 
             {/* Typing Indicator */}
-            {isTyping && (
+            {(isTyping || localIsTyping) && (
               <div className="flex gap-2 items-center animate-fade-in">
                 <img
                   src={avatarUrl || "/Avatar.png"}
