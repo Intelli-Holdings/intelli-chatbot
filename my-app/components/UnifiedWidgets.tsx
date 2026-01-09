@@ -263,12 +263,18 @@ export default function UnifiedWidgets() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-12">
-          <TabsTrigger value="create" className="flex items-center gap-2">
+        <TabsList className="h-9 rounded-full border border-[#e9edef] bg-[#f0f2f5] text-[#667781]">
+          <TabsTrigger
+            value="create"
+            className="flex items-center gap-2 px-4 text-xs data-[state=active]:bg-white data-[state=active]:text-[#111b21]"
+          >
             <PlusCircle className="h-4 w-4" />
             <span>Create Widget</span>
           </TabsTrigger>
-          <TabsTrigger value="manage" className="flex items-center gap-2">
+          <TabsTrigger
+            value="manage"
+            className="flex items-center gap-2 px-4 text-xs data-[state=active]:bg-white data-[state=active]:text-[#111b21]"
+          >
             <Layout className="h-4 w-4" />
             <span>My Widgets</span>
           </TabsTrigger>

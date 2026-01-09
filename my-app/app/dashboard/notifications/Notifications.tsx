@@ -32,7 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { NotificationMessage, TeamMember } from "@/types/notification"
 import { useOrganization } from "@clerk/nextjs"
@@ -42,6 +42,7 @@ import { useNotificationContext } from "@/hooks/use-notification-context"
 import Image from "next/image"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { useUser } from "@clerk/nextjs"
+import EscalationEvents from "@/components/EscalationEvents"
 
 interface NotificationsProps {
   members?: TeamMember[]
@@ -694,7 +695,25 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
   }
 
   return (
-    <Card className="w-full mx-auto border-[#e9edef] shadow-sm">
+    <Tabs defaultValue="notifications" className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <TabsList className="h-9 rounded-full border border-[#e9edef] bg-[#f0f2f5] text-[#667781]">
+          <TabsTrigger
+            value="notifications"
+            className="text-xs px-4 data-[state=active]:bg-white data-[state=active]:text-[#111b21]"
+          >
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger
+            value="escalations"
+            className="text-xs px-4 data-[state=active]:bg-white data-[state=active]:text-[#111b21]"
+          >
+            Escalation Events
+          </TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value="notifications" className="mt-0">
+        <Card className="w-full mx-auto border-[#e9edef] shadow-sm">
       <CardHeader className="border-b border-[#e9edef] pb-3 pt-3 bg-[#f0f2f5]">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center space-x-2 text-[17px] font-semibold text-[#111b21]">
@@ -801,7 +820,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 bg-white">
         {notificationsLoading ? (
           <div className="flex justify-center items-center h-[200px] bg-white">
             <RefreshCcw className="h-6 w-6 text-[#007fff] animate-spin" />
@@ -1022,7 +1041,12 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
           </div>
         )}
       </CardContent>
-    </Card>
+        </Card>
+      </TabsContent>
+      <TabsContent value="escalations" className="mt-0">
+        <EscalationEvents className="pt-0" />
+      </TabsContent>
+    </Tabs>
   )
 }
 

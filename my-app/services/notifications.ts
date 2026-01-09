@@ -9,6 +9,8 @@ export interface EscalationEvent {
   name: string;
   description: string;
   system_name: string;
+  type_of_es?: "default" | "organization";
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }

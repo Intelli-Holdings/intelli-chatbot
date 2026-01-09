@@ -43,28 +43,33 @@ const NotificationPage: React.FC = () => {
 
 function NotificationsSkeleton() {
   return (
-    <div className="w-full rounded-lg border border-[#e9edef] bg-white shadow-sm">
-      <div className="border-b border-[#e9edef] p-3 bg-[#f0f2f5]">
-        <Skeleton className="h-6 w-40" />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-9 w-64 rounded-full" />
       </div>
-      <div className="divide-y divide-[#e9edef]">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="px-4 py-3">
-            <div className="flex items-start gap-3 mb-2">
-              <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-              <div className="flex-1">
-                <Skeleton className="h-4 w-32 mb-1" />
+      <div className="w-full rounded-lg border border-[#e9edef] bg-white shadow-sm">
+        <div className="border-b border-[#e9edef] p-3 bg-[#f0f2f5]">
+          <Skeleton className="h-6 w-40" />
+        </div>
+        <div className="divide-y divide-[#e9edef]">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="px-4 py-3">
+              <div className="flex items-start gap-3 mb-2">
+                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-32 mb-1" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-5 w-16" />
+              </div>
+              <Skeleton className="h-12 w-full rounded-lg mb-2" />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-20" />
                 <Skeleton className="h-3 w-24" />
               </div>
-              <Skeleton className="h-5 w-16" />
             </div>
-            <Skeleton className="h-12 w-full rounded-lg mb-2" />
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-5 w-20" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   )

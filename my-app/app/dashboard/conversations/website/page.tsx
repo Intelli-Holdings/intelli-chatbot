@@ -19,6 +19,9 @@ import { toast } from "sonner";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
 import { useWebsiteWidgets } from "@/hooks/use-website-widgets";
 import { useWebsiteVisitors } from "@/hooks/use-website-visitors";
+import { cn } from "@/lib/utils";
+import "../components/message-bubble.css";
+import { WebsiteSkeletonLoader, VisitorListSkeleton } from "../components/website-skeleton-loader";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -28,6 +31,7 @@ interface Message {
   answer?: string;
   timestamp?: string;
   sender_type?: string;
+  sender?: string; // 'customer', 'ai', or 'human'
 }
 
 interface Visitor {
@@ -214,7 +218,8 @@ export default function WebsiteConversationsPage() {
               content: lastMessageContent,
               answer: replyMessage,
               timestamp: new Date().toISOString(),
-              sender_type: 'business'
+              sender_type: 'human',
+              sender: 'human'
             },
           ],
         };
@@ -263,10 +268,15 @@ export default function WebsiteConversationsPage() {
     getVisitorDisplayName(visitor).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Show full page skeleton loader during initial widget loading
+  if (widgetsLoading && widgets.length === 0) {
+    return <WebsiteSkeletonLoader />;
+  }
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-gray-50">
+    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
       {/* Left Sidebar - Conversations List */}
-      <div className="w-full md:w-96 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-full md:w-96 bg-white border-r border-[#e9edef] flex flex-col">
         {/* Header */}
         <div className="bg-gray-100 p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
@@ -309,8 +319,8 @@ export default function WebsiteConversationsPage() {
 
         {/* Conversations List */}
         <ScrollArea className="flex-1">
-          {isLoading ? (
-            <div className="p-8 text-center text-gray-500">Loading...</div>
+          {visitorsLoading ? (
+            <VisitorListSkeleton count={7} />
           ) : filteredVisitors.length === 0 ? (
             <div className="p-8 text-center text-gray-500">No conversations yet</div>
           ) : (
@@ -428,43 +438,77 @@ export default function WebsiteConversationsPage() {
             <ScrollArea className="flex-1 p-4" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d9d9d9' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }}>
-              <div className="max-w-4xl mx-auto space-y-3">
-                {(selectedVisitor.messages || []).map((message, index) => (
-                  <div key={message.id} className="space-y-2">
-                    {/* Visitor Message */}
-                    {message.content && (
-                      <div className="flex justify-start">
-                        <div className="bg-white rounded-lg shadow-sm max-w-[70%] p-3">
-                          <div className="markdown-content text-gray-800 text-sm">
-                            {message.content}
-                          </div>
-                          <div className="flex items-center justify-end gap-1 mt-1">
-                            <span className="text-xs text-gray-500">
-                              {message.timestamp ? format(new Date(message.timestamp), 'HH:mm') : ''}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+              <div className="flex flex-col gap-2">
+                {(selectedVisitor.messages || []).map((message) => {
+                  // Determine sender type - if it's customer message
+                  const isCustomerMessage = message.content && !message.answer;
 
-                    {/* Business/AI Response */}
-                    {message.answer && (
-                      <div className="flex justify-end">
-                        <div className="bg-[#d9fdd3] rounded-lg shadow-sm max-w-[70%] p-3">
-                          <div className="markdown-content text-gray-800 text-sm">
-                            {message.answer}
-                          </div>
-                          <div className="flex items-center justify-end gap-1 mt-1">
-                            <span className="text-xs text-gray-600">
-                              {message.timestamp ? format(new Date(message.timestamp), 'HH:mm') : ''}
-                            </span>
-                            <CheckCheck className="h-4 w-4 text-blue-500" />
+                  // For response messages (answer field exists), determine if AI or human
+                  // If sender_type is explicitly set, use it. Otherwise default to 'ai' for backward compatibility
+                  const responseSenderType = message.sender_type === 'business' || message.sender_type === 'human'
+                    ? 'human'
+                    : message.sender || 'ai';
+
+                  return (
+                    <div key={message.id} className="flex flex-col gap-2">
+                      {/* Customer Message (incoming) */}
+                      {message.content && (
+                        <div className="flex justify-start">
+                          <div
+                            className={cn(
+                              "message-bubble group message-customer"
+                            )}
+                          >
+                            <div className="message-tail message-tail-left" />
+                            <div className="text-[9px] font-semibold text-gray-600 mb-1">
+                              Visitor
+                            </div>
+                            <div className="text-sm whitespace-pre-wrap">
+                              {message.content}
+                            </div>
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-[11px] text-[#667781]">
+                                {message.timestamp && format(new Date(message.timestamp), 'HH:mm')}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+
+                      {/* Business/AI Response (outgoing) */}
+                      {message.answer && (
+                        <div className="flex justify-end">
+                          <div
+                            className={cn(
+                              "message-bubble group",
+                              responseSenderType === "ai" ? "message-assistant" : "message-human"
+                            )}
+                          >
+                            <div
+                              className={`message-tail ${
+                                responseSenderType === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
+                              }`}
+                            />
+                            {/* Sender badge - AI or Human */}
+                            <div className={cn(
+                              "text-[9px] font-semibold mb-1",
+                              responseSenderType === "ai" ? "text-purple-600" : "text-green-700"
+                            )}>
+                              {responseSenderType === "ai" ? "🤖 AI Assistant" : "👤 Business"}
+                            </div>
+                            <div className="text-sm whitespace-pre-wrap">{message.answer}</div>
+                            <div className="flex items-center justify-end gap-1 mt-1">
+                              <span className="text-[11px] text-[#667781]">
+                                {message.timestamp && format(new Date(message.timestamp), 'HH:mm')}
+                              </span>
+                              <CheckCheck className="h-3.5 w-3.5 text-blue-500" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>

@@ -2,12 +2,26 @@
 import { useState, useEffect } from "react"
 import type React from "react"
 
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useOrganizationList } from "@clerk/nextjs"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Loader, ExternalLink, Pen, Eye, EyeOff, Loader2, Bot, PlusCircle, Trash2 } from "lucide-react"
+import {
+  Loader,
+  ExternalLink,
+  Pen,
+  Eye,
+  EyeOff,
+  Loader2,
+  Bot,
+  PlusCircle,
+  Trash2,
+  Rocket,
+  LayoutGrid,
+  List,
+} from "lucide-react"
 import { DeploymentDialog } from "@/components/deployment-dialog"
 import { formatDate } from "@/utils/date"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
@@ -80,7 +94,10 @@ const setWidgetsCache = (organizationId: string, widgets: Widget[]) => {
 
 const Widgets = ({ onCreateWidget }: WidgetsProps) => {
   const [widgets, setWidgets] = useState<Widget[]>([])
-  const [loading, setLoading] = useState(false)
+  const [isFetchingWidgets, setIsFetchingWidgets] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("")
   const [selectedWidget, setSelectedWidget] = useState<{
     key: string
@@ -94,6 +111,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [brandColor, setBrandColor] = useState<string>("")
   const [previewOpen, setPreviewOpen] = useState(true)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   // Bulk delete states
   const [selectedWidgets, setSelectedWidgets] = useState<Set<string>>(new Set())
@@ -131,7 +149,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
 
   const fetchWidgets = async (orgId: string, options: { showLoader?: boolean } = {}) => {
     const { showLoader = true } = options
-    if (showLoader) setLoading(true)
+    if (showLoader) setIsFetchingWidgets(true)
     try {
 
       // Add timestamp to prevent browser caching
@@ -155,7 +173,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
       console.error("[Widgets] Error fetching widgets:", error)
       toast.error(`Failed to fetch widgets: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
-      if (showLoader) setLoading(false)
+      if (showLoader) setIsFetchingWidgets(false)
     }
   }
 
@@ -175,14 +193,23 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
     if (!widgetToDelete) return
 
     const widgetToDeleteId = widgetToDelete.id
+    const previousWidgets = widgets
+    const previousSelectedWidgets = new Set(selectedWidgets)
+    const orgIdAtDelete = selectedOrganizationId
 
-    setLoading(true)
+    setIsDeleting(true)
 
     // Optimistic update: Remove widget from UI immediately
     setWidgets((prevWidgets) => {
       const nextWidgets = prevWidgets.filter((w) => w.id !== widgetToDeleteId)
       setWidgetsCache(selectedOrganizationId, nextWidgets)
       return nextWidgets
+    })
+    setSelectedWidgets((prevSelected) => {
+      if (!prevSelected.has(widgetToDeleteId)) return prevSelected
+      const nextSelected = new Set(prevSelected)
+      nextSelected.delete(widgetToDeleteId)
+      return nextSelected
     })
 
     // Close dialog immediately for better UX
@@ -202,18 +229,18 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
       }
 
       toast.success("Widget deleted successfully!")
-      console.log("[Widgets] Widget deleted, refreshing list...")
-
-      // Refresh the widget list to ensure consistency with backend
-      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } catch (error) {
       console.error("[Widgets] Error deleting widget:", error)
       toast.error(`Failed to delete widget: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Revert optimistic update on error
-      await fetchWidgets(selectedOrganizationId, { showLoader: false })
+      if (orgIdAtDelete === selectedOrganizationId) {
+        setWidgets(previousWidgets)
+        setWidgetsCache(selectedOrganizationId, previousWidgets)
+        setSelectedWidgets(previousSelectedWidgets)
+      }
     } finally {
-      setLoading(false)
+      setIsDeleting(false)
     }
   }
 
@@ -240,7 +267,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
       return;
     }
 
-    setLoading(true)
+    setIsUpdating(true)
 
     const formData = new FormData()
     // Use selectedOrganizationId from hook instead of editWidget.organization_id
@@ -318,7 +345,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
       // Revert optimistic update on error
       await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } finally {
-      setLoading(false)
+      setIsUpdating(false)
     }
   }
 
@@ -362,8 +389,11 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
 
     const widgetIdsToDelete = Array.from(selectedWidgets)
     const widgetsToDelete = widgets.filter(w => widgetIdsToDelete.includes(w.id))
+    const previousWidgets = widgets
+    const previousSelectedWidgets = new Set(selectedWidgets)
+    const orgIdAtDelete = selectedOrganizationId
 
-    setLoading(true)
+    setIsBulkDeleting(true)
     setIsBulkDeleteDialogOpen(false)
 
     // Optimistic update
@@ -384,212 +414,453 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
 
       const results = await Promise.allSettled(deletePromises)
 
-      // Check for failures
-      const failures = results.filter(r => r.status === 'rejected')
+      const failedWidgetIds: string[] = []
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          if (!result.value.ok) {
+            failedWidgetIds.push(widgetsToDelete[index].id)
+          }
+        } else {
+          failedWidgetIds.push(widgetsToDelete[index].id)
+        }
+      })
 
-      if (failures.length > 0) {
-        toast.error(`Failed to delete ${failures.length} widget(s). Refreshing list...`)
+      if (failedWidgetIds.length > 0) {
+        toast.error(`Failed to delete ${failedWidgetIds.length} widget(s).`)
+        if (orgIdAtDelete === selectedOrganizationId) {
+          const successfulIds = widgetIdsToDelete.filter((id) => !failedWidgetIds.includes(id))
+          const nextWidgets = previousWidgets.filter((w) => !successfulIds.includes(w.id))
+          setWidgets(nextWidgets)
+          setWidgetsCache(selectedOrganizationId, nextWidgets)
+          setSelectedWidgets(new Set(failedWidgetIds))
+        }
       } else {
         toast.success(`Successfully deleted ${widgetsToDelete.length} widget(s)!`)
       }
-
-      // Refresh the widget list
-      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } catch (error) {
       console.error("[Widgets] Error during bulk delete:", error)
       toast.error(`Failed to delete widgets: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Revert optimistic update on error
-      await fetchWidgets(selectedOrganizationId, { showLoader: false })
+      if (orgIdAtDelete === selectedOrganizationId) {
+        setWidgets(previousWidgets)
+        setWidgetsCache(selectedOrganizationId, previousWidgets)
+        setSelectedWidgets(previousSelectedWidgets)
+      }
     } finally {
-      setLoading(false)
+      setIsBulkDeleting(false)
     }
   }
 
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <label className="block text-sm font-semibold text-foreground">Organization</label>
-        {userMemberships && userMemberships.data && userMemberships.data.length > 1 && (
-          <div className="w-full max-w-xs">
-            <Select value={selectedOrganizationId} onValueChange={setSelectedOrganizationId}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Select an organization" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {userMemberships?.data?.map((membership) => (
-                    <SelectItem key={membership.organization.id} value={membership.organization.id}>
-                      {membership.organization.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </div>
-
-      {/* Bulk Actions Bar */}
-      {widgets.length > 0 && (
-        <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg border">
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={selectedWidgets.size === widgets.length && widgets.length > 0}
-              onChange={toggleSelectAll}
-              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-            />
-            <span className="text-sm font-medium">
-              {selectedWidgets.size > 0
-                ? `${selectedWidgets.size} widget${selectedWidgets.size > 1 ? 's' : ''} selected`
-                : 'Select all'}
-            </span>
-          </div>
-          {selectedWidgets.size > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleBulkDelete}
-              className="h-9"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedWidgets.size})
-            </Button>
-          )}
+      {userMemberships && userMemberships.data && userMemberships.data.length > 1 && (
+        <div className="w-full max-w-xs">
+          <Select value={selectedOrganizationId} onValueChange={setSelectedOrganizationId}>
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Select organization" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {userMemberships?.data?.map((membership) => (
+                  <SelectItem key={membership.organization.id} value={membership.organization.id}>
+                    {membership.organization.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
-      {loading ? (
+      <div className="flex flex-wrap items-center justify-end gap-3" />
+
+      {isFetchingWidgets ? (
         <div className="flex items-center justify-center h-96">
           <Loader className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <Card
-            className="h-[280px] border-dashed border-2 hover:border-primary/50 hover:bg-accent/30 cursor-pointer flex items-center justify-center transition-all duration-200 rounded-xl group"
-            onClick={handleCreateWidget}
-          >
-            <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
-              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                <PlusCircle className="h-7 w-7 text-primary" />
-              </div>
-              <p className="font-semibold text-base">Create New Widget</p>
-              <p className="text-xs text-muted-foreground mt-1">Get started with a new chatbot</p>
-            </div>
-          </Card>
-
-          {widgets?.map((widget) => (
-            <Card
-              key={widget.id}
-              className={`h-[280px] flex flex-col rounded-xl hover:shadow-lg transition-all duration-200 ${
-                selectedWidgets.has(widget.id)
-                  ? 'border-primary border-2 ring-2 ring-primary/20'
-                  : 'border-border/60'
-              }`}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3 flex-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedWidgets.has(widget.id)}
-                      onChange={() => toggleWidgetSelection(widget.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer flex-shrink-0"
-                    />
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-5 w-5 text-primary" />
-                    </div>
-                    <CardTitle className="text-lg leading-tight">{widget.widget_name}</CardTitle>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow space-y-3 pb-3">
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Website</p>
-                  <a
-                    href={widget.website_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline flex items-center gap-1.5 group/link"
-                  >
-                    <span className="truncate max-w-[200px]">
-                      {widget.website_url.length > 30
-                        ? widget.website_url.substring(0, 30) + "..."
-                        : widget.website_url}
-                    </span>
-                    <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
-                  </a>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Widget Key</p>
+        <div className="rounded-xl border border-border/60 bg-white overflow-hidden">
+          <ScrollArea className="h-[calc(100vh-340px)]">
+            {widgets.length > 0 && (
+              <div className="px-4 py-2 border-b border-border/60 bg-muted/30">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <code className="text-xs bg-muted px-2 py-1 rounded-md font-mono break-all flex-1">
-                      {widget.showKey ? widget.widget_key : widget.widget_key.slice(0, 12) + "..."}
-                    </code>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-7 w-7 p-0 flex-shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setWidgets(widgets.map((w) => (w.id === widget.id ? { ...w, showKey: !w.showKey } : w)))
-                      }}
+                      onClick={toggleSelectAll}
+                      className="h-7 px-2 text-xs"
                     >
-                      {widget.showKey ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                      {selectedWidgets.size === widgets.length && widgets.length > 0
+                        ? "Clear all"
+                        : "Select all"}
                     </Button>
+                    {selectedWidgets.size > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {selectedWidgets.size} selected
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center border border-[#e9edef] rounded-md bg-white">
+                      <Button
+                        variant={viewMode === "grid" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setViewMode("grid")}
+                        className={`h-7 px-2 rounded-r-none ${
+                          viewMode === "grid"
+                            ? "!bg-[#007fff] hover:!bg-[#0067d6] !text-white"
+                            : "hover:bg-[#f0f2f5] text-[#667781]"
+                        }`}
+                      >
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant={viewMode === "list" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setViewMode("list")}
+                        className={`h-7 px-2 rounded-l-none ${
+                          viewMode === "list"
+                            ? "!bg-[#007fff] hover:!bg-[#0067d6] !text-white"
+                            : "hover:bg-[#f0f2f5] text-[#667781]"
+                        }`}
+                      >
+                        <List className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    {selectedWidgets.size > 0 && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleBulkDelete}
+                        className="h-7 px-2 text-xs"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                        Delete Selected
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground pt-1">Created {formatDate(widget.created_at)}</p>
-              </CardContent>
-              <CardFooter className="flex gap-2 pt-3 border-t border-border/40">
-                <Button
-                  className="flex-1 h-9 bg-transparent"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setSelectedWidget({
-                      key: widget.widget_key,
-                      url: widget.website_url,
-                    })
-                  }
+              </div>
+            )}
+            {viewMode === "grid" ? (
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <Card
+                  className="h-[220px] border-dashed border-2 hover:border-primary/50 hover:bg-accent/30 cursor-pointer flex items-center justify-center transition-all duration-200 rounded-xl group"
+                  onClick={handleCreateWidget}
                 >
-                  <span className="text-xs font-medium">Deploy</span>
-                </Button>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 w-9 p-0 bg-transparent"
-                        onClick={() => handleEditWidget(widget)}
-                      >
-                        <Pen className="h-3.5 w-3.5" />
+                  <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                      <PlusCircle className="h-7 w-7 text-primary" />
+                    </div>
+                    <p className="font-semibold text-base">Create New Widget</p>
+                    <p className="text-xs text-muted-foreground mt-1">Get started with a new chatbot</p>
+                  </div>
+                </Card>
+
+                {widgets?.map((widget) => (
+                  <Card
+                    key={widget.id}
+                    className={`relative h-[220px] flex flex-col rounded-xl hover:shadow-lg transition-all duration-200 ${
+                      selectedWidgets.has(widget.id)
+                        ? 'border-primary border-2 ring-2 ring-primary/20'
+                        : 'border-border/60'
+                    }`}
+                  >
+                    <TooltipProvider>
+                      <div className="absolute top-3 right-3 flex flex-col gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-white/90"
+                              onClick={() =>
+                                setSelectedWidget({
+                                  key: widget.widget_key,
+                                  url: widget.website_url,
+                                })
+                              }
+                            >
+                              <Rocket className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Deploy widget</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-white/90"
+                              onClick={() => handleEditWidget(widget)}
+                            >
+                              <Pen className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit widget</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 bg-white/90"
+                              onClick={() => handleDeleteWidget(widget)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete widget</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
+                    <CardHeader className="pb-3 pr-14">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3 flex-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedWidgets.has(widget.id)}
+                            onChange={() => toggleWidgetSelection(widget.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer flex-shrink-0"
+                          />
+                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Bot className="h-5 w-5 text-primary" />
+                          </div>
+                          <CardTitle className="text-lg leading-tight">{widget.widget_name}</CardTitle>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-3 pb-3 pr-14">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Website</p>
+                        <a
+                          href={widget.website_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline flex items-center gap-1.5 group/link"
+                        >
+                          <span className="truncate max-w-[200px]">
+                            {widget.website_url.length > 30
+                              ? widget.website_url.substring(0, 30) + "..."
+                              : widget.website_url}
+                          </span>
+                          <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                        </a>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Widget Key</p>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded-md font-mono break-all flex-1">
+                            {widget.showKey ? widget.widget_key : widget.widget_key.slice(0, 12) + "..."}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setWidgets((prev) =>
+                                prev.map((w) => (w.id === widget.id ? { ...w, showKey: !w.showKey } : w))
+                              )
+                            }}
+                          >
+                            {widget.showKey ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground pt-1">Created {formatDate(widget.created_at)}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 space-y-4">
+                {widgets.length === 0 ? (
+                  <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    No widgets yet.
+                    <div className="mt-3">
+                      <Button variant="outline" size="sm" onClick={handleCreateWidget}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Create Widget
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit Widget</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 bg-transparent"
-                        onClick={() => handleDeleteWidget(widget)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Delete Widget</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </CardFooter>
-            </Card>
-          ))}
+                    </div>
+                  </div>
+                ) : (
+                  widgets.map((widget) => (
+                    <Card
+                      key={widget.id}
+                      className={`relative border-border/60 ${
+                        selectedWidgets.has(widget.id)
+                          ? "border-primary border-2 ring-1 ring-primary/20 bg-primary/5"
+                          : "bg-white"
+                      }`}
+                    >
+                      <TooltipProvider>
+                        <div className="absolute top-3 right-3 flex flex-col gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 bg-white/90"
+                                onClick={() =>
+                                  setSelectedWidget({
+                                    key: widget.widget_key,
+                                    url: widget.website_url,
+                                  })
+                                }
+                              >
+                                <Rocket className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Deploy widget</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 bg-white/90"
+                                onClick={() => handleEditWidget(widget)}
+                              >
+                                <Pen className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit widget</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 bg-white/90"
+                                onClick={() => handleDeleteWidget(widget)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete widget</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
+                      <CardContent className="p-4 space-y-3 pr-14">
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedWidgets.has(widget.id)}
+                            onChange={() => toggleWidgetSelection(widget.id)}
+                            className="w-4 h-4 mt-1 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                          />
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Bot className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold truncate">{widget.widget_name}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {widget.assistant?.name || "Assistant"}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {formatDate(widget.created_at)}
+                          </span>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Website</p>
+                            <a
+                              href={widget.website_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline flex items-center gap-1.5 min-w-0"
+                            >
+                              <span className="truncate">
+                                {widget.website_url.length > 34
+                                  ? `${widget.website_url.substring(0, 34)}...`
+                                  : widget.website_url}
+                              </span>
+                              <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+                            </a>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Widget Key</p>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <code className="text-xs bg-muted px-2 py-1 rounded-md font-mono break-all flex-1">
+                                {widget.showKey ? widget.widget_key : `${widget.widget_key.slice(0, 12)}...`}
+                              </code>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setWidgets((prev) =>
+                                    prev.map((w) => (w.id === widget.id ? { ...w, showKey: !w.showKey } : w))
+                                  )
+                                }}
+                              >
+                                {widget.showKey ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex items-center gap-2 border-t border-border/40 px-4 py-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3"
+                          onClick={() =>
+                            setSelectedWidget({
+                              key: widget.widget_key,
+                              url: widget.website_url,
+                            })
+                          }
+                        >
+                          Deploy
+                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => handleEditWidget(widget)}
+                              >
+                                <Pen className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit Widget</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleDeleteWidget(widget)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete Widget</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </CardFooter>
+                    </Card>
+                  ))
+                )}
+              </div>
+            )}
+          </ScrollArea>
         </div>
       )}
 
@@ -976,12 +1247,12 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
                   variant="outline"
                   className="flex-1 h-11 bg-transparent"
                   onClick={() => setIsEditDialogOpen(false)}
-                  disabled={loading}
+                  disabled={isUpdating}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 h-11" disabled={loading}>
-                  {loading ? (
+                <Button type="submit" className="flex-1 h-11" disabled={isUpdating}>
+                  {isUpdating ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
                       Updating...
@@ -1014,12 +1285,12 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
                 setIsDeleteDialogOpen(false)
                 setWidgetToDelete(null)
               }}
-              disabled={loading}
+              disabled={isDeleting}
             >
               Cancel
             </Button>
-            <Button variant="destructive" className="flex-1 h-11" onClick={confirmDeleteWidget} disabled={loading}>
-              {loading ? (
+            <Button variant="destructive" className="flex-1 h-11" onClick={confirmDeleteWidget} disabled={isDeleting}>
+              {isDeleting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Deleting...
@@ -1065,12 +1336,12 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
               variant="outline"
               className="flex-1 h-11 bg-transparent"
               onClick={() => setIsBulkDeleteDialogOpen(false)}
-              disabled={loading}
+              disabled={isBulkDeleting}
             >
               Cancel
             </Button>
-            <Button variant="destructive" className="flex-1 h-11" onClick={confirmBulkDelete} disabled={loading}>
-              {loading ? (
+            <Button variant="destructive" className="flex-1 h-11" onClick={confirmBulkDelete} disabled={isBulkDeleting}>
+              {isBulkDeleting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Deleting...

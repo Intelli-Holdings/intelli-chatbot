@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const WEBSOCKET_BASE_URL = (process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://backend.intelliconcierge.com/ws").replace(/\/$/, "");
 
 interface WidgetCommunicationProps {
   widgetKey: string;
@@ -27,9 +29,17 @@ export function WidgetCommunication({
   const [messages, setMessages] = useState<Message[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const connectionAttempts = useRef(0);
+  const visitorIdRef = useRef(`preview_${Math.random().toString(36).slice(2, 10)}`);
+  const pendingResponsesRef = useRef(0);
+
+  const updateTyping = useCallback((delta: number) => {
+    pendingResponsesRef.current = Math.max(0, pendingResponsesRef.current + delta);
+    setIsTyping(pendingResponsesRef.current > 0);
+  }, []);
 
   // Initialize with greeting message
   useEffect(() => {
@@ -41,6 +51,11 @@ export function WidgetCommunication({
     }]);
   }, [greetingMessage]);
 
+  useEffect(() => {
+    pendingResponsesRef.current = 0;
+    setIsTyping(false);
+  }, [widgetKey]);
+
   // Connect to WebSocket
   useEffect(() => {
     if (!widgetKey || demoMode) return;
@@ -48,7 +63,7 @@ export function WidgetCommunication({
     const connectWebSocket = () => {
       try {
         console.log("[WidgetCommunication] Connecting to WebSocket...");
-        const ws = new WebSocket(`wss://backend.intelliconcierge.com/ws/widget/${widgetKey}/`);
+        const ws = new WebSocket(`${WEBSOCKET_BASE_URL}/chat/${widgetKey}/${visitorIdRef.current}/`);
 
         ws.onopen = () => {
           console.log("[WidgetCommunication] WebSocket connected");
@@ -60,14 +75,27 @@ export function WidgetCommunication({
           console.log("[WidgetCommunication] Message received:", event.data);
           try {
             const data = JSON.parse(event.data);
-            if (data.message) {
+            const rawMessage = data.answer ?? data.message;
+            let messageText: string | undefined;
+
+            if (Array.isArray(rawMessage)) {
+              messageText = rawMessage.find((item) => typeof item === "string");
+            } else if (typeof rawMessage === "string") {
+              messageText = rawMessage;
+            }
+
+            if (messageText) {
+              const isBotMessage = data.sender_type !== "visitor";
               const newMessage: Message = {
                 id: Date.now().toString(),
-                text: data.message,
-                sender: "bot",
+                text: messageText,
+                sender: isBotMessage ? "bot" : "user",
                 timestamp: new Date(),
               };
               setMessages((prev) => [...prev, newMessage]);
+              if (isBotMessage) {
+                updateTyping(-1);
+              }
             }
           } catch (error) {
             console.error("[WidgetCommunication] Error parsing message:", error);
@@ -83,6 +111,8 @@ export function WidgetCommunication({
             console.log("[WidgetCommunication] Switching to demo mode");
             setDemoMode(true);
             setIsConnected(true);
+            pendingResponsesRef.current = 0;
+            setIsTyping(false);
           }
         };
 
@@ -118,7 +148,7 @@ export function WidgetCommunication({
         wsRef.current.close();
       }
     };
-  }, [widgetKey, demoMode]);
+  }, [widgetKey, demoMode, updateTyping]);
 
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
@@ -133,6 +163,7 @@ export function WidgetCommunication({
     setMessages((prev) => [...prev, userMessage]);
 
     if (demoMode) {
+      updateTyping(1);
       // Demo mode: simulate bot response
       setTimeout(() => {
         const demoResponses = [
@@ -150,14 +181,22 @@ export function WidgetCommunication({
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, botMessage]);
+        updateTyping(-1);
       }, 1000);
     } else if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       // Real mode: send to backend
       try {
-        wsRef.current.send(JSON.stringify({ message: text }));
+        updateTyping(1);
+        wsRef.current.send(JSON.stringify({
+          message: text,
+          sender_type: "visitor",
+          widget_key: widgetKey,
+          visitor_id: visitorIdRef.current,
+        }));
         console.log("[WidgetCommunication] Message sent:", text);
       } catch (error) {
         console.error("[WidgetCommunication] Error sending message:", error);
+        updateTyping(-1);
       }
     }
   };
@@ -208,6 +247,7 @@ export function WidgetCommunication({
         messages={messages}
         onSendMessage={sendMessage}
         isConnected={isConnected || demoMode}
+        isTyping={isTyping}
         demoMode={demoMode}
       />
     </div>
@@ -222,6 +262,7 @@ function LiveWidgetPreview({
   messages,
   onSendMessage,
   isConnected,
+  isTyping,
   demoMode,
 }: {
   widgetName: string;
@@ -230,12 +271,12 @@ function LiveWidgetPreview({
   messages: Message[];
   onSendMessage: (text: string) => void;
   isConnected: boolean;
+  isTyping: boolean;
   demoMode?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'chat' | 'contact'>('chat');
   const [inputText, setInputText] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '' });
   const [formSubmitted, setFormSubmitted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
