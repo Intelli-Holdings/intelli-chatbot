@@ -131,7 +131,7 @@ export default function WhatsAppConvosPage() {
       const conversationMatch = conversationsRef.current.find((conv) => conv.id === conversationId)
       const customerNumber = conversationMatch?.customer_number || conversationMatch?.recipient_id
       if (customerNumber) {
-        setCachedMessages(customerNumber, normalizedMessages)
+        setCachedMessages(customerNumber, normalizedMessages as NonNullable<Conversation["messages"]>)
       }
       const latestMessage = normalizedMessages.length > 0 ? normalizedMessages[normalizedMessages.length - 1] : null
       const latestTimestamp = latestMessage?.created_at
@@ -212,18 +212,20 @@ export default function WhatsAppConvosPage() {
       const conversationsWithMessages = sessions.map((conv: any) => {
         const existing = previousById.get(conv.id)
         const customerNumber = conv.customer_number || conv.recipient_id
-        const cachedMessages = getCachedMessages(customerNumber)
+        const cachedMessages = (getCachedMessages(customerNumber) ?? [])
         const fallbackMessages =
           cachedMessages.length > 0
             ? cachedMessages
-            : existing?.messages || messageCacheRef.current[conv.id] || EMPTY_MESSAGES
+            : (existing?.messages ?? messageCacheRef.current[conv.id] ?? EMPTY_MESSAGES)
 
-        if (fallbackMessages.length > 0 && cachedMessages.length === 0) {
-          setCachedMessages(customerNumber, fallbackMessages)
+        if ((fallbackMessages?.length ?? 0) > 0 && cachedMessages.length === 0) {
+          setCachedMessages(customerNumber, (fallbackMessages ?? EMPTY_MESSAGES) as NonNullable<Conversation["messages"]>)
         }
 
         const latestCachedTimestamp =
-          fallbackMessages.length > 0 ? fallbackMessages[fallbackMessages.length - 1]?.created_at : undefined
+          (fallbackMessages && fallbackMessages.length > 0)
+            ? fallbackMessages[fallbackMessages.length - 1]?.created_at
+            : undefined
 
         return {
           ...conv,
@@ -323,13 +325,11 @@ export default function WhatsAppConvosPage() {
     const cachedMessages = customerNumber ? getCachedMessages(customerNumber) : []
     const fallbackCache = messageCacheRef.current[conversation.id] ?? []
     const initialMessages =
-      conversation.messages && conversation.messages.length > 0
+      (conversation.messages && conversation.messages.length > 0)
         ? conversation.messages
-        : cachedMessages.length > 0
-          ? cachedMessages
-          : fallbackCache
+        : (cachedMessages.length > 0 ? cachedMessages : fallbackCache)
     const hydratedConversation =
-      initialMessages && initialMessages.length > 0 ? { ...conversation, messages: initialMessages } : conversation
+      initialMessages && initialMessages.length > 0 ? ({ ...conversation, messages: initialMessages } as Conversation) : conversation
 
     if (initialMessages && initialMessages.length > 0) {
       messageCacheRef.current[conversation.id] = initialMessages
@@ -353,9 +353,9 @@ export default function WhatsAppConvosPage() {
 
         if (selectedConversationRef.current === conversation.id) {
           setSelectedConversation({
-            ...conversation,
-            messages,
-          })
+              ...conversation,
+              messages,
+            } as Conversation)
         }
       } catch (error) {
         console.error("Failed to fetch messages for selected conversation:", error)
@@ -407,9 +407,13 @@ export default function WhatsAppConvosPage() {
       setConversations((prev) =>
         prev.map((conv) => (conv.customer_number === customerNumber ? { ...conv, unread_messages: 0 } : conv)),
       )
-      setSelectedConversation((prev) =>
-        prev?.customer_number === customerNumber ? { ...prev, unread_messages: 0 } : prev,
-      )
+      setSelectedConversation((prev) => {
+        if (!prev) return prev
+        if (prev.customer_number === customerNumber) {
+          return { ...prev, unread_messages: 0 } as Conversation
+        }
+        return prev
+      })
     }
 
     window.addEventListener("unreadMessagesReset", handleUnreadReset as EventListener)

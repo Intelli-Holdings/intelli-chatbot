@@ -6,6 +6,7 @@ export interface ContactTag {
   id: number
   name: string
   slug: string
+  contact_count?: number
 }
 
 const normalizeTags = (data: any): ContactTag[] => {

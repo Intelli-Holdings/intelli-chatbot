@@ -76,9 +76,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
       }
     }
 
-    window.addEventListener("retryMessage", handleRetry as EventListener)
+    window.addEventListener("retryMessage", handleRetry as unknown as EventListener)
     return () => {
-      window.removeEventListener("retryMessage", handleRetry as EventListener)
+      window.removeEventListener("retryMessage", handleRetry as unknown as EventListener)
     }
   }, [])
 

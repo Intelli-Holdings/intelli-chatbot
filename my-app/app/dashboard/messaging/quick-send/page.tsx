@@ -145,7 +145,7 @@ export default function QuickSendPage() {
 
       {/* Progress Steps */}
       <div className="flex items-center justify-center gap-2">
-        <div className={`flex items-center gap-2 ${currentStep === "template" ? "text-blue-600" : currentStep !== "template" ? "text-green-600" : "text-gray-400"}`}>
+        <div className={`flex items-center gap-2 ${currentStep === "template" ? "text-blue-600" : (currentStep === "parameters" || currentStep === "recipients") ? "text-green-600" : "text-gray-400"}`}>
           {currentStep !== "template" ? (
             <CheckCircle2 className="h-5 w-5" />
           ) : (

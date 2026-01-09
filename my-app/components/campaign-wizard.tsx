@@ -66,11 +66,11 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
 
   const [currentStep, setCurrentStep] = useState<WizardStep>("details")
   const [submitting, setSubmitting] = useState(false)
-  const queryOrganizationId = open ? organizationId : undefined
+  const queryOrganizationId = open ? (organizationId ?? undefined) : undefined
   const templateAppService = open ? (appService ?? null) : null
   const { templates, loading: templatesLoading, error: templatesError } = useWhatsAppTemplates(templateAppService)
   const { contacts, isLoading: contactsLoading, error: contactsError } = usePaginatedContacts<any>(
-    queryOrganizationId,
+    queryOrganizationId || undefined,
     1,
     50
   )
@@ -455,9 +455,11 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
         payload: {
           template_name: selectedTemplateData?.name || "",
           template_language: selectedTemplateData?.language || "en",
-          template: templatePayload.template,
+          header_parameters: headerPlaceholders.map(placeholder => ({
+            type: "text",
+            text: placeholder
+          })),
           body_params: templatePayload.body_params,
-          header_params: templatePayload.header_params,
           button_params: templatePayload.button_params,
         },
         scheduled_at: scheduledDateTime ? scheduledDateTime.toISOString() : undefined,

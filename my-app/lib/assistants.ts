@@ -2,7 +2,7 @@ import { Assistant, CreateAssistantData } from '@/types/assistant';
 
 export async function createAssistant(data: CreateAssistantData): Promise<Assistant> {
   try {
-    const response = await fetch(`/api/assistants/${data.organization_id}`, {
+    const response = await fetch(`/api/assistants/${data.organizationId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

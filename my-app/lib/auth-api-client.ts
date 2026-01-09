@@ -104,9 +104,9 @@ export async function fetchWithAuth(
   options: RequestInit = {},
   token?: string | null
 ): Promise<any> {
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...options.headers as Record<string, string>,
   };
 
   // Add Authorization header if token is provided

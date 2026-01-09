@@ -51,7 +51,8 @@ interface Widget {
 }
 
 // Format time like WhatsApp
-function formatMessageTime(dateString: string): string {
+function formatMessageTime(dateString?: string): string {
+  if (!dateString) return "";
   const date = new Date(dateString);
 
   if (isToday(date)) {
@@ -315,7 +316,9 @@ export default function WebsiteConversationsPage() {
           ) : (
             <div>
               {filteredVisitors.map((visitor) => {
-                const lastMessage = visitor.messages[visitor.messages.length - 1];
+                const lastMessage = visitor.messages && visitor.messages.length > 0
+                  ? visitor.messages[visitor.messages.length - 1]
+                  : undefined;
                 const isSelected = selectedVisitor?.id === visitor.id;
 
                 return (
@@ -345,7 +348,7 @@ export default function WebsiteConversationsPage() {
                           {getVisitorDisplayName(visitor)}
                         </h3>
                         <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
-                          {lastMessage && formatMessageTime(lastMessage.timestamp)}
+                          {lastMessage?.timestamp ? formatMessageTime(lastMessage.timestamp) : ''}
                         </span>
                       </div>
 
@@ -437,7 +440,7 @@ export default function WebsiteConversationsPage() {
                           </div>
                           <div className="flex items-center justify-end gap-1 mt-1">
                             <span className="text-xs text-gray-500">
-                              {format(new Date(message.timestamp), 'HH:mm')}
+                              {message.timestamp ? format(new Date(message.timestamp), 'HH:mm') : ''}
                             </span>
                           </div>
                         </div>
@@ -453,7 +456,7 @@ export default function WebsiteConversationsPage() {
                           </div>
                           <div className="flex items-center justify-end gap-1 mt-1">
                             <span className="text-xs text-gray-600">
-                              {format(new Date(message.timestamp), 'HH:mm')}
+                              {message.timestamp ? format(new Date(message.timestamp), 'HH:mm') : ''}
                             </span>
                             <CheckCheck className="h-4 w-4 text-blue-500" />
                           </div>
@@ -602,7 +605,7 @@ export default function WebsiteConversationsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs text-gray-500 font-medium mb-0.5">First Seen</p>
-                      <p className="text-sm text-gray-900">{format(new Date(selectedVisitor.created_at), 'PPp')}</p>
+                      <p className="text-sm text-gray-900">{selectedVisitor.created_at ? format(new Date(selectedVisitor.created_at), 'PPp') : ''}</p>
                     </div>
                   </div>
 
@@ -615,7 +618,7 @@ export default function WebsiteConversationsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs text-gray-500 font-medium mb-0.5">Last Seen</p>
-                      <p className="text-sm text-gray-900">{format(new Date(selectedVisitor.last_seen), 'PPp')}</p>
+                      <p className="text-sm text-gray-900">{selectedVisitor.last_seen ? format(new Date(selectedVisitor.last_seen), 'PPp') : ''}</p>
                     </div>
                   </div>
 

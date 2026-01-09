@@ -94,6 +94,8 @@ export interface DashboardStats {
     priority: 'high' | 'medium' | 'low';
     message: string;
     timestamp: string;
+    channel?: string;
+    customerName?: string;
   }>;
 
   // Timeline data for charts

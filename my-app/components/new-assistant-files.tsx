@@ -87,6 +87,7 @@ interface Assistant {
   assistant_id: string;
   organization: string;
   organization_id: string;
+  [key: string]: unknown;
 }
 
 const FileStatusIcon = ({ status }: { status: string }) => {

@@ -92,6 +92,7 @@ interface Assistant {
   prompt: string;
   assistant_id: string;
   organization: string;
+  [key: string]: any; // Add index signature to satisfy AssistantBase constraint
 }
 
 interface AssistantFile {
@@ -180,7 +181,7 @@ export default function AssistantsUnified() {
     try {
       const filesData = await newFileManagerAPI.getFiles(assistantId);
       // The API returns { results: [...], count: number }
-      setFiles(filesData.results || []);
+      setFiles((filesData.results || []) as AssistantFile[]);
     } catch (error) {
       console.error('Error fetching files:', error);
       toast.error('Failed to fetch files');
@@ -203,7 +204,7 @@ export default function AssistantsUnified() {
     try {
       const response = await newFileManagerAPI.getPendingFiles(assistantId);
       // The API returns { files: [...], count: number }
-      setPendingFiles(response.files || []);
+      setPendingFiles((response.files || []) as AssistantFile[]);
     } catch (error) {
       console.error('Error fetching pending files:', error);
       setPendingFiles([]);

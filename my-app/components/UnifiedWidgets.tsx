@@ -53,6 +53,7 @@ interface Assistant {
   type: string
   created_at: string
   updated_at: string
+  [key: string]: unknown
 }
 
 export default function UnifiedWidgets() {

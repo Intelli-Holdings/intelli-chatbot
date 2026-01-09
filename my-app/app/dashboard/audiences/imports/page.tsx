@@ -138,7 +138,7 @@ export default function ImportsPage() {
     if (droppedFile) {
       const fakeEvent = {
         target: { files: [droppedFile] },
-      } as React.ChangeEvent<HTMLInputElement>
+      } as unknown as React.ChangeEvent<HTMLInputElement>
       handleFileSelect(fakeEvent)
     }
   }, [handleFileSelect])
