@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "engines": {
+    "node": "22.14.0"
+  },
   "dependencies": {
     "@ai-sdk/azure": "^1.1.9",
     "@ai-sdk/openai": "^1.1.9",
