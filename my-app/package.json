@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "engines": {
-    "node": "22.14.0"
+    "node": "^22.0.0"
   },
   "dependencies": {
     "@ai-sdk/azure": "^1.1.9",
