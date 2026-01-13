@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Filter, Rss } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,9 +53,11 @@ export default function Changelog() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <img
+                <Image
                   src="/release notes.jpeg"
                   alt="Intelli Release 3.46 Banner"
+                  width={800}
+                  height={400}
                   className="w-full rounded-lg"
                 />
                 <div className="prose max-w-none">

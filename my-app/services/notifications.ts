@@ -1,6 +1,11 @@
 /**
  * Notifications/Escalations Service - Handles all notification-related API calls
+ *
+ * IMPORTANT: Methods that call Django directly require a Clerk authentication token.
+ * Use getNotificationsByOrganization for paginated notifications (uses Next.js API route).
  */
+
+import { fetchWithAuth } from '@/lib/auth-api-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -61,39 +66,69 @@ export interface NotificationsListResponse {
 }
 
 export const NotificationService = {
-  assign: async (userEmail: string, notificationId: string) => {
-    const response = await fetch(`${API_BASE_URL}/notifications/assign/notification/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_email: userEmail, notification_id: notificationId }),
-    });
-    return response.json();
+  /**
+   * Assign a notification to a user
+   * @param userEmail - Email of the user to assign
+   * @param notificationId - ID of the notification
+   * @param token - Clerk authentication token
+   */
+  assign: async (userEmail: string, notificationId: string, token: string) => {
+    return fetchWithAuth(
+      `${API_BASE_URL}/notifications/assign/notification/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ user_email: userEmail, notification_id: notificationId }),
+      },
+      token
+    );
   },
 
-  resolve: async (notificationId: string) => {
-    const response = await fetch(`${API_BASE_URL}/notifications/resolve/notification/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notification_id: notificationId }),
-    });
-    return response.json();
+  /**
+   * Resolve a notification
+   * @param notificationId - ID of the notification
+   * @param token - Clerk authentication token
+   */
+  resolve: async (notificationId: string, token: string) => {
+    return fetchWithAuth(
+      `${API_BASE_URL}/notifications/resolve/notification/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ notification_id: notificationId }),
+      },
+      token
+    );
   },
 
-  delete: async (notificationId: string) => {
-    // Perform a soft delete by updating the status to "deleted"
-    const response = await fetch(`${API_BASE_URL}/notifications/update/notification/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notification_id: notificationId, status: 'deleted' }),
-    });
-    return response.json();
+  /**
+   * Soft delete a notification
+   * @param notificationId - ID of the notification
+   * @param token - Clerk authentication token
+   */
+  delete: async (notificationId: string, token: string) => {
+    return fetchWithAuth(
+      `${API_BASE_URL}/notifications/update/notification/`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ notification_id: notificationId, status: 'deleted' }),
+      },
+      token
+    );
   },
 
+  /**
+   * Get notifications assigned to a user
+   * Note: This uses the Next.js API route which handles auth
+   * @param userEmail - Email of the user
+   */
   getAssignedNotifications: async (userEmail: string) => {
-    const response = await fetch(`${API_BASE_URL}/notifications/assigned/to/${userEmail}/`, {
+    // This uses the Next.js API route which already handles auth
+    const response = await fetch(`/api/notifications/assigned/${userEmail}/`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch assigned notifications: ${response.statusText}`);
+    }
     return response.json();
   },
 };

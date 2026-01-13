@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 export async function GET(
   request: NextRequest,
@@ -11,6 +12,17 @@ export async function GET(
       return NextResponse.json(
         { error: 'Organization ID is required' },
         { status: 400 }
+      )
+    }
+
+    // Get authentication token from Clerk
+    const { getToken } = auth()
+    const token = await getToken()
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
       )
     }
 
@@ -29,8 +41,7 @@ export async function GET(
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Add any authentication headers if needed
-          // 'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
         },
       }
     )

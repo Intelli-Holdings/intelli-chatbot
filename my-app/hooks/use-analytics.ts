@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { AnalyticsService } from '@/services/analytics';
 import type {
   HourlyAnalyticsResponse,
@@ -49,6 +50,7 @@ export function useHourlyAnalytics(
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!organizationId) {
@@ -59,7 +61,12 @@ export function useHourlyAnalytics(
     try {
       setLoading(true);
       setError(null);
-      const result = await AnalyticsService.getHourlyAnalytics(organizationId, hours);
+      const token = await getToken();
+      if (!token) {
+        setError('Not authenticated. Please sign in.');
+        return;
+      }
+      const result = await AnalyticsService.getHourlyAnalytics(organizationId, hours, token);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch hourly analytics');
@@ -67,7 +74,7 @@ export function useHourlyAnalytics(
     } finally {
       setLoading(false);
     }
-  }, [organizationId, hours]);
+  }, [organizationId, hours, getToken]);
 
   useEffect(() => {
     fetchData();
@@ -104,6 +111,7 @@ export function useCostBreakdown(
   const [data, setData] = useState<CostBreakdown | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!organizationId) {
@@ -114,7 +122,12 @@ export function useCostBreakdown(
     try {
       setLoading(true);
       setError(null);
-      const result = await AnalyticsService.getCostBreakdown(organizationId, period);
+      const token = await getToken();
+      if (!token) {
+        setError('Not authenticated. Please sign in.');
+        return;
+      }
+      const result = await AnalyticsService.getCostBreakdown(organizationId, period, token);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch cost breakdown');
@@ -122,7 +135,7 @@ export function useCostBreakdown(
     } finally {
       setLoading(false);
     }
-  }, [organizationId, period]);
+  }, [organizationId, period, getToken]);
 
   useEffect(() => {
     fetchData();
@@ -147,6 +160,7 @@ export function useChannelComparison(
   const [data, setData] = useState<ChannelComparison | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!organizationId) {
@@ -157,7 +171,12 @@ export function useChannelComparison(
     try {
       setLoading(true);
       setError(null);
-      const result = await AnalyticsService.getChannelComparison(organizationId, period);
+      const token = await getToken();
+      if (!token) {
+        setError('Not authenticated. Please sign in.');
+        return;
+      }
+      const result = await AnalyticsService.getChannelComparison(organizationId, period, token);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch channel comparison');
@@ -165,7 +184,7 @@ export function useChannelComparison(
     } finally {
       setLoading(false);
     }
-  }, [organizationId, period]);
+  }, [organizationId, period, getToken]);
 
   useEffect(() => {
     fetchData();
@@ -190,6 +209,7 @@ export function useCustomerInsights(
   const [data, setData] = useState<CustomerInsights | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!organizationId) {
@@ -200,7 +220,12 @@ export function useCustomerInsights(
     try {
       setLoading(true);
       setError(null);
-      const result = await AnalyticsService.getCustomerInsights(organizationId, days);
+      const token = await getToken();
+      if (!token) {
+        setError('Not authenticated. Please sign in.');
+        return;
+      }
+      const result = await AnalyticsService.getCustomerInsights(organizationId, days, token);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch customer insights');
@@ -208,7 +233,7 @@ export function useCustomerInsights(
     } finally {
       setLoading(false);
     }
-  }, [organizationId, days]);
+  }, [organizationId, days, getToken]);
 
   useEffect(() => {
     fetchData();
@@ -236,6 +261,7 @@ export function useRealTimeMetrics(
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!organizationId) {
@@ -245,7 +271,13 @@ export function useRealTimeMetrics(
 
     try {
       setError(null);
-      const result = await AnalyticsService.getRealTimeMetrics(organizationId);
+      const token = await getToken();
+      if (!token) {
+        setError('Not authenticated. Please sign in.');
+        setLoading(false);
+        return;
+      }
+      const result = await AnalyticsService.getRealTimeMetrics(organizationId, token);
       setData(result);
       setLoading(false);
     } catch (err) {
@@ -253,7 +285,7 @@ export function useRealTimeMetrics(
       console.error('Error fetching real-time metrics:', err);
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, getToken]);
 
   useEffect(() => {
     fetchData();
@@ -292,6 +324,7 @@ export function useDailyMetrics(
   const [data, setData] = useState<DailyMetrics[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!organizationId) {
@@ -302,7 +335,12 @@ export function useDailyMetrics(
     try {
       setLoading(true);
       setError(null);
-      const result = await AnalyticsService.getDailyMetrics(organizationId, startDate, endDate);
+      const token = await getToken();
+      if (!token) {
+        setError('Not authenticated. Please sign in.');
+        return;
+      }
+      const result = await AnalyticsService.getDailyMetrics(organizationId, startDate, endDate, token);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch daily metrics');
@@ -310,7 +348,7 @@ export function useDailyMetrics(
     } finally {
       setLoading(false);
     }
-  }, [organizationId, startDate, endDate]);
+  }, [organizationId, startDate, endDate, getToken]);
 
   useEffect(() => {
     fetchData();
@@ -335,6 +373,7 @@ export function useMonthlyMetrics(
   const [data, setData] = useState<MonthlyMetrics[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!organizationId) {
@@ -345,7 +384,12 @@ export function useMonthlyMetrics(
     try {
       setLoading(true);
       setError(null);
-      const result = await AnalyticsService.getMonthlyMetrics(organizationId, months);
+      const token = await getToken();
+      if (!token) {
+        setError('Not authenticated. Please sign in.');
+        return;
+      }
+      const result = await AnalyticsService.getMonthlyMetrics(organizationId, months, token);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch monthly metrics');
@@ -353,7 +397,7 @@ export function useMonthlyMetrics(
     } finally {
       setLoading(false);
     }
-  }, [organizationId, months]);
+  }, [organizationId, months, getToken]);
 
   useEffect(() => {
     fetchData();
@@ -385,6 +429,7 @@ export function useCombinedAnalytics(
   const [data, setData] = useState<CombinedAnalyticsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!organizationId) {
@@ -396,13 +441,19 @@ export function useCombinedAnalytics(
       setLoading(true);
       setError(null);
 
+      const token = await getToken();
+      if (!token) {
+        setError('Not authenticated. Please sign in.');
+        return;
+      }
+
       // Fetch all data in parallel
       const [hourly, cost, channels, insights, realTime] = await Promise.all([
-        AnalyticsService.getHourlyAnalytics(organizationId, 24),
-        AnalyticsService.getCostBreakdown(organizationId, 'month'),
-        AnalyticsService.getChannelComparison(organizationId, '30'),
-        AnalyticsService.getCustomerInsights(organizationId, 30),
-        AnalyticsService.getRealTimeMetrics(organizationId)
+        AnalyticsService.getHourlyAnalytics(organizationId, 24, token),
+        AnalyticsService.getCostBreakdown(organizationId, 'month', token),
+        AnalyticsService.getChannelComparison(organizationId, '30', token),
+        AnalyticsService.getCustomerInsights(organizationId, 30, token),
+        AnalyticsService.getRealTimeMetrics(organizationId, token)
       ]);
 
       setData({ hourly, cost, channels, insights, realTime });
@@ -412,7 +463,7 @@ export function useCombinedAnalytics(
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, getToken]);
 
   useEffect(() => {
     fetchData();

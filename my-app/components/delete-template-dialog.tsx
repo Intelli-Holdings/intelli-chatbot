@@ -23,6 +23,7 @@ interface DeleteTemplateDialogProps {
   onClose: () => void;
   onSuccess: () => void;
   appService: any;
+  organizationId?: string | null;
 }
 
 export function DeleteTemplateDialog({
@@ -30,7 +31,8 @@ export function DeleteTemplateDialog({
   isOpen,
   onClose,
   onSuccess,
-  appService
+  appService,
+  organizationId
 }: DeleteTemplateDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
@@ -43,6 +45,16 @@ export function DeleteTemplateDialog({
       return;
     }
 
+    const resolvedOrg =
+      organizationId ||
+      appService?.organizationId ||
+      appService?.organization_id;
+
+    if (!resolvedOrg) {
+      toast.error('Organization is required to delete templates');
+      return;
+    }
+
     setIsDeleting(true);
 
     try {
@@ -52,9 +64,10 @@ export function DeleteTemplateDialog({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: template.name,
-          wabaId: appService.whatsapp_business_account_id,
-          accessToken: appService.access_token
+          organizationId: resolvedOrg,
+          templateId: template.id,
+          appserviceId: appService.id,
+          appservicePhoneNumber: appService.phone_number
         }),
       });
 
@@ -85,10 +98,22 @@ export function DeleteTemplateDialog({
 
   if (!template) return null;
 
-  const canDelete = template.status !== 'APPROVED' || 
-                    (template.status === 'APPROVED' && 
-                     (!template.last_updated || 
-                      Date.now() - new Date(template.last_updated).getTime() > 24 * 60 * 60 * 1000));
+  const formatStatusLabel = (status: string) => {
+    return status
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  const lastActivity =
+    template.last_updated || template.updated_at || template.created_at;
+  const statusValue = (template.status || "").toUpperCase();
+  const isApproved = statusValue === "APPROVED" || statusValue.startsWith("ACTIVE");
+  const canDelete =
+    !isApproved ||
+    (isApproved &&
+      (!lastActivity ||
+        Date.now() - new Date(lastActivity).getTime() > 24 * 60 * 60 * 1000));
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -116,12 +141,12 @@ export function DeleteTemplateDialog({
           <div className="space-y-2">
             <div className="rounded-lg border p-3 bg-muted/50">
               <div className="text-sm font-medium">Template Details</div>
-              <div className="mt-2 space-y-1 text-sm">
-                <div><span className="text-muted-foreground">Name:</span> <span className="font-mono">{template.name}</span></div>
-                <div><span className="text-muted-foreground">Category:</span> {template.category}</div>
-                <div><span className="text-muted-foreground">Status:</span> {template.status}</div>
-                <div><span className="text-muted-foreground">Language:</span> {template.language}</div>
-              </div>
+                <div className="mt-2 space-y-1 text-sm">
+                  <div><span className="text-muted-foreground">Name:</span> <span className="font-mono">{template.name}</span></div>
+                  <div><span className="text-muted-foreground">Category:</span> {template.category}</div>
+                <div><span className="text-muted-foreground">Status:</span> {formatStatusLabel(template.status)}</div>
+                  <div><span className="text-muted-foreground">Language:</span> {template.language}</div>
+                </div>
             </div>
           </div>
 

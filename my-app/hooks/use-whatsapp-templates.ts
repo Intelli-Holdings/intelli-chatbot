@@ -8,7 +8,7 @@ export interface UseWhatsAppTemplatesReturn {
   refetch: () => Promise<void>;
   createTemplate: (templateData: any) => Promise<boolean>;
   updateTemplate: (templateId: string, templateData: any) => Promise<boolean>;
-  deleteTemplate: (templateName: string) => Promise<boolean>;
+  deleteTemplate: (templateId: string) => Promise<boolean>;
 }
 
 /**
@@ -55,7 +55,7 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
   );
 
   const deleteMutation = useMutation(
-    (templateName: string) => WhatsAppService.deleteTemplate(appService as AppService, templateName),
+    (templateId: string) => WhatsAppService.deleteTemplate(appService as AppService, templateId),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(queryKey);
@@ -91,13 +91,13 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
     }
   };
 
-  const deleteTemplate = async (templateName: string): Promise<boolean> => {
+  const deleteTemplate = async (templateId: string): Promise<boolean> => {
     if (!appService?.whatsapp_business_account_id) {
       return false;
     }
 
     try {
-      await deleteMutation.mutateAsync(templateName);
+      await deleteMutation.mutateAsync(templateId);
       return true;
     } catch (err) {
       console.error('Error deleting template:', err);

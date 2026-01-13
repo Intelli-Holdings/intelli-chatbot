@@ -293,6 +293,8 @@ export default function WhatsAppConvosPage() {
     sessionsLoading,
     sessionsError,
     resolveUpdatedAt,
+    getCachedMessages,
+    setCachedMessages,
   ])
 
   const loadMoreConversations = async () => {
@@ -319,7 +321,7 @@ export default function WhatsAppConvosPage() {
     [fetchMessages],
   )
 
-  const handleSelectConversation = async (conversation: Conversation) => {
+  const handleSelectConversation = useCallback(async (conversation: Conversation) => {
     selectedConversationRef.current = conversation.id
     const customerNumber = conversation.customer_number || conversation.recipient_id
     const cachedMessages = customerNumber ? getCachedMessages(customerNumber) : []
@@ -372,7 +374,7 @@ export default function WhatsAppConvosPage() {
     if (isMobile) {
       setIsSheetOpen(true)
     }
-  }
+  }, [fetchMessagesForConversation, getCachedMessages, handleMessagesUpdate, isMobile, setCachedMessages])
 
   // Auto-select conversation from URL parameter
   useEffect(() => {
@@ -386,7 +388,7 @@ export default function WhatsAppConvosPage() {
       hasAutoSelectedRef.current = true
       handleSelectConversation(targetConversation)
     }
-  }, [customerParam, conversations, isInitializing])
+  }, [customerParam, conversations, isInitializing, handleSelectConversation])
 
   // Listen for unread messages reset events from ChatArea component
   useEffect(() => {

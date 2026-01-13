@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -81,20 +81,34 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
   const PAGE_SIZE = 10
 
   // Fetch paginated notifications
-  const fetchPaginatedNotifications = async (page: number) => {
+  const fetchPaginatedNotifications = useCallback(async (page: number) => {
     if (!activeOrganizationId && notificationFilter === 'all') return
     if (!user?.primaryEmailAddress?.emailAddress && notificationFilter === 'assigned') return
 
     setIsPaginationLoading(true)
     try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: PAGE_SIZE.toString(),
+      })
+
       let url = ''
       if (notificationFilter === 'assigned') {
-        url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assigned/to/${user?.primaryEmailAddress?.emailAddress}/?page=${page}&page_size=${PAGE_SIZE}`
+        if (activeOrganizationId) {
+          params.set('organizationId', activeOrganizationId)
+        }
+        url = `/api/notifications/assigned/${encodeURIComponent(
+          user?.primaryEmailAddress?.emailAddress ?? ""
+        )}?${params.toString()}`
       } else {
-        url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/org/${activeOrganizationId}/?page=${page}&page_size=${PAGE_SIZE}`
+        url = `/api/notifications/org/${activeOrganizationId}?${params.toString()}`
       }
 
-      const response = await fetch(url)
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
       if (!response.ok) throw new Error('Failed to fetch notifications')
 
       const data = await response.json()
@@ -108,14 +122,14 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
     } finally {
       setIsPaginationLoading(false)
     }
-  }
+  }, [activeOrganizationId, notificationFilter, user])
 
   // Load paginated notifications when filter changes or on mount
   useEffect(() => {
     if (notificationFilter !== 'live') {
       fetchPaginatedNotifications(1)
     }
-  }, [notificationFilter, activeOrganizationId, user])
+  }, [notificationFilter, fetchPaginatedNotifications])
 
   // Get the appropriate notifications based on the filter
   const filteredNotifications = useMemo(() => {

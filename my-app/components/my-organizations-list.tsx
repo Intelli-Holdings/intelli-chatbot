@@ -1,4 +1,6 @@
-'use client';
+"use client"
+
+import Image from "next/image"
 
 /**
  * Example component showing how to fetch and display user's organizations
@@ -39,7 +41,7 @@ export function MyOrganizationsList() {
     }
 
     fetchOrganizations();
-  }, [isSignedIn]);
+  }, [get, isSignedIn]);
 
   if (!isSignedIn) {
     return (
@@ -95,9 +97,11 @@ export function MyOrganizationsList() {
         >
           <div className="flex items-start gap-4">
             {org.logo_url && (
-              <img
+              <Image
                 src={org.logo_url}
                 alt={org.name}
+                width={64}
+                height={64}
                 className="w-16 h-16 rounded object-cover"
               />
             )}

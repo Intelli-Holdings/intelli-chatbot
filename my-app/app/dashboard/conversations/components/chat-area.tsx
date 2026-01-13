@@ -103,12 +103,9 @@ export default function ChatArea({
     onMessagesUpdateRef.current = onMessagesUpdate
   }, [conversation?.id, onMessagesUpdate])
 
-  useEffect(() => {
-    currentMessagesRef.current = currentMessages
-  }, [currentMessages])
-
   const setMessagesState = useCallback((messages: Conversation["messages"]) => {
     const nextMessages = messages ?? []
+    // Update ref immediately to prevent race conditions in duplicate detection
     currentMessagesRef.current = nextMessages
     setCurrentMessages(nextMessages)
   }, [])
@@ -988,13 +985,16 @@ export default function ChatArea({
               .map(([date, messages]) => (
                 <div className="" key={date}>
                   {renderDateSeparator(date)}
-                  {(messages ?? []).map((message) => {
+                  {(messages ?? []).map((message, messageIndex) => {
                     // Extract media from content if it exists
                     const contentMedia = message.content ? extractMedia(message.content) : null
                     const contentHasMedia = contentMedia?.type && contentMedia?.url
+                    const messageKey =
+                      message.whatsapp_message_id ??
+                      `${message.id}-${message.created_at ?? "unknown"}-${messageIndex}`
 
                     return (
-                      <div key={message.id} className="flex flex-col mb-4">
+                      <div key={messageKey} className="flex flex-col mb-4">
               {message.content && (
                 <div
                   className={cn(

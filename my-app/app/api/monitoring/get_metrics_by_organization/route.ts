@@ -1,4 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
+
+export const dynamic = 'force-dynamic'
 
 interface MetricsSnapshot {
   id: string
@@ -13,6 +16,14 @@ interface MetricsSnapshot {
 
 export async function GET(request: NextRequest) {
   try {
+    // Get authentication token from Clerk
+    const { getToken } = auth()
+    const token = await getToken()
+
+    if (!token) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const organizationId = searchParams.get("organization_id")
     const from = searchParams.get("from")
@@ -42,6 +53,7 @@ export async function GET(request: NextRequest) {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
       },
     )

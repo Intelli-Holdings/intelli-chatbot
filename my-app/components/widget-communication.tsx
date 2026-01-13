@@ -1,4 +1,7 @@
-"use client";
+/* eslint-disable @next/next/no-html-link-for-pages, react/no-unescaped-entities */
+"use client"
+
+import Image from "next/image"
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -10,6 +13,7 @@ interface WidgetCommunicationProps {
   avatarUrl: string;
   brandColor: string;
   greetingMessage: string;
+  forceDemoMode?: boolean;
 }
 
 interface Message {
@@ -25,10 +29,11 @@ export function WidgetCommunication({
   avatarUrl,
   brandColor,
   greetingMessage,
+  forceDemoMode = false,
 }: WidgetCommunicationProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
+  const [demoMode, setDemoMode] = useState(Boolean(forceDemoMode));
   const [isTyping, setIsTyping] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
@@ -56,9 +61,17 @@ export function WidgetCommunication({
     setIsTyping(false);
   }, [widgetKey]);
 
+  useEffect(() => {
+    if (!forceDemoMode) return;
+    setDemoMode(true);
+    setIsConnected(true);
+    pendingResponsesRef.current = 0;
+    setIsTyping(false);
+  }, [forceDemoMode]);
+
   // Connect to WebSocket
   useEffect(() => {
-    if (!widgetKey || demoMode) return;
+    if (!widgetKey || demoMode || forceDemoMode) return;
 
     const connectWebSocket = () => {
       try {
@@ -148,7 +161,7 @@ export function WidgetCommunication({
         wsRef.current.close();
       }
     };
-  }, [widgetKey, demoMode, updateTyping]);
+  }, [widgetKey, demoMode, forceDemoMode, updateTyping]);
 
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
@@ -384,9 +397,11 @@ function LiveWidgetPreview({
 
             <div className="flex items-center gap-3 relative z-10">
               <div className="relative">
-                <img
+                <Image
                   src={avatarUrl || "/Avatar.png"}
                   alt="Avatar"
+                  width={48}
+                  height={48}
                   className="w-12 h-12 rounded-full border-3 border-white/30 shadow-lg"
                 />
                 <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
@@ -457,9 +472,11 @@ function LiveWidgetPreview({
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 {message.sender === 'bot' && (
-                  <img
+                  <Image
                     src={avatarUrl || "/Avatar.png"}
                     alt="Avatar"
+                    width={32}
+                    height={32}
                     className="w-8 h-8 rounded-full flex-shrink-0 shadow-sm"
                   />
                 )}
@@ -477,13 +494,13 @@ function LiveWidgetPreview({
                 </div>
               </div>
             ))}
-
-            {/* Typing Indicator */}
             {(isTyping || localIsTyping) && (
               <div className="flex gap-2 items-center animate-fade-in">
-                <img
+                <Image
                   src={avatarUrl || "/Avatar.png"}
                   alt="Avatar"
+                  width={32}
+                  height={32}
                   className="w-8 h-8 rounded-full shadow-sm"
                 />
                 <div className="bg-gray-100 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm">
@@ -544,7 +561,7 @@ function LiveWidgetPreview({
                   </div>
                   <div className="text-center">
                     <h3 className="text-lg font-bold text-gray-800 mb-1">Thanks for reaching out!</h3>
-                    <p className="text-sm text-gray-600">We&apos;ll get back to you soon.</p>
+                    <p className="text-sm text-gray-600">We'll get back to you soon.</p>
                   </div>
                 </div>
               ) : (

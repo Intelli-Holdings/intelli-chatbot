@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Card,
   CardHeader,
@@ -18,6 +18,7 @@ import {
   MoreVertical,
   Pencil,
   Trash,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -65,12 +66,14 @@ export default function Assistants() {
 
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>('');
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const fetchAssistants = async () => {
+  const fetchAssistants = useCallback(async () => {
     if (!selectedOrganizationId) return;
 
     setIsLoading(true);
@@ -94,9 +97,10 @@ export default function Assistants() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedOrganizationId]);
 
   const handleEditAssistant = async (updatedAssistant: Assistant) => {
+    setIsUpdating(true);
     try {
       // Log assistant data to debug
       console.log('Assistant being edited:', updatedAssistant);
@@ -124,6 +128,8 @@ export default function Assistants() {
     } catch (error) {
       console.error('Error editing assistant:', error);
       toast.error('Failed to edit the assistant. Please try again.');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -131,6 +137,7 @@ export default function Assistants() {
     try {
       if (!confirm('Are you sure you want to delete this assistant?')) return;
 
+      setIsDeleting(true);
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${id}/`,
         { method: 'DELETE' }
@@ -143,6 +150,8 @@ export default function Assistants() {
     } catch (error) {
       console.error('Error deleting assistant:', error);
       toast.error('Failed to delete assistant. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -154,7 +163,7 @@ export default function Assistants() {
     if (selectedOrganizationId) {
       fetchAssistants();
     }
-  }, [selectedOrganizationId, fetchAssistants]);
+  }, [fetchAssistants, selectedOrganizationId]);
 
   const selectedOrg = userMemberships?.data?.find(
     membership => membership.organization.id === selectedOrganizationId
@@ -347,7 +356,16 @@ export default function Assistants() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -359,6 +377,7 @@ export default function Assistants() {
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={() => selectedAssistant && handleDeleteAssistant(selectedAssistant.id.toString())}
         assistantName={selectedAssistant?.name || ''}
+        isLoading={isDeleting}
       />
     </div>
   )}

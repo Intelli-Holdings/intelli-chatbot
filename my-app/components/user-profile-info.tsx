@@ -1,4 +1,6 @@
-'use client';
+"use client"
+
+import Image from "next/image"
 
 /**
  * Example component showing how to use Clerk-authenticated Django API calls
@@ -41,7 +43,7 @@ export function UserProfileInfo() {
     }
 
     fetchUserInfo();
-  }, [isSignedIn]);
+  }, [get, isSignedIn]);
 
   if (!isSignedIn) {
     return (
@@ -80,9 +82,11 @@ export function UserProfileInfo() {
     <div className="p-4 border rounded bg-white shadow-sm">
       <div className="flex items-center gap-4 mb-4">
         {userInfo.user.profile_image_url && (
-          <img
+          <Image
             src={userInfo.user.profile_image_url}
             alt={userInfo.user.full_name}
+            width={64}
+            height={64}
             className="w-16 h-16 rounded-full"
           />
         )}

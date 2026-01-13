@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Image from "next/image"
 import { useState, useRef, type ChangeEvent, type KeyboardEvent, useEffect } from "react"
 import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -292,9 +293,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
     if (file.type.startsWith("image/")) {
       return (
         <div key={index} className="relative">
-          <img
+          <Image
             src={URL.createObjectURL(file) || "/placeholder.svg"}
             alt={file.name}
+            width={80}
+            height={80}
             className="w-20 h-20 object-cover rounded"
           />
           <Button

@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 
+export const dynamic = 'force-dynamic'
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // GET /api/campaigns/whatsapp - List WhatsApp campaigns

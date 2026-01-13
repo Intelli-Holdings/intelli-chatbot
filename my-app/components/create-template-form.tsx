@@ -45,6 +45,7 @@ interface CreateTemplateFormProps {
   onSubmit: (templateData: any) => Promise<boolean>;
   loading?: boolean;
   appService?: any;
+  organizationId?: string | null;
 }
 
 const LANGUAGES = [
@@ -81,6 +82,7 @@ export default function CreateTemplateForm({
   onSubmit,
   loading = false,
   appService,
+  organizationId,
 }: CreateTemplateFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [templateData, setTemplateData] = useState({
@@ -231,10 +233,23 @@ export default function CreateTemplateForm({
     try {
       setIsUploadingMedia(true);
 
+      const resolvedOrg =
+        organizationId ||
+        appService?.organizationId ||
+        appService?.organization_id;
+
+      if (!resolvedOrg) {
+        throw new Error("Organization is required to upload media");
+      }
+
       const formData = new FormData();
       formData.append("media_file", file);
       formData.append("appservice_phone_number", appService.phone_number);
+      if (appService.id) {
+        formData.append("appservice_id", String(appService.id));
+      }
       formData.append("upload_type", "resumable");
+      formData.append("organization", resolvedOrg);
 
       const response = await fetch("/api/whatsapp/templates/upload_media", {
         method: "POST",
@@ -777,6 +792,7 @@ export default function CreateTemplateForm({
               }}
               onBack={() => setStep(1)}
               appService={appService}
+              organizationId={organizationId}
               templateName={templateData.name}
               language={templateData.language}
             />

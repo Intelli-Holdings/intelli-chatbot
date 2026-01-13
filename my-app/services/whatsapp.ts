@@ -5,9 +5,11 @@ interface AppService {
   whatsapp_business_account_id: string;
   created_at: string;
   access_token: string;
+  organization_id?: string;
   organizationId?: string;
   name?: string;
   status?: string;
+  is_default?: boolean;
 }
 
 interface WhatsAppTemplate {
@@ -17,6 +19,9 @@ interface WhatsAppTemplate {
   status: string;
   language: string;
   components: TemplateComponent[];
+  template_structure?: TemplateComponent[] | Record<string, any>;
+  whatsapp_template_id?: string;
+  is_active?: boolean;
   parameters?: any[];
   last_updated?: string;
   quality_score?: {
@@ -25,7 +30,13 @@ interface WhatsAppTemplate {
   };
   rejected_reason?: string;
   created_at?: string;
+  updated_at?: string;
   message_send_ttl_seconds?: number;
+}
+
+interface TemplatesCacheEntry {
+  timestamp: number;
+  templates: WhatsAppTemplate[];
 }
 
 interface TemplateComponent {
@@ -155,6 +166,10 @@ const LANGUAGE_CODES: Record<string, string[]> = {
   'ru': ['ru', 'ru_RU']
 };
 
+const TEMPLATES_CACHE_PREFIX = 'whatsapp_templates_cache';
+const TEMPLATES_CACHE_VERSION = 'v1';
+const TEMPLATES_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+
 export class WhatsAppService {
   /**
    * Extract detailed error message from Meta API response
@@ -200,6 +215,98 @@ export class WhatsAppService {
     }
 
     return { message, details };
+  }
+
+  static getTemplatesStorage(): Storage | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      return window.localStorage;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static getTemplatesCacheKey(organizationId: string, appService: AppService): string {
+    const serviceKey = String(
+      appService.id ??
+      appService.whatsapp_business_account_id ??
+      appService.phone_number_id ??
+      appService.phone_number ??
+      'unknown'
+    );
+
+    return `${TEMPLATES_CACHE_PREFIX}:${TEMPLATES_CACHE_VERSION}:${organizationId}:${serviceKey}`;
+  }
+
+  static readTemplatesCache(
+    organizationId: string,
+    appService: AppService
+  ): TemplatesCacheEntry | null {
+    const storage = this.getTemplatesStorage();
+    if (!storage) {
+      return null;
+    }
+
+    const cacheKey = this.getTemplatesCacheKey(organizationId, appService);
+
+    try {
+      const raw = storage.getItem(cacheKey);
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw) as TemplatesCacheEntry;
+      if (!parsed || !Array.isArray(parsed.templates) || typeof parsed.timestamp !== 'number') {
+        storage.removeItem(cacheKey);
+        return null;
+      }
+
+      return parsed;
+    } catch (error) {
+      storage.removeItem(cacheKey);
+      return null;
+    }
+  }
+
+  static writeTemplatesCache(
+    organizationId: string,
+    appService: AppService,
+    templates: WhatsAppTemplate[]
+  ): void {
+    const storage = this.getTemplatesStorage();
+    if (!storage) {
+      return;
+    }
+
+    const cacheKey = this.getTemplatesCacheKey(organizationId, appService);
+    const payload: TemplatesCacheEntry = {
+      timestamp: Date.now(),
+      templates,
+    };
+
+    try {
+      storage.setItem(cacheKey, JSON.stringify(payload));
+    } catch (error) {
+      // Failed to cache templates in storage
+    }
+  }
+
+  static clearTemplatesCache(organizationId: string, appService: AppService): void {
+    const storage = this.getTemplatesStorage();
+    if (!storage) {
+      return;
+    }
+
+    const cacheKey = this.getTemplatesCacheKey(organizationId, appService);
+
+    try {
+      storage.removeItem(cacheKey);
+    } catch (error) {
+      // Failed to clear cached templates
+    }
   }
 
   /**
@@ -582,29 +689,124 @@ static formatTemplateComponents(components: any[]): any[] {
   }
 
   /**
-   * Fetch WhatsApp templates from Meta API
+   * Fetch WhatsApp templates from backend (synced with Meta)
    */
-  static async fetchTemplates(appService: AppService): Promise<WhatsAppTemplate[]> {
+  static async fetchTemplates(
+    appService: AppService,
+    options: {
+      organizationId?: string;
+      sync?: boolean;
+      cacheMaxAgeMs?: number;
+      bypassCache?: boolean;
+    } = {}
+  ): Promise<WhatsAppTemplate[]> {
+    const organizationId =
+      options.organizationId || appService.organization_id || appService.organizationId;
+
+    if (!organizationId) {
+      throw new Error('Organization ID is required to fetch templates');
+    }
+
+    const cacheMaxAgeMs = options.cacheMaxAgeMs ?? TEMPLATES_CACHE_MAX_AGE_MS;
+    const shouldUseCache = !options.sync && !options.bypassCache;
+    const cacheEntry = shouldUseCache ? this.readTemplatesCache(organizationId, appService) : null;
+
+    if (
+      shouldUseCache &&
+      cacheEntry &&
+      Date.now() - cacheEntry.timestamp <= cacheMaxAgeMs
+    ) {
+      return cacheEntry.templates;
+    }
+
     try {
-      const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates?limit=100`,
-        {
-          headers: {
-            'Authorization': `Bearer ${appService.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const params = new URLSearchParams({
+        organizationId,
+      });
+
+      if (options.sync) {
+        params.set('sync', 'true');
+      }
+
+      if (appService.id) {
+        params.set('appserviceId', String(appService.id));
+      }
+
+      if (appService.phone_number) {
+        params.set('appservicePhoneNumber', appService.phone_number);
+      }
+
+      const response = await fetch(`/api/whatsapp/templates?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Failed to fetch templates: ${errorData.error?.message || response.statusText}`);
+        const errorMessage =
+          errorData.error ||
+          errorData.detail ||
+          errorData.message ||
+          'Failed to fetch templates';
+        throw new Error(errorMessage);
       }
 
-      const data: WhatsAppApiResponse<WhatsAppTemplate[]> = await response.json();
-      return data.data || [];
+      const data = await response.json();
+      const templates = Array.isArray(data)
+        ? data
+        : data.results || data.data || data.templates || [];
+
+      const normalizeComponents = (structure: any): TemplateComponent[] => {
+        if (Array.isArray(structure)) {
+          return structure;
+        }
+
+        if (structure && typeof structure === 'object') {
+          if (Array.isArray(structure.components)) {
+            return structure.components;
+          }
+
+          const normalized: TemplateComponent[] = [];
+          if (structure.header) {
+            normalized.push({ type: 'HEADER', ...(structure.header as any) });
+          }
+          if (structure.body) {
+            normalized.push({ type: 'BODY', ...(structure.body as any) });
+          }
+          if (structure.footer) {
+            normalized.push({ type: 'FOOTER', ...(structure.footer as any) });
+          }
+          if (Array.isArray(structure.buttons)) {
+            normalized.push({ type: 'BUTTONS', buttons: structure.buttons });
+          }
+          return normalized;
+        }
+
+        return [];
+      };
+
+      const normalizedTemplates = templates.map((template: any) => {
+        const components =
+          template.components ||
+          template.template_structure ||
+          template.templateStructure ||
+          [];
+
+        return {
+          ...template,
+          components: normalizeComponents(components),
+        } as WhatsAppTemplate;
+      });
+
+      this.writeTemplatesCache(organizationId, appService, normalizedTemplates);
+      return normalizedTemplates;
     } catch (error) {
       console.error('Error fetching WhatsApp templates:', error);
+      if (shouldUseCache && cacheEntry) {
+        return cacheEntry.templates;
+      }
       throw error;
     }
   }
@@ -615,42 +817,43 @@ static formatTemplateComponents(components: any[]): any[] {
    */
   static async createTemplate(
     appService: AppService,
-    templateData: any
+    templateData: any,
+    options: { organizationId?: string } = {}
   ): Promise<any> {
     try {
-      if (!appService.access_token) {
-        throw new Error('Access token is required for Meta Graph API calls');
+      const organizationId =
+        options.organizationId || appService.organization_id || appService.organizationId;
+
+      if (!organizationId) {
+        throw new Error('Organization ID is required to create templates');
       }
 
-      // Format the template data properly
-      const formattedData = {
-        name: templateData.name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-        language: templateData.language || 'en_US',
-        category: templateData.category || 'UTILITY',
-        components: this.formatTemplateComponents(templateData.components || [])
-      };
-
-      const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${appService.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formattedData),
-        }
-      );
+      const response = await fetch('/api/whatsapp/templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organizationId,
+          templateData,
+          appserviceId: appService.id,
+          appservicePhoneNumber: appService.phone_number,
+          description: templateData?.description,
+        }),
+      });
 
       const responseData = await response.json();
 
       if (!response.ok) {
-        const errorMessage = responseData.error?.message ||
-          responseData.error?.error_user_msg ||
+        const errorMessage =
+          responseData.error ||
+          responseData.detail ||
+          responseData.message ||
           'Failed to create template';
         throw new Error(errorMessage);
       }
 
+      this.clearTemplatesCache(organizationId, appService);
       return responseData;
     } catch (error) {
       throw error;
@@ -663,36 +866,44 @@ static formatTemplateComponents(components: any[]): any[] {
   static async updateTemplate(
     templateId: string,
     appService: AppService,
-    templateData: any
+    templateData: any,
+    options: { organizationId?: string } = {}
   ): Promise<any> {
     try {
-      if (!appService.access_token) {
-        throw new Error('Access token is required for Meta Graph API calls');
+      const organizationId =
+        options.organizationId || appService.organization_id || appService.organizationId;
+
+      if (!organizationId) {
+        throw new Error('Organization ID is required to update templates');
       }
 
-      const formattedData = {
-        category: templateData.category,
-        components: this.formatTemplateComponents(templateData.components || [])
-      };
+      const response = await fetch('/api/whatsapp/templates', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organizationId,
+          templateId,
+          templateData,
+          appserviceId: appService.id,
+          appservicePhoneNumber: appService.phone_number,
+        }),
+      });
 
-      const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${templateId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${appService.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formattedData),
-        }
-      );
+      const responseData = await response.json();
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to update template: ${errorData.error?.message || response.statusText}`);
+        const errorMessage =
+          responseData.error ||
+          responseData.detail ||
+          responseData.message ||
+          'Failed to update template';
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      this.clearTemplatesCache(organizationId, appService);
+      return responseData;
     } catch (error) {
       console.error('Error updating WhatsApp template:', error);
       throw error;
@@ -704,30 +915,43 @@ static formatTemplateComponents(components: any[]): any[] {
    */
   static async deleteTemplate(
     appService: AppService,
-    templateName: string
+    templateId: string,
+    options: { organizationId?: string } = {}
   ): Promise<any> {
     try {
-      if (!appService.access_token) {
-        throw new Error('Access token is required for Meta Graph API calls');
+      const organizationId =
+        options.organizationId || appService.organization_id || appService.organizationId;
+
+      if (!organizationId) {
+        throw new Error('Organization ID is required to delete templates');
       }
 
-      const response = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${appService.whatsapp_business_account_id}/message_templates?name=${templateName}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${appService.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch('/api/whatsapp/templates', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organizationId,
+          templateId,
+          appserviceId: appService.id,
+          appservicePhoneNumber: appService.phone_number,
+        }),
+      });
+
+      const responseData = await response.json();
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to delete template: ${errorData.error?.message || response.statusText}`);
+        const errorMessage =
+          responseData.error ||
+          responseData.detail ||
+          responseData.message ||
+          'Failed to delete template';
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      this.clearTemplatesCache(organizationId, appService);
+      return responseData;
     } catch (error) {
       console.error('Error deleting WhatsApp template:', error);
       throw error;

@@ -20,7 +20,7 @@ interface TemplateDetailsDialogProps {
   open: boolean
   onClose: () => void
   onEdit?: (template: WhatsAppTemplate) => void
-  onDelete?: (templateName: string) => void
+  onDelete?: (template: WhatsAppTemplate) => void
   onTest?: (template: WhatsAppTemplate) => void
 }
 
@@ -39,8 +39,25 @@ export function TemplateDetailsDialog({
     toast.success("Template ID copied to clipboard")
   }
 
+  const normalizeStatus = (status: string) => {
+    const value = status.toUpperCase()
+    if (value.includes('REJECT')) return 'REJECTED'
+    if (value.includes('PENDING') || value.includes('REVIEW')) return 'PENDING'
+    if (value.includes('APPROVED') || value.startsWith('ACTIVE')) return 'APPROVED'
+    return value
+  }
+
+  const formatStatusLabel = (status: string) => {
+    return status
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  }
+
+  const statusKey = normalizeStatus(template.status)
+
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (normalizeStatus(status)) {
       case 'APPROVED':
         return "bg-green-100 text-green-800"
       case 'PENDING':
@@ -73,7 +90,7 @@ export function TemplateDetailsDialog({
             <span>Template Details</span>
             <div className="flex items-center gap-2">
               <Badge className={getStatusColor(template.status)}>
-                {template.status}
+                {formatStatusLabel(template.status)}
               </Badge>
               <Badge className={getCategoryColor(template.category)}>
                 {template.category}
@@ -166,7 +183,7 @@ export function TemplateDetailsDialog({
 
           {/* Actions */}
           <div className="flex justify-end gap-2">
-            {template.status !== 'APPROVED' && onEdit && (
+            {statusKey !== 'APPROVED' && onEdit && (
               <Button
                 variant="outline"
                 onClick={() => onEdit(template)}
@@ -179,15 +196,15 @@ export function TemplateDetailsDialog({
             {onDelete && (
               <Button
                 variant="outline"
-                onClick={() => onDelete(template.name)}
-                disabled={template.status === 'APPROVED'}
+                onClick={() => onDelete(template)}
+                disabled={statusKey === 'APPROVED'}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </Button>
             )}
             
-            {template.status === 'APPROVED' && onTest && (
+            {statusKey === 'APPROVED' && onTest && (
               <Button
                 onClick={() => onTest(template)}
               >

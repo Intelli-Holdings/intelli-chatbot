@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { 
   Carousel, 
@@ -43,9 +44,11 @@ export function FilePreviewCarousel({ isOpen, onClose, attachments, initialIndex
     if (attachment.media_type === "image") {
       return (
         <div className="relative w-full h-full flex items-center justify-center">
-          <img
+          <Image
             src={attachment.media_url || "/placeholder.svg"}
             alt={attachment.media_name}
+            width={800}
+            height={600}
             className="max-w-full max-h-[70vh] object-contain"
           />
         </div>

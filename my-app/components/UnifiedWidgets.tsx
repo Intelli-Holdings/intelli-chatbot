@@ -98,7 +98,7 @@ export default function UnifiedWidgets() {
   const [showPoweredBy, setShowPoweredBy] = useState<boolean>(true)
   const [animationStyle, setAnimationStyle] = useState<string>("slide")
   const [previewOpen, setPreviewOpen] = useState<boolean>(true)
-  const [previewMode, setPreviewMode] = useState<"static" | "live">("static")
+  const [previewMode, setPreviewMode] = useState<"static" | "demo" | "live">("static")
 
   // Auto-select organization when it's loaded
   useEffect(() => {
@@ -747,6 +747,13 @@ export default function UnifiedWidgets() {
                           Preview
                         </Button>
                         <Button
+                          variant={previewMode === "demo" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPreviewMode("demo")}
+                        >
+                          Demo
+                        </Button>
+                        <Button
                           variant={previewMode === "live" ? "default" : "outline"}
                           size="sm"
                           onClick={() => setPreviewMode("live")}
@@ -765,13 +772,15 @@ export default function UnifiedWidgets() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {previewMode === "live" && createdWidgetKey ? (
+                  {previewMode !== "static" && createdWidgetKey ? (
                     <WidgetCommunication
+                      key={`${previewMode}-${createdWidgetKey}`}
                       widgetKey={createdWidgetKey}
                       widgetName={widgetName}
                       avatarUrl={avatarUrl}
                       brandColor={brandColor}
                       greetingMessage={greetingMessage}
+                      forceDemoMode={previewMode === "demo"}
                     />
                   ) : (
                     <WidgetPreview

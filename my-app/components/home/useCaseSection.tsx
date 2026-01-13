@@ -179,9 +179,11 @@ const UseCaseSection = () => {
                   {/* Header */}
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center space-x-2">
-                      <img
-                        src="/Ellis.png" // Replace with the correct icon
+                      <Image
+                        src="/Ellis.png"
                         alt="AI Agent"
+                        width={32}
+                        height={32}
                         className="w-8 h-8"
                       />
                       <span className="text-gray-800 font-bold">Elli</span>

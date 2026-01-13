@@ -1,4 +1,5 @@
 "use client"
+import Image from "next/image"
 import { useState, useEffect } from "react"
 import type React from "react"
 
@@ -959,9 +960,11 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
                     />
                     {avatarUrl && (
                       <div className="flex items-center gap-3 pt-2">
-                        <img
+                        <Image
                           src={avatarUrl || "/placeholder.svg"}
                           alt="Avatar Preview"
+                          width={56}
+                          height={56}
                           className="w-14 h-14 rounded-lg object-cover border-2 border-border"
                         />
                         <p className="text-xs text-muted-foreground">Preview</p>

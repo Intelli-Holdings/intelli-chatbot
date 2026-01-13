@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { Loader2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,9 +18,16 @@ interface DeleteAssistantDialogProps {
   onClose: () => void
   onConfirm: () => void
   assistantName: string
+  isLoading?: boolean
 }
 
-export function DeleteAssistantDialog({ isOpen, onClose, onConfirm, assistantName }: DeleteAssistantDialogProps) {
+export function DeleteAssistantDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  assistantName,
+  isLoading = false,
+}: DeleteAssistantDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
@@ -31,11 +39,25 @@ export function DeleteAssistantDialog({ isOpen, onClose, onConfirm, assistantNam
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={onConfirm}>Proceed to Delete</AlertDialogAction>
+          <AlertDialogCancel onClick={onClose} disabled={isLoading}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-red-600 hover:bg-red-700"
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              "Proceed to Delete"
+            )}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   )
 }
-

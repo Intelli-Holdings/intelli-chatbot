@@ -130,6 +130,8 @@ export default function AssistantsUnified() {
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -318,6 +320,7 @@ export default function AssistantsUnified() {
     e.preventDefault();
     if (!selectedAssistant) return;
 
+    setIsUpdating(true);
     try {
       const response = await fetch(
         `/api/assistants/by-id/${selectedAssistant.assistant_id}`,
@@ -355,6 +358,8 @@ export default function AssistantsUnified() {
     } catch (error) {
       console.error('Error updating assistant:', error);
       toast.error('Failed to update assistant');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -362,6 +367,7 @@ export default function AssistantsUnified() {
   const handleDeleteAssistant = async () => {
     if (!selectedAssistant) return;
 
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `/api/assistants/by-id/${selectedAssistant.assistant_id}`,
@@ -390,6 +396,8 @@ export default function AssistantsUnified() {
     } catch (error) {
       console.error('Error deleting assistant:', error);
       toast.error('Failed to delete assistant');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -878,7 +886,16 @@ export default function AssistantsUnified() {
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -894,11 +911,26 @@ export default function AssistantsUnified() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteAssistant}>
-              Delete
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAssistant}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -927,7 +959,14 @@ export default function AssistantsUnified() {
               onClick={handleBulkDelete}
               disabled={isBulkDeleting}
             >
-              {isBulkDeleting ? "Deleting..." : "Delete Selected"}
+              {isBulkDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Selected"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

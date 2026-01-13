@@ -1,4 +1,7 @@
-import React from "react";
+"use client"
+
+import React from "react"
+import Image from "next/image"
 
 const ChatbotExperience = () => {
   return (
@@ -35,9 +38,11 @@ const ChatbotExperience = () => {
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center space-x-2">
-              <img
-                src="/ai-agent-icon.png" // Replace with the correct icon
+              <Image
+                src="/ai-agent-icon.png"
                 alt="AI Agent"
+                width={32}
+                height={32}
                 className="w-8 h-8"
               />
               <span className="text-gray-800 font-bold">Fin</span>

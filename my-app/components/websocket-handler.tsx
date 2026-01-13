@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import { toast } from "sonner"
 import type { WebSocketMessage } from "@/hooks/use-websocket"
+import { useAuth } from "@clerk/nextjs"
 
 interface WebSocketHandlerProps {
   customerNumber?: string
@@ -13,16 +13,34 @@ interface WebSocketHandlerProps {
 export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: WebSocketHandlerProps) {
   const wsRef = useRef<WebSocket | null>(null)
   const [isActive, setIsActive] = useState(false)
+  const { getToken } = useAuth()
 
-  const startWebSocketConnection = useCallback((customerNumber: string, phoneNumber: string, url?: string) => {
+  const stopWebSocketConnection = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+  }, [])
+
+  const startWebSocketConnection = useCallback(async (customerNumber: string, phoneNumber: string, url?: string) => {
     // Close existing connection if any
     stopWebSocketConnection()
 
-    const WEBSOCKET_URL =
+    let wsUrl =
       url ||
       `${process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://dev-intelliconcierge.onrender.com/ws"}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`
 
-    const ws = new WebSocket(WEBSOCKET_URL)
+    try {
+      const token = await getToken()
+      if (token && !wsUrl.includes("token=")) {
+        const separator = wsUrl.includes("?") ? "&" : "?"
+        wsUrl = `${wsUrl}${separator}token=${encodeURIComponent(token)}`
+      }
+    } catch (error) {
+      console.error("Failed to get auth token for WebSocket:", error)
+    }
+
+    const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
     ws.onopen = () => {     
@@ -112,22 +130,15 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
       console.error("WebSocket error:", error)
      
     }
-  }, [])
-
-  const stopWebSocketConnection = useCallback(() => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.close()
-      wsRef.current = null
-    }
-  }, [])
+  }, [getToken, stopWebSocketConnection])
 
   useEffect(() => {
     // If props are provided, start connection immediately
     if (customerNumber && phoneNumber && websocketUrl) {
-      startWebSocketConnection(customerNumber, phoneNumber, websocketUrl)
+      void startWebSocketConnection(customerNumber, phoneNumber, websocketUrl)
       setIsActive(true)
     } else if (customerNumber && phoneNumber) {
-      startWebSocketConnection(customerNumber, phoneNumber)
+      void startWebSocketConnection(customerNumber, phoneNumber)
       setIsActive(true)
     }
 
@@ -136,7 +147,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
       const { action, customerNumber, phoneNumber } = event.detail
 
       if (action === "start" && customerNumber && phoneNumber) {
-        startWebSocketConnection(customerNumber, phoneNumber)
+        void startWebSocketConnection(customerNumber, phoneNumber)
         setIsActive(true)
       } else if (action === "stop") {
         // Don't actually stop the connection - we want to keep listening
@@ -164,17 +175,16 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
       window.removeEventListener("websocketControl", handleWebSocketControl as EventListener)
       window.removeEventListener("aiSupportChanged", handleAiSupportChange as EventListener)
     }
-  }, [customerNumber, phoneNumber, websocketUrl, startWebSocketConnection])
+  }, [customerNumber, phoneNumber, websocketUrl, startWebSocketConnection, stopWebSocketConnection])
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
       stopWebSocketConnection()
     }
-  }, [])
+  }, [stopWebSocketConnection])
 
 
   // This component doesn't render anything visible
   return null
 }
-

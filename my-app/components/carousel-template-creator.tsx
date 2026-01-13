@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -771,9 +772,11 @@ export default function CarouselTemplateCreator({
             {currentCard.headerMediaFile ? (
               <div className="space-y-2">
                 {currentCard.headerMediaPreview && currentCard.headerMediaType === 'IMAGE' && (
-                  <img 
+                  <Image 
                     src={currentCard.headerMediaPreview} 
                     alt="Preview" 
+                    width={600}
+                    height={192}
                     className="w-full h-48 object-cover rounded-lg"
                   />
                 )}

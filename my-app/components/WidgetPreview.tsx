@@ -1,5 +1,6 @@
 "use client"
 
+import Image from 'next/image'
 import { useState } from 'react'
 
 interface WidgetPreviewProps {
@@ -206,10 +207,13 @@ const WidgetPreview = ({ widget, isOpen = true, onToggleOpen }: WidgetPreviewPro
           >
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img
+                <Image
                   src={widget.avatar_url || "/placeholder.svg"}
                   alt="Avatar"
+                  width={40}
+                  height={40}
                   className="w-10 h-10 rounded-full border-2 border-white/20"
+                  unoptimized
                 />
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
               </div>
@@ -282,10 +286,13 @@ const WidgetPreview = ({ widget, isOpen = true, onToggleOpen }: WidgetPreviewPro
               <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-gray-50 dark:bg-gray-900">
                 {/* Business Message */}
                 <div className="flex gap-2 animate-fadeIn">
-                  <img
+                  <Image
                     src={widget.avatar_url || "/placeholder.svg"}
                     alt="Avatar"
+                    width={32}
+                    height={32}
                     className="w-8 h-8 rounded-full flex-shrink-0"
+                    unoptimized
                   />
                   <div
                     style={{
@@ -313,10 +320,13 @@ const WidgetPreview = ({ widget, isOpen = true, onToggleOpen }: WidgetPreviewPro
 
                 {/* Business Response */}
                 <div className="flex gap-2 animate-fadeIn">
-                  <img
+                  <Image
                     src={widget.avatar_url || "/placeholder.svg"}
                     alt="Avatar"
+                    width={32}
+                    height={32}
                     className="w-8 h-8 rounded-full flex-shrink-0"
+                    unoptimized
                   />
                   <div
                     style={{
@@ -331,10 +341,13 @@ const WidgetPreview = ({ widget, isOpen = true, onToggleOpen }: WidgetPreviewPro
 
                 {/* Typing Indicator */}
                 <div className="flex gap-2">
-                  <img
+                  <Image
                     src={widget.avatar_url || "/placeholder.svg"}
                     alt="Avatar"
+                    width={32}
+                    height={32}
                     className="w-8 h-8 rounded-full flex-shrink-0"
+                    unoptimized
                   />
                   <div className="bg-gray-200 dark:bg-gray-700 px-4 py-3 rounded-full flex gap-1">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
