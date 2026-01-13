@@ -30,7 +30,7 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
     const [showDropdown, setShowDropdown] = useState(false);
 
     const { widgets } = useWebsiteWidgets(orgId || undefined, apiBaseUrl);
-    const { visitors } = useWebsiteVisitors(selectedWidgetKey, apiBaseUrl);
+    const { visitors } = useWebsiteVisitors(selectedWidgetKey);
 
     useEffect(() => {
         if (!selectedWidgetKey && widgets.length > 0) {

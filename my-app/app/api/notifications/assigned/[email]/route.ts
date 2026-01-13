@@ -9,7 +9,7 @@ export async function GET(
 
   try {
     // Get authentication token from Clerk
-    const { getToken, orgId: authOrgId } = auth()
+    const { getToken, orgId: authOrgId } = await auth()
     const searchParams = new URLSearchParams(request.nextUrl.searchParams)
     const requestedOrgId =
       searchParams.get('organizationId') ?? searchParams.get('orgId') ?? authOrgId ?? undefined

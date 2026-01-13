@@ -11,7 +11,7 @@ export async function POST(
     const { phoneNumber, customerNumber } = params;
 
     // Get authentication token from Clerk
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const token = await getToken();
 
     if (!token) {

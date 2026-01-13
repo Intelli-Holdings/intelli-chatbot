@@ -262,68 +262,76 @@ export default function TemplatesPage() {
   }, [selectedAppService, fetchTemplates]);
 
   return (
-    <div className="container mx-auto py-6 px-4 space-y-6">
+    <div className="container mx-auto px-4 py-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">WhatsApp Templates</h1>
-          <p className="text-muted-foreground mt-1">
-            Browse, create, and manage your WhatsApp message templates
-          </p>
-        </div>
-      </div>
-
-      {/* App Service Selector */}
-      {servicesError ? (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{servicesError}</AlertDescription>
-        </Alert>
-      ) : (
-        <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20">
-          <div className="flex-1">
-            <Select
-              value={selectedAppService?.phone_number || ""}
-              onValueChange={(value) => {
-                const service = appServices.find((s) => s.phone_number === value);
-                setSelectedAppService(service || null);
-              }}
-              disabled={servicesLoading || appServices.length === 0}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select WhatsApp Number" />
-              </SelectTrigger>
-              <SelectContent>
-                {appServices.map((service) => (
-                  <SelectItem key={service.phone_number} value={service.phone_number}>
-                    <div className="flex items-center gap-2">
-                      <span>{service.phone_number}</span>
-                      {service.is_default && (
-                        <Badge variant="secondary" className="text-xs">
-                          Default
-                        </Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold">WhatsApp Templates</h1>
+              {selectedAppService?.phone_number && (
+                <Badge variant="outline" className="text-xs font-mono">
+                  {selectedAppService.phone_number}
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Browse, create, and manage your WhatsApp message templates
+            </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchAppServices}
-            disabled={servicesLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${servicesLoading ? "animate-spin" : ""}`} />
-          </Button>
+
+          {!servicesError && (
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <Select
+                value={selectedAppService?.phone_number || ""}
+                onValueChange={(value) => {
+                  const service = appServices.find((s) => s.phone_number === value);
+                  setSelectedAppService(service || null);
+                }}
+                disabled={servicesLoading || appServices.length === 0}
+              >
+                <SelectTrigger className="w-full sm:w-[260px]">
+                  <SelectValue placeholder="Select WhatsApp Number" />
+                </SelectTrigger>
+                <SelectContent>
+                  {appServices.map((service) => (
+                    <SelectItem key={service.phone_number} value={service.phone_number}>
+                      <div className="flex items-center gap-2">
+                        <span>{service.phone_number}</span>
+                        {service.is_default && (
+                          <Badge variant="secondary" className="text-xs">
+                            Default
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchAppServices}
+                disabled={servicesLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${servicesLoading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+
+        {servicesError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{servicesError}</AlertDescription>
+          </Alert>
+        )}
+      </div>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between mb-6">
-          <TabsList>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <TabsList className="h-9">
             <TabsTrigger value="browse">
               <Sparkles className="h-4 w-4 mr-2" />
               Browse & Create
@@ -334,14 +342,14 @@ export default function TemplatesPage() {
           </TabsList>
 
           {activeTab === "browse" && (
-            <Button onClick={() => setIsCreateFormOpen(true)}>
+            <Button onClick={() => setIsCreateFormOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Create Custom Template
             </Button>
           )}
 
           {activeTab === "manage" && (
-            <Button onClick={syncTemplates} disabled={syncingTemplates || !selectedAppService}>
+            <Button onClick={syncTemplates} disabled={syncingTemplates || !selectedAppService} size="sm">
               <RefreshCw className={`h-4 w-4 mr-2 ${syncingTemplates ? "animate-spin" : ""}`} />
               Sync from Meta
             </Button>
@@ -349,17 +357,17 @@ export default function TemplatesPage() {
         </div>
 
         {/* Browse & Create Tab */}
-        <TabsContent value="browse" className="space-y-6">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">
+        <TabsContent value="browse" className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold">
               Choose from Ready Templates
             </h2>
-            <p className="text-muted-foreground">
-              Get started quickly with our pre-designed WhatsApp message templates
+            <p className="text-sm text-muted-foreground">
+              Get started quickly with pre-designed WhatsApp message templates
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {defaultTemplates.map((template) => (
               <TemplateCard
                 key={template.id}
@@ -373,7 +381,7 @@ export default function TemplatesPage() {
         </TabsContent>
 
         {/* Manage Templates Tab */}
-        <TabsContent value="manage" className="space-y-6">
+        <TabsContent value="manage" className="space-y-4">
           {templatesError ? (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -381,18 +389,18 @@ export default function TemplatesPage() {
             </Alert>
           ) : (
             <>
-              <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold">Template Library</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="text-base font-semibold">Template Library</h3>
+                  <p className="text-xs text-muted-foreground">
                     View and manage your WhatsApp templates with grid or list view
                   </p>
-                  {lastSyncedAt && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Last synced {lastSyncedAt.toLocaleString()}
-                    </p>
-                  )}
                 </div>
+                {lastSyncedAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Last synced {lastSyncedAt.toLocaleString()}
+                  </p>
+                )}
               </div>
 
               <TemplateLibraryView

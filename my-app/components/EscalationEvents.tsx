@@ -70,17 +70,14 @@ export default function EscalationEvents({
         organization_id: activeOrganizationId,
       };
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/events/create/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetch("/api/notifications/events/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -111,19 +108,15 @@ export default function EscalationEvents({
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/events/${editingEvent.id}/update/`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formData.name,
-            description: formData.description,
-            organization_id: activeOrganizationId,
-
-          }),
-        }
-      );
+      const response = await fetch(`/api/notifications/events/${editingEvent.id}/update`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          organization_id: activeOrganizationId,
+        }),
+      });
 
       if (!response.ok) throw new Error("Failed to update event");
 
@@ -150,13 +143,10 @@ export default function EscalationEvents({
   const handleDeleteEvent = async (eventId: number) => {
     setDeletingEventId(eventId);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/events/${eventId}/delete/`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const response = await fetch(`/api/notifications/events/${eventId}/delete`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
 
       if (!response.ok) throw new Error("Failed to delete event");
 
@@ -178,17 +168,14 @@ export default function EscalationEvents({
     if (!activeOrganizationId) return;
     setDefaultUpdates((prev) => ({ ...prev, [eventId]: true }));
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/events/default/${eventId}/status/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            organization_id: activeOrganizationId,
-            is_active: nextActive,
-          }),
-        }
-      );
+      const response = await fetch(`/api/notifications/events/default/${eventId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organization_id: activeOrganizationId,
+          is_active: nextActive,
+        }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();

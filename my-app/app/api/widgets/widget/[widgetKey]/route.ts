@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: { widgetKey: string } }
 ) {
   // Check authentication and get session token
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
 
   if (!userId) {
     return NextResponse.json(
@@ -82,7 +82,7 @@ export async function DELETE(
   { params }: { params: { widgetKey: string } }
 ) {
   // Check authentication and get session token
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
 
   if (!userId) {
     return NextResponse.json(

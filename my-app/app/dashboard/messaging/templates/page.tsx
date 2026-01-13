@@ -9,32 +9,20 @@ import {
 import { DefaultTemplate, defaultTemplates } from "@/data/default-templates";
 import {
   Search,
-  Settings,
-  ChevronDown,
-  Info,
   Plus,
   RefreshCw,
   Eye,
   Edit,
   Trash2,
-  Send,
-  TestTube,
   Sparkles,
 } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -53,7 +41,6 @@ import { WhatsAppChatPreview } from "@/components/whatsapp-chat-preview";
 
 import { TemplateDetailsDialog } from "@/components/template-details-dialog";
 import { TemplateEditor } from "@/components/template-editor";
-import BroadcastManager from "@/components/broadcast-manager";
 import { CustomizeTemplateDialog } from "@/components/customize-template-dialog";
 import FlowManager from '@/components/flows-manager';
 
@@ -397,311 +384,6 @@ export default function TemplatesPage() {
     [organizationId, selectedAppService, fetchTemplates]
   );
 
-  // Send test template function
-const sendTestTemplate = useCallback(
-  async (
-    templateName: string,
-    phoneNumber: string,
-    parameters: string[],
-    languageCode: string,
-    locationData?: { latitude: string; longitude: string; name: string; address: string },
-    mediaHandle?: string
-  ): Promise<boolean> => {
-    if (!selectedAppService?.phone_number_id) {
-      toast.error("Phone number ID not available");
-      return false;
-    }
-    try {
-      // Find the template to get metadata
-      const template = templates.find(t => t.name === templateName);
-      if (!template) {
-        toast.error("Template not found");
-        return false;
-      }
-
-      const messageData: any = {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: phoneNumber,
-        type: "template",
-        template: {
-          name: templateName,
-          language: {
-            code: languageCode,
-          },
-        },
-      };
-
-      // Build components array
-      const components: any[] = [];
-
-      // Check if this is a carousel template
-      const isCarousel = WhatsAppService.isCarouselTemplate(template);
-
-      if (isCarousel) {
-        toast.error("Please use the carousel template sender for carousel templates");
-        return false;
-      }
-
-      // 1. Add media header component if media handle is provided
-      if (mediaHandle) {
-        const mediaType = WhatsAppService.getMediaType(template);
-
-        if (!mediaType) {
-          toast.error("Template configuration error: no media type found");
-          return false;
-        }
-
-        const mediaParameter = WhatsAppService.buildMediaParameter(mediaType, mediaHandle);
-
-        components.push({
-          type: "header",
-          parameters: [mediaParameter]
-        });
-      }
-      // 2. Add location header component if location data is provided
-      else if (locationData && locationData.latitude && locationData.longitude && locationData.name && locationData.address) {
-        components.push({
-          type: "header",
-          parameters: [
-            {
-              type: "location",
-              location: {
-                latitude: locationData.latitude,
-                longitude: locationData.longitude,
-                name: locationData.name,
-                address: locationData.address
-              }
-            }
-          ]
-        });
-      }
-
-      // 3. Add body parameters if there are any
-      if (parameters.length > 0) {
-        // Extract parameter names from template body component
-        const bodyComponent = template.components?.find(c => c.type === 'BODY');
-        const bodyText = bodyComponent?.text || '';
-
-        // Match all {{parameter}} patterns and extract parameter names/positions
-        const paramMatches = bodyText.match(/\{\{(\w+|\d+)\}\}/g) || [];
-        const isNamedParameters = paramMatches.some(m => !/^\{\{\d+\}\}$/.test(m));
-
-        const bodyParameters = parameters.map((param, index) => {
-          const baseParam: any = {
-            type: "text",
-            text: param,
-          };
-
-          // If template uses named parameters (marketing templates), include parameter_name
-          if (isNamedParameters && paramMatches[index]) {
-            const paramName = paramMatches[index].replace(/\{\{|\}\}/g, '');
-            if (!/^\d+$/.test(paramName)) {
-              baseParam.parameter_name = paramName;
-            }
-          }
-
-          return baseParam;
-        });
-
-        components.push({
-          type: "body",
-          parameters: bodyParameters
-        });
-      }
-
-      // Add components to template if any exist
-      if (components.length > 0) {
-        messageData.template.components = components;
-      }
-
-      const result = await WhatsAppService.sendMessage(
-        selectedAppService as AppService,
-        messageData
-      );
-
-      if (result?.messages?.[0]?.id) {
-        const messageId = result.messages[0].id;
-        toast.success("Message queued successfully", {
-          description: `The message has been submitted to WhatsApp. Check your phone or Meta Business Manager for delivery status.`,
-          duration: 5000,
-        });
-      } else {
-        toast.warning("Message sent but status unclear", {
-          description: "The message was sent but no confirmation was received. Check Meta Business Manager.",
-          duration: 5000,
-        });
-      }
-
-      return true;
-    } catch (err) {
-      console.error("Error sending test template:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to send test message";
-      toast.error(errorMessage);
-      throw err;
-    }
-  },
-  [selectedAppService, templates]
-);
-
-  // Send carousel template function
-  const sendCarouselTemplate = useCallback(
-    async (
-      templateName: string,
-      phoneNumber: string,
-      languageCode: string,
-      cardMediaHandles: string[]  // Array of media handles, one per card
-    ): Promise<boolean> => {
-      if (!selectedAppService?.phone_number_id) {
-        toast.error("Phone number ID not available");
-        return false;
-      }
-
-      try {
-        // Find the template to get metadata
-        const template = templates.find(t => t.name === templateName);
-        if (!template) {
-          toast.error("Template not found");
-          return false;
-        }
-
-        // Verify it's a carousel template
-        if (!WhatsAppService.isCarouselTemplate(template)) {
-          toast.error("This is not a carousel template");
-          return false;
-        }
-
-        // Get carousel component
-        const carouselComponent = template.components?.find(c => c.type === 'CAROUSEL');
-        if (!carouselComponent?.cards) {
-          toast.error("Invalid carousel template structure");
-          return false;
-        }
-
-        // Validate media handles count matches cards count
-        if (cardMediaHandles.length !== carouselComponent.cards.length) {
-          toast.error(`This carousel has ${carouselComponent.cards.length} cards. Please provide ${carouselComponent.cards.length} media handles.`);
-          return false;
-        }
-
-        const messageData: any = {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: phoneNumber,
-          type: "template",
-          template: {
-            name: templateName,
-            language: {
-              code: languageCode,
-            },
-            components: []
-          },
-        };
-
-        // Build carousel component with cards array
-        // Per Meta's documentation, carousel uses cards array with card_index
-        const cards = carouselComponent.cards.map((card: any, index: number) => {
-          // Find header component in card to get media type
-          const headerComp = card.components?.find((c: any) => c.type === 'HEADER' || c.type === 'header');
-
-          if (!headerComp) {
-            throw new Error(`Card ${index + 1} is missing a header component`);
-          }
-
-          const mediaType = headerComp.format?.toLowerCase() || 'image';
-
-          const cardComponents: any[] = [
-            {
-              type: "header",
-              parameters: [
-                {
-                  type: mediaType,
-                  [mediaType]: {
-                    id: cardMediaHandles[index]
-                  }
-                }
-              ]
-            }
-          ];
-
-          // Add button parameters if card has buttons
-          const buttonsComp = card.components?.find((c: any) => c.type === 'BUTTONS' || c.type === 'buttons');
-          if (buttonsComp?.buttons) {
-            buttonsComp.buttons.forEach((btn: any, btnIndex: number) => {
-              const buttonType = btn.type?.toLowerCase() || 'quick_reply';
-
-              if (buttonType === 'quick_reply') {
-                cardComponents.push({
-                  type: "button",
-                  sub_type: "quick_reply",
-                  index: btnIndex.toString(),
-                  parameters: [
-                    {
-                      type: "payload",
-                      payload: btn.text || `button_${btnIndex}`
-                    }
-                  ]
-                });
-              } else if (buttonType === 'url' && btn.url) {
-                // Only add URL button parameters if URL has variables
-                if (btn.url.includes('{{1}}')) {
-                  cardComponents.push({
-                    type: "button",
-                    sub_type: "url",
-                    index: btnIndex.toString(),
-                    parameters: [
-                      {
-                        type: "text",
-                        text: btn.example?.[0] || "default"
-                      }
-                    ]
-                  });
-                }
-              }
-            });
-          }
-
-          return {
-            card_index: index,
-            components: cardComponents
-          };
-        });
-
-        // Add carousel component with cards array
-        messageData.template.components = [
-          {
-            type: "carousel",
-            cards: cards
-          }
-        ];
-
-        const result = await WhatsAppService.sendMessage(
-          selectedAppService as AppService,
-          messageData
-        );
-
-        if (result?.messages?.[0]?.id) {
-          toast.success("Carousel message queued successfully", {
-            description: `The carousel message has been submitted to WhatsApp.`,
-            duration: 5000,
-          });
-        } else {
-          toast.warning("Message sent but status unclear");
-        }
-
-        return true;
-      } catch (err) {
-        console.error("Error sending carousel template:", err);
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to send carousel message";
-        toast.error(errorMessage);
-        throw err;
-      }
-    },
-    [selectedAppService, templates]
-  );
-
   // Effects
   useEffect(() => {
     if (organizationId) {
@@ -922,13 +604,12 @@ const sendTestTemplate = useCallback(
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex items-center justify-between mb-6">
               <TabsList>
-                <TabsTrigger value="browse">Default Templates</TabsTrigger>
-                <TabsTrigger value="create">Create Template</TabsTrigger>
-                <TabsTrigger value="manage">Manage Templates</TabsTrigger>
-                <TabsTrigger value="broadcast">Broadcast Manager</TabsTrigger>
-                <TabsTrigger value="flows">Flows Manager</TabsTrigger>
-              </TabsList>
-            </div>
+              <TabsTrigger value="browse">Default Templates</TabsTrigger>
+              <TabsTrigger value="create">Create Template</TabsTrigger>
+              <TabsTrigger value="manage">Manage Templates</TabsTrigger>
+              <TabsTrigger value="flows">Flows Manager</TabsTrigger>
+            </TabsList>
+          </div>
 
             {/* Browse Templates Tab */}
             <TabsContent value="browse" className="space-y-6">
@@ -1273,35 +954,6 @@ const sendTestTemplate = useCallback(
                 appService={selectedAppService}
                 organizationId={organizationId}
               />
-            </TabsContent>
-
-            {/* Broadcast Templates Tab */}
-            <TabsContent value="broadcast" className="space-y-6">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">
-                  Broadcast Your Templates
-                </h2>
-                <p className="text-muted-foreground">
-                  Send broadcast messages to your contacts using these
-                  templates.
-                </p>
-              </div>
-
-              {selectedAppService ? (
-                <BroadcastManager
-                  appService={selectedAppService}
-                  templates={templates}
-                  onSendTest={sendTestTemplate}
-                  onSendCarousel={sendCarouselTemplate}
-                  loading={templatesLoading}
-                />
-              ) : (
-                <Alert>
-                  <AlertDescription>
-                    Please select a WhatsApp service to broadcast templates.
-                  </AlertDescription>
-                </Alert>
-              )}
             </TabsContent>
 
             <TabsContent value="flows">

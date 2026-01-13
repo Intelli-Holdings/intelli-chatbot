@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: { organizationId: string } }
 ) {
   // Check authentication and get session token
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
 
   if (!userId) {
     return NextResponse.json(

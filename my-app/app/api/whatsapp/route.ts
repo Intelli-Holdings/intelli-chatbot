@@ -5,7 +5,7 @@ import { getUserOrganizationMemberships } from '../../services/clerkService';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET() {
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

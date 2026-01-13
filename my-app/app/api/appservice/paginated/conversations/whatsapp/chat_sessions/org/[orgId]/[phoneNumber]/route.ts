@@ -11,7 +11,7 @@ export async function GET(
     const { orgId, phoneNumber } = params;
 
     // Get authentication token from Clerk
-    const { getToken, orgId: authOrgId } = auth();
+    const { getToken, orgId: authOrgId } = await auth();
     const token = await getToken();
 
     if (!token) {

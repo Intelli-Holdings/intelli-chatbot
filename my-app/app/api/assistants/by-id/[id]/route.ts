@@ -9,7 +9,7 @@ export async function DELETE(
   const { id } = params
 
   // Check authentication and get session token
-  const { userId, getToken } = auth()
+  const { userId, getToken } = await auth()
 
   if (!userId) {
     return NextResponse.json(
@@ -95,7 +95,7 @@ export async function PUT(
   const { id } = params
 
   // Check authentication and get session token
-  const { userId, getToken } = auth()
+  const { userId, getToken } = await auth()
 
   if (!userId) {
     return NextResponse.json(

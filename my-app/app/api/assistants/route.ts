@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs/server'
 // POST - Create a new assistant
 export async function POST(request: NextRequest) {
   // Check authentication and get session token
-  const { userId, getToken } = auth()
+  const { userId, getToken } = await auth()
 
   if (!userId) {
     return NextResponse.json(

@@ -5,7 +5,7 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
   const { organizationId } = params
 
   // Check authentication and get session token
-  const { userId, getToken } = auth()
+  const { userId, getToken } = await auth()
 
   if (!userId) {
     return NextResponse.json(
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: { organiz
 
   try {
     // Get authentication from Clerk
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
 
     if (!token) {

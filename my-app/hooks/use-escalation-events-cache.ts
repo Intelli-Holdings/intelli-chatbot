@@ -17,9 +17,7 @@ const normalizeEvents = (data: unknown): Event[] => {
 export async function fetchEscalationEventsForOrg(
   organizationId: string,
 ): Promise<Event[]> {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/events/${organizationId}/`,
-  )
+  const response = await fetch(`/api/notifications/events/org/${organizationId}`)
 
   if (response.status === 404) {
     return []

@@ -10,7 +10,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 export async function GET(request: NextRequest) {
   try {
     // Get authentication token from Clerk
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const token = await getToken();
 
     if (!token) {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get authentication token from Clerk
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const token = await getToken();
 
     if (!token) {

@@ -12,7 +12,7 @@ export async function GET(
     const to = searchParams.get("to") || ""
     const period = searchParams.get("period") || "30"
 
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
 
     if (!token) {

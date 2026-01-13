@@ -10,7 +10,7 @@ export async function POST(
 
   try {
     // Get authentication from Clerk
-    const { getToken, userId } = auth()
+    const { getToken, userId } = await auth()
     const token = await getToken()
 
     if (!token) {

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -172,159 +173,38 @@ export function TemplateLibraryView({
         {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} found
       </div>
 
-      {/* Grid View */}
-      {viewMode === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <div className="h-32 bg-gray-200 rounded" />
-                </CardContent>
-              </Card>
-            ))
-          ) : filteredTemplates.length === 0 ? (
-            <div className="col-span-full text-center py-12 text-muted-foreground">
-              No templates found
-            </div>
-          ) : (
-            filteredTemplates.map((template) => (
-              <Card key={template.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4 space-y-3">
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {getHeaderIcon(template)}
-                        <h3 className="font-semibold truncate">{template.name}</h3>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {template.language || 'en_US'}
-                      </p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleTestClick(template)}>
-                          <Send className="h-4 w-4 mr-2" />
-                          Send Test
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onView?.(template)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                        {template.status === 'APPROVED' && onEdit && (
-                          <DropdownMenuItem onClick={() => onEdit(template)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                        )}
-                        {onDelete && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onDelete(template)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {/* Preview */}
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-xs space-y-1">
-                      {template.components?.find((c: any) => c.type === 'BODY')?.text?.split('\n').slice(0, 3).map((line: string, i: number) => (
-                        <p key={i} className="text-gray-900 dark:text-gray-100 truncate">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex gap-2 flex-wrap">
-                      {getCategoryBadge(template.category)}
-                      {getStatusBadge(template.status)}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleTestClick(template)}
-                      className="shrink-0"
-                    >
-                      <Send className="h-3 w-3 mr-1" />
-                      Test
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* List View */}
-      {viewMode === 'list' && (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+      <ScrollArea className="h-[calc(100vh-360px)] pr-2 rounded-lg border bg-muted/10">
+        <div className="p-4">
+          {/* Grid View */}
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={5}>
-                      <div className="h-8 bg-gray-200 animate-pulse rounded" />
-                    </TableCell>
-                  </TableRow>
+                Array.from({ length: 6 }).map((_, i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardContent className="p-4">
+                      <div className="h-32 bg-gray-200 rounded" />
+                    </CardContent>
+                  </Card>
                 ))
               ) : filteredTemplates.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No templates found
-                  </TableCell>
-                </TableRow>
+                <div className="col-span-full text-center py-12 text-muted-foreground">
+                  No templates found
+                </div>
               ) : (
                 filteredTemplates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getHeaderIcon(template)}
-                        <span className="font-medium">{template.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getCategoryBadge(template.category)}</TableCell>
-                    <TableCell>{getStatusBadge(template.status)}</TableCell>
-                    <TableCell className="text-muted-foreground">{template.language || 'en_US'}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleTestClick(template)}
-                        >
-                          <Send className="h-3 w-3 mr-1" />
-                          Test
-                        </Button>
+                  <Card key={template.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4 space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {getHeaderIcon(template)}
+                            <h3 className="font-semibold truncate">{template.name}</h3>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {template.language || 'en_US'}
+                          </p>
+                        </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -334,6 +214,10 @@ export function TemplateLibraryView({
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleTestClick(template)}>
+                              <Send className="h-4 w-4 mr-2" />
+                              Send Test
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onView?.(template)}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
@@ -359,14 +243,135 @@ export function TemplateLibraryView({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                    </TableCell>
-                  </TableRow>
+
+                      {/* Preview */}
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-xs space-y-1">
+                          {template.components?.find((c: any) => c.type === 'BODY')?.text?.split('\n').slice(0, 3).map((line: string, i: number) => (
+                            <p key={i} className="text-gray-900 dark:text-gray-100 truncate">
+                              {line}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          {getCategoryBadge(template.category)}
+                          {getStatusBadge(template.status)}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleTestClick(template)}
+                          className="shrink-0"
+                        >
+                          <Send className="h-3 w-3 mr-1" />
+                          Test
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))
               )}
-            </TableBody>
-          </Table>
+            </div>
+          )}
+
+          {/* List View */}
+          {viewMode === 'list' && (
+            <div className="border rounded-lg bg-background">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Language</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell colSpan={5}>
+                          <div className="h-8 bg-gray-200 animate-pulse rounded" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : filteredTemplates.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No templates found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTemplates.map((template) => (
+                      <TableRow key={template.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getHeaderIcon(template)}
+                            <span className="font-medium">{template.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getCategoryBadge(template.category)}</TableCell>
+                        <TableCell>{getStatusBadge(template.status)}</TableCell>
+                        <TableCell className="text-muted-foreground">{template.language || 'en_US'}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleTestClick(template)}
+                            >
+                              <Send className="h-3 w-3 mr-1" />
+                              Test
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => onView?.(template)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                {template.status === 'APPROVED' && onEdit && (
+                                  <DropdownMenuItem onClick={() => onEdit(template)}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                )}
+                                {onDelete && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => onDelete(template)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
-      )}
+      </ScrollArea>
 
       {/* Test Modal */}
       <TemplateTestModal

@@ -16,12 +16,14 @@ import {
 } from "@/components/ui/select";
 import { Search, Send, MoreVertical, CheckCheck, User, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@clerk/nextjs";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
 import { useWebsiteWidgets } from "@/hooks/use-website-widgets";
 import { useWebsiteVisitors } from "@/hooks/use-website-visitors";
 import { cn } from "@/lib/utils";
 import "../components/message-bubble.css";
 import { WebsiteSkeletonLoader, VisitorListSkeleton } from "../components/website-skeleton-loader";
+import { useQueryClient } from "react-query";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -91,6 +93,8 @@ export default function WebsiteConversationsPage() {
   const activeOrganizationId = useActiveOrganizationId();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
 
   const {
     widgets,
@@ -103,7 +107,7 @@ export default function WebsiteConversationsPage() {
     isLoading: visitorsLoading,
     error: visitorsError,
     refetch: refetchVisitors,
-  } = useWebsiteVisitors(selectedWidgetKey, API_BASE_URL || "");
+  } = useWebsiteVisitors(selectedWidgetKey);
 
   const isLoading = widgetsLoading || visitorsLoading;
 
@@ -126,38 +130,54 @@ export default function WebsiteConversationsPage() {
   useEffect(() => {
     if (!activeOrganizationId) return;
 
-    const ws = new WebSocket(
-      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
-    );
-
-    ws.onopen = () => {
-      console.log("WebSocket connected");
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("WebSocket message:", data);
-
-        // Handle new messages
-        if (data.type === 'business_forward' || data.type === 'new_chat') {
-          refetchVisitors();
-        }
-      } catch (error) {
-        console.error("WebSocket message error:", error);
+    const setupWebSocket = async () => {
+      const token = await getToken({ organizationId: activeOrganizationId });
+      if (!token) {
+        console.error('Cannot establish WebSocket connection: No authentication token');
+        return;
       }
+
+      const ws = new WebSocket(
+        `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/?token=${token}`
+      );
+
+      ws.onopen = () => {
+        console.log("WebSocket connected");
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("WebSocket message:", data);
+
+          // Handle new messages
+          if (data.type === 'business_forward' || data.type === 'new_chat') {
+            refetchVisitors();
+          }
+        } catch (error) {
+          console.error("WebSocket message error:", error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      wsRef.current = ws;
+
+      return () => {
+        ws.close();
+      };
     };
 
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    wsRef.current = ws;
+    setupWebSocket();
 
     return () => {
-      ws.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
     };
-  }, [activeOrganizationId, refetchVisitors]);
+  }, [activeOrganizationId, refetchVisitors, getToken]);
 
   useEffect(() => {
     if (widgetsError) {
@@ -184,45 +204,74 @@ export default function WebsiteConversationsPage() {
 
   const handleSendMessage = async () => {
     if (!selectedVisitor || !replyMessage.trim() || !activeOrganizationId) return;
+    const targetVisitor = selectedVisitor;
+    const targetWidgetKey = selectedWidgetKey;
 
-    const lastMessage = selectedVisitor.messages && selectedVisitor.messages.length > 0
-      ? selectedVisitor.messages[selectedVisitor.messages.length - 1]
-      : undefined;
-    const lastMessageContent = lastMessage?.content || "";
+    const token = await getToken({ organizationId: activeOrganizationId });
+    if (!token) {
+      toast.error("Authentication failed");
+      return;
+    }
+
+    const lastVisitorMessage = [...(targetVisitor.messages || [])]
+      .reverse()
+      .find((message) => {
+        const senderType = message.sender_type
+        const isBusinessMessage = senderType === "business" || senderType === "assistant" || senderType === "human"
+        return Boolean(message.content) && !isBusinessMessage
+      })
+    const lastMessageContent = lastVisitorMessage?.content || ""
+    if (!lastMessageContent) {
+      toast.error("No visitor message found to reply to")
+      return
+    }
 
     const payload = {
       action: "send_message",
-      widget_key: selectedWidgetKey,
-      visitor_id: selectedVisitor.visitor_id,
+      widget_key: targetWidgetKey,
+      visitor_id: targetVisitor.visitor_id,
       answer: replyMessage,
       message: lastMessageContent,
     };
 
     const ws = new WebSocket(
-      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
-    );
+        `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/?token=${token}`
+      );
 
     ws.onopen = () => {
       ws.send(JSON.stringify(payload));
       ws.close();
 
       // Optimistically add message to UI
+      const optimisticMessage = {
+        id: Date.now(),
+        content: lastMessageContent,
+        answer: replyMessage,
+        timestamp: new Date().toISOString(),
+        sender_type: 'business',
+        sender: 'business'
+      };
+
       setSelectedVisitor((prev) => {
         if (!prev) return null;
         return {
           ...prev,
           messages: [
             ...(prev.messages || []),
-            {
-              id: Date.now(),
-              content: lastMessageContent,
-              answer: replyMessage,
-              timestamp: new Date().toISOString(),
-              sender_type: 'human',
-              sender: 'human'
-            },
+            optimisticMessage,
           ],
         };
+      });
+
+      queryClient.setQueryData<Visitor[]>(["website-visitors", targetWidgetKey], (prev) => {
+        if (!prev) return prev;
+        return prev.map((visitor) => {
+          if (visitor.visitor_id !== targetVisitor.visitor_id) return visitor;
+          return {
+            ...visitor,
+            messages: [...(visitor.messages || []), optimisticMessage],
+          };
+        });
       });
 
       setReplyMessage("");
@@ -237,6 +286,12 @@ export default function WebsiteConversationsPage() {
   const handleTakeover = async () => {
     if (!selectedVisitor || !activeOrganizationId) return;
 
+    const token = await getToken({ organizationId: activeOrganizationId });
+    if (!token) {
+      toast.error("Authentication failed");
+      return;
+    }
+
     const action = selectedVisitor.is_handle_by_human ? "handover" : "takeover";
 
     const payload = {
@@ -246,7 +301,7 @@ export default function WebsiteConversationsPage() {
     };
 
     const ws = new WebSocket(
-      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/`
+      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/?token=${token}`
     );
 
     ws.onopen = () => {
@@ -440,8 +495,8 @@ export default function WebsiteConversationsPage() {
             }}>
               <div className="flex flex-col gap-2">
                 {(selectedVisitor.messages || []).map((message) => {
-                  // Determine sender type - if it's customer message
-                  const isCustomerMessage = message.content && !message.answer;
+                  const senderType = message.sender_type
+                  const isBusinessMessage = senderType === "business" || senderType === "assistant" || senderType === "human"
 
                   // For response messages (answer field exists), determine if AI or human
                   // If sender_type is explicitly set, use it. Otherwise default to 'ai' for backward compatibility
@@ -452,7 +507,7 @@ export default function WebsiteConversationsPage() {
                   return (
                     <div key={message.id} className="flex flex-col gap-2">
                       {/* Customer Message (incoming) */}
-                      {message.content && (
+                      {message.content && !isBusinessMessage && (
                         <div className="flex justify-start">
                           <div
                             className={cn(
