@@ -281,9 +281,9 @@ export function TemplateLibraryView({
           {/* List View */}
           {viewMode === 'list' && (
             <div className="border rounded-lg bg-background">
-              <Table>
-                <TableHeader>
-                  <TableRow>
+              <Table wrapperClassName="overflow-visible">
+                <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:bg-background [&_th]:z-10">
+                  <TableRow className="bg-background">
                     <TableHead>Name</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Status</TableHead>

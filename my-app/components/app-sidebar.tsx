@@ -98,13 +98,6 @@ const data = {
       title: "Templates",
       url: "/dashboard/templates",
       icon: Files,
-      hasSubmenu: true,
-      submenuItems: [
-        {title: "📄 Overview", url: "/dashboard/templates/overview"},
-        { title: "📚 Templates Library", url: "/dashboard/templates" },
-        { title: "📡 Broadcasts Manager", url: "/dashboard/templates/broadcast" },
-        
-      ]
     },
     {
       title: "Analytics",

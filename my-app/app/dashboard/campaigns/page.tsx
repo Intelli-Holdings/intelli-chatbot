@@ -236,16 +236,18 @@ export default function CampaignsPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <main className="flex-1 container py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Campaign Manager</h1>
-          <p className="text-muted-foreground">
+      <main className="flex-1 container py-5">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-semibold sm:text-3xl">Campaign Manager</h1>
+            <p className="text-sm text-muted-foreground">
             Create and manage your multi-channel broadcast campaigns
-          </p>
+            </p>
+          </div>
         </div>
 
         {!organizationId && (
-          <Alert className="mb-6">
+          <Alert className="mb-4">
             <AlertDescription>
               Please ensure you&apos;re logged in and have an active organization.
             </AlertDescription>
@@ -253,7 +255,7 @@ export default function CampaignsPage() {
         )}
 
         {!selectedAppService && (
-          <Alert className="mb-6">
+          <Alert className="mb-4">
             <AlertDescription>
               Please configure your App Service first to manage campaigns.
             </AlertDescription>
@@ -261,12 +263,12 @@ export default function CampaignsPage() {
         )}
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 mb-4">
           {statsCards.map((stat) => {
             const IconComponent = stat.icon;
             return (
               <Card key={stat.title}>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
@@ -281,8 +283,8 @@ export default function CampaignsPage() {
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>All Campaigns</CardTitle>
                 <CardDescription>
@@ -300,7 +302,7 @@ export default function CampaignsPage() {
             </div>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="pt-0">
             {/* Bulk Action Toolbar */}
             {selectedCampaigns.size > 0 && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
@@ -335,7 +337,7 @@ export default function CampaignsPage() {
             )}
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center mb-4">
+            <div className="flex flex-col sm:flex-row gap-3 items-center mb-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -412,9 +414,9 @@ export default function CampaignsPage() {
                 )}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
+              <Table wrapperClassName="max-h-[calc(100vh-360px)]">
+                <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:bg-background [&_th]:z-10">
+                  <TableRow className="bg-background">
                     <TableHead className="w-12">
                       <Checkbox
                         checked={selectedCampaigns.size === filteredCampaigns.length && filteredCampaigns.length > 0}

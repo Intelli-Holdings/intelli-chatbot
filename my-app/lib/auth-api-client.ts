@@ -105,6 +105,7 @@ export async function fetchWithAuth(
   token?: string | null
 ): Promise<any> {
   const headers: Record<string, string> = {
+    'Accept': 'application/json',
     'Content-Type': 'application/json',
     ...options.headers as Record<string, string>,
   };
@@ -121,11 +122,14 @@ export async function fetchWithAuth(
     headers,
   });
 
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+
   // Handle non-2xx responses
   if (!response.ok) {
     let error: ApiError;
     try {
-      error = await response.json();
+      error = isJson ? await response.json() : { message: `HTTP ${response.status}: ${response.statusText}` };
     } catch {
       error = {
         message: `HTTP ${response.status}: ${response.statusText}`,
@@ -134,6 +138,10 @@ export async function fetchWithAuth(
 
     const errorMessage = error.detail || error.error || error.message || 'API request failed';
     throw new Error(errorMessage);
+  }
+
+  if (!isJson) {
+    throw new Error(`Unexpected response format from API (status ${response.status})`);
   }
 
   // Return JSON for successful responses

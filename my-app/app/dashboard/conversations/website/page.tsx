@@ -263,16 +263,15 @@ export default function WebsiteConversationsPage() {
         };
       });
 
-      queryClient.setQueryData<Visitor[]>(["website-visitors", targetWidgetKey], (prev) => {
-        if (!prev) return prev;
-        return prev.map((visitor) => {
+      queryClient.setQueryData<Visitor[]>(["website-visitors", targetWidgetKey], (prev = []) =>
+        prev.map((visitor) => {
           if (visitor.visitor_id !== targetVisitor.visitor_id) return visitor;
           return {
             ...visitor,
             messages: [...(visitor.messages || []), optimisticMessage],
           };
-        });
-      });
+        })
+      );
 
       setReplyMessage("");
       toast.success("Message sent");

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -30,6 +31,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import CreateTemplateForm from "@/components/create-template-form";
 import { DeleteTemplateDialog } from "@/components/delete-template-dialog";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
+import { useWhatsAppAnalytics } from "@/hooks/use-whatsapp-analytics";
 import { TemplateCard } from "@/components/template-card";
 import { WhatsAppChatPreview } from "@/components/whatsapp-chat-preview";
 import { TemplateDetailsDialog } from "@/components/template-details-dialog";
@@ -39,8 +41,8 @@ import { TemplateLibraryView } from "@/components/template-library-view";
 
 export default function TemplatesPage() {
   const organizationId = useActiveOrganizationId();
-  const [activeTab, setActiveTab] = useState("browse");
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [templatesTab, setTemplatesTab] = useState("library");
 
   // Preview states
   const [selectedPreviewTemplate, setSelectedPreviewTemplate] = useState<DefaultTemplate | null>(null);
@@ -65,6 +67,12 @@ export default function TemplatesPage() {
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [servicesError, setServicesError] = useState<string | null>(null);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+
+  const {
+    analytics,
+    loading: analyticsLoading,
+    error: analyticsError,
+  } = useWhatsAppAnalytics(selectedAppService, 30);
 
   // Fetch app services
   const fetchAppServices = useCallback(async () => {
@@ -261,8 +269,70 @@ export default function TemplatesPage() {
     }
   }, [selectedAppService, fetchTemplates]);
 
+  const primaryProfile = analytics?.phoneNumberProfiles?.[0];
+  const displayPhoneNumber = primaryProfile?.display_phone_number || selectedAppService?.phone_number;
+
+  const formatMetric = (value?: number, type: "number" | "currency" = "number") => {
+    if (!selectedAppService || analyticsLoading) {
+      return "—";
+    }
+    if (type === "currency") {
+      return `$${(value ?? 0).toFixed(2)}`;
+    }
+    return value?.toLocaleString() || "0";
+  };
+
+  const renderQualityBadge = (rating?: string) => {
+    if (!rating) {
+      return <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-200">Unknown</Badge>;
+    }
+    const normalized = rating.toUpperCase();
+    const classes =
+      normalized === "GREEN"
+        ? "bg-green-100 text-green-800 border-green-200"
+        : normalized === "YELLOW"
+          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+          : normalized === "RED"
+            ? "bg-red-100 text-red-800 border-red-200"
+            : "bg-gray-100 text-gray-700 border-gray-200";
+    return (
+      <Badge variant="outline" className={classes}>
+        {normalized.charAt(0) + normalized.slice(1).toLowerCase()}
+      </Badge>
+    );
+  };
+
+  const renderTierBadge = (tier?: string) => {
+    const normalized = tier?.toUpperCase() || "";
+    const label =
+      normalized === "TIER_4"
+        ? "Unlimited"
+        : normalized === "TIER_3"
+          ? "100K/day"
+          : normalized === "TIER_2"
+            ? "10K/day"
+            : normalized === "TIER_1"
+              ? "1K/day"
+              : "Unknown";
+    const classes =
+      normalized === "TIER_4"
+        ? "bg-purple-100 text-purple-800 border-purple-200"
+        : normalized === "TIER_3"
+          ? "bg-blue-100 text-blue-800 border-blue-200"
+          : normalized === "TIER_2"
+            ? "bg-green-100 text-green-800 border-green-200"
+            : normalized === "TIER_1"
+              ? "bg-gray-100 text-gray-800 border-gray-200"
+              : "bg-gray-100 text-gray-700 border-gray-200";
+    return (
+      <Badge variant="outline" className={classes}>
+        {label}
+      </Badge>
+    );
+  };
+
   return (
-    <div className="container mx-auto px-4 py-4 space-y-4">
+    <div className="container mx-auto px-4 py-4 space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -328,81 +398,128 @@ export default function TemplatesPage() {
         )}
       </div>
 
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-          <TabsList className="h-9">
-            <TabsTrigger value="browse">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Browse & Create
-            </TabsTrigger>
-            <TabsTrigger value="manage">
-              Manage Templates
-            </TabsTrigger>
-          </TabsList>
-
-          {activeTab === "browse" && (
-            <Button onClick={() => setIsCreateFormOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Custom Template
-            </Button>
-          )}
-
-          {activeTab === "manage" && (
-            <Button onClick={syncTemplates} disabled={syncingTemplates || !selectedAppService} size="sm">
-              <RefreshCw className={`h-4 w-4 mr-2 ${syncingTemplates ? "animate-spin" : ""}`} />
-              Sync from Meta
-            </Button>
-          )}
+      <section id="overview" className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">Account Overview</h2>
+          <p className="text-sm text-muted-foreground">
+            Key WhatsApp performance metrics for the selected number.
+          </p>
         </div>
 
-        {/* Browse & Create Tab */}
-        <TabsContent value="browse" className="space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold">
-              Choose from Ready Templates
-            </h2>
+        {analyticsError && selectedAppService && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{analyticsError}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Total Conversations</p>
+              <p className="text-xl font-semibold">{formatMetric(analytics?.totalConversations)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Free Tier Conversations</p>
+              <p className="text-xl font-semibold">{formatMetric(analytics?.freeTierConversations)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Business Initiated</p>
+              <p className="text-xl font-semibold">{formatMetric(analytics?.businessInitiatedConversations)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Approximate Charges</p>
+              <p className="text-xl font-semibold">{formatMetric(analytics?.approximateCharges, "currency")}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Phone Number</p>
+                <p className="font-medium">{!selectedAppService || analyticsLoading ? "—" : displayPhoneNumber || "—"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Quality Rating</p>
+                {selectedAppService ? renderQualityBadge(primaryProfile?.quality_rating) : renderQualityBadge()}
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Messaging Tier</p>
+                {selectedAppService ? renderTierBadge(primaryProfile?.messaging_limit?.tier) : renderTierBadge()}
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground">Daily Limit</p>
+                <p className="font-medium">
+                  {!selectedAppService || analyticsLoading
+                    ? "—"
+                    : primaryProfile?.messaging_limit?.max?.toLocaleString() || "—"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section id="templates" className="space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Templates</h3>
             <p className="text-sm text-muted-foreground">
-              Get started quickly with pre-designed WhatsApp message templates
+              Manage your synced library or start from ready-to-use templates.
             </p>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {defaultTemplates.map((template) => (
-              <TemplateCard
-                key={template.id}
-                template={template}
-                onPreview={(template) => setSelectedPreviewTemplate(template)}
-                onCreate={createTemplateFromDefault}
-                isCreating={creatingTemplateId === template.id}
-              />
-            ))}
-          </div>
-        </TabsContent>
+        <Tabs value={templatesTab} onValueChange={setTemplatesTab} className="space-y-4">
+          <TabsList className="h-9">
+            <TabsTrigger value="library">Template Library</TabsTrigger>
+            <TabsTrigger value="starter">Starter Templates</TabsTrigger>
+          </TabsList>
 
-        {/* Manage Templates Tab */}
-        <TabsContent value="manage" className="space-y-4">
-          {templatesError ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{templatesError}</AlertDescription>
-            </Alert>
-          ) : (
-            <>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-base font-semibold">Template Library</h3>
-                  <p className="text-xs text-muted-foreground">
-                    View and manage your WhatsApp templates with grid or list view
-                  </p>
-                </div>
-                {lastSyncedAt && (
-                  <p className="text-xs text-muted-foreground">
-                    Last synced {lastSyncedAt.toLocaleString()}
-                  </p>
-                )}
+          <TabsContent value="library" className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-base font-semibold">Template Library</h4>
+                <p className="text-sm text-muted-foreground">
+                  View and manage your WhatsApp templates with grid or list view.
+                </p>
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {lastSyncedAt && (
+                  <span className="text-xs text-muted-foreground">
+                    Last synced {lastSyncedAt.toLocaleString()}
+                  </span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={syncTemplates}
+                  disabled={syncingTemplates || !selectedAppService}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${syncingTemplates ? "animate-spin" : ""}`} />
+                  Sync from Meta
+                </Button>
+                <Button size="sm" onClick={() => setIsCreateFormOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Custom Template
+                </Button>
+              </div>
+            </div>
 
+            {templatesError ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{templatesError}</AlertDescription>
+              </Alert>
+            ) : (
               <TemplateLibraryView
                 templates={templates}
                 loading={templatesLoading}
@@ -421,10 +538,34 @@ export default function TemplatesPage() {
                   setIsDetailsDialogOpen(true);
                 }}
               />
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
+            )}
+          </TabsContent>
+
+          <TabsContent value="starter" className="space-y-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-base font-semibold">Starter Templates</h4>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Get started quickly with pre-designed WhatsApp message templates.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {defaultTemplates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  onPreview={(template) => setSelectedPreviewTemplate(template)}
+                  onCreate={createTemplateFromDefault}
+                  isCreating={creatingTemplateId === template.id}
+                />
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </section>
 
       {/* Dialogs */}
       <Dialog open={!!selectedPreviewTemplate} onOpenChange={() => setSelectedPreviewTemplate(null)}>
