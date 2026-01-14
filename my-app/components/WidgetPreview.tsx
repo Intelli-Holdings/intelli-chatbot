@@ -411,7 +411,7 @@ const WidgetPreview = ({ widget, isOpen = true, onToggleOpen }: WidgetPreviewPro
                 </div>
                 {widget.show_powered_by && (
                   <div className="text-center mt-2 text-xs text-gray-400">
-                    Powered by <span className="font-semibold">IntelliConcierge</span>
+                    Powered by <span className="font-semibold">Intelli</span>
                   </div>
                 )}
               </div>
