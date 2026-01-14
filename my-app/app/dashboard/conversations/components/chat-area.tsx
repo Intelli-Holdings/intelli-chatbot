@@ -103,12 +103,37 @@ export default function ChatArea({
     onMessagesUpdateRef.current = onMessagesUpdate
   }, [conversation?.id, onMessagesUpdate])
 
-  const setMessagesState = useCallback((messages: Conversation["messages"]) => {
-    const nextMessages = messages ?? []
-    // Update ref immediately to prevent race conditions in duplicate detection
-    currentMessagesRef.current = nextMessages
-    setCurrentMessages(nextMessages)
+  const normalizeMessages = useCallback((messages: Conversation["messages"]) => {
+    const nextMessages = (messages ?? []).filter(Boolean)
+    const seen = new Set<string>()
+    const deduped: Conversation["messages"] = []
+
+    for (let index = nextMessages.length - 1; index >= 0; index -= 1) {
+      const message = nextMessages[index]
+      const key = message.whatsapp_message_id
+        ? `wamid:${message.whatsapp_message_id}`
+        : typeof message.id === "number"
+          ? `id:${message.id}`
+          : `fallback:${message.sender}:${message.created_at}:${message.content ?? ""}:${message.answer ?? ""}:${message.type ?? ""}:${message.media ?? ""}`
+
+      if (seen.has(key)) continue
+      seen.add(key)
+      deduped.push(message)
+    }
+
+    return deduped.reverse()
   }, [])
+
+  const setMessagesState = useCallback(
+    (messages: Conversation["messages"]) => {
+      const nextMessages = normalizeMessages(messages)
+      // Update ref immediately to prevent race conditions in duplicate detection
+      currentMessagesRef.current = nextMessages
+      setCurrentMessages(nextMessages)
+      return nextMessages
+    },
+    [normalizeMessages],
+  )
 
   const syncMessagesToParent = useCallback((messages: Conversation["messages"]) => {
     const nextMessages = messages ?? []
@@ -119,8 +144,7 @@ export default function ChatArea({
 
   const setMessagesAndSync = useCallback(
     (messages: Conversation["messages"]) => {
-      const nextMessages = messages ?? []
-      setMessagesState(nextMessages)
+      const nextMessages = setMessagesState(messages)
       syncMessagesToParent(nextMessages)
     },
     [setMessagesState, syncMessagesToParent],
@@ -129,8 +153,7 @@ export default function ChatArea({
   const updateMessagesAndSync = useCallback(
     (updater: (prev: Conversation["messages"]) => Conversation["messages"]) => {
       const prevMessages = currentMessagesRef.current ?? []
-      const nextMessages = updater(prevMessages) ?? []
-      setMessagesState(nextMessages)
+      const nextMessages = setMessagesState(updater(prevMessages))
       syncMessagesToParent(nextMessages)
       return nextMessages
     },
@@ -408,36 +431,25 @@ export default function ChatArea({
   useEffect(() => {
     const handleNewMessage = (event: CustomEvent) => {
       const newMessage = event.detail.message
-      console.log("New message received:", newMessage)
-      if (newMessage) {
-        updateMessagesAndSync((messages) => {
-          const nextMessages = messages || []
+      if (!newMessage) return
 
-          // Check if this is a real message replacing an optimistic one
-          // Look for pending messages sent within last 10 seconds
-          const recentPendingIndex = nextMessages.findIndex((msg) => {
-            if (!msg.pending) return false
+      let matchedPending = false
+      let isDuplicate = false
 
-            // For business messages (sender: human), check if content matches
-            if (newMessage.sender === 'human') {
-              // Check if answer content matches (business messages use 'answer' field)
-              const answerMatches =
-                msg.answer && newMessage.answer &&
-                (msg.answer.trim() === newMessage.answer.trim() || msg.answer.includes(newMessage.answer))
+      updateMessagesAndSync((messages) => {
+        const nextMessages = messages || []
 
-              // Check if sent recently (within 10 seconds)
-              const msgTime = new Date(msg.created_at).getTime()
-              const newMsgTime = new Date(newMessage.created_at).getTime()
-              const timeDiff = Math.abs(newMsgTime - msgTime)
-              const sentRecently = timeDiff < 10000
+        // Check if this is a real message replacing an optimistic one
+        // Look for pending messages sent within last 10 seconds
+        const recentPendingIndex = nextMessages.findIndex((msg) => {
+          if (!msg.pending) return false
 
-              return answerMatches && sentRecently
-            }
-
-            // For customer messages, check content field
-            const contentMatches =
-              (msg.content && newMessage.content &&
-               (msg.content.trim() === newMessage.content.trim() || msg.content.includes(newMessage.content)))
+          // For business messages (sender: human), check if content matches
+          if (newMessage.sender === 'human') {
+            // Check if answer content matches (business messages use 'answer' field)
+            const answerMatches =
+              msg.answer && newMessage.answer &&
+              (msg.answer.trim() === newMessage.answer.trim() || msg.answer.includes(newMessage.answer))
 
             // Check if sent recently (within 10 seconds)
             const msgTime = new Date(msg.created_at).getTime()
@@ -445,54 +457,77 @@ export default function ChatArea({
             const timeDiff = Math.abs(newMsgTime - msgTime)
             const sentRecently = timeDiff < 10000
 
-            return contentMatches && sentRecently
-          })
-
-          if (recentPendingIndex !== -1) {
-            // Replace optimistic message with real one
-            const updated = [...nextMessages]
-            updated[recentPendingIndex] = {
-              ...newMessage,
-              pending: false,
-              status: newMessage.status || "sent",
-            }
-            console.log("Replaced optimistic message with real message")
-            return updated
-          } else {
-            // Check if message already exists (prevent duplicates)
-            // Check by whatsapp_message_id if available, or by content and timestamp
-            const isDuplicate = nextMessages.some((msg) => {
-              // Check by WhatsApp message ID
-              if (newMessage.whatsapp_message_id && msg.whatsapp_message_id) {
-                return msg.whatsapp_message_id === newMessage.whatsapp_message_id
-              }
-
-              // Check by content and timestamp (within 1 second)
-              const sameContent =
-                (newMessage.answer && msg.answer && msg.answer === newMessage.answer) ||
-                (newMessage.content && msg.content && msg.content === newMessage.content)
-
-              if (sameContent) {
-                const msgTime = new Date(msg.created_at).getTime()
-                const newMsgTime = new Date(newMessage.created_at).getTime()
-                const timeDiff = Math.abs(newMsgTime - msgTime)
-                return timeDiff < 1000 // Within 1 second
-              }
-
-              return false
-            })
-
-            if (isDuplicate) {
-              console.log("Duplicate message detected, skipping")
-              return nextMessages
-            }
-
-            // Add as new message
-            return [...nextMessages, newMessage]
+            return answerMatches && sentRecently
           }
+
+          // For customer messages, check content field
+          const contentMatches =
+            (msg.content && newMessage.content &&
+             (msg.content.trim() === newMessage.content.trim() || msg.content.includes(newMessage.content)))
+
+          // Check if sent recently (within 10 seconds)
+          const msgTime = new Date(msg.created_at).getTime()
+          const newMsgTime = new Date(newMessage.created_at).getTime()
+          const timeDiff = Math.abs(newMsgTime - msgTime)
+          const sentRecently = timeDiff < 10000
+
+          return contentMatches && sentRecently
         })
-        setLastMessageId(newMessage.id)
+
+        if (recentPendingIndex !== -1) {
+          matchedPending = true
+          // Replace optimistic message with real one
+          const updated = [...nextMessages]
+          updated[recentPendingIndex] = {
+            ...newMessage,
+            pending: false,
+            status: newMessage.status || "sent",
+          }
+          console.log("Replaced optimistic message with real message")
+          return updated
+        }
+
+        // Check if message already exists (prevent duplicates)
+        // Check by whatsapp_message_id if available, or by content and timestamp
+        isDuplicate = nextMessages.some((msg) => {
+          // Check by WhatsApp message ID
+          if (newMessage.whatsapp_message_id && msg.whatsapp_message_id) {
+            return msg.whatsapp_message_id === newMessage.whatsapp_message_id
+          }
+
+          // Check by content and timestamp (within 1 second)
+          const sameContent =
+            (newMessage.answer && msg.answer && msg.answer === newMessage.answer) ||
+            (newMessage.content && msg.content && msg.content === newMessage.content)
+
+          if (sameContent) {
+            const msgTime = new Date(msg.created_at).getTime()
+            const newMsgTime = new Date(newMessage.created_at).getTime()
+            const timeDiff = Math.abs(newMsgTime - msgTime)
+            return timeDiff < 1000 // Within 1 second
+          }
+
+          return false
+        })
+
+        if (isDuplicate) {
+          return nextMessages
+        }
+
+        // Add as new message
+        return [...nextMessages, newMessage]
+      })
+
+      if (isDuplicate) {
+        console.log("Duplicate message detected, skipping")
+        return
       }
+
+      if (!matchedPending) {
+        console.log("New message received:", newMessage)
+      }
+
+      setLastMessageId(newMessage.id)
     }
 
     window.addEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
@@ -701,7 +736,7 @@ export default function ChatArea({
         pending: true, // Flag to identify optimistic messages
       }
       updateMessagesAndSync((prev) => [...(prev || []), optimisticMessage])
-      setLastMessageId(optimisticMessage.id)
+      // Avoid poll-based duplication by keeping the last server message id.
       setShouldAutoScroll(true)
 
       return optimisticMessage.id // Return temp ID for tracking
