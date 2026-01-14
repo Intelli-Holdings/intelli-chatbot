@@ -990,8 +990,9 @@ export default function ChatArea({
                     const contentMedia = message.content ? extractMedia(message.content) : null
                     const contentHasMedia = contentMedia?.type && contentMedia?.url
                     const messageKey =
+                      message.id ??
                       message.whatsapp_message_id ??
-                      `${message.id}-${message.created_at ?? "unknown"}-${messageIndex}`
+                      `${message.created_at ?? "unknown"}-${messageIndex}`
 
                     return (
                       <div key={messageKey} className="flex flex-col mb-4">
