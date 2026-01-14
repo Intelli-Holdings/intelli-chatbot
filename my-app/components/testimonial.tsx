@@ -84,15 +84,14 @@ const Testimonials = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-5 py-12">
       <h2 className="text-center text-5xl font-bold mb-10">
-        Join 100+ Businesses on Intelli
+        Join 150+ Businesses on Intelli
       </h2>
       <div className="w-full mb-10">
         <AnimatedLogoCloud />
       </div>
 
       <p className="max-w-2xl text-center text-sm font-semibold md:text-base ">
-        Intelli is loved and used by many companies. It is
-        a great tool for businesses that intend to improve customer experience.
+        Founders, Marketers and Sales Teams love us!
       </p>
 
         <div className="w-full mb-10">
