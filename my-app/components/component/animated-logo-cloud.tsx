@@ -29,6 +29,18 @@ const logos = [
     name: "Building Bytes",
     url: "/buildingbytes_logo.jpeg",
   },
+   {
+    name: "thedsgnjunkies",
+    url: "/thedsgnjunkies.png",
+  },
+    {
+    name: "GoldTop Experince",
+    url: "/goldtopexperience.png",
+  },
+    {
+    name: "AKCS Technologies",
+    url: "/akcs.png",
+  },
 ]
 
 const AnimatedLogoCloud = () => {
