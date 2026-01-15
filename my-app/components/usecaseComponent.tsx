@@ -28,17 +28,17 @@ const UsecaseComponent = () => {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
-                      Travel
+                      Travel & Hospitality
                     </span>
                   </div>
-                  <h2 className="text-3xl font-bold">Travel Agencies</h2>
+                  <h2 className="text-3xl font-bold">Travel & Hospitality</h2>
                   <p className="text-gray-700">
-                    <strong>How travel agencies use Intelli:</strong>
+                    <strong>Increase bookings and re-engage travelers automatically:</strong>
                     <br />
-                    Travel agencies receive numerous inquiries about booking
-                    details, travel packages, and visa requirements. Intelli
-                    responds to these common questions, on behalf of your agency providing
-                    customers with the information they need quickly.
+                    Automate bookings, deliver real-time updates, 
+                    re-engage travelers & guest, and turn inquiries into 
+                    more confirmed bookings.
+                    
                   </p>
 
                   <Link href="/usecases">
@@ -73,11 +73,11 @@ const UsecaseComponent = () => {
                   </div>
                   <h3 className="text-3xl font-bold">NGOs</h3>
                   <p className="text-gray-700">
-                    <strong>How NGOs use Intelli:</strong>
+                    <strong>Scale outreach and applicant engagement:</strong>
                     <br />
-                    NGOs can use Intelli to efficiently manage inquiries related
-                    to their programs, such as scholarship applications, business
-                    grants, or training sessions.
+                    Automate program inquiries, guide applications, 
+                    send updates at scale, and manage recruitment 
+                    cycles with lean teams.
                   </p>
 
                   <Link href="/usecases">
@@ -148,17 +148,16 @@ const UsecaseComponent = () => {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
-                      Schools
+                      Education
                     </span>
                   </div>
-                  <h2 className="text-3xl font-bold">Schools</h2>
+                  <h2 className="text-3xl font-bold">Education & Edtech</h2>
                   <p className="text-gray-700">
-                    <strong>How schools use Intelli:</strong>
+                    <strong>Automate student engagement from first touch to enrollment:</strong>
                     <br />
-                    Schools receive a lot of inquiries from students & parents
-                    regarding enrollment, course details, schedules, and more.
-                    Intelli can help by automating responses to these common
-                    questions.
+                   Use AI-powered conversations to guide course discovery, 
+                   nurture intent, and convert more student inquiries into 
+                   confirmed enrollments.
                   </p>
 
                   <Link href="/usecases">
@@ -193,12 +192,11 @@ const UsecaseComponent = () => {
                   </div>
                   <h2 className="text-3xl font-bold">Government Agencies</h2>
                   <p className="text-gray-700">
-                    <strong>How governments use Intelli:</strong>
+                    <strong>Modernize citizen communication:</strong>
                     <br />
-                    Government agencies often handle a lot of inquiries regarding
-                    various services, such as permit applications, tax information,
-                    and public assistance programs from the public. Intelli can
-                    automate responses, providing detailed information to citizens.
+                    Automate service inquiries, share official updates, 
+                    route requests efficiently, and improve public service 
+                    delivery at scale.
                   </p>
 
                   <Link href="/usecases">
