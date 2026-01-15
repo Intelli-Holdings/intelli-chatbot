@@ -41,13 +41,17 @@ const logos = [
     name: "AKCS Technologies",
     url: "/akcs.png",
   },
-      {
+    {
     name: "proc360",
     url: "/proc360.png",
   },
-        {
+      {
     name: "FtitBeat Wellness",
     url: "/fitbeat.png",
+  },
+        {
+    name: "code&cocktails",
+    url: "/code&cocktails.jpeg",
   },
 ]
 
