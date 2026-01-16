@@ -139,7 +139,6 @@ export default function Analytics() {
   const organizationId = useActiveOrganizationId()
   const [timeRange, setTimeRange] = useState<string>("30")
   const [metricsData, setMetricsData] = useState<MetricsResponse | null>(null)
-  const [timelineData, setTimelineData] = useState<MetricsSnapshot[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -149,13 +148,9 @@ export default function Analytics() {
       try {
         setIsLoading(true)
 
-        // Fetch summary data
+        // Fetch summary data (includes timeline)
         const summaryData = await getMetricsSummaryByOrganization(organizationId, { period: timeRange })
         setMetricsData(summaryData)
-
-        // Fetch timeline data
-        const timeline = await getMetricsByOrganization(organizationId, { period: timeRange })
-        setTimelineData(timeline)
       } catch (error) {
         console.error("Error fetching analytics data:", error)
       } finally {
@@ -184,7 +179,7 @@ export default function Analytics() {
           <Activity className="h-16 w-16 text-muted-foreground mx-auto" />
           <div>
             <h3 className="text-lg font-semibold mb-2">No Analytics Data Available</h3>
-            <p className="text-sm text-muted-foreground">Start generating metrics to see your analytics</p>
+            <p className="text-sm text-muted-foreground">Continue using Intelli to see your analytics</p>
           </div>
         </div>
       </div>
@@ -235,6 +230,7 @@ export default function Analytics() {
   ]
 
   // Prepare conversations over time data
+  const timelineData = metricsData?.timeline || []
   const conversationsOverTime = timelineData.map((snapshot) => ({
     date: new Date(snapshot.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     whatsapp: snapshot.conversations_per_channel?.channels?.whatsapp?.number_of_conversations || 0,
