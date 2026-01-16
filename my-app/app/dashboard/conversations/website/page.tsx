@@ -221,10 +221,6 @@ export default function WebsiteConversationsPage() {
         return Boolean(message.content) && !isBusinessMessage
       })
     const lastMessageContent = lastVisitorMessage?.content || ""
-    if (!lastMessageContent) {
-      toast.error("No visitor message found to reply to")
-      return
-    }
 
     const payload = {
       action: "send_message",
