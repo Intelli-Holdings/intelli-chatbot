@@ -169,14 +169,13 @@ export async function getMetricsSummary(
  * Trigger a new metrics snapshot
  */
 export async function produceMetricsSnapshot(organizationId: string): Promise<MetricData> {
-  const url = `/api/monitoring/produce_metrics_snapshot`;
+  const url = `/api/monitoring/produce_metrics_snapshot/${organizationId}/`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ organization_id: organizationId }),
   });
 
   if (!response.ok) {

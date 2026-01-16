@@ -8,9 +8,27 @@ export const steps: Tours = [
     steps: [
       {
         icon: "👋",
-        title: "Welcome to Intelli",
-        content: "Start here to get a quick snapshot of your workspace and access the tour anytime.",
+        title: "Welcome to Your Dashboard",
+        content: "Get a quick view of what matters most today.",
         selector: "#onborda-step1",
+        side: "bottom",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "🧭",
+        title: "Navigation Menu",
+        content: "Open the sidebar to reach assistants, channels, and analytics.",
+        selector: "#tour-step-sidebar-toggle",
+        side: "bottom",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "🔔",
+        title: "Notifications",
+        content: "Keep track of important alerts and updates here.",
+        selector: "#tour-step-notifications",
         side: "left",
         showControls: true,
         showSkip: true
@@ -18,54 +36,68 @@ export const steps: Tours = [
       {
         icon: "📈",
         title: "Live Insights",
-        content: "Monitor key KPIs and performance trends compared to last month.",
-        selector: "#onborda-step2",
-        side: "right",
-        showControls: true,
-        showSkip: true
-      },
-      {
-        icon: "👥",
-        title: "Contact Management",
-        content: "Track total contacts, follow-ups, conversions, and inbound leads at a glance.",
-        selector: "#onborda-step3",
-        side: "left",
-        showControls: true,
-        showSkip: true
-      },
-      {
-        icon: "⚠️",
-        title: "Priority Issues",
-        content: "Stay on top of time-sensitive requests and high priority conversations.",
-        selector: "#onborda-step4",
-        side: "right",
-        showControls: true,
-        showSkip: true
-      },
-      {
-        icon: "⚙️",
-        title: "Token Usage",
-        content: "Keep an eye on AI usage and costs so you can plan ahead.",
-        selector: "#onborda-step5",
+        content: "Monitor conversations, messages, and AI usage at a glance.",
+        selector: "#tour-step-live-insights",
         side: "top",
+        showControls: true,
+        showSkip: true
+      }
+    ]
+  },
+  {
+    tour: "gettingStartedTour",
+    steps: [
+      {
+        icon: "👋",
+        title: "Welcome to Intelli",
+        content: "This is your command center for customer engagement.",
+        selector: "#onborda-step1",
+        side: "bottom",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "🧭",
+        title: "Navigation Menu",
+        content: "Use the sidebar to move between key areas quickly.",
+        selector: "#tour-step-sidebar-toggle",
+        side: "bottom",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "🔔",
+        title: "Notifications",
+        content: "Stay on top of alerts and new activity.",
+        selector: "#tour-step-notifications",
+        side: "left",
         showControls: true,
         showSkip: true
       },
       {
         icon: "💬",
-        title: "Conversations",
-        content: "Review total and active conversations, response times, and satisfaction.",
-        selector: "#onborda-step6",
-        side: "left",
+        title: "Connect a Channel",
+        content: "Start by connecting WhatsApp or your website widget.",
+        selector: "#tour-step-connect-channel",
+        side: "bottom",
+        showControls: true,
+        showSkip: true
+      },
+      {
+        icon: "✨",
+        title: "Create Your Assistant",
+        content: "Train an AI assistant to respond with your business knowledge.",
+        selector: "#tour-step-create-assistant",
+        side: "bottom",
         showControls: true,
         showSkip: true
       },
       {
         icon: "🚀",
-        title: "Launch Channels",
-        content: "Create assistants and deploy them across your customer channels.",
-        selector: "#onborda-step7",
-        side: "right",
+        title: "Engage Customers",
+        content: "Launch conversations and start tracking growth.",
+        selector: "#tour-step-engage-customers",
+        side: "top",
         showControls: true,
         showSkip: true
       }

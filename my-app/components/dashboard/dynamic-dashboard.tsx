@@ -227,6 +227,7 @@ export const DynamicDashboard: React.FC = () => {
 
   const {
     stats,
+    allTimeStats,
     loading,
     error,
     period,
@@ -250,19 +251,20 @@ export const DynamicDashboard: React.FC = () => {
     setWebsiteDialogOpen(true);
   }, []);
 
+  // Use ALL-TIME stats for the empty state, not period-filtered stats
   const emptyStateStats = React.useMemo(() => {
-    if (!stats) return undefined;
+    if (!allTimeStats) return undefined;
     return {
-      totalConversations: stats.totalConversations,
-      totalMessages: stats.totalMessages,
-      activeTickets: stats.activeConversations,
-      tokenUsagePercent: stats.tokenUsagePercent,
+      totalConversations: allTimeStats.totalConversations,
+      totalMessages: allTimeStats.totalMessages,
+      activeTickets: allTimeStats.activeConversations,
+      tokenUsagePercent: allTimeStats.tokenUsagePercent,
       channelStats: {
-        whatsapp: stats.channelStats.whatsapp,
-        website: stats.channelStats.website,
+        whatsapp: allTimeStats.channelStats.whatsapp,
+        website: allTimeStats.channelStats.website,
       }
     };
-  }, [stats]);
+  }, [allTimeStats]);
 
   // Show empty state for new users
   if (isEmpty && !loading) {
@@ -335,7 +337,7 @@ export const DynamicDashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Metrics Section */}
-      <section className="space-y-4">
+      <section id="tour-step-live-insights" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Live Insights</h2>

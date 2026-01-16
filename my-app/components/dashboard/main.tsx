@@ -13,7 +13,15 @@ import { DynamicDashboard } from './dynamic-dashboard';
 const Dashboard: React.FC = () => {
     const { startOnborda, closeOnborda } = useOnborda();
     const handleStartOnborda = () => {
-        startOnborda('mainTour');
+        if (typeof document === "undefined") {
+            startOnborda("mainTour");
+            return;
+        }
+
+        const hasGettingStartedCards = Boolean(
+            document.querySelector("#tour-step-connect-channel")
+        );
+        startOnborda(hasGettingStartedCards ? "gettingStartedTour" : "mainTour");
     };
     const { closeNextStep } = useNextStep();
     const { isLoaded, isSignedIn, user } = useUser();

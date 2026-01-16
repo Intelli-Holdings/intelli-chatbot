@@ -66,7 +66,10 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
         </h2>
         <div className="grid gap-4 md:grid-cols-3">
           {/* Step 1 */}
-          <Card className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <Card
+            id="tour-step-connect-channel"
+            className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
               <span className="text-lg font-bold">1</span>
             </div>
@@ -102,7 +105,10 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
           </Card>
 
           {/* Step 2 */}
-          <Card className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <Card
+            id="tour-step-create-assistant"
+            className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
               <span className="text-lg font-bold">2</span>
             </div>
@@ -128,7 +134,10 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
           </Card>
 
           {/* Step 3 */}
-          <Card className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <Card
+            id="tour-step-engage-customers"
+            className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
               <span className="text-lg font-bold">3</span>
             </div>
@@ -165,7 +174,7 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
             <h3 className="text-lg font-semibold text-gray-900">Quick Stats Overview</h3>
             <p className="text-sm text-gray-600 mt-1">
               {stats && (stats.totalConversations ?? 0) > 0
-                ? "Your engagement metrics at a glance"
+                ? "Your current engagement metrics"
                 : "Your metrics will appear here once you start engaging with customers"}
             </p>
           </div>
@@ -185,15 +194,15 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
               {stats?.totalConversations?.toLocaleString() ?? 0}
             </p>
             {stats && stats.channelStats && (((stats.channelStats.whatsapp ?? 0) + (stats.channelStats.website ?? 0)) > 0) && (
-              <div className="mt-2 flex gap-2 text-xs">
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 {(stats.channelStats.whatsapp ?? 0) > 0 && (
-                  <span className="text-green-600">
+                  <span className="text-green-600 font-medium">
                     WhatsApp: {stats.channelStats.whatsapp}
                   </span>
                 )}
                 {(stats.channelStats.website ?? 0) > 0 && (
-                  <span className="text-blue-600">
-                    Web: {stats.channelStats.website}
+                  <span className="text-blue-600 font-medium">
+                    Website: {stats.channelStats.website}
                   </span>
                 )}
               </div>
@@ -204,7 +213,7 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
               ? 'border-purple-200 bg-purple-50'
               : 'border-gray-200 bg-gray-50'
           }`}>
-            <p className="text-xs font-medium text-gray-500">Messages Sent</p>
+            <p className="text-xs font-medium text-gray-500">Total Messages</p>
             <p className={`text-2xl font-bold mt-1 ${
               stats && (stats.totalMessages ?? 0) > 0
                 ? 'text-purple-600'
@@ -212,13 +221,14 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
             }`}>
               {stats?.totalMessages?.toLocaleString() ?? 0}
             </p>
+            <p className="text-xs text-gray-500 mt-1">All messages exchanged</p>
           </div>
           <div className={`rounded-lg border p-3 ${
             stats && (stats.activeTickets ?? 0) > 0
               ? 'border-orange-200 bg-orange-50'
               : 'border-gray-200 bg-gray-50'
           }`}>
-            <p className="text-xs font-medium text-gray-500">Active Tickets</p>
+            <p className="text-xs font-medium text-gray-500">Active Conversations</p>
             <p className={`text-2xl font-bold mt-1 ${
               stats && (stats.activeTickets ?? 0) > 0
                 ? 'text-orange-600'
@@ -226,13 +236,14 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
             }`}>
               {stats?.activeTickets?.toLocaleString() ?? 0}
             </p>
+            <p className="text-xs text-gray-500 mt-1">Currently ongoing</p>
           </div>
           <div className={`rounded-lg border p-3 ${
             stats && (stats.tokenUsagePercent ?? 0) > 0
               ? 'border-green-200 bg-green-50'
               : 'border-gray-200 bg-gray-50'
           }`}>
-            <p className="text-xs font-medium text-gray-500">Token Usage</p>
+            <p className="text-xs font-medium text-gray-500">AI Usage</p>
             <p className={`text-2xl font-bold mt-1 ${
               stats && (stats.tokenUsagePercent ?? 0) > 0
                 ? 'text-green-600'
@@ -240,6 +251,7 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
             }`}>
               {stats?.tokenUsagePercent ?? 0}%
             </p>
+            <p className="text-xs text-gray-500 mt-1">Of monthly limit</p>
           </div>
         </div>
       </Card>

@@ -12,6 +12,7 @@ export type TimePeriod = 'today' | 'week' | 'month' | 'all';
 
 export interface UseDashboardMetricsReturn {
   stats: DashboardStats | null;
+  allTimeStats: DashboardStats | null;
   loading: boolean;
   error: string | null;
   period: TimePeriod;
@@ -27,6 +28,7 @@ export const useDashboardMetrics = (
   organizationId: string | null
 ): UseDashboardMetricsReturn => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [allTimeStats, setAllTimeStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<TimePeriod>('week');
@@ -42,8 +44,24 @@ export const useDashboardMetrics = (
     setError(null);
 
     try {
+      // Fetch the period-specific data for display
       const dateRange = getDateRangeForPeriod(period);
       const summary: MetricsSummary = await getMetricsSummary(organizationId, dateRange);
+
+      // Try to fetch all-time data, but fallback to summary if it fails
+      let allTimeSummary: MetricsSummary;
+      if (period === 'all') {
+        allTimeSummary = summary;
+      } else {
+        try {
+          const allTimeDateRange = getDateRangeForPeriod('all');
+          allTimeSummary = await getMetricsSummary(organizationId, allTimeDateRange);
+        } catch (allTimeError) {
+          console.warn('[Dashboard Metrics] Failed to fetch all-time data, using period data as fallback:', allTimeError);
+          // Fallback to period data
+          allTimeSummary = summary;
+        }
+      }
 
       console.log('[Dashboard Metrics] Raw API response:', {
         hasSummary: !!summary,
@@ -93,16 +111,20 @@ export const useDashboardMetrics = (
       const instagramCount = getChannelCount(latest.conversations_per_channel?.channels?.instagram);
       const messengerCount = getChannelCount(latest.conversations_per_channel?.channels?.messenger);
 
-      // Check if there's any conversation activity
-      const hasActivity = latest.num_conversations > 0 || whatsappCount > 0 || websiteCount > 0;
+      // Check isEmpty based on ALL-TIME data, not period-filtered data
+      const allTimeLatest = allTimeSummary.latest || latest;
+      const allTimeWhatsapp = getChannelCount(allTimeLatest.conversations_per_channel?.channels?.whatsapp);
+      const allTimeWebsite = getChannelCount(allTimeLatest.conversations_per_channel?.channels?.website);
+      const hasActivity = allTimeLatest.num_conversations > 0 || allTimeWhatsapp > 0 || allTimeWebsite > 0;
 
       console.log('[Dashboard Metrics] Activity check:', {
-        num_conversations: latest.num_conversations,
-        num_messages: latest.num_messages,
-        whatsapp: whatsappCount,
-        website: websiteCount,
-        raw_whatsapp: latest.conversations_per_channel?.channels?.whatsapp,
-        raw_website: latest.conversations_per_channel?.channels?.website,
+        period,
+        period_conversations: latest.num_conversations,
+        period_messages: latest.num_messages,
+        alltime_conversations: allTimeLatest.num_conversations,
+        alltime_messages: allTimeLatest.num_messages,
+        alltime_whatsapp: allTimeWhatsapp,
+        alltime_website: allTimeWebsite,
         hasActivity,
         isEmpty: !hasActivity
       });
@@ -179,6 +201,53 @@ export const useDashboardMetrics = (
       };
 
       setStats(dashboardStats);
+
+      // Also create and store all-time stats for the empty state
+      const allTimeTimeline = allTimeSummary.timeline || [];
+      const allTimeStatsData: DashboardStats = {
+        totalContacts: contactsCount,
+        needFollowUp: allTimeLatest.num_pending || 0,
+        converted: allTimeLatest.num_resolved || 0,
+        inboundLeads: allTimeLatest.num_escalations || 0,
+        totalConversations: allTimeLatest.num_conversations || 0,
+        totalMessages: allTimeLatest.num_messages || 0,
+        activeConversations: (allTimeLatest.num_pending || 0) + (allTimeLatest.num_assigned || 0),
+        avgResponseTime,
+        tokensUsed: allTimeLatest.used_token || 0,
+        tokensLimit: allTimeLatest.total_token || 0,
+        tokenUsagePercent: allTimeLatest.total_token > 0
+          ? Math.round((allTimeLatest.used_token / allTimeLatest.total_token) * 100)
+          : 0,
+        estimatedCost: calculateTokenCost(allTimeLatest.used_token),
+        totalEscalations: allTimeLatest.num_escalations || 0,
+        pendingEscalations: allTimeLatest.num_pending || 0,
+        assignedTickets: allTimeLatest.num_assigned || 0,
+        resolvedTickets: allTimeLatest.num_resolved || 0,
+        channelStats: {
+          whatsapp: allTimeWhatsapp,
+          website: allTimeWebsite,
+          email: getChannelCount(allTimeLatest.conversations_per_channel?.channels?.email),
+          instagram: getChannelCount(allTimeLatest.conversations_per_channel?.channels?.instagram),
+          messenger: getChannelCount(allTimeLatest.conversations_per_channel?.channels?.messenger),
+        },
+        recentEscalations: recentEscalationsData,
+        conversationTrend: allTimeTimeline.map((metric) => ({
+          date: new Date(metric.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          }),
+          count: metric.num_conversations || 0,
+        })),
+        messageTrend: allTimeTimeline.map((metric) => ({
+          date: new Date(metric.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          }),
+          count: metric.num_messages || 0,
+        })),
+      };
+
+      setAllTimeStats(allTimeStatsData);
     } catch (err) {
       let errorMessage = 'Failed to fetch dashboard metrics';
 
@@ -186,8 +255,12 @@ export const useDashboardMetrics = (
         errorMessage = err.message;
       }
 
+      // Don't break the UI for backend errors - set empty state
+      setStats(null);
+      setAllTimeStats(null);
+      setIsEmpty(true);
       setError(errorMessage);
-      console.error('Error fetching dashboard metrics:', err);
+      console.error('[Dashboard Metrics] Error fetching dashboard metrics:', err);
     } finally {
       setLoading(false);
     }
@@ -199,6 +272,7 @@ export const useDashboardMetrics = (
 
   return {
     stats,
+    allTimeStats,
     loading,
     error,
     period,
