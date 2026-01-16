@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "organization_id is required" }, { status: 400 })
     }
 
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
 
     if (!token) {

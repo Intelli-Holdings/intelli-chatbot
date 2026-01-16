@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -99,7 +99,7 @@ export default function WhatsAppPackage() {
   })
 
   // Fetch WhatsApp packages
-  const fetchWhatsAppPackages = async () => {
+  const fetchWhatsAppPackages = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/whatsapp/org/${organizationId}`)
@@ -121,10 +121,10 @@ export default function WhatsAppPackage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [organizationId])
 
   // Fetch Assistants
-  const fetchAssistants = async () => {
+  const fetchAssistants = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`)
       if (!response.ok) {
@@ -136,7 +136,7 @@ export default function WhatsAppPackage() {
     } catch (error) {
       console.error("Error fetching assistants:", error)
     }
-  }
+  }, [organizationId])
 
 // Create WhatsApp package
 const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>) => {
@@ -248,7 +248,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
       fetchWhatsAppPackages()
       fetchAssistants()
     }
-  }, [organizationId, fetchAssistants, fetchWhatsAppPackages])
+  }, [fetchAssistants, fetchWhatsAppPackages, organizationId])
 
   useEffect(() => {
     if (editPackage) {

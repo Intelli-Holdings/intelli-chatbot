@@ -74,7 +74,7 @@ export const defaultTemplates: DefaultTemplate[] = [
         ]
       }
     ],
-    id: "",
+    id: "order_confirmation",
     description: "Order confirmation with receipt and support options"
   },
 
@@ -125,7 +125,7 @@ export const defaultTemplates: DefaultTemplate[] = [
         ]
       }
     ],
-    id: "",
+    id: "limited_time_offer_tuscan_getaway",
     description: "Limited time promotional offer with image header"
   },
 

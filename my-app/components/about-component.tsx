@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -181,10 +182,12 @@ const IntelliAIWebsite = () => {
               </div>
               <div className="w-full lg:w-1/2">
                 <div className="relative h-full min-h-64">
-                  <img 
-                    src="/dublin.jpg" 
-                    alt="Dream Machine Interface" 
-                    className="w-full h-full object-cover"
+                  <Image
+                    src="/dublin.jpg"
+                    alt="Dream Machine Interface"
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 1024px) 50vw, 100vw"
                   />
                 </div>
               </div>
@@ -224,10 +227,12 @@ const IntelliAIWebsite = () => {
               </div>
               <div className="w-full lg:w-1/2">
                 <div className="relative h-full min-h-64">
-                  <img 
-                    src="/dublin.jpg" 
-                    alt="Dream Machine Interface" 
-                    className="w-full h-full object-cover"
+                  <Image
+                    src="/dublin.jpg"
+                    alt="Dream Machine Interface"
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 1024px) 50vw, 100vw"
                   />
                 </div>
               </div>

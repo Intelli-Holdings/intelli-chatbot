@@ -35,67 +35,72 @@ const CustomCard: React.FC<CardComponentProps> = ({
   }
 
   return (
-    <Card className="border-0 rounded-3xl max-w-vw">
-      <CardHeader>
-        <div className="flex items-start justify-between w-full">
-          <div>
-            <CardTitle className="mb-2 text-lg">
-              {step.icon} {step.title}
+    <Card className="border shadow-lg rounded-xl w-full max-w-[min(320px,calc(100vw-2rem))]">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between w-full gap-2">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <span>{step.icon}</span>
+              <span className="truncate">{step.title}</span>
             </CardTitle>
-            <CardDescription>
-              {currentStep + 1} of {totalSteps}
+            <CardDescription className="text-xs mt-1">
+              Step {currentStep + 1} of {totalSteps}
             </CardDescription>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => closeOnborda()}
-            className="hover:bg-gray-100"
+            className="hover:bg-gray-100 h-8 w-8 shrink-0"
           >
-            <X size={16} />
+            <X size={14} />
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
-          <div 
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+      <CardContent className="py-3">
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-4">
+          <div
+            className="bg-[#007fff] h-1.5 rounded-full transition-all duration-300 ease-out"
             style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
           />
         </div>
-        {step.content}
+        <p className="text-sm text-gray-600 leading-relaxed">{step.content}</p>
       </CardContent>
 
-      <CardFooter>
-        <div className="flex justify-between w-full gap-4">
+      <CardFooter className="pt-3">
+        <div className="flex justify-between w-full gap-2">
           {currentStep !== 0 && (
-            <Button 
+            <Button
               onClick={() => prevStep()}
-              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
+              variant="outline"
+              size="sm"
+              className="text-xs"
             >
               Previous
             </Button>
           )}
           {currentStep + 1 !== totalSteps && (
-            <Button 
-              onClick={() => nextStep()} 
-              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px] ml-auto"
+            <Button
+              onClick={() => nextStep()}
+              size="sm"
+              className="bg-[#007fff] hover:bg-[#0067d6] text-white text-xs ml-auto"
             >
               Next
             </Button>
           )}
           {currentStep + 1 === totalSteps && (
-            <Button 
-              onClick={() => handleConfetti()} 
-              className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px] ml-auto"
+            <Button
+              onClick={() => handleConfetti()}
+              size="sm"
+              className="bg-[#007fff] hover:bg-[#0067d6] text-white text-xs ml-auto"
             >
-              🎉 Finish!
+              Finish 🎉
             </Button>
           )}
         </div>
       </CardFooter>
-      
+
       <span className="text-card">{arrow}</span>
     </Card>
   );

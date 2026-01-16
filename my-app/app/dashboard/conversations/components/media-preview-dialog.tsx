@@ -1,4 +1,5 @@
 import React from "react"
+import Image from "next/image"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X, ExternalLink, Download, FileText } from "lucide-react"
@@ -93,9 +94,11 @@ export function MediaPreviewDialog({
 function renderMediaContent(url: string, type: string, filename?: string) {
   if (type.startsWith('image/')) {
     return (
-      <img 
+      <Image 
         src={url} 
         alt={filename || "Preview"} 
+        width={800}
+        height={600}
         className="max-w-full max-h-[70vh] object-contain"
       />
     )

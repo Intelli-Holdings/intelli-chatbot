@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Eye,
   Send,
@@ -75,17 +75,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
   const [templateLanguage, setTemplateLanguage] = useState('en_US');
   const [creatingTemplate, setCreatingTemplate] = useState(false);
 
-  useEffect(() => {
-    fetchFlows();
-  }, []);
-
-  useEffect(() => {
-    if (appService?.phone_number) {
-      setSenderNumber(appService.phone_number);
-    }
-  }, [appService]);
-
-  const fetchFlows = async () => {
+  const fetchFlows = useCallback(async () => {
     if (!appService?.whatsapp_business_account_id || !appService?.access_token) {
       toast.error('WhatsApp Business Account not configured');
       return;
@@ -102,7 +92,17 @@ export default function FlowManager({ appService }: FlowManagerProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appService]);
+
+  useEffect(() => {
+    fetchFlows();
+  }, [fetchFlows]);
+
+  useEffect(() => {
+    if (appService?.phone_number) {
+      setSenderNumber(appService.phone_number);
+    }
+  }, [appService]);
 
   const fetchFlowDetails = async (flowId: string) => {
     if (!appService?.access_token) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 // DELETE - Delete an assistant by ID
 export async function DELETE(
@@ -6,6 +7,26 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const { id } = params
+
+  // Check authentication and get session token
+  const { userId, getToken } = await auth()
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
+
+  // Get Clerk JWT token to forward to backend
+  const token = await getToken()
+
+  if (!token) {
+    return NextResponse.json(
+      { error: 'Unable to get authentication token' },
+      { status: 401 }
+    )
+  }
 
   try {
     if (!id) {
@@ -23,6 +44,7 @@ export async function DELETE(
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       }
     )
@@ -72,6 +94,26 @@ export async function PUT(
 ) {
   const { id } = params
 
+  // Check authentication and get session token
+  const { userId, getToken } = await auth()
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
+
+  // Get Clerk JWT token to forward to backend
+  const token = await getToken()
+
+  if (!token) {
+    return NextResponse.json(
+      { error: 'Unable to get authentication token' },
+      { status: 401 }
+    )
+  }
+
   try {
     if (!id) {
       return NextResponse.json(
@@ -94,6 +136,7 @@ export async function PUT(
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(updateData),
       }

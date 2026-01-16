@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useOrganizationList } from "@clerk/nextjs";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -157,9 +158,11 @@ export default function ManageOrganizations() {
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {mem.organization.imageUrl ? (
-                      <img
+                      <Image
                         src={mem.organization.imageUrl || "/placeholder.svg"}
                         alt=""
+                        width={32}
+                        height={32}
                         className="h-8 w-8 rounded-md object-cover"
                       />
                     ) : (

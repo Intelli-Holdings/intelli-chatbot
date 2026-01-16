@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useQueryClient } from 'react-query';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,9 @@ import { toast } from 'sonner';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
 import { CampaignService, type Campaign, type CreateCampaignData } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { useContactTags } from '@/hooks/use-contact-tags';
+import { useInfiniteContacts } from '@/hooks/use-contacts';
+import { useCustomFields } from '@/hooks/use-custom-fields';
 import { useCampaignTimezone } from '@/hooks/use-campaign-timezone';
 import { convertUTCToLocalDateTimeString } from '@/lib/timezone-utils';
 import { TemplateSelectionPanel } from '@/components/template-selection-panel';
@@ -37,7 +41,7 @@ interface Contact {
 }
 
 interface Tag {
-  id: string;
+  id: string | number;
   name: string;
   slug: string;
 }
@@ -50,8 +54,16 @@ interface CampaignCreationFormProps {
 
 export default function CampaignCreationForm({ appService, onSuccess, draftCampaign = null }: CampaignCreationFormProps) {
   const organizationId = useActiveOrganizationId();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [campaignType, setCampaignType] = useState<'template' | 'simple'>('template');
+
+  const invalidateCampaignQueries = () => {
+    if (!organizationId) return;
+    queryClient.invalidateQueries(['campaigns', organizationId]);
+    queryClient.invalidateQueries(['campaign-status-counts', organizationId]);
+    queryClient.invalidateQueries(['whatsapp-campaigns', organizationId]);
+  };
 
   const {
     scheduledAtUTC,
@@ -86,17 +98,20 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [createdWhatsAppCampaignId, setCreatedWhatsAppCampaignId] = useState<string | null>(null);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [recipientParameters, setRecipientParameters] = useState<Record<string, Record<string, string>>>({});
+  const [headerMediaMode, setHeaderMediaMode] = useState<'per-recipient' | 'global'>('per-recipient');
+  const [globalHeaderMediaFile, setGlobalHeaderMediaFile] = useState<File | null>(null);
+  const [globalHeaderMediaHandle, setGlobalHeaderMediaHandle] = useState<string>('');
+  const [globalHeaderMediaId, setGlobalHeaderMediaId] = useState<string>('');
+  const [isUploadingHeaderMedia, setIsUploadingHeaderMedia] = useState(false);
 
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [customFields, setCustomFields] = useState<Array<{ id: string; name: string; key: string }>>([]);
+  const [showAllTags, setShowAllTags] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingContacts, setLoadingContacts] = useState(false);
 
   // CSV Import state
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const headerMediaFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvData, setCsvData] = useState<Array<Record<string, string>>>([]);
@@ -115,13 +130,30 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
   const { mappings, loading: mappingsLoading } = useImportMappings(organizationId || '', formData.channel);
 
-  // New pagination / totals state used by contacts fetch logic
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [currentPage, setCurrentPage] = useState(1);
-
   // Reduce page size to 100 to avoid gateway timeouts (was 1000)
   const pageSize = 100;
+  const {
+    contacts,
+    isLoading: contactsLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: contactsError,
+  } = useInfiniteContacts<Contact>(organizationId || undefined, pageSize);
+  const { tags, error: tagsError } = useContactTags(organizationId || undefined);
+  const { customFields: rawCustomFields, error: customFieldsError } = useCustomFields(organizationId || undefined);
+  const customFields = useMemo(
+    () =>
+      rawCustomFields
+        .filter((field) => field.active)
+        .map((field) => ({
+          id: field.id,
+          name: field.name,
+          key: field.key,
+        })),
+    [rawCustomFields]
+  );
+  const loadingContacts = contactsLoading || isFetchingNextPage;
 
   const { templates, loading: templatesLoading } = useWhatsAppTemplates(appService);
   const approvedTemplates = templates.filter(t => t.status === 'APPROVED');
@@ -133,95 +165,23 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     hasInitializedDraft.current = false;
     hasSyncedDraftTemplate.current = false;
   }, [draftCampaign?.id]);
-
-  // Fetch contacts using the same logic as /dashboard/contacts (paginated, smaller page size)
-  // Returns true on success, false on failure.
-  const fetchContacts = useCallback(async (orgId: string, page: number = 1) => {
-    try {
-      setLoadingContacts(true);
-      const response = await fetch(`/api/contacts/contacts?organization=${orgId}&page=${page}&page_size=${pageSize}`);
-      if (!response.ok) throw new Error("Failed to fetch contacts");
-      const data = await response.json();
-
-      // Handle paginated response
-      if (data.results) {
-        if (page === 1) {
-          setContacts(data.results);
-        } else {
-          // Append new batch while keeping previous contacts
-          setContacts(prev => {
-            // Prevent duplicates by id (in case API returns overlapping results)
-            const existingIds = new Set(prev.map(c => c.id));
-            const newItems = data.results.filter((c: Contact) => !existingIds.has(c.id));
-            return [...prev, ...newItems];
-          });
-        }
-        setTotalCount(data.count || 0);
-        setTotalPages(Math.ceil((data.count || 0) / pageSize));
-      } else {
-        const arrayData = Array.isArray(data) ? data : [];
-        if (page === 1) {
-          setContacts(arrayData);
-        } else {
-          setContacts(prev => {
-            const existingIds = new Set(prev.map(c => c.id));
-            const newItems = arrayData.filter((c: Contact) => !existingIds.has(c.id));
-            return [...prev, ...newItems];
-          });
-        }
-      }
-
-      return true;
-    } catch (error) {
-      toast.error("Failed to fetch contacts");
-      console.error('fetchContacts error:', error);
-      return false;
-    } finally {
-      setLoadingContacts(false);
-    }
-  }, [pageSize]);
-
-  // Load initial contacts and tags on mount / when organizationId changes
   useEffect(() => {
-    const fetchData = async () => {
-      if (!organizationId) return;
+    if (contactsError) {
+      toast.error('Failed to load contacts');
+    }
+  }, [contactsError]);
 
-      try {
-        // Fetch first page of contacts (page 1)
-        const ok = await fetchContacts(organizationId, 1);
-        if (ok) {
-          setCurrentPage(1);
-        } else {
-          setCurrentPage(0);
-        }
+  useEffect(() => {
+    if (tagsError) {
+      toast.error('Failed to load tags');
+    }
+  }, [tagsError]);
 
-        // Fetch tags
-        const tagsResponse = await fetch(`/api/contacts/tags?organization=${organizationId}`);
-        if (tagsResponse.ok) {
-          const tagsData = await tagsResponse.json();
-          setTags(tagsData.results || tagsData || []);
-        }
-
-        // Fetch custom fields
-        const customFieldsResponse = await fetch(`/api/contacts/custom-fields?organization=${organizationId}`);
-        if (customFieldsResponse.ok) {
-          const customFieldsData = await customFieldsResponse.json();
-          const fields = customFieldsData.results || customFieldsData || [];
-          // Only include active custom fields
-          setCustomFields(fields.filter((f: any) => f.is_active).map((f: any) => ({
-            id: f.id,
-            name: f.name,
-            key: f.key
-          })));
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load contacts and tags');
-      }
-    };
-
-    fetchData();
-  }, [organizationId, fetchContacts]);
+  useEffect(() => {
+    if (customFieldsError) {
+      toast.error(customFieldsError);
+    }
+  }, [customFieldsError]);
 
   // Prefill form when continuing a draft campaign
   useEffect(() => {
@@ -292,13 +252,11 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
   const loadMoreContacts = async () => {
     if (!organizationId) return;
-    if (loadingContacts) return;
-    const nextPage = currentPage + 1;
-    if (nextPage > totalPages) return;
-    const ok = await fetchContacts(organizationId, nextPage);
-    if (ok) {
-      setCurrentPage(nextPage);
-    } else {
+    if (loadingContacts || !hasNextPage) return;
+    try {
+      await fetchNextPage();
+    } catch (error) {
+      console.error('Error loading more contacts:', error);
       toast.error('Failed to load more contacts');
     }
   };
@@ -360,18 +318,29 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       });
     }
 
-    // Extract header variables (if TEXT header with variable)
+    // Extract header variables
     const headerComponent = template.components?.find((c: any) => c.type === 'HEADER');
-    if (headerComponent?.format === 'TEXT' && headerComponent?.text) {
-      const headerText = headerComponent.text;
-      const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+    if (headerComponent) {
+      const headerFormat = headerComponent.format?.toUpperCase();
 
-      headerMatches.forEach(() => {
-        headerVariables.push({
-          type: 'text',
-          text: '', // User will fill this
+      if (headerFormat === 'TEXT' && headerComponent.text) {
+        // TEXT header with variables
+        const headerText = headerComponent.text;
+        const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
+
+        headerMatches.forEach(() => {
+          headerVariables.push({
+            type: 'text',
+            text: '', // User will fill this
+          });
         });
-      });
+      } else if (headerFormat === 'IMAGE' || headerFormat === 'VIDEO' || headerFormat === 'DOCUMENT') {
+        // MEDIA header - requires media URL or ID
+        headerVariables.push({
+          type: headerFormat.toLowerCase(),
+          text: '', // User will provide media URL or ID
+        });
+      }
     }
 
     // Extract button variables (URL buttons with parameters and COPY_CODE buttons)
@@ -419,6 +388,18 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     return { bodyVariables, headerVariables, buttonVariables };
   };
 
+  // Reset media mode/state when template changes
+  useEffect(() => {
+    const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
+    if (!hasMediaHeader) {
+      setHeaderMediaMode('per-recipient');
+      setGlobalHeaderMediaFile(null);
+      setGlobalHeaderMediaHandle('');
+      setGlobalHeaderMediaId('');
+      setIsUploadingHeaderMedia(false);
+    }
+  }, [formData.headerParameters]);
+
   // Handle template selection
   const handleTemplateSelect = async (templateName: string) => {
     const template = approvedTemplates.find(t => t.name === templateName);
@@ -434,7 +415,71 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         headerParameters: headerVariables,
         buttonParameters: buttonVariables,
       }));
+      setHeaderMediaMode('per-recipient');
+      setGlobalHeaderMediaFile(null);
+      setGlobalHeaderMediaHandle('');
+      setGlobalHeaderMediaId('');
+      setIsUploadingHeaderMedia(false);
     }
+  };
+
+  const uploadGlobalHeaderMedia = async (file: File) => {
+    if (!organizationId) {
+      toast.error('Organization is required to upload media');
+      return;
+    }
+    if (!appService?.phone_number) {
+      toast.error('App Service phone number is required to upload media');
+      return;
+    }
+
+    try {
+      setIsUploadingHeaderMedia(true);
+      const formData = new FormData();
+      formData.append('media_file', file);
+      formData.append('upload_type', 'media');
+      formData.append('organization', organizationId);
+      formData.append('appservice_phone_number', appService.phone_number);
+      if (appService?.phone_number_id) {
+        formData.append('phone_number_id', appService.phone_number_id);
+      }
+      if (appService?.id) {
+        formData.append('appservice_id', appService.id);
+      }
+
+      const res = await fetch('/api/whatsapp/templates/upload_media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to upload media');
+      }
+
+      if (!data.id && !data.handle) {
+        throw new Error('Media upload did not return an ID');
+      }
+
+      setGlobalHeaderMediaHandle(data.id || data.handle);
+      setGlobalHeaderMediaId(data.id || '');
+      toast.success('Header media uploaded');
+    } catch (error) {
+      console.error('Global header media upload failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload media');
+      setGlobalHeaderMediaFile(null);
+      setGlobalHeaderMediaHandle('');
+      setGlobalHeaderMediaId('');
+    } finally {
+      setIsUploadingHeaderMedia(false);
+    }
+  };
+
+  const handleGlobalMediaFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setGlobalHeaderMediaFile(file);
+    await uploadGlobalHeaderMedia(file);
   };
 
   const updateDraftCampaign = async () => {
@@ -544,6 +589,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         updateData
       );
 
+      invalidateCampaignQueries();
       toast.success('Draft updated');
       return true;
     } catch (error) {
@@ -644,6 +690,26 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
             const headerText = headerComponent.text;
             const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
             templatePayload.header_params = headerMatches;
+          } else if (headerComponent?.format && ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION'].includes(headerComponent.format)) {
+            // Media header: Check if we have a global media ID
+            if (headerMediaMode === 'global' && (globalHeaderMediaId || globalHeaderMediaHandle)) {
+              const mediaId = globalHeaderMediaId || globalHeaderMediaHandle;
+              const headerFormat = headerComponent.format.toLowerCase();
+
+              // Add to header_parameters in the format WhatsApp API expects
+              templatePayload.header_parameters = [{
+                type: headerFormat,
+                [headerFormat]: {
+                  id: mediaId
+                }
+              }];
+
+              console.log(`✅ Added global ${headerFormat} media to campaign payload:`, mediaId);
+            } else if (headerMediaMode === 'per-recipient') {
+              // Per-recipient mode: Don't include header_parameters in campaign payload
+              // Recipients will provide their own media IDs
+              console.log('📋 Per-recipient media mode: Media will be provided per contact');
+            }
           }
 
           // Extract button params from URL buttons and COPY_CODE buttons
@@ -684,6 +750,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       if (campaign.whatsapp_campaign_id) {
         setCreatedWhatsAppCampaignId(campaign.whatsapp_campaign_id);
       }
+      invalidateCampaignQueries();
       toast.success('Campaign created successfully!');
       return true;
     } catch (error) {
@@ -1114,7 +1181,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
           // Only enforce manual parameter entry when the user selected contacts directly
           if (formData.selectedContacts.length > 0) {
-            const totalParams = formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length;
+            const totalParams = getPerRecipientParamCount();
             for (const contactId of formData.selectedContacts) {
               const params = recipientParameters[contactId] || {};
               const filledParams = Object.keys(params).filter(k => params[k].trim() !== '').length;
@@ -1189,10 +1256,24 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         console.log('Selected contacts:', formData.selectedContacts);
         console.log('Selected tags:', formData.selectedTags);
         console.log('Has template variables:', hasTemplateVariables);
+        const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
+        const mediaValue = globalHeaderMediaId || globalHeaderMediaHandle;
+        const tagIds = formData.selectedTags.length > 0
+          ? formData.selectedTags.map(slug => {
+              const tag = tags.find(t => t.slug === slug);
+              return tag ? Number(tag.id) : null;
+            }).filter((id): id is number => id !== null)
+          : [];
 
         // If template has variables, use new format with per-recipient parameters
         if (hasTemplateVariables && formData.selectedContacts.length > 0) {
           console.log('=== USING NEW RECIPIENT FORMAT WITH PARAMETERS ===');
+
+          if (hasMediaHeader && headerMediaMode === 'global' && !mediaValue) {
+            toast.error('Upload header media before sending');
+            setLoading(false);
+            return;
+          }
 
           // Build recipients array with template parameters
           const recipientsWithParams = formData.selectedContacts.map(contactId => {
@@ -1213,8 +1294,21 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
             // Build header_params array
             const header_params: string[] = [];
-            for (let i = 0; i < formData.headerParameters.length; i++) {
-              header_params.push(params[`header_${i}`] || '');
+            if (hasMediaHeader && headerMediaMode === 'global') {
+              // Global media mode: Leave header_params EMPTY for recipients
+              // Campaign payload already has the media ID in header_parameters
+              // Recipients will use campaign defaults
+              console.log(`📌 Global media mode: Recipient will use campaign default media`);
+            } else if (hasMediaHeader && headerMediaMode === 'per-recipient') {
+              // Per-recipient mode: Each recipient provides their own media ID
+              for (let i = 0; i < formData.headerParameters.length; i++) {
+                header_params.push(params[`header_${i}`] || '');
+              }
+            } else {
+              // Text header or other param types
+              for (let i = 0; i < formData.headerParameters.length; i++) {
+                header_params.push(params[`header_${i}`] || '');
+              }
             }
 
             // Build body_params array
@@ -1251,7 +1345,10 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           await CampaignService.addWhatsAppCampaignRecipients(
             createdWhatsAppCampaignId,
             organizationId,
-            { recipients: recipientsWithParams }
+            {
+              recipients: recipientsWithParams,
+              tag_ids: tagIds.length > 0 ? tagIds : undefined,
+            }
           );
 
           console.log('Recipients with parameters added successfully');
@@ -1264,14 +1361,6 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         } else {
           // Use legacy format: Add recipients by tag_ids/contact_ids (no parameters)
           console.log('=== USING LEGACY RECIPIENT FORMAT ===');
-
-          // Get tag IDs from tag slugs
-          const tagIds = formData.selectedTags.length > 0
-            ? formData.selectedTags.map(slug => {
-                const tag = tags.find(t => t.slug === slug);
-                return tag ? parseInt(tag.id) : null;
-              }).filter((id): id is number => id !== null)
-            : [];
 
           // Get contact IDs - ensure they are numbers
           const contactIds = formData.selectedContacts.length > 0
@@ -1328,6 +1417,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         );
       }
 
+      invalidateCampaignQueries();
       toast.success('Campaign launched successfully!');
       onSuccess();
     } catch (error) {
@@ -1340,6 +1430,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
   const hasTemplateVariables = campaignType === 'template' &&
     (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0);
+  const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
+  const getPerRecipientParamCount = () => {
+    const mediaHeaderCount = formData.headerParameters.filter(p => ['image', 'video', 'document'].includes(p.type)).length;
+    const headerCount = headerMediaMode === 'global' ? formData.headerParameters.length - mediaHeaderCount : formData.headerParameters.length;
+    return headerCount + formData.bodyParameters.length + formData.buttonParameters.length;
+  };
 
   const stepTitles = [
     'Campaign Details',
@@ -1352,6 +1448,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     contact.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     contact.phone?.includes(searchTerm)
   );
+
+  const displayedTags = showAllTags ? tags : tags.slice(0, 12);
+  const hasMoreTags = tags.length > 12;
 
   const filteredTemplates = approvedTemplates.filter(template =>
     template.name.toLowerCase().includes(templateSearchTerm.toLowerCase()) ||
@@ -1376,7 +1475,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     return count;
   };
 
-  const hasMore = currentPage < totalPages;
+  const hasMore = Boolean(hasNextPage);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 py-8 px-4">
@@ -1658,11 +1757,179 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                         </Badge>
                         {hasTemplateVariables && (
                           <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
-                            {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length} params / contact
+                            {getPerRecipientParamCount()} params / contact
                           </Badge>
                         )}
                       </div>
                     </div>
+
+                    {campaignType === 'template' && hasMediaHeader && (
+                      <Card className="border-border/60 bg-muted/30">
+                        <CardHeader>
+                          <CardTitle className="text-sm">Header media</CardTitle>
+                          <CardDescription className="text-xs">
+                            Use one upload for everyone or allow per-recipient media.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <RadioGroup
+                            value={headerMediaMode}
+                            onValueChange={(val: 'per-recipient' | 'global') => setHeaderMediaMode(val)}
+                            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                          >
+                            <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${headerMediaMode === 'global' ? 'border-primary bg-primary/5' : 'border-border/60'}`}>
+                              <RadioGroupItem value="global" />
+                              <div>
+                                <div className="font-medium">Same media for everyone</div>
+                                <p className="text-xs text-muted-foreground">Upload once and reuse across all recipients.</p>
+                              </div>
+                            </label>
+                            <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${headerMediaMode === 'per-recipient' ? 'border-primary bg-primary/5' : 'border-border/60'}`}>
+                              <RadioGroupItem value="per-recipient" />
+                              <div>
+                                <div className="font-medium">Customize per recipient</div>
+                                <p className="text-xs text-muted-foreground">Provide a different media URL/ID for each contact.</p>
+                              </div>
+                            </label>
+                          </RadioGroup>
+
+                          {headerMediaMode === 'global' && (
+                            <div className="space-y-2">
+                              <input
+                                ref={headerMediaFileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,video/mp4,application/pdf"
+                                className="hidden"
+                                onChange={handleGlobalMediaFileChange}
+                              />
+                              {globalHeaderMediaFile ? (
+                                <div className="flex items-center justify-between p-3 border rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm">{globalHeaderMediaFile.name}</span>
+                                    {isUploadingHeaderMedia && (
+                                      <span className="text-xs text-blue-600 flex items-center gap-1">
+                                        <Loader2 className="h-3 w-3 animate-spin" /> Uploading...
+                                      </span>
+                                    )}
+                                    {!isUploadingHeaderMedia && (globalHeaderMediaId || globalHeaderMediaHandle) && (
+                                      <span className="text-xs text-green-600">✓ Uploaded</span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setGlobalHeaderMediaFile(null);
+                                      setGlobalHeaderMediaHandle('');
+                                      setGlobalHeaderMediaId('');
+                                    }}
+                                    disabled={isUploadingHeaderMedia}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => headerMediaFileInputRef.current?.click()}
+                                  disabled={isUploadingHeaderMedia}
+                                >
+                                  {isUploadingHeaderMedia ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4 mr-2" />
+                                      Upload header media
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                Accepted: JPG, PNG, MP4, PDF. Uploaded to WhatsApp and reused for this campaign.
+                              </p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {tags.length > 0 && (
+                      <Card className="border-border/60 bg-muted/30">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-sm">Select by Tags</CardTitle>
+                              {formData.selectedTags.length > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {formData.selectedTags.length} selected
+                                </Badge>
+                              )}
+                            </div>
+                            {formData.selectedTags.length > 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setFormData(prev => ({ ...prev, selectedTags: [] }))}
+                                className="h-7 text-xs"
+                              >
+                                <X className="h-3 w-3" />
+                                Clear
+                              </Button>
+                            )}
+                          </div>
+                          <CardDescription className="text-xs">
+                            Selecting tags adds all contacts with those tags to this campaign.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap gap-2">
+                          {displayedTags.map(tag => {
+                            const isSelected = formData.selectedTags.includes(tag.slug);
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => handleTagToggle(tag.slug)}
+                                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                                  isSelected
+                                    ? 'bg-primary/10 text-primary border-primary/40'
+                                    : 'bg-background text-muted-foreground border-border/60 hover:border-border'
+                                }`}
+                              >
+                                {tag.name}
+                                {isSelected && <X className="h-3 w-3" />}
+                              </button>
+                            );
+                          })}
+                          {hasMoreTags && !showAllTags && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowAllTags(true)}
+                              className="h-7 text-xs"
+                            >
+                              +{tags.length - displayedTags.length} more
+                            </Button>
+                          )}
+                          {showAllTags && hasMoreTags && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowAllTags(false)}
+                              className="h-7 text-xs"
+                            >
+                              Show less
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
 
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-col md:flex-row gap-3">
@@ -1732,29 +1999,46 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                             if (!contact) return null;
                             const params = recipientParameters[contactId] || {};
                             return (
-                              <Card key={contactId}>
-                                <CardHeader className="pb-2">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <CardTitle className="text-sm">{contact.fullname || 'Unnamed Contact'}</CardTitle>
-                                      <CardDescription>{contact.phone}</CardDescription>
-                                    </div>
-                                    <Badge variant="outline" className="text-xs">
-                                      Params required: {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length}
-                                    </Badge>
-                                  </div>
-                                </CardHeader>
+                                  <Card key={contactId}>
+                                    <CardHeader className="pb-2">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <CardTitle className="text-sm">{contact.fullname || 'Unnamed Contact'}</CardTitle>
+                                          <CardDescription>{contact.phone}</CardDescription>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">
+                                          Params required: {getPerRecipientParamCount()}
+                                        </Badge>
+                                      </div>
+                                    </CardHeader>
                                 <CardContent className="space-y-3">
-                                  {formData.headerParameters.map((param, idx) => (
-                                    <div key={`header_${idx}`}>
-                                      <Label className="text-sm font-medium">Header {idx + 1}</Label>
-                                      <Input
-                                        value={params[`header_${idx}`] || ''}
-                                        onChange={(e) => handleParameterChange(contactId, `header_${idx}`, e.target.value)}
-                                        placeholder={`Enter value for header ${idx + 1}`}
-                                      />
-                                    </div>
-                                  ))}
+                                  {formData.headerParameters.map((param, idx) => {
+                                    const isMediaHeader = ['image', 'video', 'document'].includes(param.type);
+                                    if (isMediaHeader && headerMediaMode === 'global') return null;
+                                    const mediaTypeLabel = param.type.charAt(0).toUpperCase() + param.type.slice(1);
+
+                                    return (
+                                      <div key={`header_${idx}`}>
+                                        <Label className="text-sm font-medium">
+                                          {isMediaHeader ? `${mediaTypeLabel} URL or ID` : `Header ${idx + 1}`}
+                                        </Label>
+                                        <Input
+                                          value={params[`header_${idx}`] || ''}
+                                          onChange={(e) => handleParameterChange(contactId, `header_${idx}`, e.target.value)}
+                                          placeholder={
+                                            isMediaHeader
+                                              ? `Enter ${param.type} URL (https://...) or media ID`
+                                              : `Enter value for header ${idx + 1}`
+                                          }
+                                        />
+                                        {isMediaHeader && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Provide a publicly accessible URL or a Meta media ID/handle
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                   {formData.bodyParameters.map((param, idx) => (
                                     <div key={`body_${idx}`}>
                                       <Label className="text-sm font-medium">{param.parameter_name || `Body ${idx + 1}`}</Label>
@@ -1792,8 +2076,83 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                       <Alert className="bg-blue-50 border-blue-200">
                         <AlertDescription className="text-sm text-blue-800">
                           This template requires {formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length} parameter value{formData.headerParameters.length + formData.bodyParameters.length + formData.buttonParameters.length === 1 ? '' : 's'} per recipient. In your CSV, include columns for phone plus each parameter and map them on the next step.
+                          {hasMediaHeader && headerMediaMode === 'per-recipient' && (
+                            <div className="mt-2 font-medium">
+                              📸 Per-recipient media mode: Include a column with WhatsApp media IDs or URLs for each contact.
+                            </div>
+                          )}
                         </AlertDescription>
                       </Alert>
+                    )}
+
+                    {/* Global Media Upload for CSV Import */}
+                    {campaignType === 'template' && hasMediaHeader && headerMediaMode === 'global' && (
+                      <Card className="border-border/60 bg-muted/30">
+                        <CardHeader>
+                          <CardTitle className="text-sm">Header media (Same for all recipients)</CardTitle>
+                          <CardDescription className="text-xs">
+                            Upload media once to use for all contacts in your CSV.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <input
+                            ref={headerMediaFileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,video/mp4,application/pdf"
+                            className="hidden"
+                            onChange={handleGlobalMediaFileChange}
+                          />
+                          {globalHeaderMediaFile ? (
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">{globalHeaderMediaFile.name}</span>
+                                {isUploadingHeaderMedia && (
+                                  <span className="text-xs text-blue-600 flex items-center gap-1">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Uploading...
+                                  </span>
+                                )}
+                                {!isUploadingHeaderMedia && (globalHeaderMediaId || globalHeaderMediaHandle) && (
+                                  <span className="text-xs text-green-600">✓ Uploaded</span>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setGlobalHeaderMediaFile(null);
+                                  setGlobalHeaderMediaHandle('');
+                                  setGlobalHeaderMediaId('');
+                                }}
+                                disabled={isUploadingHeaderMedia}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => headerMediaFileInputRef.current?.click()}
+                              disabled={isUploadingHeaderMedia}
+                            >
+                              {isUploadingHeaderMedia ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload header media
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Accepted: JPG, PNG, MP4, PDF. This media will be used for all CSV recipients.
+                          </p>
+                        </CardContent>
+                      </Card>
                     )}
 
                     {/* File Upload Section */}
@@ -1913,10 +2272,10 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     ))}
                                 </div>
 
-                                {/* Template Parameters */}
-                                {campaignType === 'template' && (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0) && (
-                                  <div className="space-y-2 pt-3 border-t">
-                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase">Template Variables</h4>
+                                  {/* Template Parameters */}
+                                  {campaignType === 'template' && (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0) && (
+                                    <div className="space-y-2 pt-3 border-t">
+                                      <h4 className="text-xs font-semibold text-muted-foreground uppercase">Template Variables</h4>
 
                                     {/* Body params */}
                                     {formData.bodyParameters.map((param, idx) => (
@@ -1948,30 +2307,39 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     ))}
 
                                     {/* Header params */}
-                                    {formData.headerParameters.map((param, idx) => (
-                                      <div key={`header_${idx}`} className="flex items-center gap-2">
-                                        <div className="w-32 text-sm font-medium truncate">Header {idx + 1}</div>
-                                        <span className="text-muted-foreground">→</span>
-                                        <Select
-                                          value={Object.entries(columnMappings).find(([k]) => k === `header_${idx}`)?.[1] || ''}
-                                          onValueChange={(csvCol) => {
-                                            setColumnMappings(prev => ({
-                                              ...prev,
-                                              [`header_${idx}`]: csvCol
-                                            }));
-                                          }}
-                                        >
-                                          <SelectTrigger className="flex-1 h-8">
-                                            <SelectValue placeholder="Select column..." />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {csvHeaders.map(h => (
-                                              <SelectItem key={h} value={h}>{h}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    ))}
+                                    {formData.headerParameters.map((param, idx) => {
+                                      const isMediaHeader = ['image', 'video', 'document'].includes(param.type);
+                                      if (isMediaHeader && headerMediaMode === 'global') return null;
+                                      const mediaTypeLabel = param.type.charAt(0).toUpperCase() + param.type.slice(1);
+                                      const label = isMediaHeader ? `${mediaTypeLabel} URL` : `Header ${idx + 1}`;
+
+                                      return (
+                                        <div key={`header_${idx}`} className="flex items-center gap-2">
+                                          <div className="w-32 text-sm font-medium truncate" title={label}>
+                                            {label}
+                                          </div>
+                                          <span className="text-muted-foreground">→</span>
+                                          <Select
+                                            value={Object.entries(columnMappings).find(([k]) => k === `header_${idx}`)?.[1] || ''}
+                                            onValueChange={(csvCol) => {
+                                              setColumnMappings(prev => ({
+                                                ...prev,
+                                                [`header_${idx}`]: csvCol
+                                              }));
+                                            }}
+                                          >
+                                            <SelectTrigger className="flex-1 h-8">
+                                              <SelectValue placeholder="Select column..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {csvHeaders.map(h => (
+                                                <SelectItem key={h} value={h}>{h}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      );
+                                    })}
 
                                     {/* Button params */}
                                     {formData.buttonParameters.map((param, idx) => (
@@ -2250,7 +2618,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded border border-green-200 dark:border-green-900">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                                       <span className="text-sm text-green-800 dark:text-green-200">
-                                        {formData.bodyParameters.length + formData.headerParameters.length + formData.buttonParameters.length} parameter(s) configured for {formData.selectedContacts.length + importedRecipientsCount} recipient(s)
+                                        {getPerRecipientParamCount()} parameter(s) configured for {formData.selectedContacts.length + importedRecipientsCount} recipient(s)
                                       </span>
                                     </div>
                                   </div>

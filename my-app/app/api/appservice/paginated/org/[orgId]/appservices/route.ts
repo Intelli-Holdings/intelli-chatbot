@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -8,14 +9,22 @@ export async function GET(
 ) {
   try {
     const { orgId } = params;
-    
+
+    // Get authentication token from Clerk
+    const { getToken } = await auth();
+    const token = await getToken();
+
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const response = await fetch(
       `${API_BASE_URL}/appservice/paginated/org/${orgId}/appservices/`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Authentication headers
+          'Authorization': `Bearer ${token}`,
         },
       }
     );

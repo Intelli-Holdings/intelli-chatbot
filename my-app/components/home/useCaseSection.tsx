@@ -20,36 +20,29 @@ const UseCaseSection = () => {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
-                      Travel
+                      Travel & Hospitality
                     </span>
                   </div>
-                  <h2 className="text-3xl font-bold">Travel Agencies</h2>
+                  <h2 className="text-3xl font-bold">Travel & Hospitality</h2>
                   <p className="text-gray-700">
-                    <strong>Usecase:</strong>
+                    <strong>Use case:</strong>
                     <br />
-                    Travel agencies often receive numerous inquiries about
-                    booking details, travel packages, visa requirements, and
-                    more. Intelli can automate responses to these common
-                    questions, providing customers with the information they
-                    need quickly and efficiently. It can also guide customers
-                    through the booking process with step-by-step instructions.
-                    For complex inquiries, human agents can seamlessly take
-                    over. With Intelli’s multilingual support, travel agencies
-                    can assist customers from around the world in their
-                    preferred language, and its 24/7 availability ensures
-                    customers receive support whenever they need it.
+                    Travel and hospitality brands rely on fast responses and personalized engagement to win bookings. Intelli helps capture traveler demand and convert inquiries into bookings using WhatsApp as a high-conversion marketing channel.
                   </p>
                   <p className="text-gray-700">
-                    <strong>Customer Satisfaction</strong>
+                    <strong>Increase bookings and revenue</strong>
                     <br />
-                    Enhances the customer experience by providing quick and
-                    accurate information.
+                    Turn trip inquiries into confirmed bookings with automated discovery, follow-ups, and booking assistance that keeps travelers engaged until checkout.
                   </p>
                   <p className="text-gray-700">
-                    <strong>Multi-lingual Support</strong>
+                    <strong>Recover abandoned journeys</strong>
                     <br />
-                    Allows agencies to serve a global clientele, overcoming
-                    language barriers.
+                    Re-engage travelers who drop off mid-conversation with timely reminders, offers, and updates that bring them back to complete their bookings.
+                  </p>
+                  <p className="text-gray-700">
+                    <strong>Market globally, support locally</strong>
+                    <br />
+                    Promote destinations, offers, and experiences to travelers across regions and languages while scaling engagement without scaling teams.
                   </p>
                   <Link href="/auth/sign-up">
                     <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
@@ -81,31 +74,29 @@ const UseCaseSection = () => {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm">
-                      NGOs
+                      NGOs & Non-Profits
                     </span>
                   </div>
-                  <h3 className="text-3xl font-bold">NGOs</h3>
+                  <h3 className="text-3xl font-bold">NGOs & Non-Profits</h3>
                   <p className="text-gray-700">
-                    <strong>Usecase:</strong>
+                    <strong>Use case:</strong>
                     <br />
-                    NGOs can use Intelli to efficiently manage inquiries related
-                    to their programs, such as scholarship applications,
-                    business grants, or training sessions.
+                    NGOs run large-scale recruitment and program campaigns that depend on awareness, outreach, and participation. Intelli helps market programs, capture applicants, and guide them through completion using WhatsApp automation.
                   </p>
                   <p className="text-gray-700">
-                    <strong>Accessible 24/7</strong>
+                    <strong>Increase program participation</strong>
                     <br />
-                    They receive a high volume of questions from applicants and
-                    participants. Intelli can automate responses to these
-                    frequently asked questions in a conversational and natural
-                    way.
+                    Promote opportunities, grants, and programs through direct messaging that reaches audiences instantly and drives higher application rates.
                   </p>
                   <p className="text-gray-700">
-                    <strong>Multilingual Support:</strong>
+                    <strong>Improve applicant conversion</strong>
                     <br />
-                    If the AI agent receives an inquiry it can&apos;t handle, a
-                    human agent can take over. Intelli supports multiple
-                    languages, allowing NGOs to cater to a diverse audience.
+                    Guide applicants step by step with reminders, updates, and follow-ups that reduce abandonment and increase successful submissions.
+                  </p>
+                  <p className="text-gray-700">
+                    <strong>Scale outreach without higher costs</strong>
+                    <br />
+                    Engage thousands of applicants and beneficiaries at once while keeping communication personal, consistent, and measurable.
                   </p>
                   <Link href="/auth/sign-up">
                     <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
@@ -135,37 +126,29 @@ const UseCaseSection = () => {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
-                      Schools
+                      Education & EdTech
                     </span>
                   </div>
-                  <h2 className="text-3xl font-bold">Schools</h2>
+                  <h2 className="text-3xl font-bold">Education & EdTech</h2>
                   <p className="text-gray-700">
-                    <strong>Usecase:</strong>
+                    <strong>Use case:</strong>
                     <br />
-                    Schools receive a lot of inquiries from students & parents
-                    regarding enrollment, course details, schedules, and more.
-                    Intelli can help by automating responses to these common
-                    questions.
+                    Educational institutions compete for student attention while managing high inquiry volumes across digital channels. Intelli helps attract prospects, capture leads, and convert student interest into enrollments through automated WhatsApp engagement.
                   </p>
                   <p className="text-gray-700">
-                    <strong>Streamline operations</strong>
+                    <strong>Drive more enrollments</strong>
                     <br />
-                    Frees up school staff to focus on more critical tasks by
-                    reducing routine inquiries. When inquiries become too
-                    complex or outside the AI&apos;s capabilities, human support
-                    can easily step in.
+                    Capture and nurture prospective students at the moment of intent with guided conversations, follow-ups, and reminders that reduce drop-offs and increase admissions.
                   </p>
                   <p className="text-gray-700">
-                    <strong>24/7 availability:</strong>
+                    <strong>Admissions marketing on autopilot</strong>
                     <br />
-                    Offers continuous support, ensuring students can get help
-                    even outside of regular office hours.
+                    Run always-on admissions journeys that respond instantly, qualify interest, and move students from inquiry to application—even outside office hours.
                   </p>
                   <p className="text-gray-700">
-                    <strong>Multilingual Support:</strong>
+                    <strong>Expand reach across markets</strong>
                     <br />
-                    Ensures that students from various linguistic backgrounds
-                    receive the support they need in their preferred language.{" "}
+                    Engage local and international students in multiple languages, helping institutions market programs to broader audiences without increasing acquisition costs.
                   </p>
                   <Link href="/auth/sign-up">
                     <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">
@@ -179,9 +162,11 @@ const UseCaseSection = () => {
                   {/* Header */}
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center space-x-2">
-                      <img
-                        src="/Ellis.png" // Replace with the correct icon
+                      <Image
+                        src="/Ellis.png"
                         alt="AI Agent"
+                        width={32}
+                        height={32}
                         className="w-8 h-8"
                       />
                       <span className="text-gray-800 font-bold">Elli</span>
@@ -205,7 +190,7 @@ const UseCaseSection = () => {
                         Please provide me with an email so we can share more detailed information about our curriculum. 
                       </p>
                       <p className="text-right text-orange-600 font-semibold">
-                        Nope, am good! I don&apos;t need more details
+                        Nope, am good! I don't need more details
                       </p>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg flex items-center justify-between">
@@ -234,38 +219,31 @@ const UseCaseSection = () => {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm">
-                      Government
+                      Government Agencies
                     </span>
                   </div>
                   <h2 className="text-3xl font-bold">Government Agencies</h2>
                   <p className="text-gray-700">
-                    <strong>Usecase:</strong>
+                    <strong>Use case:</strong>
                     <br />
-                    Government agencies often handle a lot of inquiries
-                    regarding various services, such as permit applications, tax
-                    information, and public assistance programs from the public.
-                    Intelli can automate responses, providing detailed
-                    information to citizens.
+                    Public sector organizations need to promote services, programs, and initiatives while managing high citizen demand. Intelli helps government agencies communicate, engage, and drive adoption of public services through WhatsApp.
                   </p>
                   <p className="text-gray-700">
-                    <strong>Enhanced Public Service</strong>
+                    <strong>Increase service adoption</strong>
                     <br />
-                    Provides citizens with accurate, timely information and
-                    support, improving public satisfaction.
+                    Promote public programs, applications, and initiatives with proactive messaging that helps citizens understand and act faster.
                   </p>
 
                   <p className="text-gray-700">
-                    <strong>Operational efficiency</strong>
+                    <strong>Reduce friction in citizen journeys</strong>
                     <br />
-                    Reduces the burden on public servants and staff of these
-                    parastatals by automating inquiries.
+                    Automate guidance, reminders, and updates that help citizens complete applications and access services with fewer delays.
                   </p>
 
                   <p className="text-gray-700">
-                    <strong>Consistency in Communication</strong>
+                    <strong>Communicate at national scale</strong>
                     <br />
-                    Ensures consistent communication and service across
-                    platforms, including social media, email, and web chat.
+                    Deliver clear, consistent messaging across regions and languages without overwhelming frontline staff.
                   </p>
                   <Link href="/auth/sign-up">
                     <button className="mt-4 bg-gradient-to-r from-teal-400 to-blue-600 text-white hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-500  px-6 py-2 rounded-xl shadow-lg hover:bg-gray-200">

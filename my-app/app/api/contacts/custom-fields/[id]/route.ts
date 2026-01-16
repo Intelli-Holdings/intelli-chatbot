@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -11,12 +12,21 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get authentication token from Clerk
+    const { getToken } = await auth();
+    const token = await getToken();
+
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const response = await fetch(`${API_BASE_URL}/contacts/custom-fields/${params.id}/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });
@@ -46,10 +56,19 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get authentication token from Clerk
+    const { getToken } = await auth();
+    const token = await getToken();
+
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const response = await fetch(`${API_BASE_URL}/contacts/custom-fields/${params.id}/`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
     });
 

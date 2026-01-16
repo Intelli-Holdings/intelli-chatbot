@@ -35,12 +35,7 @@ const NotificationPage: React.FC = () => {
   }, [organization])
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Notifications</h1>
-      
-      </div>
-
+    <div className="container mx-auto px-4 py-4 max-w-7xl">
       {isLoadingMembers ? <NotificationsSkeleton /> : <Notifications members={members} />}
     </div>
   )
@@ -48,32 +43,29 @@ const NotificationPage: React.FC = () => {
 
 function NotificationsSkeleton() {
   return (
-    <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-200 p-6">
-        <Skeleton className="h-8 w-48" />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-9 w-64 rounded-full" />
       </div>
-      <div className="p-6">
-        <div className="space-y-6">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-3">
-                  <Skeleton className="h-10 w-10 rounded-full" />
-                  <div>
-                    <Skeleton className="h-5 w-40 mb-2" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
+      <div className="w-full rounded-lg border border-[#e9edef] bg-white shadow-sm">
+        <div className="border-b border-[#e9edef] p-3 bg-[#f0f2f5]">
+          <Skeleton className="h-6 w-40" />
+        </div>
+        <div className="divide-y divide-[#e9edef]">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="px-4 py-3">
+              <div className="flex items-start gap-3 mb-2">
+                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-32 mb-1" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-5 w-16" />
               </div>
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-3/4 mb-4" />
-              <div className="grid grid-cols-2 gap-4">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-12 w-full rounded-lg mb-2" />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-3 w-24" />
               </div>
             </div>
           ))}

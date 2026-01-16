@@ -1,20 +1,21 @@
 "use client"
-import React from 'react'
-import { useEffect, useState } from "react"
-import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
+import { useEffect, useMemo, useState } from "react"
 
 const TableOfContents = () => {
   const [activeId, setActiveId] = useState("")
 
-  const headings = [
-    { id: "whats-new", title: "What's New" },
-    { id: "live-chat", title: "Live Chat for Website Widgets" },
-    { id: "analytics", title: "Enhanced Stats & Analytics" },
-    { id: "phone-management", title: "Phone Number Management" },
-    { id: "demo-video", title: "New Demo Video & Docs" },
-    { id: "improvements", title: "Improvements & Fixes" },
-    { id: "under-the-hood", title: "Under the Hood" },
-  ]
+  const headings = useMemo(
+    () => [
+      { id: "whats-new", title: "What's New" },
+      { id: "live-chat", title: "Live Chat for Website Widgets" },
+      { id: "analytics", title: "Enhanced Stats & Analytics" },
+      { id: "phone-management", title: "Phone Number Management" },
+      { id: "demo-video", title: "New Demo Video & Docs" },
+      { id: "improvements", title: "Improvements & Fixes" },
+      { id: "under-the-hood", title: "Under the Hood" },
+    ],
+    [],
+  )
 
   useEffect(() => {
     const observers = headings.map((heading) => {
@@ -36,7 +37,7 @@ const TableOfContents = () => {
     return () => {
       observers.forEach((observer) => observer?.disconnect())
     }
-  }, [])
+  }, [headings])
 
   return (
     <nav className="">
@@ -66,4 +67,3 @@ const TableOfContents = () => {
 }
 
 export default TableOfContents
-

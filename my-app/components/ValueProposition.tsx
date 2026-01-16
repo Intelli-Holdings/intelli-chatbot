@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchIcon, BarChart2, ListTodo, Share2, InboxIcon, Coins, PiggyBank, PiggyBankIcon } from 'lucide-react';
 import { FaMoneyBillWaveAlt } from 'react-icons/fa';
@@ -155,9 +156,11 @@ const ValueProposition = () => {
                 </ul>
               </div>
               <div className="relative">
-                <img
+                <Image
                   src={selectedContent.image}
                   alt={selectedContent.title}
+                  width={600}
+                  height={400}
                   className="rounded-lg w-full"
                 />
               </div>

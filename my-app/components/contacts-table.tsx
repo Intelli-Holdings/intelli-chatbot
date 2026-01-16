@@ -127,7 +127,7 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
 
   return (
     <>
-      <div className="rounded-xl border border-blue-300 shadow-sm overflow-x-auto bg-white">
+    <div className="rounded-xl border border-blue-300 shadow-sm bg-white">
         {selectedIds.length > 0 && (
           <div className="p-4 border-b bg-blue-50 flex items-center justify-between">
             <span className="text-sm font-medium">{selectedIds.length} selected</span>
@@ -142,8 +142,8 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
           </div>
         )}
 
-        <Table className="min-w-full">
-          <TableHeader>
+        <Table className="min-w-full" wrapperClassName="max-h-[calc(100vh-360px)]">
+          <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:bg-blue-50 [&_th]:z-10">
             <TableRow className="bg-blue-50 border-b">
               <TableHead className="w-12">
                 <Checkbox

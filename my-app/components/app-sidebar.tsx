@@ -61,11 +61,6 @@ const data = {
       icon: Bot,
     },
     {
-      title: "Playground",
-      url: "/dashboard/playground",
-      icon: PaintRoller,
-    },
-    {
       title: "Widgets",
       url: "/dashboard/widgets",
       icon: Globe,
@@ -76,7 +71,6 @@ const data = {
       icon: MessageSquareDot,
       hasSubmenu: true,
       submenuItems: [
-        { title: "📊 Overview", url: "/dashboard/conversations" },
         { title: "🌐 Website", url: "/dashboard/conversations/website" },
         {
           title: "WhatsApp",
@@ -104,13 +98,6 @@ const data = {
       title: "Templates",
       url: "/dashboard/templates",
       icon: Files,
-      hasSubmenu: true,
-      submenuItems: [
-        {title: "📄 Overview", url: "/dashboard/templates/overview"},
-        { title: "📚 Templates Library", url: "/dashboard/templates" },
-        { title: "📡 Broadcasts Manager", url: "/dashboard/templates/broadcast" },
-        
-      ]
     },
     {
       title: "Analytics",

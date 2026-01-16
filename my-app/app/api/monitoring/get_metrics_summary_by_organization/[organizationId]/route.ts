@@ -29,7 +29,7 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams
     const period = searchParams.get("period") || "30"
 
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
 
     if (!token) {

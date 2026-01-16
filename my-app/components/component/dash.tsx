@@ -1,23 +1,48 @@
 "use client";
 
 import React from "react";
-import { useState } from "react";
 import Dashboard from "../dashboard/main";
 import { OnbordaProvider, Onborda, useOnborda } from "onborda";
-
-//
-import { NextStepProvider, NextStep, useNextStep } from "nextstepjs";
 import { steps } from "../../utils/tourSteps";
 import CustomCard from "../CustomCard";
 
+const DisableOnbordaAutoScroll: React.FC = () => {
+  const { isOnbordaVisible } = useOnborda();
+  const originalScrollIntoView = React.useRef<Element["scrollIntoView"] | null>(null);
+
+  React.useEffect(() => {
+    if (!isOnbordaVisible) {
+      return;
+    }
+
+    if (!originalScrollIntoView.current) {
+      originalScrollIntoView.current = Element.prototype.scrollIntoView;
+    }
+
+    // Prevent Onborda from auto-scrolling while the tour is visible.
+    Element.prototype.scrollIntoView = function (
+      ..._args: Parameters<Element["scrollIntoView"]>
+    ) {
+      return;
+    };
+
+    return () => {
+      if (originalScrollIntoView.current) {
+        Element.prototype.scrollIntoView = originalScrollIntoView.current;
+      }
+    };
+  }, [isOnbordaVisible]);
+
+  return null;
+};
 
 export function DashComponent() {
 
   return (
     <OnbordaProvider>
+      <DisableOnbordaAutoScroll />
       <Onborda 
       steps={steps}
-      showOnborda={true}
       shadowRgb="55,48,160"
       shadowOpacity="0.2"
       cardComponent={CustomCard}

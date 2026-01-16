@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useQueryClient } from "react-query";
 import { useDropzone } from "react-dropzone";
 import {
   Card,
@@ -73,6 +74,11 @@ import {
   validateFileUpload,
   isAllowedFileType
 } from "@/lib/new-file-manager";
+import {
+  ASSISTANTS_STALE_TIME_MS,
+  assistantsQueryKey,
+  fetchAssistantsForOrg,
+} from "@/hooks/use-assistants-cache";
 
 interface Assistant {
   id: number;
@@ -81,6 +87,7 @@ interface Assistant {
   assistant_id: string;
   organization: string;
   organization_id: string;
+  [key: string]: unknown;
 }
 
 const FileStatusIcon = ({ status }: { status: string }) => {
@@ -101,6 +108,7 @@ const FileStatusIcon = ({ status }: { status: string }) => {
 export function NewAssistantFiles({ organizationId }: { organizationId?: string }) {
   const params = useParams();
   const orgId = organizationId || (params.id as string);
+  const queryClient = useQueryClient();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedAssistant, setSelectedAssistant] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
@@ -159,6 +167,8 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       setFiles((prevFiles) => [...prevFiles, ...validFiles]);
     },
     accept: {
+      // Only file types supported by OpenAI's Vector Store API
+      // CSV and Excel files are NOT supported by OpenAI
       'application/pdf': ['.pdf'],
       'application/msword': ['.doc'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
@@ -169,9 +179,13 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       'application/json': ['.json'],
       'text/html': ['.html'],
       'application/x-python': ['.py'],
+      'text/x-python': ['.py'],
       'application/x-sh': ['.sh'],
+      'text/x-sh': ['.sh'],
       'application/x-tex': ['.tex'],
+      'text/x-tex': ['.tex'],
       'application/typescript': ['.ts'],
+      'text/typescript': ['.ts'],
     },
     maxSize: 512 * 1024 * 1024, // 512MB
   });
@@ -182,14 +196,11 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
 
     setIsFetchingAssistants(true);
     try {
-      const response = await fetch(`/api/assistants/org/${orgId}`);
-      
-      if (!response.ok) {
-        toast.error("Failed to fetch assistants. Please try again.");
-        return;
-      }
-
-      const data: Assistant[] = await response.json();
+      const data = await queryClient.fetchQuery(
+        assistantsQueryKey(orgId),
+        () => fetchAssistantsForOrg<Assistant>(orgId),
+        { staleTime: ASSISTANTS_STALE_TIME_MS },
+      );
       setAssistants(data);
 
       if (data.length > 0) {
@@ -201,7 +212,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
     } finally {
       setIsFetchingAssistants(false);
     }
-  }, [orgId]);
+  }, [orgId, queryClient]);
 
   // Fetch files for selected assistant
   const fetchFiles = useCallback(async () => {
@@ -559,7 +570,10 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                   <div>
                     <p>Drag and drop files here, or click to select</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Supports: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, HTML (Max: 512MB)
+                      Supports: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JSON, HTML, PY, SH, TEX, TS (Max: 512MB)
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1 italic">
+                      Note: CSV and Excel files are not supported by OpenAI
                     </p>
                   </div>
                 )}

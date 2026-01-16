@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 
-import { useCampaigns } from '@/hooks/use-campaigns';
+import { useCampaigns, useCampaignStatusCounts } from '@/hooks/use-campaigns';
 import { useAppServices } from '@/hooks/use-app-services';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { CampaignService, type Campaign } from '@/services/campaign';
@@ -47,13 +47,6 @@ export default function CampaignsPage() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [statusCounts, setStatusCounts] = useState({
-    total: 0,
-    ready: 0,
-    scheduled: 0,
-    completed: 0,
-    draft: 0,
-  });
 
   const pageSize = 100;
   const { campaigns, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
@@ -62,35 +55,10 @@ export default function CampaignsPage() {
     page: currentPage,
     pageSize: pageSize,
   });
-
-  // Fetch status counts for accurate statistics - always fetches total counts from backend
-  const fetchStatusCounts = useCallback(async () => {
-    if (!organizationId) return;
-
-    try {
-      const channelParam = channelFilter !== 'all' ? channelFilter : undefined;
-
-      // Fetch counts for each status in parallel - without page/pageSize to get accurate totals
-      const [totalData, readyData, scheduledData, completedData, draftData] = await Promise.all([
-        CampaignService.fetchCampaigns(organizationId, { channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'ready', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'scheduled', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'completed', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'draft', channel: channelParam }),
-      ]);
-
-      // Use count from backend which represents total across all pages
-      setStatusCounts({
-        total: totalData.count,
-        ready: readyData.count,
-        scheduled: scheduledData.count,
-        completed: completedData.count,
-        draft: draftData.count,
-      });
-    } catch (err) {
-      console.error('Error fetching status counts:', err);
-    }
-  }, [organizationId, channelFilter]);
+  const { counts: statusCounts, refetch: refetchStatusCounts } = useCampaignStatusCounts(
+    organizationId || undefined,
+    channelFilter !== 'all' ? channelFilter : undefined
+  );
 
   useEffect(() => {
     fetchStatusCounts();
@@ -132,7 +100,7 @@ export default function CampaignsPage() {
       await CampaignService.pauseCampaign(campaignId, organizationId);
       toast.success('Campaign paused successfully');
       await refetch();
-      await fetchStatusCounts();
+      await refetchStatusCounts();
     } catch (error) {
       toast.error('Failed to pause campaign');
     }
@@ -144,7 +112,7 @@ export default function CampaignsPage() {
       await CampaignService.resumeCampaign(campaignId, organizationId);
       toast.success('Campaign resumed successfully');
       await refetch();
-      await fetchStatusCounts();
+      await refetchStatusCounts();
     } catch (error) {
       toast.error('Failed to resume campaign');
     }
@@ -179,8 +147,7 @@ export default function CampaignsPage() {
 
       setShowDeleteDialog(false);
       await refetch();
-      // Refresh stats to reflect the deletion
-      await fetchStatusCounts();
+      await refetchStatusCounts();
     } catch (error) {
       toast.error('Failed to delete campaign(s)');
     } finally {
@@ -280,16 +247,18 @@ export default function CampaignsPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <main className="flex-1 container py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Campaign Manager</h1>
-          <p className="text-muted-foreground">
+      <main className="flex-1 container py-5">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-semibold sm:text-3xl">Campaign Manager</h1>
+            <p className="text-sm text-muted-foreground">
             Create and manage your multi-channel broadcast campaigns
-          </p>
+            </p>
+          </div>
         </div>
 
         {!organizationId && (
-          <Alert className="mb-6">
+          <Alert className="mb-4">
             <AlertDescription>
               Please ensure you&apos;re logged in and have an active organization.
             </AlertDescription>
@@ -297,7 +266,7 @@ export default function CampaignsPage() {
         )}
 
         {!selectedAppService && (
-          <Alert className="mb-6">
+          <Alert className="mb-4">
             <AlertDescription>
               Please configure your App Service first to manage campaigns.
             </AlertDescription>
@@ -305,12 +274,12 @@ export default function CampaignsPage() {
         )}
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 mb-4">
           {statsCards.map((stat) => {
             const IconComponent = stat.icon;
             return (
               <Card key={stat.title}>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
@@ -325,8 +294,8 @@ export default function CampaignsPage() {
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>All Campaigns</CardTitle>
                 <CardDescription>
@@ -344,7 +313,7 @@ export default function CampaignsPage() {
             </div>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="pt-0">
             {/* Bulk Action Toolbar */}
             {selectedCampaigns.size > 0 && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
@@ -379,7 +348,7 @@ export default function CampaignsPage() {
             )}
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center mb-4">
+            <div className="flex flex-col sm:flex-row gap-3 items-center mb-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -456,9 +425,9 @@ export default function CampaignsPage() {
                 )}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
+              <Table wrapperClassName="max-h-[calc(100vh-360px)]">
+                <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:bg-background [&_th]:z-10">
+                  <TableRow className="bg-background">
                     <TableHead className="w-12">
                       <Checkbox
                         checked={selectedCampaigns.size === filteredCampaigns.length && filteredCampaigns.length > 0}
@@ -627,8 +596,8 @@ export default function CampaignsPage() {
               appService={selectedAppService}
               onSuccess={async () => {
                 setShowCreateForm(false);
-                await refetch();
-                await fetchStatusCounts();
+                refetch();
+                refetchStatusCounts();
               }}
             />
           </DialogContent>
@@ -650,8 +619,8 @@ export default function CampaignsPage() {
                 onSuccess={async () => {
                   setShowDraftForm(false);
                   setDraftToContinue(null);
-                  await refetch();
-                  await fetchStatusCounts();
+                  refetch();
+                  refetchStatusCounts();
                 }}
               />
             )}
@@ -670,8 +639,8 @@ export default function CampaignsPage() {
                 onSuccess={async () => {
                   setShowEditForm(false);
                   setSelectedCampaign(null);
-                  await refetch();
-                  await fetchStatusCounts();
+                  refetch();
+                  refetchStatusCounts();
                 }}
                 onCancel={() => {
                   setShowEditForm(false);
@@ -691,7 +660,10 @@ export default function CampaignsPage() {
               setShowCampaignDetails(false);
               setSelectedCampaign(null);
             }}
-            onRefresh={refreshAll}
+            onRefresh={async () => {
+              await refetch();
+              await refetchStatusCounts();
+            }}
           />
         )}
 

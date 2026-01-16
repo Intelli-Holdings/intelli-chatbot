@@ -188,18 +188,15 @@ export default function Analytics() {
 
   const { summary, latest } = metricsData
 
-  // Calculate trends with safety checks
-  const totalPending = summary.total_pending ?? 0
-  const totalAssigned = summary.total_assigned ?? 0
-  const totalResolved = summary.total_resolved ?? 0
-  const totalEscalations = totalPending + totalAssigned + totalResolved
-  const resolutionRate = totalEscalations > 0 ? (totalResolved / totalEscalations) * 100 : 0
+  // Calculate trends
+  const totalEscalations = (summary.total_pending || 0) + (summary.total_assigned || 0) + (summary.total_resolved || 0)
+  const resolutionRate = totalEscalations > 0 ? ((summary.total_resolved || 0) / totalEscalations) * 100 : 0
 
   // Prepare escalation distribution data
   const escalationData = [
-    { name: "Pending", value: totalPending, color: CHART_COLORS.warning },
-    { name: "Assigned", value: totalAssigned, color: CHART_COLORS.primary },
-    { name: "Resolved", value: totalResolved, color: CHART_COLORS.success },
+    { name: "Pending", value: summary.total_pending || 0, color: CHART_COLORS.warning },
+    { name: "Assigned", value: summary.total_assigned || 0, color: CHART_COLORS.primary },
+    { name: "Resolved", value: summary.total_resolved || 0, color: CHART_COLORS.success },
   ]
 
   // Prepare channel data
@@ -238,13 +235,13 @@ export default function Analytics() {
     date: new Date(snapshot.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     whatsapp: snapshot.conversations_per_channel?.channels?.whatsapp?.number_of_conversations || 0,
     website: snapshot.conversations_per_channel?.channels?.website?.number_of_conversations || 0,
-    total: snapshot.num_conversations ?? 0,
+    total: snapshot.num_conversations || 0,
   }))
 
   const messagesOverTime = timelineData.map((snapshot) => ({
     date: new Date(snapshot.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    messages: snapshot.num_messages ?? 0,
-    escalations: snapshot.num_escalations ?? 0,
+    messages: snapshot.num_messages || 0,
+    escalations: snapshot.num_escalations || 0,
   }))
 
   const formatNumber = (num: number) => {
@@ -277,18 +274,18 @@ export default function Analytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="AI Token Usage"
-          value={formatNumber(summary.total_tokens_used ?? 0)}
-          change={(summary.avg_tokens_remaining ?? 0) > 0 ? 12.5 : 0}
-          subtitle={`${formatNumber(Math.round(summary.avg_tokens_remaining ?? 0))} remaining`}
+          value={formatNumber(summary.total_tokens_used || 0)}
+          change={(summary.avg_tokens_remaining || 0) > 0 ? 12.5 : 0}
+          subtitle={`${formatNumber(Math.round(summary.avg_tokens_remaining || 0))} remaining`}
           icon={Zap}
           color={CHART_COLORS.cyan}
           trend="up"
         />
         <MetricCard
           title="Total Conversations"
-          value={formatNumber(summary.total_conversations ?? 0)}
+          value={formatNumber(summary.total_conversations || 0)}
           change={8.3}
-          subtitle={`${formatNumber(summary.total_messages ?? 0)} messages`}
+          subtitle={`${formatNumber(summary.total_messages || 0)} messages`}
           icon={MessageSquare}
           color={CHART_COLORS.purple}
           trend="up"
@@ -297,16 +294,16 @@ export default function Analytics() {
           title="Resolution Rate"
           value={`${resolutionRate.toFixed(1)}%`}
           change={resolutionRate}
-          subtitle={`${totalResolved} resolved`}
+          subtitle={`${summary.total_resolved || 0} resolved`}
           icon={CheckCircle}
           color={CHART_COLORS.success}
           trend={resolutionRate > 50 ? "up" : "down"}
         />
         <MetricCard
           title="Pending Issues"
-          value={totalPending}
+          value={summary.total_pending || 0}
           change={-5.2}
-          subtitle={`${totalAssigned} assigned`}
+          subtitle={`${summary.total_assigned || 0} assigned`}
           icon={Clock}
           color={CHART_COLORS.warning}
           trend="down"

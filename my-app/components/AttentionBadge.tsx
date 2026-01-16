@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const AttentionBadge: React.FC = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -10,7 +10,7 @@ const AttentionBadge: React.FC = () => {
     originalTitle.current = document.title;
   }, []);
 
-  const setFaviconWithRedDot = (): void => {
+  const setFaviconWithRedDot = useCallback((): void => {
     if (!isMounted) return;
 
     const img = new Image();
@@ -42,9 +42,9 @@ const AttentionBadge: React.FC = () => {
       }
       link.href = faviconURL;
     };
-  };
+  }, [isMounted]);
 
-  const resetFavicon = React.useCallback((): void => {
+  const resetFavicon = useCallback((): void => {
     if (!isMounted) return;
     let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
     if (!link) {
@@ -55,7 +55,7 @@ const AttentionBadge: React.FC = () => {
     link.href = "/Intelli.svg";
   }, [isMounted]);
 
-  const pushNotification = (): void => {
+  const pushNotification = useCallback((): void => {
     if (!isMounted) return;
     if (Notification.permission === "granted") {
       new Notification("New Message", {
@@ -70,7 +70,7 @@ const AttentionBadge: React.FC = () => {
         }
       });
     }
-  };
+  }, [isMounted]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -88,7 +88,7 @@ const AttentionBadge: React.FC = () => {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isMounted, resetFavicon]);
+  }, [isMounted, pushNotification, resetFavicon, setFaviconWithRedDot]);
 
   return null;
 };

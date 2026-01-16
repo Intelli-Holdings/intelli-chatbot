@@ -100,42 +100,42 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
 
   return (
     <div className="flex flex-col w-full">
-      <div className="flex items-center justify-between p-2 bg-white">
+      <div className="flex items-center justify-between w-full">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="flex items-center gap-3 px-2 -ml-2 hover:bg-gray-100"
+              className="flex items-center gap-3 px-0 hover:bg-transparent h-auto"
             >
-              <Avatar className="h-10 w-10">
-                <AvatarImage
-                  src={`https://avatar.vercel.sh/${
-                    conversation.customer_name || conversation.customer_number
-                  }.png`}
-                />
-                <AvatarFallback>
-                  {(
-                    conversation.customer_name || conversation.phone_number
-                  ).slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage
+                    src={`https://avatar.vercel.sh/${
+                      conversation.customer_name || conversation.customer_number
+                    }.png`}
+                  />
+                  <AvatarFallback className="bg-[#6b7c85] text-white text-sm">
+                    {(
+                      conversation.customer_name || conversation.phone_number
+                    ).slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
               <div className="flex flex-col items-start">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold">
-                    {conversation.customer_name || conversation.recipient_id}
-                  </h2>
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Select for contact info
+                <h2 className="text-[15px] font-normal text-[#111b21]">
+                  {conversation.customer_name || conversation.recipient_id}
+                </h2>
+                <p className="text-[12px] text-[#667781] flex items-center gap-1">
+                  click for more info
+                  <ChevronDown className="h-3 w-3" />
                 </p>
               </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-80 p-0">
-            <Card className="border-0">
+            <Card className="border-0 shadow-lg">
               <CardContent className="p-0">
-                <div className="flex flex-col items-center pt-8 pb-6 bg-gray-50">
+                <div className="flex flex-col items-center pt-8 pb-6 bg-[#f0f2f5]">
                   <Avatar className="h-24 w-24 mb-4">
                     <AvatarImage
                       src={`https://avatar.vercel.sh/${
@@ -143,27 +143,27 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
                         conversation.customer_number
                       }.png`}
                     />
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-[#6b7c85] text-white text-2xl">
                       {(
                         conversation.customer_name || conversation.phone_number
-                      ).slice(0, 2)}
+                      ).slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <h3 className="text-xl font-semibold mb-1">
+                  <h3 className="text-xl font-normal text-[#111b21] mb-1">
                     {conversation.customer_name || conversation.recipient_id}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[13px] text-[#667781]">
                     Last active{" "}
                     {format(parseISO(conversation.updated_at), "MMM d, h:mm a")}
                   </p>
                 </div>
-                <div className="p-4 border-t">
+                <div className="p-4 border-t border-[#e9edef]">
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs text-muted-foreground">
+                      <label className="text-[12px] text-[#667781]">
                         Phone number
                       </label>
-                      <p className="text-sm font-medium">
+                      <p className="text-[14px] font-normal text-[#111b21]">
                         +
                         {conversation.customer_number ||
                           conversation.recipient_id}
@@ -178,25 +178,27 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
 
         <div className="flex items-center gap-2">
           <Button
-            className="border border-blue-200 rounded-xl shadow-md ml-2"
-            variant="default"
+            className={`h-9 px-3 text-xs text-white rounded-md shadow-sm transition-colors ${
+              isAiSupport
+                ? "bg-[#007fff] hover:bg-[#0066cc] border-[#007fff]"
+                : "bg-green-600 hover:bg-green-700 border-green-600"
+            }`}
             onClick={handleToggleAISupport}
-            size="sm"
           >
-            {isAiSupport ? "Takeover AI" : "Handover to AI"}
+            {isAiSupport ? "Take Over" : "Hand to AI"}
           </Button>
         </div>
       </div>
       {!isAiSupport && (
-        <div className="w-full rounded-xl bg-purple-100 text-red-700 p-3 text-center">
-          <p>
-            Remember to handover to AI when you&apos;re done sending messages.
+        <div className="w-full mt-2 rounded-lg bg-[#fef4e6] border border-[#f9e6c4] text-[#54656f] px-3 py-2 text-center">
+          <p className="text-xs">
+            Remember to hand over to AI when you&apos;re done sending messages.
           </p>
         </div>
       )}
       {error && (
-        <div className="w-full bg-red-100 text-red-700 p-3 text-center">
-          <p>{error}</p>
+        <div className="w-full mt-2 rounded-lg bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-center">
+          <p className="text-xs">{error}</p>
         </div>
       )}
       <CallUI callState={callState} onAnswer={answerCall} onEnd={endCall} />

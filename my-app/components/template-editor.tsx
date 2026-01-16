@@ -47,6 +47,10 @@ export function TemplateEditor({
     }
   }, [template])
 
+  const isApproved =
+    (template?.status || "").toUpperCase() === "APPROVED" ||
+    (template?.status || "").toUpperCase().startsWith("ACTIVE")
+
   const handleSave = async () => {
     if (!editedTemplate) return
     
@@ -126,8 +130,11 @@ export function TemplateEditor({
                       ...editedTemplate,
                       name: e.target.value
                     })}
-                    disabled={template?.status === 'APPROVED'}
+                    disabled
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Template names are locked after creation.
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="template-category">Category</Label>
@@ -137,7 +144,7 @@ export function TemplateEditor({
                       ...editedTemplate,
                       category: value
                     })}
-                    disabled={template?.status === 'APPROVED'}
+                    disabled={isApproved}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -151,16 +158,16 @@ export function TemplateEditor({
                 </div>
               </div>
               
-              <div>
-                <Label htmlFor="template-language">Language</Label>
-                <Select 
-                  value={editedTemplate.language} 
-                  onValueChange={(value) => setEditedTemplate({
-                    ...editedTemplate,
-                    language: value
-                  })}
-                  disabled={template?.status === 'APPROVED'}
-                >
+                <div>
+                  <Label htmlFor="template-language">Language</Label>
+                  <Select 
+                    value={editedTemplate.language} 
+                    onValueChange={(value) => setEditedTemplate({
+                      ...editedTemplate,
+                      language: value
+                    })}
+                    disabled
+                  >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -171,6 +178,9 @@ export function TemplateEditor({
                     <SelectItem value="fr_FR">French</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Language cannot be changed after creation.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -183,7 +193,7 @@ export function TemplateEditor({
                 <Button
                   size="sm"
                   onClick={addComponent}
-                  disabled={template?.status === 'APPROVED'}
+                  disabled={isApproved}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Component
@@ -198,10 +208,10 @@ export function TemplateEditor({
                       <Badge variant="outline">
                         Component {index + 1}
                       </Badge>
-                      <Select
+                    <Select
                         value={component.type}
                         onValueChange={(value) => updateComponent(index, 'type', value)}
-                        disabled={template?.status === 'APPROVED'}
+                        disabled={isApproved}
                       >
                         <SelectTrigger className="w-40">
                           <SelectValue />
@@ -219,7 +229,7 @@ export function TemplateEditor({
                       size="sm"
                       variant="outline"
                       onClick={() => removeComponent(index)}
-                      disabled={template?.status === 'APPROVED'}
+                      disabled={isApproved}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -232,7 +242,7 @@ export function TemplateEditor({
                         value={component.text || ''}
                         onChange={(e) => updateComponent(index, 'text', e.target.value)}
                         placeholder="Enter text content..."
-                        disabled={template?.status === 'APPROVED'}
+                        disabled={isApproved}
                         rows={3}
                       />
                       <div className="text-xs text-muted-foreground mt-1">
@@ -247,7 +257,7 @@ export function TemplateEditor({
                       <Select
                         value={component.format || 'TEXT'}
                         onValueChange={(value) => updateComponent(index, 'format', value)}
-                        disabled={template?.status === 'APPROVED'}
+                        disabled={isApproved}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -274,7 +284,7 @@ export function TemplateEditor({
             </Button>
             <Button 
               onClick={handleSave}
-              disabled={loading || template?.status === 'APPROVED'}
+              disabled={loading || isApproved}
             >
               {loading ? (
                 <>
@@ -290,7 +300,7 @@ export function TemplateEditor({
             </Button>
           </div>
 
-          {template?.status === 'APPROVED' && (
+          {isApproved && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="text-sm text-yellow-800">
                 <strong>Note:</strong> Approved templates cannot be edited. Create a new template with your changes instead.

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 
+export const dynamic = 'force-dynamic'
+
 // GET - Get pending and failed files for an assistant
 export async function GET(request: NextRequest) {
   try {
     // Get authentication from Clerk
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
 
     if (!token) {
