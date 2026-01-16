@@ -440,7 +440,7 @@ export default function ChatArea({
         const nextMessages = messages || []
 
         // Check if this is a real message replacing an optimistic one
-        // Look for pending messages sent within last 10 seconds
+        // Look for pending messages
         const recentPendingIndex = nextMessages.findIndex((msg) => {
           if (!msg.pending) return false
 
@@ -449,29 +449,19 @@ export default function ChatArea({
             // Check if answer content matches (business messages use 'answer' field)
             const answerMatches =
               msg.answer && newMessage.answer &&
-              (msg.answer.trim() === newMessage.answer.trim() || msg.answer.includes(newMessage.answer))
+              msg.answer.trim() === newMessage.answer.trim()
 
-            // Check if sent recently (within 10 seconds)
-            const msgTime = new Date(msg.created_at).getTime()
-            const newMsgTime = new Date(newMessage.created_at).getTime()
-            const timeDiff = Math.abs(newMsgTime - msgTime)
-            const sentRecently = timeDiff < 10000
-
-            return answerMatches && sentRecently
+            // If content matches exactly, replace regardless of timestamp
+            // This handles server delays and ensures optimistic updates work correctly
+            return answerMatches
           }
 
           // For customer messages, check content field
           const contentMatches =
-            (msg.content && newMessage.content &&
-             (msg.content.trim() === newMessage.content.trim() || msg.content.includes(newMessage.content)))
+            msg.content && newMessage.content &&
+            msg.content.trim() === newMessage.content.trim()
 
-          // Check if sent recently (within 10 seconds)
-          const msgTime = new Date(msg.created_at).getTime()
-          const newMsgTime = new Date(newMessage.created_at).getTime()
-          const timeDiff = Math.abs(newMsgTime - msgTime)
-          const sentRecently = timeDiff < 10000
-
-          return contentMatches && sentRecently
+          return contentMatches
         })
 
         if (recentPendingIndex !== -1) {
@@ -675,12 +665,50 @@ export default function ChatArea({
           const actualNewMessages = allMessages.filter((msg) => msg.id > lastMessageId)
 
           if (actualNewMessages.length > 0) {
-            updateMessagesAndSync((prev) => [...(prev || []), ...actualNewMessages])
-            setLastMessageId(highestNewId)
-            toast({
-              description: `${actualNewMessages.length} new message${actualNewMessages.length > 1 ? "s" : ""} received`,
-              duration: 2000,
+            updateMessagesAndSync((prev) => {
+              const currentMessages = prev || []
+              const updatedMessages = [...currentMessages]
+
+              // For each new message, check if it should replace a pending optimistic message
+              actualNewMessages.forEach(newMessage => {
+                // Find matching pending message
+                const pendingIndex = updatedMessages.findIndex((msg) => {
+                  if (!msg.pending) return false
+
+                  // For business messages, match by answer content
+                  if (newMessage.sender === 'human') {
+                    return msg.answer && newMessage.answer &&
+                           msg.answer.trim() === newMessage.answer.trim()
+                  }
+
+                  // For customer messages, match by content
+                  return msg.content && newMessage.content &&
+                         msg.content.trim() === newMessage.content.trim()
+                })
+
+                if (pendingIndex !== -1) {
+                  // Replace optimistic message with real one
+                  updatedMessages[pendingIndex] = {
+                    ...newMessage,
+                    pending: false,
+                    status: newMessage.status || "sent",
+                  }
+                  console.log("Replaced pending message with real message from polling")
+                } else {
+                  // Add as new message only if it's not a duplicate
+                  const isDuplicate = updatedMessages.some(msg =>
+                    msg.id === newMessage.id ||
+                    (msg.whatsapp_message_id && msg.whatsapp_message_id === newMessage.whatsapp_message_id)
+                  )
+                  if (!isDuplicate) {
+                    updatedMessages.push(newMessage)
+                  }
+                }
+              })
+
+              return updatedMessages
             })
+            setLastMessageId(highestNewId)
           }
         }
       }

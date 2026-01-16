@@ -230,6 +230,40 @@ export default function WebsiteConversationsPage() {
       message: lastMessageContent,
     };
 
+    // Optimistically add message to UI immediately
+    const optimisticMessage = {
+      id: Date.now(),
+      content: lastMessageContent,
+      answer: replyMessage,
+      timestamp: new Date().toISOString(),
+      sender_type: 'business',
+      sender: 'business'
+    };
+
+    setSelectedVisitor((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        messages: [
+          ...(prev.messages || []),
+          optimisticMessage,
+        ],
+      };
+    });
+
+    queryClient.setQueryData<Visitor[]>(["website-visitors", targetWidgetKey], (prev = []) =>
+      prev.map((visitor) => {
+        if (visitor.visitor_id !== targetVisitor.visitor_id) return visitor;
+        return {
+          ...visitor,
+          messages: [...(visitor.messages || []), optimisticMessage],
+        };
+      })
+    );
+
+    setReplyMessage("");
+
+    // Send message via WebSocket after UI update
     const ws = new WebSocket(
         `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/?token=${token}`
       );
@@ -237,44 +271,12 @@ export default function WebsiteConversationsPage() {
     ws.onopen = () => {
       ws.send(JSON.stringify(payload));
       ws.close();
-
-      // Optimistically add message to UI
-      const optimisticMessage = {
-        id: Date.now(),
-        content: lastMessageContent,
-        answer: replyMessage,
-        timestamp: new Date().toISOString(),
-        sender_type: 'business',
-        sender: 'business'
-      };
-
-      setSelectedVisitor((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          messages: [
-            ...(prev.messages || []),
-            optimisticMessage,
-          ],
-        };
-      });
-
-      queryClient.setQueryData<Visitor[]>(["website-visitors", targetWidgetKey], (prev = []) =>
-        prev.map((visitor) => {
-          if (visitor.visitor_id !== targetVisitor.visitor_id) return visitor;
-          return {
-            ...visitor,
-            messages: [...(visitor.messages || []), optimisticMessage],
-          };
-        })
-      );
-
-      setReplyMessage("");
       toast.success("Message sent");
     };
 
     ws.onerror = () => {
       toast.error("Failed to send message");
+      // TODO: Could implement rollback of optimistic update here if needed
     };
   };
 
