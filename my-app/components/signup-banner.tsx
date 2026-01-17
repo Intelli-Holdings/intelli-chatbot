@@ -120,7 +120,7 @@ const Banner: React.FC = () => {
             </button>
           </Link>
 
-          <a href="https://cal.com/intelli/book-a-demo" target="_blank" rel="noopener noreferrer">
+          <a href="https://cal.com/intelli-demo/" target="_blank" rel="noopener noreferrer">
             <button className="relative overflow-hidden bg-transparent border-2 border-white text-white font-semibold py-3 px-8 rounded-3xl group transition-all duration-300">
               <span className="relative z-10 flex items-center gap-2 group-hover:text-[#007fff]">Book a demo</span>
               <span className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
