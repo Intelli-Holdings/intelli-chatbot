@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ interface SimpleCarouselCreatorProps {
   onComplete: (carouselData: any) => void;
   onBack: () => void;
   appService: any;
+  organizationId?: string | null;
   templateName: string;
   language: string;
 }
@@ -44,6 +46,7 @@ export default function SimpleCarouselCreator({
   onComplete,
   onBack,
   appService,
+  organizationId,
   templateName,
   language
 }: SimpleCarouselCreatorProps) {
@@ -109,11 +112,25 @@ export default function SimpleCarouselCreator({
   const uploadMedia = async (file: File, cardIndex: number) => {
     setIsUploadingMedia(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('accessToken', appService.access_token);
+      const resolvedOrg =
+        organizationId ||
+        appService?.organizationId ||
+        appService?.organization_id;
 
-      const response = await fetch('/api/whatsapp/upload-media', {
+      if (!resolvedOrg) {
+        throw new Error('Organization is required to upload media');
+      }
+
+      const formData = new FormData();
+      formData.append('media_file', file);
+      formData.append('appservice_phone_number', appService.phone_number);
+      if (appService.id) {
+        formData.append('appservice_id', String(appService.id));
+      }
+      formData.append('upload_type', 'resumable');
+      formData.append('organization', resolvedOrg);
+
+      const response = await fetch('/api/whatsapp/templates/upload_media', {
         method: 'POST',
         body: formData,
       });
@@ -434,9 +451,11 @@ export default function SimpleCarouselCreator({
                   {currentCard.mediaPreview ? (
                     <div className="relative">
                       {currentCard.mediaType === 'IMAGE' ? (
-                        <img
+                        <Image
                           src={currentCard.mediaPreview}
                           alt="Preview"
+                          width={600}
+                          height={256}
                           className="w-full h-64 object-cover rounded-lg"
                         />
                       ) : (
@@ -613,11 +632,14 @@ export default function SimpleCarouselCreator({
                 onClick={() => setCurrentCardIndex(index)}
               >
                 {card.mediaPreview ? (
-                  <img
-                    src={card.mediaPreview}
-                    alt={`Card ${index + 1}`}
-                    className="w-full h-20 object-cover"
-                  />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={card.mediaPreview}
+                      alt={`Card ${index + 1}`}
+                      className="w-full h-20 object-cover"
+                    />
+                  </>
                 ) : (
                   <div className="w-full h-20 bg-gray-100 flex items-center justify-center">
                     <Upload className="h-6 w-6 text-gray-400" />

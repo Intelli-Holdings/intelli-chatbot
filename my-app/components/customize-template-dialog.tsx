@@ -33,6 +33,7 @@ interface CustomizeTemplateDialogProps {
   onSubmit: (templateData: any, customizations: TemplateCustomizations) => Promise<boolean>;
   loading?: boolean;
   appService: any;
+  organizationId?: string | null;
 }
 
 interface TemplateCustomizations {
@@ -77,7 +78,8 @@ export function CustomizeTemplateDialog({
   onClose, 
   onSubmit, 
   loading = false,
-  appService
+  appService,
+  organizationId
 }: CustomizeTemplateDialogProps) {
   const [customizations, setCustomizations] = useState<TemplateCustomizations>({
     variables: {},
@@ -336,19 +338,28 @@ export function CustomizeTemplateDialog({
       throw new Error('App service not provided');
     }
 
-    if (!appService.access_token || appService.access_token === 'undefined') {
-      console.error('Invalid access token in appService:', appService);
-      throw new Error('Valid access token not available');
-    }
-
     try {
       setIsUploadingMedia(true);
-      
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('accessToken', appService.access_token);
 
-      const response = await fetch('/api/whatsapp/upload-media', {
+      const resolvedOrg =
+        organizationId ||
+        appService?.organizationId ||
+        appService?.organization_id;
+
+      if (!resolvedOrg) {
+        throw new Error('Organization is required to upload media');
+      }
+
+      const formData = new FormData();
+      formData.append('media_file', file);
+      formData.append('appservice_phone_number', appService.phone_number);
+      if (appService.id) {
+        formData.append('appservice_id', String(appService.id));
+      }
+      formData.append('upload_type', 'resumable');
+      formData.append('organization', resolvedOrg);
+
+      const response = await fetch('/api/whatsapp/templates/upload_media', {
         method: 'POST',
         body: formData
       });
@@ -366,14 +377,14 @@ export function CustomizeTemplateDialog({
       }
 
       const data = await response.json();
-      
+
       if (!data.handle) {
         throw new Error('No media handle received from upload');
       }
-      
+
       return data.handle;
     } catch (error) {
-      console.error('Meta upload error:', error);
+      console.error('Backend upload error:', error);
       throw error;
     } finally {
       setIsUploadingMedia(false);
@@ -729,11 +740,14 @@ export function CustomizeTemplateDialog({
                       <Card className="p-3">
                         <div className="text-xs font-medium mb-2">Preview</div>
                         {mediaRequirement.format === 'IMAGE' && (
-                          <img
-                            src={customizations.mediaPreview}
-                            alt="Preview"
-                            className="w-full max-h-48 object-contain rounded"
-                          />
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={customizations.mediaPreview}
+                              alt="Preview"
+                              className="w-full max-h-48 object-contain rounded"
+                            />
+                          </>
                         )}
                         {mediaRequirement.format === 'VIDEO' && (
                           <video
@@ -971,11 +985,14 @@ export function CustomizeTemplateDialog({
                                 {mediaRequirement.required && customizations.mediaPreview && (
                                   <div className="rounded-md overflow-hidden -mx-1 -mt-1 mb-2">
                                     {mediaRequirement.format === 'IMAGE' && (
-                                      <img
-                                        src={customizations.mediaPreview}
-                                        alt="Header"
-                                        className="w-full max-h-48 object-cover"
-                                      />
+                                      <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={customizations.mediaPreview}
+                                          alt="Header"
+                                          className="w-full max-h-48 object-cover"
+                                        />
+                                      </>
                                     )}
                                     {mediaRequirement.format === 'VIDEO' && (
                                       <video

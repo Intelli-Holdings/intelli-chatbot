@@ -7,6 +7,9 @@ interface Recipient {
   id: string;
   contact_id: number;
   status: string;
+  contact_name?: string;
+  contact_phone?: string;
+  message_content?: string;
   sent_at?: string;
   delivered_at?: string;
   read_at?: string;

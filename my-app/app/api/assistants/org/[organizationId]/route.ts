@@ -11,7 +11,7 @@ export async function GET(
   try {
     
     // Get authentication from Clerk (for same-origin requests)
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
     
     if (!token) {
@@ -63,7 +63,7 @@ export async function POST(
   
   try {
     // Get authentication token from Clerk
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
     
     if (!token) {
@@ -124,7 +124,7 @@ export async function PUT(
   
   try {
     // Get authentication token from Clerk
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
     
     if (!token) {
@@ -210,7 +210,7 @@ export async function DELETE(
   
   try {
     // Get authentication token from Clerk
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
     
     if (!token) {

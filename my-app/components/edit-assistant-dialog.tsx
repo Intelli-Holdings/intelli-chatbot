@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 
@@ -155,7 +156,14 @@ export function EditAssistantDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Updating..." : "Update Assistant"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Assistant"
+              )}
             </Button>
           </div>
         </form>

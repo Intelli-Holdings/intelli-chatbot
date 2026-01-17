@@ -17,9 +17,10 @@ import TestMessageDialog from '@/components/test-message-dialog';
 
 interface WhatsAppTemplateManagerProps {
   appService: AppService | null;
+  organizationId?: string | null;
 }
 
-const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appService }) => {
+const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appService, organizationId }) => {
   const {
     templates,
     loading,
@@ -38,7 +39,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<WhatsAppTemplate | null>(null);
   const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [templateToTest, setTemplateToTest] = useState<WhatsAppTemplate | null>(null);
 
@@ -80,8 +81,8 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
     }
   };
 
-  const handleDeleteTemplate = async (templateName: string) => {
-    setTemplateToDelete(templateName);
+  const handleDeleteTemplate = async (template: WhatsAppTemplate) => {
+    setTemplateToDelete(template);
     setIsDeleteDialogOpen(true);
   };
 
@@ -89,7 +90,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
     if (!templateToDelete) return;
 
     try {
-      const success = await deleteTemplate(templateToDelete);
+      const success = await deleteTemplate(templateToDelete.id);
       if (success) {
         toast.success("Template deleted successfully!");
         setIsDeleteDialogOpen(false);
@@ -374,7 +375,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteTemplate(template.name)}
+                        onClick={() => handleDeleteTemplate(template)}
                         className="text-red-600 hover:text-red-700"
                         title="Delete template"
                       >
@@ -446,9 +447,9 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Template</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete the template &quot;{templateToDelete}&quot;? This action cannot be undone.
-              </DialogDescription>
+                <DialogDescription>
+                Are you sure you want to delete the template &quot;{templateToDelete?.name}&quot;? This action cannot be undone.
+                </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end gap-2 mt-4">
               <Button 
@@ -475,6 +476,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
         <TestMessageDialog
           template={templateToTest}
           appService={appService}
+          organizationId={organizationId}
           isOpen={isTestDialogOpen}
           onClose={() => {
             setIsTestDialogOpen(false);

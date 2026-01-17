@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { CampaignService, type Campaign } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { useCampaignRecipients } from '@/hooks/use-campaign-recipients';
+import { formatUTCForDisplay } from '@/lib/timezone-utils';
 
 interface CampaignDetailsModalProps {
   campaign: Campaign;
@@ -49,22 +50,35 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
 
   // Refresh stats for active campaigns
   useEffect(() => {
-    if (!open || campaign.status !== 'active' || !organizationId) return;
+    if (!open || !organizationId) return;
 
     const refreshStats = async () => {
       try {
-        const updatedStats = await CampaignService.getCampaignStats(campaign.id, organizationId!);
-        setStats(updatedStats);
+        const summary = await CampaignService.getCampaignStats(campaign.id, organizationId!);
+
+        // Extract stats from the summary response
+        if (summary.whatsapp_campaign?.statistics) {
+          const backendStats = summary.whatsapp_campaign.statistics;
+          setStats({
+            sent: backendStats.sent || 0,
+            delivered: backendStats.delivered || 0,
+            failed: backendStats.failed || 0,
+            read: backendStats.read || 0,
+            replied: backendStats.replied || 0,
+            progress: backendStats.progress || 0
+          });
+        }
       } catch (error) {
-        // Error refreshing stats
+        console.error('Error refreshing stats:', error);
       }
     };
 
-    // Refresh immediately and then every 30 seconds
+    // Refresh immediately and then every 30 seconds for ready/scheduled campaigns
     refreshStats();
-    const interval = setInterval(refreshStats, 30000);
-
-    return () => clearInterval(interval);
+    if (campaign.status === 'ready' || campaign.status === 'scheduled') {
+      const interval = setInterval(refreshStats, 30000);
+      return () => clearInterval(interval);
+    }
   }, [campaign.id, campaign.status, open, organizationId]);
 
   const handlePause = async () => {
@@ -99,7 +113,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
+      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
       case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -145,7 +159,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {campaign.status === 'active' && (
+              {campaign.status === 'ready' && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -171,145 +185,11 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+        <Tabs defaultValue="stats" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="stats">Statistics</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            {/* Progress */}
-            {(campaign.status === 'active' || campaign.status === 'completed') && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Campaign Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Overall Progress</span>
-                        <span>{stats.progress}%</span>
-                      </div>
-                      <Progress value={stats.progress} className="h-2" />
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-blue-600">{stats.sent}</div>
-                        <div className="text-sm text-muted-foreground">Sent</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">{stats.delivered}</div>
-                        <div className="text-sm text-muted-foreground">Delivered</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">{stats.read}</div>
-                        <div className="text-sm text-muted-foreground">Read</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
-                        <div className="text-sm text-muted-foreground">Failed</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Campaign Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Audience
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {campaign.audience ? (
-                      <>
-                        <div className="flex justify-between">
-                          <span>Total Contacts:</span>
-                          <span className="font-medium">{campaign.audience.total?.toLocaleString() || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Lists:</span>
-                          <span className="font-medium">{campaign.audience.segments?.length || 0}</span>
-                        </div>
-                        {campaign.audience.segments && campaign.audience.segments.length > 0 && (
-                          <div className="mt-2">
-                            <div className="text-sm text-muted-foreground mb-1">Targeted Lists:</div>
-                            <div className="space-y-1">
-                              {campaign.audience.segments.map((segment, index) => (
-                                <Badge key={index} variant="outline" className="mr-1">
-                                  {segment}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">Audience information not available</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Schedule
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {campaign.scheduled_at ? (
-                      <>
-                        <div className="flex justify-between">
-                          <span>Type:</span>
-                          <span className="font-medium">Scheduled</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Start Date:</span>
-                          <span className="font-medium">
-                            {new Date(campaign.scheduled_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Start Time:</span>
-                          <span className="font-medium">
-                            {new Date(campaign.scheduled_at).toLocaleTimeString()}
-                          </span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex justify-between">
-                        <span>Type:</span>
-                        <span className="font-medium">Immediate</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span>Created:</span>
-                      <span className="font-medium">
-                        {campaign.created_at
-                          ? new Date(campaign.created_at).toLocaleDateString()
-                          : '-'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
           <TabsContent value="stats" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -364,25 +244,6 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                 </CardContent>
               </Card>
             </div>
-
-            {/* Real-time Stats Chart Placeholder */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Over Time</CardTitle>
-                <CardDescription>
-                  {campaign.status === 'active' && 'Stats update every 30 seconds'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center text-muted-foreground">
-                    <BarChart3 className="h-12 w-12 mx-auto mb-2" />
-                    <p>Performance chart would be displayed here</p>
-                    <p className="text-sm">Integration with charting library needed</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="messages" className="space-y-4">
@@ -426,18 +287,26 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Contact ID</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Message</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Sent At</TableHead>
-                            <TableHead>Delivered At</TableHead>
-                            <TableHead>Read At</TableHead>
-                            <TableHead>Notes</TableHead>
+                            <TableHead>Sent</TableHead>
+                            <TableHead>Delivered</TableHead>
+                            <TableHead>Read</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {recipients.map((recipient) => (
                             <TableRow key={recipient.id}>
-                              <TableCell className="font-mono">{recipient.contact_id}</TableCell>
+                              <TableCell>
+                                <div className="font-medium text-foreground">{recipient.contact_phone || '-'}</div>
+                                <div className="text-xs text-muted-foreground">{recipient.contact_name}</div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm text-foreground line-clamp-2">
+                                  {recipient.message_content || '—'}
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Badge
                                   className={
@@ -452,18 +321,19 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                {recipient.sent_at ? new Date(recipient.sent_at).toLocaleString() : '-'}
+                                <span className="text-xs text-muted-foreground">
+                                  {recipient.sent_at ? formatUTCForDisplay(recipient.sent_at) : '—'}
+                                </span>
                               </TableCell>
                               <TableCell>
-                                {recipient.delivered_at ? new Date(recipient.delivered_at).toLocaleString() : '-'}
+                                <span className="text-xs text-muted-foreground">
+                                  {recipient.delivered_at ? formatUTCForDisplay(recipient.delivered_at) : '—'}
+                                </span>
                               </TableCell>
                               <TableCell>
-                                {recipient.read_at ? new Date(recipient.read_at).toLocaleString() : '-'}
-                              </TableCell>
-                              <TableCell>
-                                {recipient.error_message && (
-                                  <span className="text-red-600 text-sm">{recipient.error_message}</span>
-                                )}
+                                <span className="text-xs text-muted-foreground">
+                                  {recipient.read_at ? formatUTCForDisplay(recipient.read_at) : '—'}
+                                </span>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -476,71 +346,6 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                     Recipient details are only available for WhatsApp campaigns
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Campaign Settings</CardTitle>
-                <CardDescription>
-                  Configuration and metadata for this campaign
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Basic Information</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Campaign ID:</span>
-                          <span className="font-mono">{campaign.id}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Organization:</span>
-                          <span className="font-mono text-xs">{campaign.organization}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Created At:</span>
-                          <span>{campaign.created_at ? new Date(campaign.created_at).toLocaleString() : '-'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Last Updated:</span>
-                          <span>{campaign.updated_at ? new Date(campaign.updated_at).toLocaleString() : '-'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2">Template Information</h4>
-                      {campaign.payload?.template_name ? (
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Template Name:</span>
-                            <span>{campaign.payload.template_name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Language:</span>
-                            <span>{campaign.payload.template_language || 'en'}</span>
-                          </div>
-                        </div>
-                      ) : campaign.payload?.message_content ? (
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <span>Simple Text Message:</span>
-                            <div className="mt-1 p-2 bg-gray-50 rounded text-sm">
-                              {campaign.payload.message_content}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No message content available</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>

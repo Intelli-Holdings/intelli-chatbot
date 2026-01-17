@@ -202,7 +202,7 @@ export default function EscalationNotifications() {
                       </Button>
                     )}
                     {notification.resolved && (
-                      <div className="mt-3 flex items-center text-green-600 dark:text-green-400">
+                      <div className="mt-3 flex items-center text-[#007fff] dark:text-[#5aa9ff]">
                         <CheckCircle2 className="h-4 w-4 mr-2" />
                         <span className="text-sm font-medium">Resolved</span>
                       </div>

@@ -74,6 +74,17 @@ const SidebarProvider = React.forwardRef<
     // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(defaultOpen)
     const open = openProp ?? _open
+
+    React.useEffect(() => {
+      if (openProp !== undefined || typeof document === "undefined") return
+      const cookies = document.cookie.split("; ")
+      const sidebarCookie = cookies.find((c) =>
+        c.startsWith(`${SIDEBAR_COOKIE_NAME}=`)
+      )
+      if (!sidebarCookie) return
+      const value = sidebarCookie.split("=")[1] === "true"
+      _setOpen((prev) => (prev === value ? prev : value))
+    }, [openProp])
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value
@@ -194,7 +205,12 @@ const Sidebar = React.forwardRef<
 
     if (isMobile) {
       return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+        <Sheet
+          key="mobile-sidebar"
+          open={openMobile}
+          onOpenChange={setOpenMobile}
+          {...props}
+        >
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
@@ -205,6 +221,7 @@ const Sidebar = React.forwardRef<
               } as React.CSSProperties
             }
             side={side}
+            onInteractOutside={() => setOpenMobile(false)}
           >
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>

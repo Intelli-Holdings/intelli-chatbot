@@ -124,7 +124,7 @@ export function NotificationIndicator() {
           )}
           <span className="sr-only">Notifications</span>
           <div
-            className={`absolute top-0 right-0 h-2 w-2 rounded-full border-2 border-background ${isConnected ? "bg-green-500" : "bg-red-500"}`}
+            className={`absolute top-0 right-0 h-2 w-2 rounded-full border-2 border-background ${isConnected ? "bg-[#007fff]" : "bg-red-500"}`}
             title={isConnected ? "Connected to notification service" : "Disconnected from notification service"}
           />
         </Button>

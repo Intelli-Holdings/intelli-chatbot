@@ -30,6 +30,7 @@ export default function Assistants() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; assistant: Assistant | null }>({
     isOpen: false,
@@ -91,6 +92,7 @@ export default function Assistants() {
   }, [organizationId]) // Added organizationId as dependency for useCallback
 
   const handleDeleteAssistant = async (assistant: Assistant) => {
+    setIsDeleting(true)
     try {
       const response = await fetch(`/api/assistants/${organizationId}/${assistant.id}`, {
         method: "DELETE",
@@ -110,6 +112,8 @@ export default function Assistants() {
     } catch (error) {
       console.error("Error deleting assistant:", error)
       toast.error("Failed to delete assistant. Please try again.")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -242,6 +246,7 @@ export default function Assistants() {
           }
         }}
         assistantName={deleteDialog.assistant?.name || ""}
+        isLoading={isDeleting}
       />
     </div>
   )

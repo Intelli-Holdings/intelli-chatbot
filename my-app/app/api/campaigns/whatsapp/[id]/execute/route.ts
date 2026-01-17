@@ -45,9 +45,22 @@ export async function POST(
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      // Try to surface as much error detail as possible
+      const rawText = await response.text()
+      let errorData: any = {}
+      try {
+        errorData = JSON.parse(rawText)
+      } catch {
+        // keep rawText for message fallback
+      }
+      const message =
+        errorData.detail ||
+        errorData.message ||
+        rawText ||
+        "Failed to execute campaign"
+
       return NextResponse.json(
-        { error: errorData.detail || errorData.message || "Failed to execute campaign" },
+        { error: message },
         { status: response.status }
       )
     }

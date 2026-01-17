@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, Filter, Eye, Send, Plus, MessageSquare } from 'lucide-react';
+import { Search, Filter, Eye, Send, Plus, MessageSquare, Grid3x3, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,19 +10,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useWhatsAppTemplates } from '@/hooks/use-whatsapp-templates';
+import TestMessageDialog from '@/components/test-message-dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface TemplateSelectorProps {
   appService: any;
   mode?: 'select' | 'browse';
   onSelect?: (template: any) => void;
+  organizationId?: string | null;
 }
 
-export default function TemplateSelector({ appService, mode = 'browse', onSelect }: TemplateSelectorProps) {
+export default function TemplateSelector({ appService, mode = 'browse', onSelect, organizationId }: TemplateSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [templateToTest, setTemplateToTest] = useState<any>(null);
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { templates, loading, error } = useWhatsAppTemplates(appService);
 
@@ -106,20 +113,7 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">WhatsApp Templates</h2>
-          <p className="text-muted-foreground">
-            Browse and manage your WhatsApp message templates
-          </p>
-        </div>
-        <Button className="bg-green-600 hover:bg-green-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
-      </div>
-
+    <div className="space-y-4 p-2">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-center">
         <div className="relative flex-1">
@@ -155,9 +149,29 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
             <SelectItem value="REJECTED">Rejected</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* View Toggle */}
+        <div className="flex items-center gap-1 border rounded-md p-1">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+            className="px-2"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className="px-2"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Templates Grid */}
+      {/* Templates Display */}
       {loading ? (
         <div className="text-center py-8">Loading templates...</div>
       ) : error ? (
@@ -183,11 +197,12 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
             </Button>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
+        // Grid View
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredTemplates.map((template) => (
-            <Card 
-              key={template.id} 
+            <Card
+              key={template.id}
               className="hover:shadow-lg transition-all cursor-pointer"
               onClick={() => handleTemplateSelect(template)}
             >
@@ -215,11 +230,11 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
                       )}
                     </div>
                   ))}
-                  
+
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -230,8 +245,8 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
                         <Eye className="h-4 w-4" />
                       </Button>
                       {template.status === 'APPROVED' && mode === 'browse' && (
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -251,6 +266,85 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
             </Card>
           ))}
         </div>
+      ) : (
+        // List View
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Language</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Preview</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTemplates.map((template) => {
+                const bodyComponent = template.components?.find((c: any) => c.type === 'BODY');
+                return (
+                  <TableRow
+                    key={template.id}
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => handleTemplateSelect(template)}
+                  >
+                    <TableCell>
+                      <div className="font-medium">{template.name}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{template.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{template.language}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(template.status)}>
+                        {template.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-sm text-muted-foreground line-clamp-2 max-w-md">
+                        {bodyComponent?.text?.substring(0, 100)}
+                        {bodyComponent?.text && bodyComponent.text.length > 100 ? '...' : ''}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTemplate(template);
+                            setShowPreview(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {template.status === 'APPROVED' && mode === 'browse' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Handle send test message
+                            }}
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {mode === 'select' && (
+                          <Button size="sm">Select</Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {/* Template Preview Dialog */}
@@ -259,14 +353,15 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
           <DialogHeader>
             <DialogTitle>{selectedTemplate?.name}</DialogTitle>
             <DialogDescription>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className={getStatusColor(selectedTemplate?.status || '')}>
-                  {selectedTemplate?.status}
-                </Badge>
-                <Badge variant="outline">{selectedTemplate?.category}</Badge>
-                <Badge variant="secondary">{selectedTemplate?.language}</Badge>
-              </div>
+              Template metadata
             </DialogDescription>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge className={getStatusColor(selectedTemplate?.status || '')}>
+                {selectedTemplate?.status}
+              </Badge>
+              <Badge variant="outline">{selectedTemplate?.category}</Badge>
+              <Badge variant="secondary">{selectedTemplate?.language}</Badge>
+            </div>
           </DialogHeader>
           
           {selectedTemplate && (
@@ -278,7 +373,15 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
               
               {selectedTemplate.status === 'APPROVED' && (
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTemplateToTest(selectedTemplate);
+                      setIsTestDialogOpen(true);
+                    }}
+                  >
                     <Send className="h-4 w-4 mr-2" />
                     Send Test
                   </Button>
@@ -315,6 +418,16 @@ export default function TemplateSelector({ appService, mode = 'browse', onSelect
           )}
         </DialogContent>
       </Dialog>
+      <TestMessageDialog
+        template={templateToTest}
+        appService={appService}
+        organizationId={organizationId}
+        isOpen={isTestDialogOpen}
+        onClose={() => {
+          setIsTestDialogOpen(false);
+          setTemplateToTest(null);
+        }}
+      />
     </div>
   );
 }

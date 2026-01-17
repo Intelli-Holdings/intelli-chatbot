@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -86,6 +86,37 @@ const PaymentMethodForm: React.FC<PaymentMethodFormProps> = ({
   const [googlePayLoading, setGooglePayLoading] = useState(false);
   const [paymentRequest, setPaymentRequest] = useState<any>(null);
 
+  const processSetupIntent = useCallback(async (paymentMethodId: string) => {
+    try {
+      // Attach payment method to customer and retrieve details
+      const response = await fetch('/api/stripe/payment-methods', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentMethodId,
+          customerId: customerId,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to save payment method');
+      }
+
+      onSuccess({
+        id: data.paymentMethod.id,
+        type: data.paymentMethod.type,
+        card: data.paymentMethod.card,
+        billing_details: data.paymentMethod.billing_details,
+      });
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to save payment method');
+    }
+  }, [customerId, onSuccess]);
+
   // Initialize setup intent and payment request
   useEffect(() => {
     const initializePayment = async () => {
@@ -167,38 +198,7 @@ const PaymentMethodForm: React.FC<PaymentMethodFormProps> = ({
     if (stripe) {
       initializePayment();
     }
-  }, [stripe, customerId, clientSecret]);
-
-  const processSetupIntent = async (paymentMethodId: string) => {
-    try {
-      // Attach payment method to customer and retrieve details
-      const response = await fetch('/api/stripe/payment-methods', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentMethodId,
-          customerId: customerId,
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to save payment method');
-      }
-
-      onSuccess({
-        id: data.paymentMethod.id,
-        type: data.paymentMethod.type,
-        card: data.paymentMethod.card,
-        billing_details: data.paymentMethod.billing_details,
-      });
-    } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to save payment method');
-    }
-  };
+  }, [stripe, customerId, clientSecret, processSetupIntent]);
 
   const handleCardSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

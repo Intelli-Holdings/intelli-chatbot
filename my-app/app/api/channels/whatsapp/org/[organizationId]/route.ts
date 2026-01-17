@@ -5,7 +5,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { organizationId: string } }
 ) {
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
   
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -31,16 +31,32 @@ export async function GET(
     });
 
     if (!response.ok) {
-      throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
+      const errorData = await response.text();
+      console.error('Backend API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorData,
+        url: `${API_BASE_URL}/appservice/org/${organizationId}/appservices/`
+      });
+      return NextResponse.json(
+        {
+          error: `Backend API error: ${response.status}`,
+          details: errorData
+        },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
     return NextResponse.json(data);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching WhatsApp app services:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch app services' }, 
+      {
+        error: 'Failed to fetch app services',
+        details: error.message
+      },
       { status: 500 }
     );
   }

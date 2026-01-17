@@ -151,7 +151,7 @@ export function Home() {
 
         <section className="mb-10 mt-10">
           <div className="flex justify-center mb-4">
-            <Badge>Use Cases</Badge>
+            <Badge>Industries</Badge>
           </div>
           <div className="container mx-auto sm:px-6 lg:px-8">
             <UsecaseComponent />

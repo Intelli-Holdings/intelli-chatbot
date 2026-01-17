@@ -1,9 +1,8 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Globe, Copy, ShoppingBag, PhoneCall, BookAIcon, Book, MessageCircle } from 'lucide-react';
+import { Globe, PhoneCall } from 'lucide-react';
 import { EnvelopeOpenIcon } from '@radix-ui/react-icons';
-import Link from 'next/link';
 import Image from 'next/image';
 
 type ButtonState = 'coming-soon' | 'create' | 'subscribe';
@@ -12,9 +11,7 @@ interface ChannelCardProps {
   title: string;
   description: string;
   icon: React.ReactNode;
-  isNew?: boolean;
   buttonState: ButtonState;
-  buttonLink: string;
   onClick?: () => void;
 }
 
@@ -45,33 +42,32 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
   title,
   description,
   icon,
-  isNew,
   buttonState,
-  buttonLink,
   onClick
 }) => {
   const buttonProps = getButtonProps(buttonState);
+  const buttonClassName =
+    buttonState === 'create'
+      ? 'h-8 w-full rounded-full bg-[#007fff] px-4 text-xs font-semibold text-white hover:bg-[#0067d6]'
+      : 'h-8 w-full rounded-full px-4 text-xs font-semibold';
 
   return (
-    <Card className="flex flex-col p-6 hover:shadow-lg transition-shadow">
-      <div className="relative">
-        {isNew && (
-          <span className="absolute -top-2 -right-2 bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
-            New
-          </span>
-        )}
-        <div className="mb-4">
+    <Card
+      className="flex h-full flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+    >
+      <div>
+        <div className="mb-3">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold mb-2">{title}</h3>
-        <p className="text-gray-600 text-sm mb-6">{description}</p>
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
       </div>
-      <div className="mt-auto flex items-center gap-2">
+      <div className="mt-auto flex items-center gap-2 pt-2">
         <Button 
           variant={buttonProps.variant}
-          className="w-full"
+          className={buttonClassName}
           disabled={buttonProps.disabled}
-          onClick={onClick}
+          onClick={buttonProps.disabled ? undefined : onClick}
         >
           {buttonProps.text}
         </Button>
@@ -91,105 +87,94 @@ const Channels: React.FC<ChannelsProps> = ({ onWhatsAppCreate, onWebsiteCreate }
       title: 'Website Widget',
       description: 'Create a website widget for your website and speak with website visitors in real-time.',
       icon: (
-        <div className="w-12 h-12 bg-purple-500 text-white rounded-lg flex items-center justify-center">
-          <Globe className="w-8 h-8" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-blue-600">
+          <Globe className="h-5 w-5" />
         </div>
       ),
       buttonState: 'create' as ButtonState,
-      buttonLink: '#',
       onClick: onWebsiteCreate
     },
     {
       title: 'WhatsApp',
       description: 'Create an assistant and connect it to a WhatsApp number and let it respond to messages from your customers.',
       icon: (
-        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50">
           <Image
             src="/whatsapp.png"
             alt="WhatsApp"
-            width={48}
-            height={48}
-            className="object-contain"
+            width={20}
+            height={20}
+            className="h-5 w-5 object-contain"
           />
         </div>
       ),
       buttonState: 'create' as ButtonState,
-      buttonLink: '#',
       onClick: onWhatsAppCreate
     },
     {
       title: 'Facebook',
       description: 'Create an assistant and connect it to a Facebook page and let it respond to messages from your customers.',
       icon: (
-        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-100 bg-blue-50">
           <Image
             src="/facebook.png"
-            alt="Messenger"
-            width={48}
-            height={48}
-            className="object-contain"
+            alt="Facebook"
+            width={20}
+            height={20}
+            className="h-5 w-5 object-contain"
           />
         </div>
       ),
-      isNew: true,
       buttonState: 'coming-soon' as ButtonState,
-      buttonLink: '#'
     },
     {
       title: 'Instagram',
-      description: 'Create an assistant and connect it to a Instagram page and let it respond to messages from your customers.',
+      description: 'Create an assistant and connect it to an Instagram page and let it respond to messages from your customers.',
       icon: (
-        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-pink-100 bg-pink-50">
           <Image
             src="/instagram.png"
-            alt="Messenger"
-            width={48}
-            height={48}
-            className="object-contain"
+            alt="Instagram"
+            width={20}
+            height={20}
+            className="h-5 w-5 object-contain"
           />
         </div>
       ),
-      isNew: true,
       buttonState: 'coming-soon' as ButtonState,
-      buttonLink: '#'
     },
     {
       title: 'Voice',
       description: 'Create an assistant and let it interact with your customers via Internet Voice Call or IVR, handle inquiries and drive sales.',
       icon: (
-        <div className="w-12 h-12 bg-gray-500 text-white rounded-lg flex items-center justify-center">
-          <PhoneCall className="w-6 h-6" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-700">
+          <PhoneCall className="h-5 w-5" />
         </div>
       ),
       buttonState: 'coming-soon' as ButtonState,
-      buttonLink: '#'
     },
     {
       title: 'Email',
       description: 'Create an assistant and let it interact with your customers via Email Inbox, respond to inquiries, and close support tickets.',
       icon: (
-        <div className="w-12 h-12 bg-gray-500 text-white rounded-lg flex items-center justify-center">
-          <EnvelopeOpenIcon className="w-6 h-6" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-gray-700">
+          <EnvelopeOpenIcon className="h-5 w-5" />
         </div>
       ),
       buttonState: 'coming-soon' as ButtonState,
-      buttonLink: '#'
     }
   ];
 
   return (
-      <div className="mx-auto px-2 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {channels.map((channel, index) => (
-            <ChannelCard
-              key={index}
-              {...channel}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {channels.map((channel, index) => (
+          <ChannelCard
+            key={index}
+            {...channel}
+          />
+        ))}
       </div>
   );
 };
 
 export default Channels;
-

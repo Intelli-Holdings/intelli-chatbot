@@ -122,6 +122,28 @@ export function AssistantFiles() {
     onDrop: (acceptedFiles) => {
       setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
     },
+    accept: {
+      // Only file types supported by OpenAI's Vector Store API
+      // CSV and Excel files are NOT supported by OpenAI
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.ms-powerpoint': ['.ppt'],
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+      'text/plain': ['.txt'],
+      'text/markdown': ['.md'],
+      'application/json': ['.json'],
+      'text/html': ['.html'],
+      'application/x-python': ['.py'],
+      'text/x-python': ['.py'],
+      'application/x-sh': ['.sh'],
+      'text/x-sh': ['.sh'],
+      'application/x-tex': ['.tex'],
+      'text/x-tex': ['.tex'],
+      'application/typescript': ['.ts'],
+      'text/typescript': ['.ts'],
+    },
+    maxSize: 512 * 1024 * 1024, // 512MB
   });
 
   // Fetch assistants from API
@@ -403,7 +425,10 @@ export function AssistantFiles() {
                           Drag & drop files here, or click to select files
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Supported: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, MD, JSON
+                          Supported: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JSON, HTML, PY, SH, TEX, TS
+                        </p>
+                        <p className="text-xs text-muted-foreground italic">
+                          Note: CSV and Excel files not supported by OpenAI
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 italic">
                           Max 512MB per file, 20 files per assistant
@@ -516,7 +541,10 @@ export function AssistantFiles() {
                           Or click to select multiple files for bulk upload
                         </p>
                         <p className="text-xs text-muted-foreground mt-4">
-                          Supported: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, MD, JSON
+                          Supported: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JSON, HTML, PY, SH, TEX, TS
+                        </p>
+                        <p className="text-xs text-muted-foreground italic">
+                          Note: CSV and Excel files not supported by OpenAI
                         </p>
                       </>
                     )}

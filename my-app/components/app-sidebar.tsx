@@ -10,12 +10,13 @@ import {
   BellDot,
   PaintRoller,
   Globe,
-  ShieldQuestion,
   Contact,
   ChevronDown,
   Files,
   ChevronRight,
-  RadioTower
+  RadioTower,
+  SettingsIcon,
+  CogIcon
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -60,11 +61,6 @@ const data = {
       icon: Bot,
     },
     {
-      title: "Playground",
-      url: "/dashboard/playground",
-      icon: PaintRoller,
-    },
-    {
       title: "Widgets",
       url: "/dashboard/widgets",
       icon: Globe,
@@ -75,7 +71,6 @@ const data = {
       icon: MessageSquareDot,
       hasSubmenu: true,
       submenuItems: [
-        { title: "📊 Overview", url: "/dashboard/conversations" },
         { title: "🌐 Website", url: "/dashboard/conversations/website" },
         {
           title: "WhatsApp",
@@ -95,6 +90,16 @@ const data = {
       icon: Contact,
     },
     {
+      title: "Campaigns",
+      url: "/dashboard/campaigns",
+      icon: RadioTower,
+    },
+    {
+      title: "Templates",
+      url: "/dashboard/templates",
+      icon: Files,
+    },
+    {
       title: "Analytics",
       url: "/dashboard/analytics",
       icon: BarChart,
@@ -105,9 +110,9 @@ const data = {
       icon: Building2,
     },
     {
-      title: "Escalation Events",
-      url: "/dashboard/escalation-events",
-      icon: ShieldQuestion,
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: SettingsIcon,
     },
   ],
 }

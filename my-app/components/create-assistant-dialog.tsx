@@ -92,7 +92,7 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
       }
 
       toast.success(
-        "Assistant created successfully; Please visit the playground to create a widget with this assistant",
+        "Assistant created successfully; Please visit the widgets page to create a widget with this assistant",
       )
       setOpen(false)
       onAssistantCreated()
@@ -154,7 +154,14 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
             />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Assistant"}
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              "Create Assistant"
+            )}
           </Button>
         </form>
         <DialogFooter>

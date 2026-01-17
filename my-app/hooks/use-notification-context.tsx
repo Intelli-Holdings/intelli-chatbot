@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { toast } from "sonner"
 import type { NotificationMessage } from "@/types/notification"
 import useActiveOrganizationId from "./use-organization-id"
-import { useUser } from "@clerk/nextjs"
+import { useUser, useAuth } from "@clerk/nextjs"
 import { NotificationContextType } from "@/types/notification"
 import { Facebook, MessageSquare, Mail, Globe, Bell } from "lucide-react"
 import Image from "next/image"
@@ -49,7 +49,7 @@ type ChannelIcons = {
 const CHANNEL_ICONS: ChannelIcons = {
   whatsapp: {
     icon: "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg",
-    bgColor: "bg-green-500",
+    bgColor: "bg-[#007fff]",
     textColor: "text-white"
   },
   facebook: {
@@ -102,6 +102,7 @@ const getChannelInfo = (channel?: string): ChannelIcon => {
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const activeOrganizationId = useActiveOrganizationId()
   const { user } = useUser()
+  const { getToken } = useAuth()
 
   const storageKey = activeOrganizationId ? `${STORAGE_PREFIX}${activeOrganizationId}` : undefined
   const lastReadKey = activeOrganizationId ? `${LAST_READ_PREFIX}${activeOrganizationId}` : undefined
@@ -147,21 +148,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setError(null)
 
     try {
-      let nextUrl: string | null = `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/org/${activeOrganizationId}/`
-      const allResults: NotificationMessage[] = []
+      const response = await fetch(`/api/notifications/org/${activeOrganizationId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      if (!response.ok) throw new Error('Failed to fetch historical notifications')
+      const data: PaginatedResponse = await response.json()
 
-      while (nextUrl) {
-        const response = await fetch(nextUrl)
-        if (!response.ok) throw new Error('Failed to fetch historical notifications')
-        const data: PaginatedResponse = await response.json()
-        allResults.push(...data.results)
-        nextUrl = data.next
-      }
-
-      setHistoricalNotifications(allResults)
+      // Only store the first page to avoid flooding the backend with all pages at once
+      setHistoricalNotifications(data.results)
       setNotifications(prev => {
         const existing = new Set(prev.map(n => n.id))
-        const newItems = allResults.filter(n => !existing.has(n.id))
+        const newItems = data.results.filter(n => !existing.has(n.id))
         const combined = [...newItems, ...prev]
         if (storageKey) localStorage.setItem(storageKey, JSON.stringify(combined))
         return combined
@@ -181,8 +180,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setError(null)
 
     try {
+      const queryParams = new URLSearchParams()
+      if (activeOrganizationId) {
+        queryParams.set('organizationId', activeOrganizationId)
+      }
+      const queryString = queryParams.toString()
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assigned/to/${email}/`
+        `/api/notifications/assigned/${encodeURIComponent(email)}${queryString ? `?${queryString}` : ''}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
       )
       if (!response.ok) throw new Error('Failed to fetch assigned notifications')
       const data: PaginatedResponse = await response.json()
@@ -192,7 +201,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setIsLoading(false)
     }
-  }, [user])
+  }, [user, activeOrganizationId])
 
   // Load stored notifications and compute unread count
   useEffect(() => {
@@ -212,9 +221,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [storageKey, lastReadKey])
 
   // WebSocket connect logic
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!activeOrganizationId) return
-    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/events/${activeOrganizationId}/`)
+
+    const token = await getToken({ organizationId: activeOrganizationId ?? undefined })
+    if (!token) {
+      console.error('Cannot establish WebSocket connection: No authentication token')
+      return
+    }
+
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/events/${activeOrganizationId}/?token=${token}`)
     wsRef.current = ws
 
     ws.onopen = () => {
@@ -310,7 +326,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     ws.onerror = () => {
       // WebSocket error occurred
     }
-  }, [activeOrganizationId, playNotificationSound])
+  }, [activeOrganizationId, playNotificationSound, getToken])
 
   // Initialize and cleanup WebSocket
   useEffect(() => {

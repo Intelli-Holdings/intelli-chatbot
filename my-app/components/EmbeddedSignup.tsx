@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useEffect, useCallback, useState } from "react"
+import { useQueryClient } from "react-query"
 import { CardDescription, CardTitle, Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +11,11 @@ import { ArrowRight, Loader, RefreshCcw, AlertCircle, Info, CheckCircle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
+import {
+  ASSISTANTS_STALE_TIME_MS,
+  assistantsQueryKey,
+  fetchAssistantsForOrg,
+} from "@/hooks/use-assistants-cache"
 
 declare global {
   interface Window {
@@ -96,6 +102,7 @@ type Assistant = {
 }
 
 const EmbeddedSignup = () => {
+  const queryClient = useQueryClient()
   const organizationId = useActiveOrganizationId()
   const [sessionInfo, setSessionInfo] = useState<WhatsAppSessionInfo | null>(null)
   const [sdkCode, setSdkCode] = useState<string | null>(null)
@@ -364,12 +371,11 @@ const EmbeddedSignup = () => {
 
     setIsFetchingAssistants(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch assistants")
-      }
-
-      const data: Assistant[] = await response.json()
+      const data = await queryClient.fetchQuery(
+        assistantsQueryKey(organizationId),
+        () => fetchAssistantsForOrg<Assistant>(organizationId),
+        { staleTime: ASSISTANTS_STALE_TIME_MS },
+      )
       setAssistants(data)
 
       if (data.length === 0) {
@@ -382,7 +388,7 @@ const EmbeddedSignup = () => {
     } finally {
       setIsFetchingAssistants(false)
     }
-  }, [organizationId])
+  }, [organizationId, queryClient])
 
   // New function specifically for Business App onboarding package creation
   const createWhatsAppPackageForBusinessApp = useCallback(async () => {

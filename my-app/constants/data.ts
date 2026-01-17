@@ -131,12 +131,6 @@ export const navItems: NavItem[] = [
     label: "Assistants",
   },
   {
-    title: "Playground",
-    href: "/dashboard/playground",
-    icon: "Paintbrush",
-    label: "Playground",
-  },
-  {
     title: "Analytics",
     href: "/dashboard/analytics",
     icon: "BarChart",

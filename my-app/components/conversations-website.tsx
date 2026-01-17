@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Globe, ChevronDown } from "lucide-react";
+import { Globe } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -15,20 +15,10 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { useWebsiteWidgets } from "@/hooks/use-website-widgets";
+import { useWebsiteVisitors } from "@/hooks/use-website-visitors";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-interface Widget {
-  id: number;
-  widget_name: string;
-  widget_key: string;
-}
-
-interface Visitor {
-  id: number;
-  visitor_id: string;
-  messages: { id: number; content: string }[];
-}
 
 interface WebsiteWidgetCardProps {
     orgId: string | null;
@@ -36,33 +26,22 @@ interface WebsiteWidgetCardProps {
   }
 
 export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, apiBaseUrl = API_BASE_URL }) => {
-    const [widgets, setWidgets] = useState<Widget[]>([]);
-    const [selectedWidget, setSelectedWidget] = useState<Widget | null>(null);
-    const [visitors, setVisitors] = useState<Visitor[]>([]);
+    const [selectedWidgetKey, setSelectedWidgetKey] = useState<string>("");
     const [showDropdown, setShowDropdown] = useState(false);
 
-    useEffect(() => {
-        if (!orgId) return;
-        fetch(`${apiBaseUrl}/widgets/organization/${orgId}/all/`)
-            .then((res) => res.json())
-            .then((data: Widget[]) => {
-                // Ensure data is array or default to empty array
-                const widgetArray = Array.isArray(data) ? data : [];
-                setWidgets(widgetArray);
-                if (widgetArray.length > 0) {
-                    setSelectedWidget(widgetArray[0]);
-                }
-            })
-            .catch((error) => console.error("Error fetching widgets:", error));
-    }, [orgId, apiBaseUrl]);
+    const { widgets } = useWebsiteWidgets(orgId || undefined, apiBaseUrl);
+    const { visitors } = useWebsiteVisitors(selectedWidgetKey);
 
     useEffect(() => {
-        if (!selectedWidget) return;
-        fetch(`${apiBaseUrl}/widgets/widget/${selectedWidget.widget_key}/visitors/`)
-            .then((res) => res.json())
-            .then((data) => setVisitors(data))
-            .catch((error) => console.error("Error fetching visitors:", error));
-    }, [selectedWidget, apiBaseUrl]);
+        if (!selectedWidgetKey && widgets.length > 0) {
+            setSelectedWidgetKey(widgets[0].widget_key);
+        }
+    }, [widgets, selectedWidgetKey]);
+
+    const selectedWidget = useMemo(
+        () => widgets.find((widget) => widget.widget_key === selectedWidgetKey) || null,
+        [widgets, selectedWidgetKey],
+    );
 
     return (
         <TooltipProvider>
@@ -84,7 +63,7 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-xl font-bold">{visitors.reduce((total, v) => total + v.messages.length, 0)}{" "} messages
+                                <div className="text-xl font-bold">{visitors.reduce((total, v) => total + (v.messages?.length || 0), 0)}{" "} messages
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                     From {visitors.length} visitors | {widgets.length} widgets available
@@ -103,7 +82,7 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
                                     className={`p-2 text-sm hover:bg-gray-100 cursor-pointer ${
                                         selectedWidget?.id === widget.id ? "font-bold" : ""
                                     }`}
-                                    onClick={() => setSelectedWidget(widget)}
+                                    onClick={() => setSelectedWidgetKey(widget.widget_key)}
                                 >
                                     {widget.widget_name}
                                 </div>

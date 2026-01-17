@@ -1,4 +1,6 @@
-'use client'
+"use client"
+
+import Image from "next/image"
 
 import { useQuery } from 'react-query'
 
@@ -34,12 +36,12 @@ export function CountryInfo({ ip }: { ip: string }) {
 
   return (
     <span className="flex items-center">
-      <img
+      <Image
         src={`https://flagcdn.com/16x12/${data.countryCode}.png`}
         alt={data.country}
-        className="mr-1"
         width={16}
         height={12}
+        className="mr-1"
       />
       {data.country}
     </span>

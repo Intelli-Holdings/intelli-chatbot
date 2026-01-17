@@ -1,18 +1,32 @@
-import { useEffect, useState } from 'react';
-import { useOrganizationList } from '@clerk/nextjs';
+import { useEffect, useRef, useState } from 'react';
+import { useOrganization, useOrganizationList } from '@clerk/nextjs';
 
 const useActiveOrganizationId = () => {
-  const { userMemberships, isLoaded } = useOrganizationList({
+  const { organization } = useOrganization();
+  const { userMemberships, isLoaded, setActive } = useOrganizationList({
     userMemberships: { infinite: true },
   });
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
+  const hasSetActiveRef = useRef(false);
 
   useEffect(() => {
-    if (isLoaded && userMemberships.data.length > 0) {
-      // Assuming the first organization is the active one; adjust logic as needed
-      setActiveOrganizationId(userMemberships.data[0].organization.id);
+    if (organization?.id) {
+      setActiveOrganizationId(organization.id);
+      hasSetActiveRef.current = true;
+      return;
     }
-  }, [isLoaded, userMemberships.data]);
+
+    if (!isLoaded || hasSetActiveRef.current) return;
+
+    const fallbackOrgId = userMemberships.data?.[0]?.organization.id;
+    if (fallbackOrgId) {
+      setActiveOrganizationId(fallbackOrgId);
+      if (setActive) {
+        void setActive({ organization: fallbackOrgId });
+      }
+      hasSetActiveRef.current = true;
+    }
+  }, [organization?.id, isLoaded, setActive, userMemberships.data]);
 
   return activeOrganizationId;
 };

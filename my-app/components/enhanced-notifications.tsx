@@ -159,7 +159,7 @@ export default function EnhancedNotifications() {
                       Resolve
                     </Button>
                   )}
-                  {notification.resolved && <p className="text-green-500 mt-2">Resolved</p>}
+                  {notification.resolved && <p className="text-[#007fff] mt-2">Resolved</p>}
                 </li>
               ))}
             </ul>
@@ -177,4 +177,3 @@ export default function EnhancedNotifications() {
     </Card>
   )
 }
-

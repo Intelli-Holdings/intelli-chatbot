@@ -10,8 +10,10 @@ const isProtectedRoute = createRouteMatcher([
    '/organization/(.*)', // This will protect all organization routes
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) auth().protect()
+export default clerkMiddleware((auth, req) => {
+  if (isProtectedRoute(req)) {
+    auth().protect()
+  }
 })
 
 export const config = {

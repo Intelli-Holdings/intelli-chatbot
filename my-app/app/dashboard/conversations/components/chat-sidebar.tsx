@@ -63,7 +63,6 @@ export default function ChatSidebar({
   isLoadingMore = false,
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState("all")
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Handle infinite scroll
@@ -83,7 +82,7 @@ export default function ChatSidebar({
     return () => scrollElement.removeEventListener("scroll", handleScroll)
   }, [hasMore, loadMore, isLoadingMore])
 
-  // Filter conversations based on search term and active tab
+  // Filter conversations based on search term
   const filteredConversations = conversations.filter((conversation) => {
     // Handle search filtering
     if (searchTerm) {
@@ -96,10 +95,6 @@ export default function ChatSidebar({
       }
     }
 
-    // Handle tab filtering (placeholder logic - implement as needed)
-    if (activeTab === "unread") {
-      return (conversation.unread_messages || 0) > 0
-    }
     return true
   })
 
@@ -110,55 +105,23 @@ export default function ChatSidebar({
   })
 
   return (
-    <div className="w-[435px] border-r bg-white flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 bg-white">
-        <h1 className="text-xl font-bold">Whatsapp Chats</h1>
-
-        {/* Buttons for creating new chat and more options
-        
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <MessageSquarePlus className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <MoreVertical className="h-5 w-5" />
-          </Button>
-        </div>
-        */}
+    <div className="w-[420px] border-r border-[#e9edef] bg-white flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#f0f2f5] border-b border-[#e9edef]">
+        <h1 className="text-[19px] font-semibold text-[#111b21]">Chats</h1>
       </div>
 
-      <div className="p-2">
+      <div className="px-3 py-2 bg-white">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-[15px] w-[15px] text-[#667781]" />
           <Input
-            placeholder="Search conversations"
-            className="pl-10 bg-[#f0f2f5] border-none rounded-lg shadow-sm"
+            placeholder="Search or start new chat"
+            className="pl-10 pr-4 py-2 bg-[#f0f2f5] border-none rounded-lg text-[14px] text-[#111b21] placeholder:text-[#667781] focus-visible:ring-1 focus-visible:ring-[#00a884] h-9"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Tabs for filtering conversations 
-      
-            <Tabs defaultValue="all" className="px-2" onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 h-9 bg-transparent">
-          <TabsTrigger value="all" className="text-sm">
-            All
-          </TabsTrigger>
-          <TabsTrigger value="unread" className="text-sm">
-            Unread
-          </TabsTrigger>
-          <TabsTrigger value="favorites" className="text-sm">
-            Favorites
-          </TabsTrigger>
-          <TabsTrigger value="groups" className="text-sm">
-            Groups
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-      
-      */}
 
       <div ref={scrollRef} className="overflow-y-auto flex-1">
         {loading ? (
@@ -166,10 +129,13 @@ export default function ChatSidebar({
         ) : sortedConversations.length > 0 ? (
           <>
             {sortedConversations.map((conversation) => {
-              let lastMessage =
+              const latestMessage =
                 conversation.messages && conversation.messages.length > 0
-                  ? conversation.messages[conversation.messages.length - 1]?.content || "Open chat to see messages"
-                  : "Select chat to view messages"
+                  ? conversation.messages[conversation.messages.length - 1]
+                  : null
+              let lastMessage = latestMessage
+                ? latestMessage.content || latestMessage.answer || "Open chat to see messages"
+                : "Select chat to view messages"
 
               // Clean up media placeholders and show user-friendly text
               lastMessage = lastMessage.replace(/\[MEDIA_PLACEHOLDER\]/gi, "📎 Media")
@@ -183,6 +149,7 @@ export default function ChatSidebar({
               const time = conversation.updated_at ? formatTimestamp(conversation.updated_at) : ""
 
               const isSelected = selectedConversationId === conversation.id
+              const hasUnread = unreadCount > 0
 
               return (
                 <div
@@ -191,31 +158,64 @@ export default function ChatSidebar({
                     onSelectConversation(conversation)
                   }}
                   className={cn(
-                    "flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition-all duration-150",
+                    "flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition-all duration-200 ease-in-out relative",
                     isSelected
-                      ? "bg-gradient-to-r from-blue-50 to-blue-100/50 border-l-4 border-l-blue-500"
-                      : "hover:bg-gray-100",
+                      ? "bg-[#f0f2f5]"
+                      : "hover:bg-[#f5f6f6] active:bg-[#e9edef]",
                   )}
                 >
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={`/generic-placeholder-graphic.png?height=40&width=40`} alt={displayName} />
-                    <AvatarFallback className="bg-blue-500 text-white">
-                      {displayName.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  {/* WhatsApp-style green indicator for unread */}
+                  {hasUnread && !isSelected && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#25d366]" />
+                  )}
+
+                  <div className="relative">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={`/generic-placeholder-graphic.png?height=40&width=40`} alt={displayName} />
+                      <AvatarFallback className="bg-[#6b7c85] text-white text-base">
+                        {displayName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* Green dot for unread messages - WhatsApp style */}
+                    {hasUnread && (
+                      <div className="absolute -top-0.5 -right-0.5 h-5 w-5 bg-[#25d366] rounded-full border-2 border-white flex items-center justify-center">
+                        <span className="text-[9px] text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <span className={cn("font-medium truncate", isSelected ? "text-blue-700" : "text-gray-900")}>
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span
+                        className={cn(
+                          "truncate text-[15px]",
+                          hasUnread ? "font-semibold text-[#111b21]" : "font-normal text-[#111b21]",
+                        )}
+                      >
                         {displayName}
                       </span>
-                      <span className={cn("text-xs", isSelected ? "text-blue-600" : "text-gray-500")}>{time}</span>
+                      <span
+                        className={cn(
+                          "text-[11px] ml-2 shrink-0",
+                          hasUnread ? "text-[#25d366] font-semibold" : "text-[#667781]"
+                        )}
+                      >
+                        {time}
+                      </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-600 truncate">{lastMessage}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p
+                        className={cn(
+                          "text-[13px] truncate leading-[1.3]",
+                          hasUnread ? "text-[#111b21] font-medium" : "text-[#667781] font-normal"
+                        )}
+                      >
+                        {lastMessage}
+                      </p>
                       {unreadCount > 0 && (
                         <Badge
                           variant="outline"
-                          className="ml-2 h-5 min-w-[24px] p-1 rounded-full flex items-center justify-center bg-blue-500 text-white text-xs shrink-0"
+                          className="ml-1 h-5 min-w-[20px] px-1.5 rounded-full flex items-center justify-center bg-[#25d366] text-white text-[11px] font-semibold border-0 shrink-0"
                         >
                           {formatNumber(unreadCount)}
                         </Badge>

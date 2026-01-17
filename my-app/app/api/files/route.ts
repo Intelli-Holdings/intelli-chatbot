@@ -5,7 +5,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 export async function GET(request: NextRequest) {
   try {
     // Get authentication from Clerk
-    const { getToken } = auth()
+    const { getToken } = await auth()
     const token = await getToken()
 
     if (!token) {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Get authentication from Clerk
-    const { getToken, userId } = auth()
+    const { getToken, userId } = await auth()
     const token = await getToken()
 
     if (!token) {
