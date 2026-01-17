@@ -49,3 +49,5 @@ next-env.d.ts
 .idea/*.xml
 /idea
 .vscode
+.env
+../.env

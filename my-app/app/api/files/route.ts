@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user email from Clerk
-    const clerkUser = userId ? await clerkClient().users.getUser(userId) : null
+    const clerkUser = userId ? await clerkClient.users.getUser(userId) : null
     const userEmail = clerkUser?.emailAddresses?.[0]?.emailAddress || 'anonymous@example.com'
 
     const formData = await request.formData()

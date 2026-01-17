@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import { BulkActionsDialog } from "./bulk-actions-dialog"
 import { DeleteContactDialog } from "./delete-contact-dialog"
 import { EditContactDialog } from "./edit-contact-dialog"
@@ -41,6 +42,7 @@ interface Contact {
 interface ContactsTableProps {
   contacts: Contact[]
   isLoading: boolean
+  isFetching: boolean
   searchTerm: string
   tags: Tag[]
   onContactsChange: () => void
@@ -52,7 +54,7 @@ interface ContactsTableProps {
   onPageSizeChange: (pageSize: number) => void
 }
 
-export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContactsChange, currentPage, totalPages, totalCount, pageSize, onPageChange, onPageSizeChange }: ContactsTableProps) {
+export function ContactsTable({ contacts, isLoading, isFetching, searchTerm, tags, onContactsChange, currentPage, totalPages, totalCount, pageSize, onPageChange, onPageSizeChange }: ContactsTableProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [showBulkDialog, setShowBulkDialog] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -312,6 +314,12 @@ export function ContactsTable({ contacts, isLoading, searchTerm, tags, onContact
                 </SelectContent>
               </Select>
             </div>
+            {isFetching && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Spinner className="size-3" />
+                Updating...
+              </div>
+            )}
           </div>
           {totalPages > 1 && (
             <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-md px-3 py-2 border border-gray-300 dark:border-gray-700">

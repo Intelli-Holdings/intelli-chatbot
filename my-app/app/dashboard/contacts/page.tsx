@@ -32,19 +32,27 @@ interface Contact {
   }[]
 }
 
+const PAGE_SIZE_OPTIONS = [5, 10, 15, 20, 100]
+const DEFAULT_PAGE_SIZE = 12
+
+const getPageSizeStorageKey = (organizationId?: string | null) =>
+  organizationId ? `contacts_page_size_${organizationId}` : "contacts_page_size"
+
 export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 12
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const organizationId = useActiveOrganizationId()
   const queryClient = useQueryClient()
+  const pageSizeStorageKey = getPageSizeStorageKey(organizationId)
 
   const {
     contacts,
     totalCount,
     totalPages,
     isLoading,
+    isFetching,
     error: contactsError,
   } = usePaginatedContacts<Contact>(organizationId || undefined, currentPage, pageSize)
 
@@ -65,8 +73,29 @@ export default function ContactsPage() {
     }
   }, [tagsError])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const storedValue = window.localStorage.getItem(pageSizeStorageKey)
+    const parsed = storedValue ? Number(storedValue) : NaN
+    const nextPageSize = PAGE_SIZE_OPTIONS.includes(parsed) ? parsed : DEFAULT_PAGE_SIZE
+    if (nextPageSize !== pageSize) {
+      setPageSize(nextPageSize)
+      setCurrentPage(1)
+    }
+  }, [pageSizeStorageKey, pageSize])
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    if (size === pageSize) return
+    setPageSize(size)
+    setCurrentPage(1)
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(pageSizeStorageKey, size.toString())
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -115,6 +144,7 @@ export default function ContactsPage() {
         <ContactsTable
           contacts={filteredContacts}
           isLoading={isLoading}
+          isFetching={isFetching}
           searchTerm={searchTerm}
           tags={tags}
           currentPage={currentPage}
@@ -122,7 +152,7 @@ export default function ContactsPage() {
           totalCount={totalCount}
           pageSize={pageSize}
           onPageChange={handlePageChange}
-          onPageSizeChange={() => {}}
+          onPageSizeChange={handlePageSizeChange}
           onContactsChange={() => refreshContacts(currentPage)}
         />
       </div>
