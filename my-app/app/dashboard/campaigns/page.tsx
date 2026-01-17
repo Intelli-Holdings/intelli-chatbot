@@ -61,14 +61,14 @@ export default function CampaignsPage() {
   );
 
   useEffect(() => {
-    fetchStatusCounts();
-  }, [fetchStatusCounts]);
+    refetchStatusCounts();
+  }, []);
 
   // Combined refresh function for campaigns and stats
   const refreshAll = useCallback(async () => {
     await refetch();
-    await fetchStatusCounts();
-  }, [refetch, fetchStatusCounts]);
+    await refetchStatusCounts();
+  }, [refetch, refetchStatusCounts]);
 
   // Reset to page 1 when filters change
   useEffect(() => {

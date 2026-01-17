@@ -120,7 +120,9 @@ export default function ContactsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalCount={totalCount}
+          pageSize={pageSize}
           onPageChange={handlePageChange}
+          onPageSizeChange={() => {}}
           onContactsChange={() => refreshContacts(currentPage)}
         />
       </div>
