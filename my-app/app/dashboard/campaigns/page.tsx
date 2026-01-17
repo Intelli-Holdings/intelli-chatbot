@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X, Loader2, MessageCircleDashed, MessageSquareText, MailCheck, MessageCircle, MessageCircleMore} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,16 +48,27 @@ export default function CampaignsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const pageSize = 100;
   const { campaigns, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     channel: channelFilter !== 'all' ? channelFilter : undefined,
     page: currentPage,
-    pageSize: 20,
+    pageSize: pageSize,
   });
   const { counts: statusCounts, refetch: refetchStatusCounts } = useCampaignStatusCounts(
     organizationId || undefined,
     channelFilter !== 'all' ? channelFilter : undefined
   );
+
+  useEffect(() => {
+    fetchStatusCounts();
+  }, [fetchStatusCounts]);
+
+  // Combined refresh function for campaigns and stats
+  const refreshAll = useCallback(async () => {
+    await refetch();
+    await fetchStatusCounts();
+  }, [refetch, fetchStatusCounts]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -201,36 +212,36 @@ export default function CampaignsPage() {
     {
       title: 'Total Campaigns',
       value: statusCounts.total,
-      icon: MessageSquare,
+      icon: MessageSquareText,
       color: 'text-blue-600'
     },
     {
       title: 'Ready',
       value: statusCounts.ready,
-      icon: Play,
-      color: 'text-green-600'
+      icon: MessageCircle,
+      color: 'text-purple-600'
     },
     {
       title: 'Scheduled',
       value: statusCounts.scheduled,
-      icon: Clock,
+      icon: MessageCircleMore,
       color: 'text-orange-600'
     },
     {
       title: 'Completed',
       value: statusCounts.completed,
-      icon: BarChart3,
-      color: 'text-purple-600'
+      icon:  MailCheck,
+      color: 'text-green-600'
     },
     {
       title: 'Drafts',
       value: statusCounts.draft,
-      icon: MessageSquare,
+      icon: MessageCircleDashed,
       color: 'text-slate-600'
     }
   ];
 
-  const totalPages = Math.ceil(totalCount / 20);
+  const totalPages = Math.ceil(totalCount / pageSize);
   const hasNextPage = currentPage < totalPages;
   const hasPrevPage = currentPage > 1;
 
@@ -583,7 +594,7 @@ export default function CampaignsPage() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <CampaignCreationForm
               appService={selectedAppService}
-              onSuccess={() => {
+              onSuccess={async () => {
                 setShowCreateForm(false);
                 refetch();
                 refetchStatusCounts();
@@ -605,7 +616,7 @@ export default function CampaignsPage() {
               <CampaignCreationForm
                 appService={selectedAppService}
                 draftCampaign={draftToContinue}
-                onSuccess={() => {
+                onSuccess={async () => {
                   setShowDraftForm(false);
                   setDraftToContinue(null);
                   refetch();
@@ -625,7 +636,7 @@ export default function CampaignsPage() {
             {selectedCampaign && (
               <CampaignEditForm
                 campaign={selectedCampaign}
-                onSuccess={() => {
+                onSuccess={async () => {
                   setShowEditForm(false);
                   setSelectedCampaign(null);
                   refetch();
