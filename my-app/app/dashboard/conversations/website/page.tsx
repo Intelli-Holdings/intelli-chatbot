@@ -75,13 +75,16 @@ function getVisitorDisplayName(visitor: Visitor): string {
   return visitor.visitor_name || visitor.visitor_email || visitor.visitor_phone || visitor.visitor_id;
 }
 
-// Get last message preview
-function getLastMessagePreview(visitor: Visitor): string {
+// Get last message preview - truncate and clean up whitespace
+function getLastMessagePreview(visitor: Visitor, maxLength: number = 45): string {
   if (!visitor.messages || visitor.messages.length === 0) return 'No messages yet';
 
   const lastMessage = visitor.messages[visitor.messages.length - 1];
-  const text = lastMessage.answer || lastMessage.content;
-  return text.length > 50 ? text.substring(0, 50) + '...' : text;
+  const text = lastMessage.answer || lastMessage.content || '';
+  // Clean up whitespace and newlines
+  const cleanText = text.replace(/\s+/g, ' ').trim();
+  if (cleanText.length <= maxLength) return cleanText;
+  return cleanText.slice(0, maxLength).trim() + '...';
 }
 
 export default function WebsiteConversationsPage() {

@@ -67,6 +67,11 @@ export default function TemplatesPage() {
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [servicesError, setServicesError] = useState<string | null>(null);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const metaBusinessManagerUrl = selectedAppService?.whatsapp_business_account_id
+    ? `https://business.facebook.com/wa/manage/home/?waba_id=${encodeURIComponent(
+        selectedAppService.whatsapp_business_account_id
+      )}`
+    : null;
 
   const {
     analytics,
@@ -399,11 +404,28 @@ export default function TemplatesPage() {
       </div>
 
       <section id="overview" className="space-y-3">
-        <div>
-          <h2 className="text-lg font-semibold">Account Overview</h2>
-          <p className="text-sm text-muted-foreground">
-            Key WhatsApp performance metrics for the selected number.
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Account Overview</h2>
+            <p className="text-sm text-muted-foreground">
+              Key WhatsApp performance metrics for the selected number.
+            </p>
+          </div>
+          {metaBusinessManagerUrl && (
+            <Button
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              asChild
+            >
+              <a
+                href={metaBusinessManagerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Update in Meta
+              </a>
+            </Button>
+          )}
         </div>
 
         {analyticsError && selectedAppService && (

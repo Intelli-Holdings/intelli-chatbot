@@ -293,7 +293,7 @@ export class NewFileManagerAPI {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${this.baseUrl}/${fileId}/create-version`, {
+    const response = await fetch(`${this.baseUrl}/${fileId}/create_version`, {
       method: 'POST',
       body: formData,
     });

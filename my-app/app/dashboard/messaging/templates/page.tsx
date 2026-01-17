@@ -78,6 +78,11 @@ export default function TemplatesPage() {
   const [templateToDelete, setTemplateToDelete] =
     useState<WhatsAppTemplate | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const metaBusinessManagerUrl = selectedAppService?.whatsapp_business_account_id
+    ? `https://business.facebook.com/wa/manage/home/?waba_id=${encodeURIComponent(
+        selectedAppService.whatsapp_business_account_id
+      )}`
+    : null;
 
   // Fetch app services for organization
   const fetchAppServices = useCallback(async () => {
@@ -690,6 +695,17 @@ export default function TemplatesPage() {
                       />
                       {syncingTemplates ? "Syncing..." : "Sync Meta"}
                     </Button>
+                    {metaBusinessManagerUrl && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a
+                          href={metaBusinessManagerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Update in Meta
+                        </a>
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       onClick={() => setActiveTab("create")}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { DollarSign, TrendingUp, RefreshCw } from 'lucide-react';
 import { useCostBreakdown } from '@/hooks/use-analytics';
 import { formatCost, formatNumber } from '@/services/analytics';
@@ -63,28 +63,27 @@ export function CostBreakdownChart({ organizationId, period = 'month' }: CostBre
     return null;
   }
 
-  // Transform data for pie chart
-  const chartData = Object.entries(data.by_model).map(([model, stats]) => ({
-    name: model,
+  // Transform data for pie chart (using index-based labels instead of model names)
+  const chartData = Object.entries(data.by_model).map(([, stats], index) => ({
+    name: `Usage ${index + 1}`,
     value: stats.cost,
     percentage: stats.percentage,
     tokens: stats.tokens,
     messages: stats.message_count,
   }));
 
-  // Custom label for pie chart
+  // Custom label for pie chart - only show percentage
   const renderLabel = (entry: any) => {
-    return `${entry.name} (${entry.percentage.toFixed(1)}%)`;
+    return `${entry.percentage.toFixed(1)}%`;
   };
 
-  // Custom tooltip
+  // Custom tooltip - hide model names
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
-          <p className="font-semibold text-gray-900">{data.name}</p>
-          <div className="mt-2 space-y-1">
+          <div className="space-y-1">
             <p className="text-sm text-gray-600">
               Cost: <span className="font-medium">{formatCost(data.value)}</span>
             </p>
@@ -109,7 +108,7 @@ export function CostBreakdownChart({ organizationId, period = 'month' }: CostBre
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Cost Breakdown by Model</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Cost Breakdown</h3>
           <p className="mt-1 text-sm text-gray-500">
             Total: {formatCost(data.total_cost)} • {formatNumber(data.total_tokens)} tokens
           </p>
@@ -160,7 +159,6 @@ export function CostBreakdownChart({ organizationId, period = 'month' }: CostBre
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>

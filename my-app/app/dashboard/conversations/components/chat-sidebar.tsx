@@ -53,6 +53,15 @@ const formatTimestamp = (dateString: string): string => {
   return format(date, "dd/MM/yyyy")
 }
 
+// Truncate message preview with ellipsis
+const truncateMessage = (message: string, maxLength: number = 45): string => {
+  if (!message) return ""
+  // Remove extra whitespace and newlines
+  const cleanMessage = message.replace(/\s+/g, ' ').trim()
+  if (cleanMessage.length <= maxLength) return cleanMessage
+  return cleanMessage.slice(0, maxLength).trim() + "..."
+}
+
 export default function ChatSidebar({
   conversations = [], // Provide default empty array
   onSelectConversation,
@@ -206,11 +215,11 @@ export default function ChatSidebar({
                     <div className="flex items-center justify-between gap-2">
                       <p
                         className={cn(
-                          "text-[13px] truncate leading-[1.3]",
+                          "text-[13px] leading-[1.3] flex-1 min-w-0",
                           hasUnread ? "text-[#111b21] font-medium" : "text-[#667781] font-normal"
                         )}
                       >
-                        {lastMessage}
+                        {truncateMessage(lastMessage)}
                       </p>
                       {unreadCount > 0 && (
                         <Badge
