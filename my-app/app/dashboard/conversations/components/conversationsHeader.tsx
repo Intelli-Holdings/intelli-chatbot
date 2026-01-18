@@ -29,8 +29,19 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   onAiSupportChange,
 }) => {
   const [error, setError] = useState<string | null>(null);
-  const [isAiSupport, setIsAiSupport] = useState<boolean>(true);
+  // Initialize based on conversation's is_handle_by_human field
+  // isAiSupport = true means AI is handling, is_handle_by_human = false
+  const [isAiSupport, setIsAiSupport] = useState<boolean>(
+    !conversation?.is_handle_by_human
+  );
   const { callState, initiateCall, answerCall, endCall } = useCall();
+
+  // Sync state when conversation changes
+  useEffect(() => {
+    if (conversation) {
+      setIsAiSupport(!conversation.is_handle_by_human);
+    }
+  }, [conversation?.id, conversation?.is_handle_by_human]);
 
   const handleToggleAISupport = async () => {
     if (!conversation || !phoneNumber) return;

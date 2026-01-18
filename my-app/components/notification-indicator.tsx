@@ -182,9 +182,17 @@ export function NotificationIndicator() {
                     </Avatar>
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium line-clamp-1">
-                          {notification.chatsession?.customer_name || "Unknown Customer"}
-                        </p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium line-clamp-1">
+                            {notification.chatsession?.customer_name || notification.widget_visitor?.visitor_name || "Unknown Customer"}
+                          </p>
+                          {/* Display phone number if available */}
+                          {(notification.chatsession?.customer_number || notification.widget_visitor?.visitor_phone) && (
+                            <p className="text-xs text-gray-500 line-clamp-1">
+                              {notification.chatsession?.customer_number || notification.widget_visitor?.visitor_phone}
+                            </p>
+                          )}
+                        </div>
                         <span className="text-xs text-gray-500 whitespace-nowrap">
                           {formatDate(notification.created_at)}
                         </span>
@@ -192,10 +200,16 @@ export function NotificationIndicator() {
                       <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
                         {notification.message}
                       </p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="outline" className="text-xs">
                           {notification.channel}
                         </Badge>
+                        {/* Display business phone number (AppService) if available */}
+                        {notification.chatsession?.business_phone_number && (
+                          <Badge variant="secondary" className="text-xs">
+                            {notification.chatsession.business_phone_number}
+                          </Badge>
+                        )}
                         {notification.status && (
                           <Badge
                             variant={notification.status === 'resolved' ? 'default' : 'destructive'}

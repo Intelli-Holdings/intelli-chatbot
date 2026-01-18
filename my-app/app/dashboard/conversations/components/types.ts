@@ -6,7 +6,8 @@ export interface ChatMessage {
   created_at: string
   sender: string
   imageUrl?: string
-  whatsapp_message_id?: string // WhatsApp message ID (wamid) for reactions
+  whatsapp_message_id?: string // WhatsApp message ID (wamid) for outgoing/response messages
+  incoming_whatsapp_message_id?: string // WhatsApp message ID (wamid) for incoming/customer messages - use this for reactions
   reaction?: {
     emoji: string
     reactor_id?: string

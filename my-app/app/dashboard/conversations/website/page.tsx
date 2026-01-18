@@ -286,37 +286,46 @@ export default function WebsiteConversationsPage() {
   const handleTakeover = async () => {
     if (!selectedVisitor || !activeOrganizationId) return;
 
-    const token = await getToken({ organizationId: activeOrganizationId });
-    if (!token) {
-      toast.error("Authentication failed");
-      return;
-    }
-
     const action = selectedVisitor.is_handle_by_human ? "handover" : "takeover";
 
-    const payload = {
-      action,
-      widget_key: selectedWidgetKey,
-      visitor_id: selectedVisitor.visitor_id,
-    };
+    try {
+      const response = await fetch("/api/widgets/takeover", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action,
+          visitor_id: selectedVisitor.visitor_id,
+        }),
+      });
 
-    const ws = new WebSocket(
-      `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/business/chat/${activeOrganizationId}/?token=${token}`
-    );
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update chat status");
+      }
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify(payload));
-      ws.close();
-
+      // Update local state only after successful API call
       setSelectedVisitor(prev => prev ? {...prev, is_handle_by_human: !prev.is_handle_by_human} : null);
+
+      // Update the visitors list as well
+      queryClient.setQueryData<Visitor[]>(["website-visitors", selectedWidgetKey], (prev = []) =>
+        prev.map((visitor) => {
+          if (visitor.visitor_id !== selectedVisitor.visitor_id) return visitor;
+          return {
+            ...visitor,
+            is_handle_by_human: !visitor.is_handle_by_human,
+          };
+        })
+      );
+
       toast.success(
         action === "takeover" ? "You are now handling this chat" : "Chat handed over to AI"
       );
-    };
-
-    ws.onerror = () => {
-      toast.error("Action failed. Please try again");
-    };
+    } catch (error) {
+      console.error("Takeover error:", error);
+      toast.error(error instanceof Error ? error.message : "Action failed. Please try again");
+    }
   };
 
   const filteredVisitors = visitors.filter((visitor) =>

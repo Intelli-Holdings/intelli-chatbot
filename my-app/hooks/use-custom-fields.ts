@@ -58,6 +58,54 @@ const normalizeList = <T,>(data: any): T[] => {
   return data?.results || [];
 };
 
+const normalizeField = (field: any): CustomField => ({
+  ...field,
+  active: field.active ?? field.is_active ?? true,
+});
+
+const formatErrorMessage = (errorData: unknown, fallback: string) => {
+  if (!errorData) return fallback;
+  if (typeof errorData === 'string') return errorData;
+  if (errorData instanceof Error) return errorData.message;
+  if (typeof errorData === 'object') {
+    const data = errorData as Record<string, any>;
+    if (typeof data.error === 'string') return data.error;
+    if (typeof data.detail === 'string') return data.detail;
+    const fieldMessages = Object.entries(data)
+      .flatMap(([key, value]) => {
+        if (Array.isArray(value)) {
+          return value.map((message) => `${key}: ${String(message)}`);
+        }
+        if (value && typeof value === 'object') {
+          return Object.entries(value).map(([subKey, subValue]) => `${key}.${subKey}: ${String(subValue)}`);
+        }
+        return `${key}: ${String(value)}`;
+      })
+      .filter(Boolean);
+    if (fieldMessages.length > 0) return fieldMessages.join(' | ');
+  }
+  return fallback;
+};
+
+const parseErrorResponse = async (response: Response, fallback: string) => {
+  const text = await response.text();
+  if (!text) return fallback;
+  try {
+    return formatErrorMessage(JSON.parse(text), fallback);
+  } catch {
+    return formatErrorMessage(text, fallback);
+  }
+};
+
+const toApiPayload = <T extends Record<string, any>>(data: T) => {
+  const payload = { ...data } as Record<string, any>;
+  if ("active" in payload) {
+    payload.is_active = payload.active;
+    delete payload.active;
+  }
+  return payload;
+};
+
 export function useCustomFields(organizationId?: string): UseCustomFieldsReturn {
   const queryClient = useQueryClient();
   const queryKey = ['custom-fields', organizationId];
@@ -70,12 +118,11 @@ export function useCustomFields(organizationId?: string): UseCustomFieldsReturn 
     const response = await fetch(`/api/contacts/custom-fields?organization=${organizationId}`);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to fetch custom fields');
+      throw new Error(await parseErrorResponse(response, 'Failed to fetch custom fields'));
     }
 
     const data = await response.json();
-    return normalizeList<CustomField>(data);
+    return normalizeList<CustomField>(data).map(normalizeField);
   }, [organizationId]);
 
   const query = useQuery(queryKey, fetchCustomFields, {
@@ -89,15 +136,14 @@ export function useCustomFields(organizationId?: string): UseCustomFieldsReturn 
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(toApiPayload(data)),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to create custom field');
+      throw new Error(await parseErrorResponse(response, 'Failed to create custom field'));
     }
 
-    const newField = await response.json();
+    const newField = normalizeField(await response.json());
     queryClient.setQueryData<CustomField[]>(queryKey, (old) => {
       const existing = old || [];
       return [...existing, newField];
@@ -112,15 +158,14 @@ export function useCustomFields(organizationId?: string): UseCustomFieldsReturn 
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(toApiPayload(data)),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to update custom field');
+      throw new Error(await parseErrorResponse(response, 'Failed to update custom field'));
     }
 
-    const updatedField = await response.json();
+    const updatedField = normalizeField(await response.json());
     queryClient.setQueryData<CustomField[]>(queryKey, (old) => {
       const existing = old || [];
       return existing.map(field => field.id === id ? updatedField : field);
@@ -135,8 +180,7 @@ export function useCustomFields(organizationId?: string): UseCustomFieldsReturn 
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to delete custom field');
+      throw new Error(await parseErrorResponse(response, 'Failed to delete custom field'));
     }
 
     queryClient.setQueryData<CustomField[]>(queryKey, (old) => {
@@ -196,8 +240,7 @@ export function useCustomFieldValues(contactId?: string): UseCustomFieldValuesRe
     const response = await fetch(`/api/contacts/custom-field-values?contact=${contactId}`);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to fetch custom field values');
+      throw new Error(await parseErrorResponse(response, 'Failed to fetch custom field values'));
     }
 
     const data = await response.json();
@@ -219,8 +262,7 @@ export function useCustomFieldValues(contactId?: string): UseCustomFieldValuesRe
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to save custom field value');
+      throw new Error(await parseErrorResponse(response, 'Failed to save custom field value'));
     }
 
     const newValue = await response.json();

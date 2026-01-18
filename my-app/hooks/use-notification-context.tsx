@@ -26,7 +26,8 @@ const NotificationContext = createContext<NotificationContextType>({
   isLoading: false,
   error: null,
   fetchHistoricalNotifications: async () => {},
-  fetchAssignedNotifications: async () => {}
+  fetchAssignedNotifications: async () => {},
+  updateNotification: () => {}
 })
 
 export const useNotificationContext = () => useContext(NotificationContext)
@@ -277,9 +278,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
               </div>
               <div className="flex flex-col gap-1">
                 <div className="font-medium flex items-center gap-2">
-                  {payload.chatsession?.customer_name || "New notification"}
+                  {payload.chatsession?.customer_name || payload.widget_visitor?.visitor_name || "New notification"}
                   <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{payload.channel || "System"}</span>
                 </div>
+                {/* Display customer phone number if available */}
+                {(payload.chatsession?.customer_number || payload.widget_visitor?.visitor_phone) && (
+                  <div className="text-xs text-gray-400">
+                    {payload.chatsession?.customer_number || payload.widget_visitor?.visitor_phone}
+                  </div>
+                )}
+                {/* Display business phone number (AppService) if available */}
+                {payload.chatsession?.business_phone_number && (
+                  <div className="text-xs text-blue-500">
+                    From: {payload.chatsession.business_phone_number}
+                  </div>
+                )}
                 <div className="text-sm text-gray-500 line-clamp-2">{payload.message}</div>
               </div>
             </div>,
@@ -370,6 +383,42 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setUnreadCount(0)
   }
 
+  const updateNotification = useCallback((updatedNotification: NotificationMessage) => {
+    setNotifications((prev) => {
+      const updated = prev.map((notification) =>
+        notification.id === updatedNotification.id ? updatedNotification : notification
+      )
+      if (storageKey && typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, JSON.stringify(updated))
+      }
+      return updated
+    })
+
+    setHistoricalNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === updatedNotification.id ? updatedNotification : notification
+      )
+    )
+
+    setAssignedNotifications((prev) => {
+      const list = Array.isArray(prev) ? prev : []
+      const exists = list.some((notification) => notification.id === updatedNotification.id)
+      if (exists) {
+        return list.map((notification) =>
+          notification.id === updatedNotification.id ? updatedNotification : notification
+        )
+      }
+      if (
+        user?.primaryEmailAddress?.emailAddress &&
+        updatedNotification.assignee &&
+        updatedNotification.assignee.email === user.primaryEmailAddress.emailAddress
+      ) {
+        return [...list, updatedNotification]
+      }
+      return list
+    })
+  }, [storageKey, user])
+
   return (
     <NotificationContext.Provider
       value={{
@@ -382,7 +431,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isLoading,
         error,
         fetchHistoricalNotifications,
-        fetchAssignedNotifications
+        fetchAssignedNotifications,
+        updateNotification
       }}
     >
       {children}

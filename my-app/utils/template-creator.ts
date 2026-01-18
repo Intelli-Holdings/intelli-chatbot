@@ -195,16 +195,11 @@ export class TemplateCreationHandler {
             text: card.bodyText
           }
 
-          if (bodyVariables.length > 0) {
-            bodyComp.example = {
-              body_text: [bodyVariables.map((_, i) => `value${i + 1}`)]
-            }
-          } else {
-            // CRITICAL FIX: Empty example for non-variable body
-            bodyComp.example = {
-              body_text: [[]]
-            }
+        if (bodyVariables.length > 0) {
+          bodyComp.example = {
+            body_text: [bodyVariables.map((_, i) => `value${i + 1}`)]
           }
+        }
 
           cardComponents.push(bodyComp)
         }
@@ -381,11 +376,6 @@ export class TemplateCreationHandler {
       // CRITICAL FIX: body_text must be nested array [[val1, val2, ...]]
       bodyComponent.example = {
         body_text: [exampleValues],
-      }
-    } else {
-      // CRITICAL FIX: Templates without variables need empty nested array [[]]
-      bodyComponent.example = {
-        body_text: [[]]
       }
     }
 

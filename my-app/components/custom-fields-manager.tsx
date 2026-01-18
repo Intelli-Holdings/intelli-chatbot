@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Copy, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Copy, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,15 @@ interface CustomFieldFormData {
   choices: string[];
 }
 
+const slugifyKey = (value: string) => {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
 export default function CustomFieldsManager() {
   const organizationId = useActiveOrganizationId();
   const { customFields, loading, createCustomField, updateCustomField, deleteCustomField, refetch } = useCustomFields(organizationId || undefined);
@@ -41,6 +50,7 @@ export default function CustomFieldsManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState<CustomFieldFormData>({
     name: '',
@@ -107,23 +117,39 @@ export default function CustomFieldsManager() {
     }
 
     try {
+      setIsSubmitting(true);
       const choices = formData.field_type === 'enum'
         ? choicesInput.split(',').map(c => c.trim()).filter(Boolean)
         : [];
+
+      const normalizedKey = slugifyKey(formData.key || formData.name);
+      if (!normalizedKey) {
+        toast.error('Field key is required');
+        return;
+      }
+
+      const duplicateKey = customFields.some(
+        (field) => field.key === normalizedKey && field.id !== editingField?.id
+      );
+      if (duplicateKey) {
+        toast.error('A custom field with this key already exists');
+        return;
+      }
 
       if (formData.field_type === 'enum' && choices.length === 0) {
         toast.error('Enum fields must have at least one choice');
         return;
       }
 
+      const defaultValue = formData.default_value.trim();
       const data = {
         organization: organizationId,
         name: formData.name,
-        key: formData.key || undefined,
+        key: normalizedKey,
         field_type: formData.field_type,
         required: formData.required,
         active: formData.active,
-        default_value: formData.default_value || null,
+        default_value: defaultValue ? defaultValue : null,
         help_text: formData.help_text || undefined,
         choices: choices.length > 0 ? choices : undefined,
       };
@@ -141,6 +167,8 @@ export default function CustomFieldsManager() {
     } catch (error) {
       console.error('Error saving custom field:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save custom field');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -411,8 +439,15 @@ export default function CustomFieldsManager() {
             <Button variant="outline" onClick={handleCloseDialog}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
-              {editingField ? 'Update' : 'Create'} Field
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {editingField ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                `${editingField ? 'Update' : 'Create'} Field`
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
