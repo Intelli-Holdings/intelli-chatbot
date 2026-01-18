@@ -14,6 +14,28 @@ export interface ChatSession {
   customer_number: string
   customer_name: string
   updated_at: string
+  business_phone_number?: string | null  // The AppService phone number (business number)
+}
+
+export interface WidgetVisitor {
+  id: number
+  widget?: number | null
+  visitor_id?: string | null
+  visitor_email?: string | null
+  visitor_name?: string | null
+  visitor_phone?: string | null
+  ip_address?: string | null
+  created_at?: string
+  last_seen?: string
+}
+
+export interface NotificationAssignee {
+  id: string
+  clerk_id?: string | null
+  email?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  profile_image_url?: string | null
 }
 
 // Interface for the main NotificationMessage object
@@ -21,9 +43,9 @@ export interface NotificationMessage {
   organization_id: any
   id: number
   escalation_event: EscalationEvent
-  assignee: string | null
-  chatsession: ChatSession
-  widget_visitor: any
+  assignee: string | NotificationAssignee | null
+  chatsession: ChatSession | null
+  widget_visitor: WidgetVisitor | null
   message: string
   channel: string
   status: string

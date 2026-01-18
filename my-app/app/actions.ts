@@ -6,9 +6,10 @@ import Papa from 'papaparse';
 import { revalidatePath } from 'next/cache';
 import { toast } from 'sonner';
 import { useWebSocket, type WebSocketMessage } from "@/hooks/use-websocket"
+import { auth } from '@clerk/nextjs/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-;
+
 const WEBSOCKET_BASE_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://backend.intelliconcierge.com/ws";
 
 interface ConversationPayload {
@@ -17,6 +18,9 @@ interface ConversationPayload {
 }
 
 export async function takeoverConversation(formData: FormData) {
+  const { getToken } = await auth();
+  const token = await getToken();
+
   const customerNumber = formData.get('customerNumber');
   const phoneNumber = formData.get('phoneNumber');
 
@@ -31,6 +35,7 @@ export async function takeoverConversation(formData: FormData) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
   });
@@ -51,6 +56,9 @@ export async function takeoverConversation(formData: FormData) {
 }
 
 export async function handoverConversation(formData: FormData) {
+  const { getToken } = await auth();
+  const token = await getToken();
+
   const customerNumber = formData.get('customerNumber');
   const phoneNumber = formData.get('phoneNumber');
 
@@ -65,6 +73,7 @@ export async function handoverConversation(formData: FormData) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
   });
@@ -77,7 +86,6 @@ export async function handoverConversation(formData: FormData) {
 
   const responseData = await response.json();
   console.log('Conversation handover successful:');
-
 
   return {
     success: true,

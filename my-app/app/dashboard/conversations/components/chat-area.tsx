@@ -168,11 +168,18 @@ export default function ChatArea({
     { align: "left", width: "w-[55%]" },
   ]
 
-  const handleReactionSelect = async (message: ChatMessage, emoji: string, currentReaction?: string) => {
+  const handleReactionSelect = async (message: ChatMessage, emoji: string, currentReaction?: string, isCustomerMessage: boolean = false) => {
     if (!conversation) return
 
-    // Check if message has WhatsApp message ID
-    if (!message.whatsapp_message_id) {
+    // Determine which message ID to use based on whether we're reacting to customer content or our response
+    // For customer messages (content), use incoming_whatsapp_message_id
+    // For our responses (answer), use whatsapp_message_id
+    const messageIdToUse = isCustomerMessage
+      ? message.incoming_whatsapp_message_id
+      : message.whatsapp_message_id
+
+    // Check if message has the appropriate WhatsApp message ID
+    if (!messageIdToUse) {
       toast({
         description: "Cannot react to this message - WhatsApp message ID not found",
         variant: "destructive",
@@ -217,7 +224,7 @@ export default function ChatArea({
         },
         body: JSON.stringify({
           recipientNumber: conversation.customer_number || conversation.recipient_id,
-          messageId: message.whatsapp_message_id,
+          messageId: messageIdToUse,
           emoji: newEmoji,
           organizationId,
         }),
@@ -1097,10 +1104,11 @@ export default function ChatArea({
                   {message.reaction?.emoji && (
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
                   )}
-                  {message.whatsapp_message_id && (
+                  {/* Use incoming_whatsapp_message_id for reacting to customer messages */}
+                  {message.incoming_whatsapp_message_id && (
                     <div className="absolute -top-3 right-2">
                       <ReactionPicker
-                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji, true)}
                         currentReaction={message.reaction?.emoji}
                       />
                     </div>
@@ -1166,10 +1174,11 @@ export default function ChatArea({
                   {message.reaction?.emoji && (
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
                   )}
+                  {/* Use whatsapp_message_id for reacting to AI/human response messages */}
                   {message.whatsapp_message_id && (
                     <div className="absolute -top-3 right-2">
                       <ReactionPicker
-                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji, false)}
                         currentReaction={message.reaction?.emoji}
                       />
                     </div>
@@ -1243,10 +1252,11 @@ export default function ChatArea({
                   {message.reaction?.emoji && (
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
                   )}
-                  {message.whatsapp_message_id && (
+                  {/* For media messages, use incoming_whatsapp_message_id for customer media, whatsapp_message_id for our media */}
+                  {(message.sender === "customer" ? message.incoming_whatsapp_message_id : message.whatsapp_message_id) && (
                     <div className="absolute -top-3 right-2">
                       <ReactionPicker
-                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji)}
+                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji, message.sender === "customer")}
                         currentReaction={message.reaction?.emoji}
                       />
                     </div>

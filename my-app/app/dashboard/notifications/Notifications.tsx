@@ -35,13 +35,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { NotificationMessage, TeamMember } from "@/types/notification"
-import { useOrganization } from "@clerk/nextjs"
+import { useOrganization, useUser, useAuth } from "@clerk/nextjs"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useNotificationContext } from "@/hooks/use-notification-context"
 import Image from "next/image"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
-import { useUser } from "@clerk/nextjs"
 import EscalationEvents from "@/components/EscalationEvents"
 
 interface NotificationsProps {
@@ -52,6 +51,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
   const router = useRouter()
   const activeOrganizationId = useActiveOrganizationId()
   const { user } = useUser()
+  const { getToken } = useAuth()
   const [showAssigneeSelect, setShowAssigneeSelect] = useState<string | null>(null)
   const [organizationUsers, setOrganizationUsers] = useState<
     Array<{ id: string; name: string; email: string; image: string }>
@@ -79,6 +79,17 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
   } = useNotificationContext()
 
   const PAGE_SIZE = 10
+
+  const getAuthHeaders = useCallback(async () => {
+    const token = await getToken({ organizationId: activeOrganizationId ?? undefined })
+    if (!token) {
+      throw new Error("Authentication required")
+    }
+    return {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    }
+  }, [getToken, activeOrganizationId])
 
   // Fetch paginated notifications
   const fetchPaginatedNotifications = useCallback(async (page: number) => {
@@ -201,11 +212,16 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
 
     try {
       // Resolve all selected notifications
+      const headers = await getAuthHeaders()
       await Promise.all(
         selectedIds.map(id =>
-          fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/resolve/${id}/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+          fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/resolve/notification/`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              notification_id: id,
+              organization_id: activeOrganizationId ?? undefined
+            })
           })
         )
       )
@@ -254,10 +270,22 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
     fetchOrganizationMembers()
   }, [organization])
 
+  const getAssigneeId = (notification: NotificationMessage) => {
+    const assignee = notification.assignee
+    if (!assignee) {
+      return ""
+    }
+    if (typeof assignee === "string") {
+      return assignee
+    }
+    return assignee.clerk_id || assignee.id || assignee.email || ""
+  }
+
   const getAssignee = (notification: NotificationMessage) => {
-    if (notification.assignee) {
+    const assigneeId = getAssigneeId(notification)
+    if (assigneeId) {
       // First try to find in organization users
-      const user = organizationUsers.find((u) => u.id === notification.assignee)
+      const user = organizationUsers.find((u) => u.id === assigneeId || u.email === assigneeId)
       if (user) {
         return {
           name: user.name,
@@ -266,13 +294,21 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
         }
       }
       // Then try to find in members prop
-      const member = members.find((m) => m.id === notification.assignee)
+      const member = members.find((m) => m.id === assigneeId || m.email === assigneeId)
       if (member) {
         return {
           name: member.name,
           email: member.email || '',
           image: (member as any).image || ""
         }
+      }
+    }
+    if (notification.assignee && typeof notification.assignee === "object") {
+      const name = `${notification.assignee.first_name || ""} ${notification.assignee.last_name || ""}`.trim()
+      return {
+        name: name || notification.assignee.email || "Assigned",
+        email: notification.assignee.email || "",
+        image: notification.assignee.profile_image_url || ""
       }
     }
     return { name: "Unassigned", email: "", image: "" }
@@ -286,15 +322,18 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       if (!selectedUser) {
         throw new Error("Selected user not found")
       }
+      const headers = await getAuthHeaders()
+      const payload: Record<string, string> = {
+        user_email: selectedUser.email,
+        notification_id: notificationId,
+      }
+      if (activeOrganizationId) {
+        payload.organization_id = activeOrganizationId
+      }
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assign/notification/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_email: selectedUser.email,
-          notification_id: notificationId,
-        }),
+        headers,
+        body: JSON.stringify(payload),
       })
       if (!response.ok) {
         throw new Error(`Failed to assign: ${response.statusText}`)
@@ -302,6 +341,12 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       toast("Success", {
         description: `Assigned to ${selectedUser.name}`,
       })
+      if (notificationFilter === "assigned") {
+        await fetchAssignedNotifications()
+      } else if (notificationFilter === "all") {
+        await fetchHistoricalNotifications()
+      }
+      await fetchPaginatedNotifications(currentPage)
 
     } catch (error) {
       toast("Assignment Failed", {
@@ -318,14 +363,17 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
     setIsLoading((prev) => ({ ...prev, [`resolve-${notificationId}`]: true }))
 
     try {
+      const headers = await getAuthHeaders()
+      const payload: Record<string, string> = {
+        notification_id: notificationId,
+      }
+      if (activeOrganizationId) {
+        payload.organization_id = activeOrganizationId
+      }
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/resolve/notification/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          notification_id: notificationId,
-        }),
+        headers,
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -335,9 +383,16 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       toast("Success", {
         description: "Notification resolved successfully",
       })
-
+      if (notificationFilter === "assigned") {
+        await fetchAssignedNotifications()
+      } else if (notificationFilter === "all") {
+        await fetchHistoricalNotifications()
+      }
+      await fetchPaginatedNotifications(currentPage)
     } catch (error) {
-      // Failed to resolve notification
+      toast("Resolve Failed", {
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+      })
     } finally {
       setIsLoading((prev) => ({ ...prev, [`resolve-${notificationId}`]: false }))
     }
@@ -656,7 +711,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
           <div className="flex items-center gap-3">
             {showAssigneeSelect === notification.id.toString() ? (
               <Select
-                value={notification.assignee || ""}
+                value={getAssigneeId(notification)}
                 onValueChange={(value) => handleAssigneeChange(notification.id.toString(), value)}
                 disabled={isLoading[notification.id.toString()]}
               >

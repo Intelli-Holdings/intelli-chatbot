@@ -10,6 +10,7 @@ import { useUser } from "@clerk/nextjs"
 import { toast } from "sonner"
 import EmojiPicker from "emoji-picker-react"
 import { Textarea } from "@/components/ui/textarea"
+import { CannedResponsesPicker } from "@/components/canned-responses-picker"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -17,6 +18,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 interface MessageInputProps {
   customerNumber: string
   phoneNumber: string
+  organizationId?: string
   onMessageSent?: (newMessageContent: string, mediaUrl?: string, mediaType?: string) => number | void
   onMessageSendSuccess?: (tempId: number, realMessage: any) => void
   onMessageSendFailure?: (tempId: number) => void
@@ -25,6 +27,7 @@ interface MessageInputProps {
 const MessageInput: React.FC<MessageInputProps> = ({
   customerNumber,
   phoneNumber,
+  organizationId,
   onMessageSent,
   onMessageSendSuccess,
   onMessageSendFailure
@@ -287,6 +290,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }
 
+  const handleCannedResponseSelect = (content: string) => {
+    setAnswer(content)
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }
+
   const isSubmitDisabled = isLoading || (answer.trim() === "" && files.length === 0 && !audioBlob)
 
   const renderFilePreview = (file: File, index: number) => {
@@ -413,6 +423,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
           />
 
           <div className="absolute bottom-0 right-0 p-3 flex items-center gap-2">
+            {organizationId && (
+              <CannedResponsesPicker
+                organizationId={organizationId}
+                onSelect={handleCannedResponseSelect}
+                className="rounded-full"
+              />
+            )}
             <Button
               type="button"
               variant="ghost"

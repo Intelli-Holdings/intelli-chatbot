@@ -277,9 +277,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
               </div>
               <div className="flex flex-col gap-1">
                 <div className="font-medium flex items-center gap-2">
-                  {payload.chatsession?.customer_name || "New notification"}
+                  {payload.chatsession?.customer_name || payload.widget_visitor?.visitor_name || "New notification"}
                   <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{payload.channel || "System"}</span>
                 </div>
+                {/* Display customer phone number if available */}
+                {(payload.chatsession?.customer_number || payload.widget_visitor?.visitor_phone) && (
+                  <div className="text-xs text-gray-400">
+                    {payload.chatsession?.customer_number || payload.widget_visitor?.visitor_phone}
+                  </div>
+                )}
+                {/* Display business phone number (AppService) if available */}
+                {payload.chatsession?.business_phone_number && (
+                  <div className="text-xs text-blue-500">
+                    From: {payload.chatsession.business_phone_number}
+                  </div>
+                )}
                 <div className="text-sm text-gray-500 line-clamp-2">{payload.message}</div>
               </div>
             </div>,
