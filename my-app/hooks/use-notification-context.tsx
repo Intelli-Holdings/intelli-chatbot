@@ -411,6 +411,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (
         user?.primaryEmailAddress?.emailAddress &&
         updatedNotification.assignee &&
+        typeof updatedNotification.assignee === 'object' &&
         updatedNotification.assignee.email === user.primaryEmailAddress.emailAddress
       ) {
         return [...list, updatedNotification]
