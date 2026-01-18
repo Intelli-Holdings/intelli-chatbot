@@ -26,7 +26,8 @@ const NotificationContext = createContext<NotificationContextType>({
   isLoading: false,
   error: null,
   fetchHistoricalNotifications: async () => {},
-  fetchAssignedNotifications: async () => {}
+  fetchAssignedNotifications: async () => {},
+  updateNotification: () => {}
 })
 
 export const useNotificationContext = () => useContext(NotificationContext)
@@ -382,6 +383,42 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setUnreadCount(0)
   }
 
+  const updateNotification = useCallback((updatedNotification: NotificationMessage) => {
+    setNotifications((prev) => {
+      const updated = prev.map((notification) =>
+        notification.id === updatedNotification.id ? updatedNotification : notification
+      )
+      if (storageKey && typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, JSON.stringify(updated))
+      }
+      return updated
+    })
+
+    setHistoricalNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === updatedNotification.id ? updatedNotification : notification
+      )
+    )
+
+    setAssignedNotifications((prev) => {
+      const list = Array.isArray(prev) ? prev : []
+      const exists = list.some((notification) => notification.id === updatedNotification.id)
+      if (exists) {
+        return list.map((notification) =>
+          notification.id === updatedNotification.id ? updatedNotification : notification
+        )
+      }
+      if (
+        user?.primaryEmailAddress?.emailAddress &&
+        updatedNotification.assignee &&
+        updatedNotification.assignee.email === user.primaryEmailAddress.emailAddress
+      ) {
+        return [...list, updatedNotification]
+      }
+      return list
+    })
+  }, [storageKey, user])
+
   return (
     <NotificationContext.Provider
       value={{
@@ -394,7 +431,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isLoading,
         error,
         fetchHistoricalNotifications,
-        fetchAssignedNotifications
+        fetchAssignedNotifications,
+        updateNotification
       }}
     >
       {children}

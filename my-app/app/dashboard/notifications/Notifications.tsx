@@ -54,7 +54,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
   const { getToken } = useAuth()
   const [showAssigneeSelect, setShowAssigneeSelect] = useState<string | null>(null)
   const [organizationUsers, setOrganizationUsers] = useState<
-    Array<{ id: string; name: string; email: string; image: string }>
+    Array<{ id: string; name: string; email: string; image: string; clerk_id?: string }>
   >([])
   const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({})
   const [notificationFilter, setNotificationFilter] = useState<'all' | 'live' | 'assigned'>('all')
@@ -75,7 +75,8 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
     error,
     markAllAsRead,
     fetchHistoricalNotifications,
-    fetchAssignedNotifications
+    fetchAssignedNotifications,
+    updateNotification
   } = useNotificationContext()
 
   const PAGE_SIZE = 10
@@ -254,6 +255,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
             image: member.publicUserData?.imageUrl || "",
             name: `${member.publicUserData?.firstName || ""} ${member.publicUserData?.lastName || ""}`.trim(),
             email: member.publicUserData?.identifier || "",
+            clerk_id: member.publicUserData?.userId || "",
           }))
           setOrganizationUsers(formattedMembers)
         } catch (error) {
@@ -324,29 +326,53 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       }
       const headers = await getAuthHeaders()
       const payload: Record<string, string> = {
-        user_email: selectedUser.email,
         notification_id: notificationId,
+      }
+      if (selectedUser.email) {
+        payload.user_email = selectedUser.email
+      }
+      if (!payload.user_email && selectedUser.clerk_id) {
+        payload.clerk_id = selectedUser.clerk_id
+      }
+      if (!payload.user_email && !payload.clerk_id) {
+        const fallback = members.find((member) => member.id === selectedUser.id)
+        if (fallback?.email) {
+          payload.user_email = fallback.email
+        }
+        if (!payload.user_email && fallback?.clerk_id) {
+          payload.clerk_id = fallback.clerk_id
+        }
+      }
+      if (!payload.user_email && !payload.clerk_id) {
+        throw new Error("Selected assignee is missing an email or identifier")
       }
       if (activeOrganizationId) {
         payload.organization_id = activeOrganizationId
       }
+      console.group("Notification assign payload")
+      console.log("notificationId", notificationId)
+      console.log("payload", payload)
+      console.groupEnd()
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assign/notification/`, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       })
       if (!response.ok) {
+        const text = await response.text()
+        console.error("assign response error", response.status, text)
         throw new Error(`Failed to assign: ${response.statusText}`)
       }
+      const updatedNotification = await response.json()
+      updateNotification(updatedNotification)
+      setPaginatedNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === updatedNotification.id ? updatedNotification : notification
+        )
+      )
       toast("Success", {
         description: `Assigned to ${selectedUser.name}`,
       })
-      if (notificationFilter === "assigned") {
-        await fetchAssignedNotifications()
-      } else if (notificationFilter === "all") {
-        await fetchHistoricalNotifications()
-      }
-      await fetchPaginatedNotifications(currentPage)
 
     } catch (error) {
       toast("Assignment Failed", {

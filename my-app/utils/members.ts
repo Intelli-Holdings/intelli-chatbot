@@ -10,6 +10,7 @@ export const memberUtils = {
       initials: memberUtils.getInitials(firstName, lastName),
       imageUrl: member.publicUserData.imageUrl || '',
       email: member.publicUserData.identifier || '',
+      clerk_id: member.publicUserData.userId || '',
     };
   },
 

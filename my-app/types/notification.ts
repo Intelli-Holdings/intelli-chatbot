@@ -73,6 +73,7 @@ export type TeamMember = {
   id: string
   name: string
   email: string
+  clerk_id?: string
   initials: string
   imageUrl: string
 }
@@ -101,4 +102,5 @@ export interface NotificationContextType {
   error: string | null
   fetchHistoricalNotifications: () => Promise<void>
   fetchAssignedNotifications: () => Promise<void>
+  updateNotification: (notification: NotificationMessage) => void
 }
