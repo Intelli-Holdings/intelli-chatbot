@@ -1,47 +1,47 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from "@clerk/nextjs/server";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
-
-// GET /api/channels/whatsapp/org/[organizationId] - List WhatsApp packages for an organization
 export async function GET(
   request: NextRequest,
   { params }: { params: { organizationId: string } }
 ) {
+  const { userId, getToken } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const { getToken } = await auth()
-    const token = await getToken()
-
-    if (!token) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
-
-    const { organizationId } = params
+    const { organizationId } = params;
 
     if (!organizationId) {
-      return NextResponse.json({ error: "Organization ID is required" }, { status: 400 })
+      return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
     }
 
-    const url = `${BASE_URL}/api/channels/whatsapp/org/${organizationId}`
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const token = await getToken();
 
-    const response = await fetch(url, {
+    // Fetch appservices from the backend API
+    const response = await fetch(`${API_BASE_URL}/appservice/org/${organizationId}/appservices/`, {
+      method: 'GET',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-    })
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return NextResponse.json(
-        { error: errorData.detail || "Failed to fetch WhatsApp packages" },
-        { status: response.status }
-      )
+      throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    const data = await response.json();
+    return NextResponse.json(data);
+
   } catch (error) {
-    console.error("Error fetching WhatsApp packages:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error('Error fetching WhatsApp app services:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch app services' },
+      { status: 500 }
+    );
   }
 }
