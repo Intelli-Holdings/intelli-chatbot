@@ -3,10 +3,10 @@ import { auth } from "@clerk/nextjs/server"
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
-// GET /api/channels/whatsapp/org/[organizationId] - List WhatsApp packages for an organization
-export async function GET(
+// DELETE /api/channels/whatsapp/[id]/delete - Delete a WhatsApp package
+export async function DELETE(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { getToken } = await auth()
@@ -16,15 +16,16 @@ export async function GET(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const { organizationId } = params
+    const { id } = params
 
-    if (!organizationId) {
-      return NextResponse.json({ error: "Organization ID is required" }, { status: 400 })
+    if (!id) {
+      return NextResponse.json({ error: "Package ID is required" }, { status: 400 })
     }
 
-    const url = `${BASE_URL}/api/channels/whatsapp/org/${organizationId}`
+    const url = `${BASE_URL}/api/channels/whatsapp/${id}/delete/`
 
     const response = await fetch(url, {
+      method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -33,15 +34,14 @@ export async function GET(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       return NextResponse.json(
-        { error: errorData.detail || "Failed to fetch WhatsApp packages" },
+        { error: errorData.detail || "Failed to delete WhatsApp package" },
         { status: response.status }
       )
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
-    console.error("Error fetching WhatsApp packages:", error)
+    console.error("Error deleting WhatsApp package:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

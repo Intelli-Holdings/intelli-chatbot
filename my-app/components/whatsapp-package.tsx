@@ -102,7 +102,7 @@ export default function WhatsAppPackage() {
   const fetchWhatsAppPackages = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/whatsapp/org/${organizationId}`)
+      const response = await fetch(`/api/channels/whatsapp/org/${organizationId}`)
       if (!response.ok) {
         toast.info("No WhatsApp packages found. Create one to get started.")
         setWhatsAppPackages([])
@@ -126,7 +126,7 @@ export default function WhatsAppPackage() {
   // Fetch Assistants
   const fetchAssistants = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`)
+      const response = await fetch(`/api/assistants/${organizationId}`)
       if (!response.ok) {
         return
       }
@@ -141,8 +141,8 @@ export default function WhatsAppPackage() {
 // Create WhatsApp package
 const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>) => {
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/create/`, {
-            method: "POST", 
+        const response = await fetch("/api/channels/create", {
+            method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
@@ -175,7 +175,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
     if (!editPackage) return
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/whatsapp/${editPackage.id}/update/`, {
+      const response = await fetch(`/api/channels/whatsapp/${editPackage.id}/update`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -202,7 +202,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
   // Delete WhatsApp package
   const handleDeletePackage = async (packageId: number) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/whatsapp/${packageId}/delete/`, {
+      const response = await fetch(`/api/channels/whatsapp/${packageId}/delete`, {
         method: "DELETE",
       })
 
@@ -220,7 +220,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
   // Create App Service
   const handleCreateAppService = async (values: z.infer<typeof appServiceSchema>) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/app-services/create/`, {
+      const response = await fetch("/api/appservice/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
