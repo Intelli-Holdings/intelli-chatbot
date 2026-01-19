@@ -442,7 +442,7 @@ const EmbeddedSignup = () => {
       });
   
       setStatusMessage("Creating WhatsApp package...")
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/create/`, {
+      const res = await fetch("/api/channels/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -542,8 +542,8 @@ const EmbeddedSignup = () => {
         assistant_id: selectedAssistant.assistant_id,
       };
       console.log("Creating AppService with data:", data);
-  
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/appservice/create-appservice/`, {
+
+      const res = await fetch("/api/appservice/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -603,8 +603,8 @@ const EmbeddedSignup = () => {
   
       // Log payload for debugging
       console.log("WhatsApp package payload:", { ...payload, data: { ...payload.data, access_token: "[REDACTED]" } });
-  
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/channels/create/`, {
+
+      const res = await fetch("/api/channels/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
