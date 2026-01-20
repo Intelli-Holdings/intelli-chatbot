@@ -133,8 +133,8 @@ const Channels = () => {
         </div>
       ),
       isNew: true,
-      buttonState: 'coming-soon' as ButtonState,
-      buttonLink: '#'
+      buttonState: 'create' as ButtonState,
+      buttonLink: '/dashboard/conversations/messenger'
     },
     {
       title: 'Instagram',
@@ -151,8 +151,8 @@ const Channels = () => {
         </div>
       ),
       isNew: true,
-      buttonState: 'coming-soon' as ButtonState,
-      buttonLink: '#'
+      buttonState: 'create' as ButtonState,
+      buttonLink: '/dashboard/conversations/instagram'
     },
     {
       title: 'Voice',
