@@ -36,6 +36,8 @@ import {
   SidebarFooter,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { MessengerIcon } from "./icons/messenger-icon"
+import { InstagramIcon } from "./icons/instagram-icon"
 
 type IconComponent = React.ComponentType<{ className?: string }>
 
@@ -76,6 +78,16 @@ const data = {
           title: "WhatsApp",
           url: "/dashboard/conversations/whatsapp",
           icon: WhatsAppIcon,
+        },
+        {
+          title: "Instagram",
+          url: "/dashboard/conversations/instagram",
+          icon: InstagramIcon,
+        },
+        {
+          title: "Messenger",
+          url: "/dashboard/conversations/messenger",
+          icon: MessengerIcon,
         },
       ],
     },
