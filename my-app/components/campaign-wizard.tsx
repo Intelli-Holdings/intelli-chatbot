@@ -108,6 +108,11 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
   // Manual selection state
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [contactSearch, setContactSearch] = useState("")
+  const [createdWhatsAppCampaignId, setCreatedWhatsAppCampaignId] = useState<string | null>(null)
+  const [previewMessages, setPreviewMessages] = useState<any[]>([])
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const [previewUpdatedAt, setPreviewUpdatedAt] = useState<string | null>(null)
 
   // CSV import state
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -168,6 +173,12 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       toast.error('Failed to load contacts')
     }
   }, [contactsError])
+
+  useEffect(() => {
+    setPreviewMessages([])
+    setPreviewError(null)
+    setPreviewUpdatedAt(null)
+  }, [selectedTemplate])
 
   const filteredContacts = contacts.filter((c: any) =>
     c.fullname?.toLowerCase().includes(contactSearch.toLowerCase()) ||
@@ -430,8 +441,9 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       }
     }
 
-    setSubmitting(true)
-    try {
+
+      setSubmitting(true)
+      try {
       // Step 1: Create the campaign (will be draft by default)
       const templatePayload: any = {
         template: {
@@ -471,6 +483,8 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       if (!createdCampaign.whatsapp_campaign_id) {
         throw new Error("Campaign created but no WhatsApp campaign ID returned")
       }
+
+      setCreatedWhatsAppCampaignId(createdCampaign.whatsapp_campaign_id)
 
       // Step 2: Add recipients with parameters
       const shouldSendHeaderParams = templateHasMediaHeader && (templateRequiresHeaderParams || overrideMedia)
@@ -571,6 +585,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       )
 
       await ensureRecipientsExist(createdCampaign.whatsapp_campaign_id)
+      await loadPreviewMessages(3, createdCampaign.whatsapp_campaign_id)
 
       // Step 3: Execute or schedule based on launch option
       if (launchOption === "immediate") {
@@ -606,6 +621,37 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       toast.error(error.message || "Failed to create campaign")
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const loadPreviewMessages = async (limit = 3, whatsappCampaignId?: string) => {
+    const campaignId = whatsappCampaignId || createdWhatsAppCampaignId
+    if (!campaignId || !organizationId) {
+      setPreviewMessages([])
+      setPreviewError("Create the WhatsApp campaign and add recipients to see a preview.")
+      setPreviewUpdatedAt(null)
+      return
+    }
+
+    setPreviewLoading(true)
+    try {
+      const data = await CampaignService.previewWhatsAppCampaignMessages(
+        campaignId,
+        organizationId,
+        limit
+      )
+
+      const fetchedPreviews = Array.isArray(data.previews) ? data.previews : []
+      setPreviewMessages(fetchedPreviews)
+      setPreviewError(null)
+      setPreviewUpdatedAt(new Date().toISOString())
+    } catch (error) {
+      console.error("Error loading campaign preview:", error)
+      const message = error instanceof Error ? error.message : "Failed to fetch campaign preview"
+      setPreviewError(message)
+      toast.error(message)
+    } finally {
+      setPreviewLoading(false)
     }
   }
 
@@ -1182,11 +1228,70 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
                   </div>
                 )}
               </CardContent>
-            </Card>
-          </div>
-        )}
+          </Card>
+        </div>
+      )}
 
-        {/* Step 4: Launch Options */}
+      {selectedTemplate && (
+        <Card className="border-border/60 bg-muted/30">
+          <CardHeader className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">WhatsApp Preview</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => loadPreviewMessages()}
+                disabled={previewLoading || !createdWhatsAppCampaignId}
+              >
+                {previewLoading ? "Refreshing..." : "Refresh preview"}
+              </Button>
+            </div>
+            <CardDescription className="text-xs">
+              See how your template renders for the latest recipients.
+              {previewUpdatedAt && (
+                <> Updated {new Date(previewUpdatedAt).toLocaleTimeString()}.</>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {previewError && (
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertDescription className="text-xs text-amber-700">
+                  {previewError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {previewMessages.length === 0 && !previewLoading && !previewError && (
+              <p className="text-xs text-muted-foreground">
+                Add recipients to the campaign and refresh to view how the template looks for them.
+              </p>
+            )}
+
+            {previewMessages.map((preview, index) => (
+              <Card key={`${preview.recipient?.phone || index}-${index}`} className="bg-white border">
+                <CardContent className="p-3 space-y-2">
+                  <div className="text-xs text-muted-foreground">Recipient</div>
+                  <div className="text-sm font-semibold">
+                    {preview.recipient?.fullname || preview.recipient?.phone || `Recipient ${index + 1}`}
+                  </div>
+                  {preview.recipient?.phone && (
+                    <div className="text-xs text-muted-foreground">{preview.recipient.phone}</div>
+                  )}
+                  <div className="border-t border-border/30 pt-2">
+                    <div className="text-xs text-muted-foreground">Message preview</div>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {preview.message?.formatted_preview || preview.message?.body || "Preview unavailable"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 4: Launch Options */}
         {currentStep === "schedule" && (
           <div className="space-y-4">
             <Card>
