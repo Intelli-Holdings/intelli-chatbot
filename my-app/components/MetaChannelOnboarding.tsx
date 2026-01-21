@@ -8,6 +8,7 @@ import { AlertCircle, ArrowRight, Loader, RefreshCcw } from "lucide-react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 
 type MetaChannel = "facebook" | "instagram"
+type AuthMethod = "facebook" | "instagram" // New: specify auth method
 
 type MetaPage = {
   id: string
@@ -23,8 +24,16 @@ type FacebookLoginResponse = {
   status?: string
 }
 
+type InstagramUserInfo = {
+  user_id: string
+  username: string
+  account_type: string
+  instagram_business_account_id: string
+}
+
 interface MetaChannelOnboardingProps {
   channel: MetaChannel
+  authMethod?: AuthMethod // Optional: defaults to 'facebook' for backward compatibility
 }
 
 const API_VERSION = "v21.0"
@@ -47,7 +56,7 @@ const labelByChannel: Record<MetaChannel, { title: string; description: string }
   },
 }
 
-const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
+const MetaChannelOnboarding = ({ channel, authMethod = "facebook" }: MetaChannelOnboardingProps) => {
   const organizationId = useActiveOrganizationId()
   const [sdkCode, setSdkCode] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -60,6 +69,8 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
   const [manualPageId, setManualPageId] = useState<string>("")
   const [manualPageToken, setManualPageToken] = useState<string>("")
   const [manualInstagramId, setManualInstagramId] = useState<string>("")
+  const [instagramUserInfo, setInstagramUserInfo] = useState<InstagramUserInfo | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   const initializeFacebookSDK = useCallback(() => {
     if (window.FB) return
@@ -83,6 +94,24 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
     initializeFacebookSDK()
   }, [initializeFacebookSDK])
 
+  // Handle Instagram OAuth callback from URL
+  useEffect(() => {
+    if (authMethod === "instagram") {
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get("instagram_code")
+
+      if (code && !sdkCode) {
+        setSdkCode(code)
+        setStep("codeReceived")
+        setStatusMessage("Instagram authorization code received. Click Continue to exchange for access token.")
+
+        // Clean up URL
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, "", newUrl)
+      }
+    }
+  }, [authMethod, sdkCode])
+
   const handleFBLogin = useCallback((response: FacebookLoginResponse) => {
     if (response.authResponse?.code) {
       setSdkCode(response.authResponse.code)
@@ -91,14 +120,39 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
     }
   }, [])
 
+  const launchInstagramLogin = useCallback(() => {
+    const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
+    const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI
+
+    if (!clientId || !redirectUri) {
+      setError("Instagram app configuration missing")
+      return
+    }
+
+    const scopes = "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights"
+
+    const url = new URL("https://api.instagram.com/oauth/authorize")
+    url.searchParams.set("client_id", clientId)
+    url.searchParams.set("redirect_uri", redirectUri)
+    url.searchParams.set("response_type", "code")
+    url.searchParams.set("scope", scopes)
+
+    window.location.assign(url.toString())
+  }, [])
+
   const launchLogin = useCallback(() => {
+    if (authMethod === "instagram") {
+      launchInstagramLogin()
+      return
+    }
+
     if (!window.FB) return
     window.FB.login(handleFBLogin, {
       response_type: "code",
       override_default_response_type: true,
       scope: scopeByChannel[channel],
     })
-  }, [channel, handleFBLogin])
+  }, [channel, handleFBLogin, authMethod, launchInstagramLogin])
 
   const exchangeCodeForToken = useCallback(async () => {
     if (!sdkCode) return
@@ -108,7 +162,9 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
     setStatusMessage("Exchanging code for access token...")
 
     try {
-      const response = await fetch("/api/facebook/exchange-token", {
+      const endpoint = authMethod === "instagram" ? "/api/instagram/exchange-token" : "/api/facebook/exchange-token"
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: sdkCode }),
@@ -121,8 +177,14 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
 
       if (data.access_token) {
         setAccessToken(data.access_token)
+        setUserId(data.user_id || null)
         setStep("tokenReceived")
-        setStatusMessage("Access token acquired. Fetch your Pages to continue.")
+
+        if (authMethod === "instagram") {
+          setStatusMessage("Access token acquired. Fetch your account info to continue.")
+        } else {
+          setStatusMessage("Access token acquired. Fetch your Pages to continue.")
+        }
       } else {
         throw new Error("No access token in response")
       }
@@ -132,10 +194,47 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
     } finally {
       setIsLoading(false)
     }
-  }, [sdkCode])
+  }, [sdkCode, authMethod])
+
+  const fetchInstagramUserInfo = useCallback(async () => {
+    if (!accessToken) return
+
+    setIsLoading(true)
+    setError(null)
+    setStatusMessage("Fetching Instagram account info...")
+
+    try {
+      const response = await fetch("/api/instagram/user-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: accessToken, user_id: userId }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch Instagram user info")
+      }
+
+      setInstagramUserInfo(data)
+      setStep("selectingPage")
+      setStatusMessage("Instagram account connected. Complete setup below.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error fetching Instagram user info")
+      setStatusMessage("Error fetching Instagram info. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [accessToken, userId])
 
   const fetchPages = useCallback(async () => {
     if (!accessToken) return
+
+    // For Instagram auth method, fetch user info instead
+    if (authMethod === "instagram") {
+      fetchInstagramUserInfo()
+      return
+    }
 
     setIsLoading(true)
     setError(null)
@@ -164,7 +263,7 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
     } finally {
       setIsLoading(false)
     }
-  }, [accessToken])
+  }, [accessToken, authMethod, fetchInstagramUserInfo])
 
   const createChannelPackage = useCallback(async () => {
     if (!organizationId) {
@@ -172,6 +271,61 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
       return
     }
 
+    // For Instagram auth method (direct Instagram login)
+    if (authMethod === "instagram" && channel === "instagram") {
+      const instagramBusinessAccountId = instagramUserInfo?.instagram_business_account_id || manualInstagramId
+
+      if (!accessToken) {
+        setError("Access token is required.")
+        return
+      }
+
+      if (!instagramBusinessAccountId) {
+        setError("Instagram Business Account ID is required for Instagram setup.")
+        return
+      }
+
+      setIsLoading(true)
+      setError(null)
+      setStatusMessage("Creating Instagram channel package...")
+      setStep("creatingPackage")
+
+      try {
+        const payload = {
+          choice: "instagram",
+          data: {
+            instagram_business_account_id: instagramBusinessAccountId,
+            access_token: accessToken,
+            user_id: userId || instagramUserInfo?.user_id,
+            username: instagramUserInfo?.username,
+          },
+          organization_id: organizationId,
+        }
+
+        const response = await fetch("/api/channels/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || data.detail || "Failed to create channel package")
+        }
+
+        setStatusMessage("Setup complete! Your Instagram channel is ready.")
+        setStep("complete")
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error creating channel package")
+        setStatusMessage("Error creating channel package. Please try again.")
+        setStep("selectingPage")
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
+
+    // For Facebook auth method (original flow)
     const pageId = selectedPage?.id || manualPageId
     const pageAccessToken = selectedPage?.access_token || manualPageToken
     const instagramBusinessAccountId =
@@ -226,13 +380,31 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
     }
   }, [
     accessToken,
+    authMethod,
     channel,
+    instagramUserInfo,
     manualInstagramId,
     manualPageId,
     manualPageToken,
     organizationId,
     selectedPage,
+    userId,
   ])
+
+  const renderInstagramAccountInfo = () => (
+    <div className="space-y-3">
+      <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-md border border-purple-200">
+        <p className="text-sm font-medium text-gray-900">Instagram Account Connected</p>
+        {instagramUserInfo && (
+          <>
+            <p className="text-xs text-gray-600 mt-1">@{instagramUserInfo.username}</p>
+            <p className="text-xs text-gray-500">Account Type: {instagramUserInfo.account_type}</p>
+            <p className="text-xs text-gray-500 truncate">ID: {instagramUserInfo.instagram_business_account_id}</p>
+          </>
+        )}
+      </div>
+    </div>
+  )
 
   const renderPageSelector = () => (
     <div className="space-y-3">
@@ -292,8 +464,15 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
         <CardContent>
           {step === "initial" && (
             <div className="flex flex-col items-center space-y-4">
-              <Button onClick={launchLogin} className="bg-[#1877f2] hover:bg-[#166fe5]">
-                Login with Facebook
+              <Button
+                onClick={launchLogin}
+                className={
+                  authMethod === "instagram"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    : "bg-[#1877f2] hover:bg-[#166fe5]"
+                }
+              >
+                {authMethod === "instagram" ? "Login with Instagram" : "Login with Facebook"}
               </Button>
             </div>
           )}
@@ -334,7 +513,7 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
                     </>
                   ) : (
                     <>
-                      Fetch Pages <ArrowRight size={16} />
+                      {authMethod === "instagram" ? "Fetch Account Info" : "Fetch Pages"} <ArrowRight size={16} />
                     </>
                   )}
                 </Button>
@@ -344,15 +523,34 @@ const MetaChannelOnboarding = ({ channel }: MetaChannelOnboardingProps) => {
 
           {step === "selectingPage" && (
             <div className="flex flex-col space-y-4">
-              {pages.length > 0 ? renderPageSelector() : renderManualFallback()}
-              {pages.length > 0 && (
+              {authMethod === "instagram" && instagramUserInfo ? (
+                <>
+                  {renderInstagramAccountInfo()}
+                  <p className="text-xs text-gray-500">
+                    Your Instagram Business account is ready to be connected. Click below to complete the setup.
+                  </p>
+                </>
+              ) : pages.length > 0 ? (
+                renderPageSelector()
+              ) : (
+                renderManualFallback()
+              )}
+              {authMethod !== "instagram" && pages.length > 0 && (
                 <div className="border-t pt-4">
                   <p className="text-xs text-gray-500 mb-2">Or enter details manually if needed.</p>
                   {renderManualFallback()}
                 </div>
               )}
               <CardFooter className="flex justify-end pt-0">
-                <Button onClick={createChannelPackage} disabled={isLoading} className="flex items-center gap-2">
+                <Button
+                  onClick={createChannelPackage}
+                  disabled={
+                    isLoading ||
+                    (authMethod === "instagram" && !instagramUserInfo && !manualInstagramId) ||
+                    (authMethod !== "instagram" && !selectedPage && !manualPageId)
+                  }
+                  className="flex items-center gap-2"
+                >
                   {isLoading ? (
                     <>
                       <Loader size={16} className="animate-spin" /> Processing...
