@@ -16,7 +16,8 @@ import {
   ChevronRight,
   RadioTower,
   SettingsIcon,
-  CogIcon
+  CogIcon,
+  Workflow,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -61,6 +62,11 @@ const data = {
       title: "Assistants",
       url: "/dashboard/assistants",
       icon: Bot,
+    },
+    {
+      title: "Chatbots",
+      url: "/dashboard/chatbots",
+      icon: Workflow,
     },
     {
       title: "Widgets",
