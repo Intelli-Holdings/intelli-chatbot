@@ -6,9 +6,14 @@
       "Bash(npm run dev:*)",
       "Bash(dir:*)",
       "Bash(nul)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   }
 }
