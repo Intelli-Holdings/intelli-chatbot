@@ -11,6 +11,7 @@ import {
 } from '@/types/chatbot-automation';
 import { TextNodeData } from '../nodes/TextNode';
 import { ConditionNodeData, ConditionRule } from '../nodes/ConditionNode';
+import { MediaNodeData, MediaType } from '../nodes/MediaNode';
 
 // Extended node data type
 export type ExtendedFlowNodeData =
@@ -18,11 +19,12 @@ export type ExtendedFlowNodeData =
   | QuestionNodeData
   | ActionNodeData
   | TextNodeData
-  | ConditionNodeData;
+  | ConditionNodeData
+  | MediaNodeData;
 
 export interface ExtendedFlowNode {
   id: string;
-  type: 'start' | 'question' | 'action' | 'text' | 'condition';
+  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media';
   position: NodePosition;
   data: ExtendedFlowNodeData;
 }
@@ -35,14 +37,14 @@ export function createStartNode(position: NodePosition): ExtendedFlowNode {
   const trigger: ChatbotTrigger = {
     id: triggerId,
     type: 'keyword',
-    keywords: ['hi', 'hello', 'start'],
+    keywords: [],
     caseSensitive: false,
     menuId: '',
   };
 
   const data: StartNodeData = {
     type: 'start',
-    label: 'Keywords: hi, hello, start',
+    label: 'Keywords: None',
     trigger,
   };
 
@@ -62,11 +64,11 @@ export function createQuestionNode(
   menuName?: string
 ): ExtendedFlowNode {
   const menuId = generateId();
-  const menu: ChatbotMenu = createDefaultMenu(menuId, menuName || 'New Menu');
+  const menu: ChatbotMenu = createDefaultMenu(menuId, menuName || 'Interactive Message');
 
   const data: QuestionNodeData = {
     type: 'question',
-    label: menu.name,
+    label: 'Interactive Message',
     menu,
   };
 
@@ -134,7 +136,7 @@ export function createActionNode(
   const nodeId = generateId();
 
   const labels: Record<ActionNodeData['actionType'], string> = {
-    send_message: 'Send Message',
+    send_message: 'Text',
     fallback_ai: 'Hand off to AI',
     end: 'End Conversation',
   };
@@ -149,6 +151,36 @@ export function createActionNode(
   return {
     id: `action-${nodeId}`,
     type: 'action',
+    position,
+    data,
+  };
+}
+
+/**
+ * Create a new Media node
+ */
+export function createMediaNode(
+  position: NodePosition,
+  mediaType: MediaType
+): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const labels: Record<MediaType, string> = {
+    image: 'Image',
+    video: 'Video',
+    document: 'Document',
+    audio: 'Audio',
+  };
+
+  const data: MediaNodeData = {
+    type: 'media',
+    label: labels[mediaType],
+    mediaType,
+  };
+
+  return {
+    id: `media-${nodeId}`,
+    type: 'media',
     position,
     data,
   };
@@ -176,6 +208,14 @@ export function createNodeFromAction(
       return createActionNode(position, 'fallback_ai');
     case 'add-action-end':
       return createActionNode(position, 'end');
+    case 'add-media-image':
+      return createMediaNode(position, 'image');
+    case 'add-media-video':
+      return createMediaNode(position, 'video');
+    case 'add-media-document':
+      return createMediaNode(position, 'document');
+    case 'add-media-audio':
+      return createMediaNode(position, 'audio');
     default:
       return null;
   }

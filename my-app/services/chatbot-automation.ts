@@ -78,7 +78,17 @@ export class ChatbotAutomationService {
   static async createChatbot(data: CreateChatbotRequest): Promise<ChatbotAutomation> {
     try {
       // Create default structure if not provided
-      const defaultMainMenu = createDefaultMenu(generateId(), 'Main Menu');
+      const defaultMenuId = generateId();
+      const defaultMainMenu = createDefaultMenu(defaultMenuId, 'Interactive Message');
+
+      // Create default trigger (Start Flow node) that connects to the main menu
+      const defaultTrigger: ChatbotTrigger = {
+        id: generateId(),
+        type: 'keyword',
+        keywords: [],
+        caseSensitive: false,
+        menuId: defaultMenuId,
+      };
 
       const chatbotData: Partial<ChatbotAutomation> = {
         organizationId: data.organizationId,
@@ -87,7 +97,7 @@ export class ChatbotAutomationService {
         description: data.description || '',
         isActive: false,
         priority: 1,
-        triggers: data.triggers || [],
+        triggers: data.triggers || [defaultTrigger],
         menus: data.menus || [defaultMainMenu],
         settings: {
           ...DEFAULT_CHATBOT_SETTINGS,

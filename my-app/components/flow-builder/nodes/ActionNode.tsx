@@ -9,37 +9,37 @@ import { cn } from '@/lib/utils';
 interface ActionNodeProps extends NodeProps<ActionNodeData> {}
 
 function ActionNode({ data, selected }: ActionNodeProps) {
-  const { actionType, message } = data;
+  const { actionType, message, assistantId } = data;
 
   const getConfig = () => {
     switch (actionType) {
       case 'send_message':
         return {
           icon: Send,
-          title: 'Send Message',
+          title: 'Text',
           color: 'bg-purple-500',
-          borderColor: 'border-purple-500',
+          borderColor: '#a855f7',
         };
       case 'fallback_ai':
         return {
           icon: Bot,
-          title: 'Hand off to AI',
+          title: 'AI Assistant',
           color: 'bg-orange-500',
-          borderColor: 'border-orange-500',
+          borderColor: '#f97316',
         };
       case 'end':
         return {
           icon: XCircle,
           title: 'End Conversation',
           color: 'bg-red-500',
-          borderColor: 'border-red-500',
+          borderColor: '#ef4444',
         };
       default:
         return {
           icon: Send,
           title: 'Action',
           color: 'bg-gray-500',
-          borderColor: 'border-gray-500',
+          borderColor: '#6b7280',
         };
     }
   };
@@ -63,16 +63,13 @@ function ActionNode({ data, selected }: ActionNodeProps) {
       <Handle
         type="target"
         position={Position.Top}
-        className={cn(
-          '!h-3 !w-3 !border-2 !bg-white',
-          `!${config.borderColor}`
-        )}
-        style={{ borderColor: config.color.replace('bg-', '').includes('purple') ? '#a855f7' : config.color.replace('bg-', '').includes('orange') ? '#f97316' : '#ef4444' }}
+        className="!h-3 !w-3 !border-2 !bg-white"
+        style={{ borderColor: config.borderColor }}
       />
 
       {/* Header */}
       <div className={cn(
-        'flex items-center gap-2 rounded-t-lg px-3 py-2 text-white',
+        'flex items-center justify-center gap-2 rounded-t-lg px-3 py-2 text-white',
         config.color
       )}>
         <Icon className="h-4 w-4" />
@@ -96,9 +93,17 @@ function ActionNode({ data, selected }: ActionNodeProps) {
         )}
 
         {actionType === 'fallback_ai' && (
-          <p className="text-sm text-muted-foreground">
-            Connects user to AI assistant for intelligent responses
-          </p>
+          <div className="space-y-1">
+            {assistantId ? (
+              <p className="text-sm text-muted-foreground">
+                Connected to assistant
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">
+                No assistant selected
+              </p>
+            )}
+          </div>
         )}
 
         {actionType === 'end' && (

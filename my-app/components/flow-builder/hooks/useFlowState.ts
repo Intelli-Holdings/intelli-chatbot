@@ -25,10 +25,12 @@ import {
   createTextNode,
   createConditionNode,
   createActionNode,
+  createMediaNode,
   createNodeFromAction,
   cloneNode,
   ExtendedFlowNode,
 } from '../utils/node-factories';
+import { MediaType } from '../nodes/MediaNode';
 import { ContextMenuPosition } from '../ContextMenu';
 
 interface UseFlowStateProps {
@@ -233,9 +235,10 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
       const data = event.dataTransfer.getData('application/reactflow');
       if (!data) return;
 
-      const { type, actionType } = JSON.parse(data) as {
+      const { type, actionType, mediaType } = JSON.parse(data) as {
         type: string;
         actionType?: ActionNodeData['actionType'];
+        mediaType?: MediaType;
       };
 
       const position = screenToFlowPosition({
@@ -261,6 +264,11 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
         case 'action':
           if (actionType) {
             newNode = createActionNode(position, actionType);
+          }
+          break;
+        case 'media':
+          if (mediaType) {
+            newNode = createMediaNode(position, mediaType);
           }
           break;
       }

@@ -277,7 +277,7 @@ export function flowToChatbot(
 function getActionLabel(actionType: string): string {
   switch (actionType) {
     case 'send_message':
-      return 'Send Message';
+      return 'Text';
     case 'fallback_ai':
       return 'Hand off to AI';
     case 'end':

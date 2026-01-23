@@ -92,6 +92,15 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input, textarea, or contenteditable element
+      const activeElement = document.activeElement;
+      const isTyping =
+        activeElement?.tagName === 'INPUT' ||
+        activeElement?.tagName === 'TEXTAREA' ||
+        activeElement?.getAttribute('contenteditable') === 'true';
+
+      if (isTyping) return;
+
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNode) {
         e.preventDefault();
         deleteNode(selectedNode.id);
@@ -159,6 +168,8 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
                 return '#eab308';
               case 'action':
                 return '#a855f7';
+              case 'media':
+                return '#ec4899';
               default:
                 return '#94a3b8';
             }

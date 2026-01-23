@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Trash2, GripVertical, Image, Video, FileText, Type, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, GripVertical, Image, Video, FileText, Type, X, Check, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,7 @@ import {
   CHATBOT_LIMITS,
 } from '@/types/chatbot-automation';
 import { toast } from 'sonner';
+import { useAppServices } from '@/hooks/use-app-services';
 
 interface QuestionNodeEditorProps {
   data: QuestionNodeData;
@@ -37,86 +38,167 @@ export default function QuestionNodeEditor({
   onUpdate,
   menus,
 }: QuestionNodeEditorProps) {
-  const { menu } = data;
+  // Local state for editing
+  const [localMenu, setLocalMenu] = useState<ChatbotMenu>(data.menu);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentHeaderType: HeaderType = menu.header?.type || 'none';
+  // Get app service for access token
+  const { selectedAppService } = useAppServices();
 
-  const updateMenu = (updates: Partial<ChatbotMenu>) => {
-    const newMenu = { ...menu, ...updates };
-    onUpdate({ menu: newMenu, label: newMenu.name });
+  // Reset local state when data changes (e.g., switching nodes)
+  useEffect(() => {
+    setLocalMenu(data.menu);
+    setHasChanges(false);
+    setUploadedFileName('');
+  }, [data.menu.id]);
+
+  const currentHeaderType: HeaderType = localMenu.header?.type || 'none';
+
+  // Handle file upload
+  const handleFileUpload = async (file: File, type: 'image' | 'video' | 'document') => {
+    if (!selectedAppService) {
+      toast.error('No WhatsApp service configured');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('accessToken', selectedAppService.access_token);
+      formData.append('phoneNumberId', selectedAppService.phone_number_id);
+      formData.append('uploadType', 'media');
+
+      const response = await fetch('/api/whatsapp/upload-media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload file');
+      }
+
+      const result = await response.json();
+
+      // Store the media ID and file name
+      updateLocalMenu({
+        header: {
+          type,
+          content: result.id, // Media ID from WhatsApp
+        },
+      });
+      setUploadedFileName(file.name);
+      toast.success('File uploaded successfully');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload file');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video' | 'document') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file, type);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const getAcceptTypes = (type: 'image' | 'video' | 'document') => {
+    switch (type) {
+      case 'image':
+        return 'image/jpeg,image/jpg,image/png';
+      case 'video':
+        return 'video/mp4';
+      case 'document':
+        return 'application/pdf';
+    }
+  };
+
+  const updateLocalMenu = (updates: Partial<ChatbotMenu>) => {
+    setLocalMenu(prev => ({ ...prev, ...updates }));
+    setHasChanges(true);
+  };
+
+  const handleSave = () => {
+    if (!localMenu.body.trim()) {
+      toast.error('Please enter a body message');
+      return;
+    }
+    onUpdate({ menu: localMenu, label: 'Interactive Message' });
+    setHasChanges(false);
+    toast.success('Changes saved');
   };
 
   const handleHeaderTypeChange = (type: HeaderType) => {
     if (type === 'none') {
-      updateMenu({ header: undefined });
+      updateLocalMenu({ header: undefined });
     } else {
-      updateMenu({
+      updateLocalMenu({
         header: {
           type: type as MenuHeader['type'],
-          content: menu.header?.content || '',
+          content: localMenu.header?.content || '',
         },
       });
     }
   };
 
   const handleHeaderContentChange = (content: string) => {
-    if (menu.header) {
-      updateMenu({
-        header: { ...menu.header, content },
+    if (localMenu.header) {
+      updateLocalMenu({
+        header: { ...localMenu.header, content },
       });
     }
   };
 
   const addOption = () => {
-    if (menu.messageType === 'interactive_buttons' && menu.options.length >= 3) {
+    if (localMenu.messageType === 'interactive_buttons' && localMenu.options.length >= 3) {
       toast.error('Maximum 3 buttons allowed for interactive buttons');
       return;
     }
-    if (menu.options.length >= CHATBOT_LIMITS.maxListItemsPerSection) {
+    if (localMenu.options.length >= CHATBOT_LIMITS.maxListItemsPerSection) {
       toast.error(`Maximum ${CHATBOT_LIMITS.maxListItemsPerSection} options allowed`);
       return;
     }
 
     const newOption: MenuOption = {
       id: generateId(),
-      title: `Option ${menu.options.length + 1}`,
+      title: `Option ${localMenu.options.length + 1}`,
       action: {
         type: 'fallback_ai',
       },
     };
 
-    updateMenu({ options: [...menu.options, newOption] });
+    updateLocalMenu({ options: [...localMenu.options, newOption] });
   };
 
   const updateOption = (index: number, updates: Partial<MenuOption>) => {
-    const newOptions = [...menu.options];
+    const newOptions = [...localMenu.options];
     newOptions[index] = { ...newOptions[index], ...updates };
-    updateMenu({ options: newOptions });
+    updateLocalMenu({ options: newOptions });
   };
 
   const deleteOption = (index: number) => {
-    updateMenu({ options: menu.options.filter((_, i) => i !== index) });
+    updateLocalMenu({ options: localMenu.options.filter((_, i) => i !== index) });
   };
 
   return (
     <div className="space-y-4">
-      {/* Menu Name */}
-      <div className="space-y-2">
-        <Label>Name</Label>
-        <Input
-          value={menu.name}
-          onChange={(e) => updateMenu({ name: e.target.value })}
-          placeholder="Interactive message name"
-        />
-      </div>
-
       {/* Message Type */}
       <div className="space-y-2">
         <Label>Message Type</Label>
         <Select
-          value={menu.messageType}
+          value={localMenu.messageType}
           onValueChange={(value: ChatbotMenu['messageType']) =>
-            updateMenu({ messageType: value })
+            updateLocalMenu({ messageType: value })
           }
         >
           <SelectTrigger>
@@ -160,58 +242,131 @@ export default function QuestionNodeEditor({
 
           <TabsContent value="text" className="mt-2">
             <Input
-              value={menu.header?.content || ''}
+              value={localMenu.header?.content || ''}
               onChange={(e) => handleHeaderContentChange(e.target.value)}
               placeholder="Header text"
               maxLength={CHATBOT_LIMITS.maxHeaderTextLength}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              {(menu.header?.content || '').length}/{CHATBOT_LIMITS.maxHeaderTextLength}
+              {(localMenu.header?.content || '').length}/{CHATBOT_LIMITS.maxHeaderTextLength}
             </p>
           </TabsContent>
 
           <TabsContent value="image" className="mt-2 space-y-2">
-            <Input
-              value={menu.header?.content || ''}
-              onChange={(e) => handleHeaderContentChange(e.target.value)}
-              placeholder="Image URL (https://...)"
-            />
-            {menu.header?.content && (
-              <div className="relative w-full h-24 bg-muted rounded-lg overflow-hidden">
-                <img
-                  src={menu.header.content}
-                  alt="Header preview"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept={getAcceptTypes('image')}
+                onChange={(e) => handleFileSelect(e, 'image')}
+                className="hidden"
+                id="image-upload"
+              />
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById('image-upload')?.click()}
+                disabled={isUploading}
+                className="w-full"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadedFileName && localMenu.header?.type === 'image' ? uploadedFileName : 'Upload Image'}
+                  </>
+                )}
+              </Button>
+              {localMenu.header?.content && localMenu.header?.type === 'image' && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Check className="h-4 w-4" />
+                  <span>Image uploaded</span>
+                </div>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Enter a public image URL (JPG, PNG)
+              Supported formats: JPG, PNG (max 100MB)
             </p>
           </TabsContent>
 
           <TabsContent value="video" className="mt-2 space-y-2">
-            <Input
-              value={menu.header?.content || ''}
-              onChange={(e) => handleHeaderContentChange(e.target.value)}
-              placeholder="Video URL (https://...)"
-            />
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept={getAcceptTypes('video')}
+                onChange={(e) => handleFileSelect(e, 'video')}
+                className="hidden"
+                id="video-upload"
+              />
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById('video-upload')?.click()}
+                disabled={isUploading}
+                className="w-full"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadedFileName && localMenu.header?.type === 'video' ? uploadedFileName : 'Upload Video'}
+                  </>
+                )}
+              </Button>
+              {localMenu.header?.content && localMenu.header?.type === 'video' && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Check className="h-4 w-4" />
+                  <span>Video uploaded</span>
+                </div>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Enter a public video URL (MP4)
+              Supported format: MP4 (max 100MB)
             </p>
           </TabsContent>
 
           <TabsContent value="document" className="mt-2 space-y-2">
-            <Input
-              value={menu.header?.content || ''}
-              onChange={(e) => handleHeaderContentChange(e.target.value)}
-              placeholder="Document URL (https://...)"
-            />
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept={getAcceptTypes('document')}
+                onChange={(e) => handleFileSelect(e, 'document')}
+                className="hidden"
+                id="document-upload"
+              />
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById('document-upload')?.click()}
+                disabled={isUploading}
+                className="w-full"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadedFileName && localMenu.header?.type === 'document' ? uploadedFileName : 'Upload Document'}
+                  </>
+                )}
+              </Button>
+              {localMenu.header?.content && localMenu.header?.type === 'document' && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Check className="h-4 w-4" />
+                  <span>Document uploaded</span>
+                </div>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Enter a public document URL (PDF)
+              Supported format: PDF (max 100MB)
             </p>
           </TabsContent>
         </Tabs>
@@ -223,14 +378,14 @@ export default function QuestionNodeEditor({
           Body Message <span className="text-destructive">*</span>
         </Label>
         <Textarea
-          value={menu.body}
-          onChange={(e) => updateMenu({ body: e.target.value })}
+          value={localMenu.body}
+          onChange={(e) => updateLocalMenu({ body: e.target.value })}
           placeholder="Enter your message..."
           rows={3}
           maxLength={CHATBOT_LIMITS.maxBodyLength}
         />
         <p className="text-xs text-muted-foreground text-right">
-          {menu.body.length}/{CHATBOT_LIMITS.maxBodyLength}
+          {localMenu.body.length}/{CHATBOT_LIMITS.maxBodyLength}
         </p>
       </div>
 
@@ -238,19 +393,19 @@ export default function QuestionNodeEditor({
       <div className="space-y-2">
         <Label>Footer (optional)</Label>
         <Input
-          value={menu.footer || ''}
-          onChange={(e) => updateMenu({ footer: e.target.value || undefined })}
+          value={localMenu.footer || ''}
+          onChange={(e) => updateLocalMenu({ footer: e.target.value || undefined })}
           placeholder="Footer text"
           maxLength={CHATBOT_LIMITS.maxFooterLength}
         />
       </div>
 
       {/* Options */}
-      {menu.messageType !== 'text' && (
+      {localMenu.messageType !== 'text' && (
         <div className="space-y-3 pt-2 border-t">
           <div className="flex items-center justify-between">
             <Label>
-              {menu.messageType === 'interactive_buttons' ? 'Buttons' : 'List Options'}
+              {localMenu.messageType === 'interactive_buttons' ? 'Buttons' : 'List Options'}
             </Label>
             <Button variant="outline" size="sm" onClick={addOption}>
               <Plus className="h-3 w-3 mr-1" />
@@ -259,7 +414,7 @@ export default function QuestionNodeEditor({
           </div>
 
           <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {menu.options.map((option, index) => (
+            {localMenu.options.map((option, index) => (
               <div
                 key={option.id}
                 className="flex items-start gap-2 p-2 bg-muted/50 rounded-lg"
@@ -274,7 +429,7 @@ export default function QuestionNodeEditor({
                     className="h-8"
                   />
 
-                  {menu.messageType === 'interactive_list' && (
+                  {localMenu.messageType === 'interactive_list' && (
                     <Input
                       value={option.description || ''}
                       onChange={(e) =>
@@ -293,8 +448,6 @@ export default function QuestionNodeEditor({
                         action: {
                           ...option.action,
                           type: value,
-                          targetMenuId: value === 'show_menu' ? option.action.targetMenuId : undefined,
-                          message: value === 'send_message' ? option.action.message : undefined,
                         },
                       })
                     }
@@ -303,49 +456,15 @@ export default function QuestionNodeEditor({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="show_menu">Go to Menu</SelectItem>
                       <SelectItem value="send_message">Send Message</SelectItem>
                       <SelectItem value="fallback_ai">Hand off to AI</SelectItem>
-                      <SelectItem value="end">End Conversation</SelectItem>
                     </SelectContent>
                   </Select>
 
-                  {option.action.type === 'show_menu' && (
-                    <Select
-                      value={option.action.targetMenuId || ''}
-                      onValueChange={(value) =>
-                        updateOption(index, {
-                          action: { ...option.action, targetMenuId: value },
-                        })
-                      }
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Select target menu" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {menus
-                          .filter((m) => m.id !== menu.id)
-                          .map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              {m.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-
                   {option.action.type === 'send_message' && (
-                    <Textarea
-                      value={option.action.message || ''}
-                      onChange={(e) =>
-                        updateOption(index, {
-                          action: { ...option.action, message: e.target.value },
-                        })
-                      }
-                      placeholder="Message to send..."
-                      rows={2}
-                      className="text-sm"
-                    />
+                    <p className="text-xs text-muted-foreground bg-purple-50 dark:bg-purple-950/30 px-2 py-1.5 rounded">
+                      Connect this button to a Message node in the flow
+                    </p>
                   )}
                 </div>
 
@@ -360,13 +479,21 @@ export default function QuestionNodeEditor({
               </div>
             ))}
 
-            {menu.options.length === 0 && (
+            {localMenu.options.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No options added yet
               </p>
             )}
           </div>
         </div>
+      )}
+
+      {/* Save Button */}
+      {hasChanges && (
+        <Button onClick={handleSave} size="sm" className="w-full">
+          <Check className="h-4 w-4 mr-2" />
+          Save Changes
+        </Button>
       )}
 
       {/* Info */}

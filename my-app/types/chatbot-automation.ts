@@ -270,6 +270,7 @@ export interface ActionNodeData extends FlowNodeDataBase {
   type: 'action';
   actionType: ActionType;
   message?: string; // For send_message
+  assistantId?: string; // For fallback_ai - selected assistant
 }
 
 // Union type for all flow node data

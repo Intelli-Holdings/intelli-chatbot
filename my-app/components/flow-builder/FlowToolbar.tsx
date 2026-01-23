@@ -4,12 +4,15 @@ import { DragEvent } from 'react';
 import {
   Zap,
   MessageSquare,
-  Type,
-  GitBranch,
   Send,
+  GitBranch,
   Bot,
   XCircle,
   LayoutDashboard,
+  Image,
+  Video,
+  FileText,
+  Music,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +30,7 @@ interface FlowToolbarProps {
 interface DraggableNodeItem {
   type: string;
   actionType?: 'send_message' | 'fallback_ai' | 'end';
+  mediaType?: 'image' | 'video' | 'document' | 'audio';
   label: string;
   description: string;
   icon: React.ElementType;
@@ -44,31 +48,56 @@ const nodeItems: DraggableNodeItem[] = [
   {
     type: 'question',
     label: 'Interactive',
-    description: 'Interactive message with buttons/list',
+    description: 'Interactive message',
     icon: MessageSquare,
     color: 'bg-blue-500 hover:bg-blue-600',
   },
   {
-    type: 'text',
+    type: 'action',
+    actionType: 'send_message',
     label: 'Text',
-    description: 'Simple text message',
-    icon: Type,
-    color: 'bg-indigo-500 hover:bg-indigo-600',
+    description: 'Send a text message',
+    icon: Send,
+    color: 'bg-purple-500 hover:bg-purple-600',
+  },
+  {
+    type: 'media',
+    mediaType: 'image',
+    label: 'Image',
+    description: 'Send image',
+    icon: Image,
+    color: 'bg-pink-500 hover:bg-pink-600',
+  },
+  {
+    type: 'media',
+    mediaType: 'video',
+    label: 'Video',
+    description: 'Send video',
+    icon: Video,
+    color: 'bg-rose-500 hover:bg-rose-600',
+  },
+  {
+    type: 'media',
+    mediaType: 'document',
+    label: 'File',
+    description: 'Send document',
+    icon: FileText,
+    color: 'bg-amber-500 hover:bg-amber-600',
+  },
+  {
+    type: 'media',
+    mediaType: 'audio',
+    label: 'Audio',
+    description: 'Send audio',
+    icon: Music,
+    color: 'bg-cyan-500 hover:bg-cyan-600',
   },
   {
     type: 'condition',
     label: 'Condition',
-    description: 'Branch based on rules',
+    description: 'Branch on rules',
     icon: GitBranch,
     color: 'bg-yellow-500 hover:bg-yellow-600',
-  },
-  {
-    type: 'action',
-    actionType: 'send_message',
-    label: 'Message',
-    description: 'Send a response',
-    icon: Send,
-    color: 'bg-purple-500 hover:bg-purple-600',
   },
   {
     type: 'action',
@@ -93,6 +122,7 @@ export default function FlowToolbar({ onAutoLayout }: FlowToolbarProps) {
     const data = JSON.stringify({
       type: item.type,
       actionType: item.actionType,
+      mediaType: item.mediaType,
     });
     event.dataTransfer.setData('application/reactflow', data);
     event.dataTransfer.effectAllowed = 'move';
@@ -104,10 +134,12 @@ export default function FlowToolbar({ onAutoLayout }: FlowToolbarProps) {
         {/* Draggable Nodes */}
         {nodeItems.map((item, index) => {
           const Icon = item.icon;
-          const showSeparator = index === 3; // After condition
+          // Separators: before media nodes (index 3) and before condition (index 7)
+          const showSeparator = index === 3 || index === 7;
+          const uniqueKey = `${item.type}-${item.actionType || item.mediaType || item.label}`;
 
           return (
-            <div key={`${item.type}-${item.actionType || ''}`} className="flex items-center">
+            <div key={uniqueKey} className="flex items-center">
               {showSeparator && <Separator orientation="vertical" className="h-8 mx-1" />}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -117,10 +149,10 @@ export default function FlowToolbar({ onAutoLayout }: FlowToolbarProps) {
                     className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg cursor-grab active:cursor-grabbing transition-all hover:scale-105 active:scale-95 ${item.color} text-white shadow-sm`}
                   >
                     <Icon className="h-5 w-5" />
-                    <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
+                    <span className="text-[10px] mt-0.5 font-medium truncate max-w-[40px]">{item.label}</span>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[200px]">
+                <TooltipContent side="bottom" sideOffset={5} collisionPadding={10} className="max-w-[200px] z-50">
                   <p className="font-medium">{item.label}</p>
                   <p className="text-xs text-muted-foreground">{item.description}</p>
                   <p className="text-xs text-muted-foreground mt-1 italic">Drag to canvas</p>
@@ -144,7 +176,7 @@ export default function FlowToolbar({ onAutoLayout }: FlowToolbarProps) {
               <LayoutDashboard className="h-5 w-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">
+          <TooltipContent side="bottom" sideOffset={5} collisionPadding={10} className="z-50">
             <p className="font-medium">Auto Layout</p>
             <p className="text-xs text-muted-foreground">Arrange nodes automatically</p>
           </TooltipContent>

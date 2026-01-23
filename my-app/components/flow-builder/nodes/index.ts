@@ -3,6 +3,7 @@ import QuestionNode from './QuestionNode';
 import ActionNode from './ActionNode';
 import TextNode from './TextNode';
 import ConditionNode from './ConditionNode';
+import MediaNode from './MediaNode';
 
 export const nodeTypes = {
   start: StartNode,
@@ -10,6 +11,7 @@ export const nodeTypes = {
   action: ActionNode,
   text: TextNode,
   condition: ConditionNode,
+  media: MediaNode,
 };
 
-export { StartNode, QuestionNode, ActionNode, TextNode, ConditionNode };
+export { StartNode, QuestionNode, ActionNode, TextNode, ConditionNode, MediaNode };

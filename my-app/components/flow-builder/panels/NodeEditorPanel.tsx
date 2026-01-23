@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch } from 'lucide-react';
+import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -22,12 +22,14 @@ import {
 } from '@/types/chatbot-automation';
 import { TextNodeData } from '../nodes/TextNode';
 import { ConditionNodeData } from '../nodes/ConditionNode';
+import { MediaNodeData } from '../nodes/MediaNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from '../utils/node-factories';
 import StartNodeEditor from './StartNodeEditor';
 import QuestionNodeEditor from './QuestionNodeEditor';
 import ActionNodeEditor from './ActionNodeEditor';
 import TextNodeEditor from './TextNodeEditor';
 import ConditionNodeEditor from './ConditionNodeEditor';
+import MediaNodeEditor from './MediaNodeEditor';
 import { cn } from '@/lib/utils';
 
 interface NodeEditorPanelProps {
@@ -81,12 +83,38 @@ export default function NodeEditorPanel({
           icon: GitBranch,
           color: 'bg-yellow-500',
         };
-      case 'action':
+      case 'action': {
+        const actionData = selectedNode.data as ActionNodeData;
+        if (actionData.actionType === 'fallback_ai') {
+          return {
+            title: 'Configure AI Assistant',
+            icon: Bot,
+            color: 'bg-orange-500',
+          };
+        }
+        if (actionData.actionType === 'end') {
+          return {
+            title: 'Configure End',
+            icon: XCircle,
+            color: 'bg-red-500',
+          };
+        }
         return {
-          title: 'Configure Action',
+          title: 'Configure Text',
           icon: Send,
           color: 'bg-purple-500',
         };
+      }
+      case 'media': {
+        const mediaData = selectedNode.data as MediaNodeData;
+        const mediaConfig = {
+          image: { title: 'Configure Image', icon: Image, color: 'bg-pink-500' },
+          video: { title: 'Configure Video', icon: Video, color: 'bg-rose-500' },
+          document: { title: 'Configure Document', icon: FileText, color: 'bg-amber-500' },
+          audio: { title: 'Configure Audio', icon: Music, color: 'bg-cyan-500' },
+        };
+        return mediaConfig[mediaData.mediaType] || mediaConfig.image;
+      }
       default:
         return {
           title: 'Configure Node',
@@ -151,6 +179,13 @@ export default function NodeEditorPanel({
         {selectedNode.data.type === 'action' && (
           <ActionNodeEditor
             data={selectedNode.data as ActionNodeData}
+            onUpdate={handleUpdate}
+          />
+        )}
+
+        {selectedNode.data.type === 'media' && (
+          <MediaNodeEditor
+            data={selectedNode.data as MediaNodeData}
             onUpdate={handleUpdate}
           />
         )}

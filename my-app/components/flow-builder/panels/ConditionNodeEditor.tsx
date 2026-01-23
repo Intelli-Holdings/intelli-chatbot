@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/select';
 import { ConditionNodeData, ConditionRule } from '../nodes/ConditionNode';
 import { generateId } from '@/types/chatbot-automation';
+import { useCustomFields } from '@/hooks/use-custom-fields';
+import useActiveOrganizationId from '@/hooks/use-organization-id';
 
 interface ConditionNodeEditorProps {
   data: ConditionNodeData;
@@ -23,9 +25,7 @@ const SYSTEM_FIELDS = [
   { value: 'email', label: 'Email' },
   { value: 'phone', label: 'Phone Number' },
   { value: 'name', label: 'Name' },
-  { value: 'first_name', label: 'First Name' },
-  { value: 'last_name', label: 'Last Name' },
-  { value: 'language', label: 'Language' },
+  { value: 'custom_field', label: 'Custom Field' },
 ];
 
 const OPERATORS = [
@@ -41,6 +41,9 @@ export default function ConditionNodeEditor({
   data,
   onUpdate,
 }: ConditionNodeEditorProps) {
+  const organizationId = useActiveOrganizationId();
+  const { customFields, loading: loadingFields } = useCustomFields(organizationId || undefined);
+
   const addRule = () => {
     const newRule: ConditionRule = {
       field: 'email',
@@ -113,8 +116,14 @@ export default function ConditionNodeEditor({
                 <div className="flex-1 space-y-2">
                   {/* Field */}
                   <Select
-                    value={rule.field}
-                    onValueChange={(value) => updateRule(index, { field: value })}
+                    value={rule.field.startsWith('custom:') ? 'custom_field' : rule.field}
+                    onValueChange={(value) => {
+                      if (value === 'custom_field') {
+                        updateRule(index, { field: 'custom:' });
+                      } else {
+                        updateRule(index, { field: value });
+                      }
+                    }}
                   >
                     <SelectTrigger className="h-8">
                       <SelectValue placeholder="Select field" />
@@ -127,6 +136,40 @@ export default function ConditionNodeEditor({
                       ))}
                     </SelectContent>
                   </Select>
+
+                  {/* Custom Field Selection */}
+                  {rule.field.startsWith('custom:') && (
+                    <Select
+                      value={rule.field.replace('custom:', '')}
+                      onValueChange={(value) =>
+                        updateRule(index, { field: `custom:${value}` })
+                      }
+                    >
+                      <SelectTrigger className="h-8">
+                        {loadingFields ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span>Loading...</span>
+                          </div>
+                        ) : (
+                          <SelectValue placeholder="Select custom field" />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customFields.length === 0 ? (
+                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                            No custom fields found
+                          </div>
+                        ) : (
+                          customFields.map((field) => (
+                            <SelectItem key={field.id} value={field.key}>
+                              {field.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
 
                   {/* Operator */}
                   <Select
