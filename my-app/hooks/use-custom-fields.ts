@@ -179,7 +179,8 @@ export function useCustomFields(organizationId?: string): UseCustomFieldsReturn 
       method: 'DELETE',
     });
 
-    if (!response.ok) {
+    // 204 No Content is a success response
+    if (!response.ok && response.status !== 204) {
       throw new Error(await parseErrorResponse(response, 'Failed to delete custom field'));
     }
 
