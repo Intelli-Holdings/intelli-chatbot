@@ -4,6 +4,8 @@ import ActionNode from './ActionNode';
 import TextNode from './TextNode';
 import ConditionNode from './ConditionNode';
 import MediaNode from './MediaNode';
+import UserInputFlowNode from './UserInputFlowNode';
+import QuestionInputNode from './QuestionInputNode';
 
 export const nodeTypes = {
   start: StartNode,
@@ -12,6 +14,8 @@ export const nodeTypes = {
   text: TextNode,
   condition: ConditionNode,
   media: MediaNode,
+  user_input_flow: UserInputFlowNode,
+  question_input: QuestionInputNode,
 };
 
-export { StartNode, QuestionNode, ActionNode, TextNode, ConditionNode, MediaNode };
+export { StartNode, QuestionNode, ActionNode, TextNode, ConditionNode, MediaNode, UserInputFlowNode, QuestionInputNode };

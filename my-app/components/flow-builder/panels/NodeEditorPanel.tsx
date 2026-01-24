@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music } from 'lucide-react';
+import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music, FileInput, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -23,6 +23,8 @@ import {
 import { TextNodeData } from '../nodes/TextNode';
 import { ConditionNodeData } from '../nodes/ConditionNode';
 import { MediaNodeData } from '../nodes/MediaNode';
+import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
+import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from '../utils/node-factories';
 import StartNodeEditor from './StartNodeEditor';
 import QuestionNodeEditor from './QuestionNodeEditor';
@@ -30,6 +32,8 @@ import ActionNodeEditor from './ActionNodeEditor';
 import TextNodeEditor from './TextNodeEditor';
 import ConditionNodeEditor from './ConditionNodeEditor';
 import MediaNodeEditor from './MediaNodeEditor';
+import UserInputFlowNodeEditor from './UserInputFlowNodeEditor';
+import QuestionInputNodeEditor from './QuestionInputNodeEditor';
 import { cn } from '@/lib/utils';
 
 interface NodeEditorPanelProps {
@@ -82,6 +86,18 @@ export default function NodeEditorPanel({
           title: 'Configure Condition',
           icon: GitBranch,
           color: 'bg-yellow-500',
+        };
+      case 'user_input_flow':
+        return {
+          title: 'Configure User Input Flow',
+          icon: FileInput,
+          color: 'bg-teal-500',
+        };
+      case 'question_input':
+        return {
+          title: 'Configure Question',
+          icon: HelpCircle,
+          color: 'bg-cyan-500',
         };
       case 'action': {
         const actionData = selectedNode.data as ActionNodeData;
@@ -172,6 +188,20 @@ export default function NodeEditorPanel({
         {selectedNode.data.type === 'condition' && (
           <ConditionNodeEditor
             data={selectedNode.data as ConditionNodeData}
+            onUpdate={handleUpdate}
+          />
+        )}
+
+        {selectedNode.data.type === 'user_input_flow' && (
+          <UserInputFlowNodeEditor
+            data={selectedNode.data as UserInputFlowNodeData}
+            onUpdate={handleUpdate}
+          />
+        )}
+
+        {selectedNode.data.type === 'question_input' && (
+          <QuestionInputNodeEditor
+            data={selectedNode.data as QuestionInputNodeData}
             onUpdate={handleUpdate}
           />
         )}

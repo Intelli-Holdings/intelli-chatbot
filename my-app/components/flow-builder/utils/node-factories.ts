@@ -12,6 +12,8 @@ import {
 import { TextNodeData } from '../nodes/TextNode';
 import { ConditionNodeData, ConditionRule } from '../nodes/ConditionNode';
 import { MediaNodeData, MediaType } from '../nodes/MediaNode';
+import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
+import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 
 // Extended node data type
 export type ExtendedFlowNodeData =
@@ -20,11 +22,13 @@ export type ExtendedFlowNodeData =
   | ActionNodeData
   | TextNodeData
   | ConditionNodeData
-  | MediaNodeData;
+  | MediaNodeData
+  | UserInputFlowNodeData
+  | QuestionInputNodeData;
 
 export interface ExtendedFlowNode {
   id: string;
-  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media';
+  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input';
   position: NodePosition;
   data: ExtendedFlowNodeData;
 }
@@ -187,6 +191,50 @@ export function createMediaNode(
 }
 
 /**
+ * Create a new User Input Flow node
+ */
+export function createUserInputFlowNode(position: NodePosition): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const data: UserInputFlowNodeData = {
+    type: 'user_input_flow',
+    label: 'User Input Flow',
+    flowName: '',
+    description: '',
+  };
+
+  return {
+    id: `user_input_flow-${nodeId}`,
+    type: 'user_input_flow',
+    position,
+    data,
+  };
+}
+
+/**
+ * Create a new Question Input node
+ */
+export function createQuestionInputNode(position: NodePosition): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const data: QuestionInputNodeData = {
+    type: 'question_input',
+    label: 'Question',
+    question: '',
+    variableName: `answer_${Date.now().toString(36)}`,
+    inputType: 'free_text',
+    required: true,
+  };
+
+  return {
+    id: `question_input-${nodeId}`,
+    type: 'question_input',
+    position,
+    data,
+  };
+}
+
+/**
  * Create node from context menu action
  */
 export function createNodeFromAction(
@@ -202,6 +250,10 @@ export function createNodeFromAction(
       return createTextNode(position);
     case 'add-condition':
       return createConditionNode(position);
+    case 'add-user-input-flow':
+      return createUserInputFlowNode(position);
+    case 'add-question-input':
+      return createQuestionInputNode(position);
     case 'add-action-message':
       return createActionNode(position, 'send_message');
     case 'add-action-ai':

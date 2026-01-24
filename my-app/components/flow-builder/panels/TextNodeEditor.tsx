@@ -1,9 +1,12 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
+import { Check } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import { TextNodeData } from '../nodes/TextNode';
 
 interface TextNodeEditorProps {
@@ -12,14 +15,43 @@ interface TextNodeEditorProps {
 }
 
 export default function TextNodeEditor({ data, onUpdate }: TextNodeEditorProps) {
+  const [localData, setLocalData] = useState({
+    message: data.message || '',
+    delaySeconds: data.delaySeconds || 0,
+  });
+  const [isDirty, setIsDirty] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+
+  // Sync local state when data prop changes (e.g., different node selected)
+  useEffect(() => {
+    setLocalData({
+      message: data.message || '',
+      delaySeconds: data.delaySeconds || 0,
+    });
+    setIsDirty(false);
+  }, [data.message, data.delaySeconds]);
+
+  const handleChange = useCallback((updates: Partial<typeof localData>) => {
+    setLocalData(prev => ({ ...prev, ...updates }));
+    setIsDirty(true);
+    setShowSaved(false);
+  }, []);
+
+  const handleSave = useCallback(() => {
+    onUpdate(localData);
+    setIsDirty(false);
+    setShowSaved(true);
+    setTimeout(() => setShowSaved(false), 2000);
+  }, [localData, onUpdate]);
+
   return (
     <div className="space-y-4">
       {/* Message */}
       <div className="space-y-2">
         <Label>Message</Label>
         <Textarea
-          value={data.message || ''}
-          onChange={(e) => onUpdate({ message: e.target.value })}
+          value={localData.message}
+          onChange={(e) => handleChange({ message: e.target.value })}
           placeholder="Enter the message to send..."
           rows={5}
         />
@@ -38,27 +70,47 @@ export default function TextNodeEditor({ data, onUpdate }: TextNodeEditorProps) 
             </p>
           </div>
           <Switch
-            checked={(data.delaySeconds || 0) > 0}
-            onCheckedChange={(checked) =>
-              onUpdate({ delaySeconds: checked ? 2 : 0 })
-            }
+            checked={localData.delaySeconds > 0}
+            onCheckedChange={(checked) => {
+              handleChange({ delaySeconds: checked ? 2 : 0 });
+            }}
           />
         </div>
 
-        {(data.delaySeconds || 0) > 0 && (
+        {localData.delaySeconds > 0 && (
           <div className="space-y-2">
             <Label>Delay Duration (seconds)</Label>
             <Input
               type="number"
               min={1}
               max={30}
-              value={data.delaySeconds || 2}
+              value={localData.delaySeconds}
               onChange={(e) =>
-                onUpdate({ delaySeconds: parseInt(e.target.value) || 0 })
+                handleChange({ delaySeconds: parseInt(e.target.value) || 0 })
               }
             />
           </div>
         )}
+      </div>
+
+      {/* Save Button */}
+      <div className="pt-2 border-t">
+        <Button
+          onClick={handleSave}
+          className="w-full"
+          variant={isDirty ? "default" : "secondary"}
+        >
+          {showSaved ? (
+            <>
+              <Check className="h-4 w-4 mr-2" />
+              Saved
+            </>
+          ) : isDirty ? (
+            'Save Changes'
+          ) : (
+            'Saved'
+          )}
+        </Button>
       </div>
 
       {/* Tips */}

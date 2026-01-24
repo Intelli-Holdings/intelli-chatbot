@@ -60,7 +60,7 @@ function MediaNode({ data, selected }: MediaNodeProps) {
       {/* Input Handle */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!h-3 !w-3 !border-2 !bg-white"
         style={{ borderColor: config.borderColor }}
       />
@@ -95,7 +95,7 @@ function MediaNode({ data, selected }: MediaNodeProps) {
       {/* Output Handle */}
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className="!h-3 !w-3 !border-2 !bg-white"
         style={{ borderColor: config.borderColor }}
       />

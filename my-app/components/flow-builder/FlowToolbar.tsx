@@ -13,6 +13,7 @@ import {
   Video,
   FileText,
   Music,
+  HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,12 +54,18 @@ const nodeItems: DraggableNodeItem[] = [
     color: 'bg-blue-500 hover:bg-blue-600',
   },
   {
-    type: 'action',
-    actionType: 'send_message',
+    type: 'text',
     label: 'Text',
     description: 'Send a text message',
     icon: Send,
-    color: 'bg-purple-500 hover:bg-purple-600',
+    color: 'bg-indigo-500 hover:bg-indigo-600',
+  },
+  {
+    type: 'user_input_flow',
+    label: 'Input Flow',
+    description: 'Collect user input',
+    icon: HelpCircle,
+    color: 'bg-teal-500 hover:bg-teal-600',
   },
   {
     type: 'media',
@@ -134,8 +141,8 @@ export default function FlowToolbar({ onAutoLayout }: FlowToolbarProps) {
         {/* Draggable Nodes */}
         {nodeItems.map((item, index) => {
           const Icon = item.icon;
-          // Separators: before media nodes (index 3) and before condition (index 7)
-          const showSeparator = index === 3 || index === 7;
+          // Separators: before media nodes (index 4) and before condition (index 8)
+          const showSeparator = index === 4 || index === 8;
           const uniqueKey = `${item.type}-${item.actionType || item.mediaType || item.label}`;
 
           return (

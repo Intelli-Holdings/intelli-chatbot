@@ -33,7 +33,7 @@ function TextNode({ data, selected }: TextNodeProps) {
       {/* Input Handle */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!h-3 !w-3 !border-2 !border-indigo-500 !bg-white"
       />
 
@@ -67,7 +67,7 @@ function TextNode({ data, selected }: TextNodeProps) {
       {/* Output Handle */}
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className="!h-3 !w-3 !border-2 !border-indigo-500 !bg-white"
       />
     </div>

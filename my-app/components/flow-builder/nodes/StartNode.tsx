@@ -55,7 +55,7 @@ function StartNode({ data, selected }: StartNodeProps) {
       {/* Output Handle */}
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         className="!h-3 !w-3 !border-2 !border-green-500 !bg-white"
       />
     </div>

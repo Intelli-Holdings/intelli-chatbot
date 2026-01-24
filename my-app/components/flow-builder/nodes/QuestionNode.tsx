@@ -65,7 +65,7 @@ function QuestionNode({ data, selected }: QuestionNodeProps) {
       {/* Input Handle */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!h-3 !w-3 !border-2 !border-blue-500 !bg-white"
       />
 
@@ -128,11 +128,11 @@ function QuestionNode({ data, selected }: QuestionNodeProps) {
         />
       ))}
 
-      {/* Default output handle for text-only */}
-      {menu.messageType === 'text' && (
+      {/* Default output handle - shown when no options exist or when message type is text */}
+      {(menu.messageType === 'text' || menu.options.length === 0) && (
         <Handle
           type="source"
-          position={Position.Bottom}
+          position={Position.Right}
           className="!h-3 !w-3 !border-2 !border-blue-500 !bg-white"
         />
       )}

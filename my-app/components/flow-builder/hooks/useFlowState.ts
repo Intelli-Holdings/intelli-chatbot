@@ -26,16 +26,24 @@ import {
   createConditionNode,
   createActionNode,
   createMediaNode,
+  createUserInputFlowNode,
+  createQuestionInputNode,
   createNodeFromAction,
   cloneNode,
   ExtendedFlowNode,
 } from '../utils/node-factories';
 import { MediaType } from '../nodes/MediaNode';
 import { ContextMenuPosition } from '../ContextMenu';
+import { ConnectionMenuPosition } from '../ConnectionMenu';
 
 interface UseFlowStateProps {
   chatbot: ChatbotAutomation;
   onUpdate: (updates: Partial<ChatbotAutomation>) => void;
+}
+
+interface ConnectionState {
+  sourceNodeId: string;
+  sourceHandleId: string | null;
 }
 
 interface UseFlowStateReturn {
@@ -43,6 +51,7 @@ interface UseFlowStateReturn {
   edges: Edge[];
   selectedNode: Node | null;
   contextMenu: { position: ContextMenuPosition; nodeId: string | null } | null;
+  connectionMenu: ConnectionMenuPosition | null;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
@@ -53,9 +62,12 @@ interface UseFlowStateReturn {
   onNodeContextMenu: (event: React.MouseEvent, node: Node) => void;
   onDrop: (event: React.DragEvent) => void;
   onDragOver: (event: React.DragEvent) => void;
+  onConnectStart: (event: React.MouseEvent | React.TouchEvent, params: { nodeId: string | null; handleId: string | null }) => void;
   onConnectEnd: (event: MouseEvent | TouchEvent) => void;
   handleContextMenuAction: (action: string, position: ContextMenuPosition) => void;
+  handleConnectionMenuSelect: (nodeType: string, actionType?: string, mediaType?: string) => void;
   closeContextMenu: () => void;
+  closeConnectionMenu: () => void;
   deleteNode: (nodeId: string) => void;
   updateNodeData: (nodeId: string, data: Partial<ExtendedFlowNode['data']>) => void;
   autoLayout: () => void;
@@ -72,6 +84,8 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges as Edge[]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [contextMenu, setContextMenu] = useState<{ position: ContextMenuPosition; nodeId: string | null } | null>(null);
+  const [connectionMenu, setConnectionMenu] = useState<ConnectionMenuPosition | null>(null);
+  const [pendingConnection, setPendingConnection] = useState<ConnectionState | null>(null);
 
   // Sync to chatbot when nodes/edges change
   const syncToChatbot = useCallback(() => {
@@ -175,29 +189,108 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     [screenToFlowPosition]
   );
 
-  // Handle connection end - show menu when dropping on empty canvas
+  // Handle connection start - track the source node and handle
+  const onConnectStart = useCallback(
+    (_event: React.MouseEvent | React.TouchEvent, params: { nodeId: string | null; handleId: string | null }) => {
+      if (params.nodeId) {
+        setPendingConnection({
+          sourceNodeId: params.nodeId,
+          sourceHandleId: params.handleId,
+        });
+      }
+    },
+    []
+  );
+
+  // Handle connection end - show connection menu when dropping on empty canvas
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent) => {
       // Get the target element
       const target = event.target as HTMLElement;
 
-      // Only show context menu if dropped on the pane (empty canvas)
-      if (target.classList.contains('react-flow__pane')) {
+      // Only show connection menu if dropped on the pane (empty canvas) and we have a pending connection
+      if (target.classList.contains('react-flow__pane') && pendingConnection) {
         const clientX = 'clientX' in event ? event.clientX : event.touches[0].clientX;
         const clientY = 'clientY' in event ? event.clientY : event.touches[0].clientY;
 
         const flowPosition = screenToFlowPosition({ x: clientX, y: clientY });
-        setContextMenu({
-          position: {
-            x: clientX,
-            y: clientY,
-            flowPosition,
-          },
-          nodeId: null,
+        setConnectionMenu({
+          x: clientX,
+          y: clientY,
+          flowPosition,
+          sourceNodeId: pendingConnection.sourceNodeId,
+          sourceHandleId: pendingConnection.sourceHandleId,
         });
+      } else {
+        setPendingConnection(null);
       }
     },
-    [screenToFlowPosition]
+    [screenToFlowPosition, pendingConnection]
+  );
+
+  // Close connection menu
+  const closeConnectionMenu = useCallback(() => {
+    setConnectionMenu(null);
+    setPendingConnection(null);
+  }, []);
+
+  // Handle connection menu selection - create node and connect
+  const handleConnectionMenuSelect = useCallback(
+    (nodeType: string, actionType?: string, mediaType?: string) => {
+      if (!connectionMenu) return;
+
+      const position = connectionMenu.flowPosition;
+      let newNode: ExtendedFlowNode | null = null;
+
+      switch (nodeType) {
+        case 'start':
+          newNode = createStartNode(position);
+          break;
+        case 'question':
+          newNode = createQuestionNode(position);
+          break;
+        case 'text':
+          newNode = createTextNode(position);
+          break;
+        case 'condition':
+          newNode = createConditionNode(position);
+          break;
+        case 'user_input_flow':
+          newNode = createUserInputFlowNode(position);
+          break;
+        case 'question_input':
+          newNode = createQuestionInputNode(position);
+          break;
+        case 'action':
+          if (actionType) {
+            newNode = createActionNode(position, actionType as ActionNodeData['actionType']);
+          }
+          break;
+        case 'media':
+          if (mediaType) {
+            newNode = createMediaNode(position, mediaType as MediaType);
+          }
+          break;
+      }
+
+      if (newNode) {
+        // Add the new node
+        setNodes((nds) => [...nds, newNode as Node]);
+
+        // Create edge from source to new node
+        const newEdge: Edge = {
+          id: `edge-${connectionMenu.sourceNodeId}-${connectionMenu.sourceHandleId || 'default'}-${newNode.id}`,
+          source: connectionMenu.sourceNodeId,
+          target: newNode.id,
+          sourceHandle: connectionMenu.sourceHandleId,
+        };
+
+        setEdges((eds) => addEdge(newEdge, eds));
+      }
+
+      closeConnectionMenu();
+    },
+    [connectionMenu, setNodes, setEdges, closeConnectionMenu]
   );
 
   // Close context menu
@@ -260,6 +353,12 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           break;
         case 'condition':
           newNode = createConditionNode(position);
+          break;
+        case 'user_input_flow':
+          newNode = createUserInputFlowNode(position);
+          break;
+        case 'question_input':
+          newNode = createQuestionInputNode(position);
           break;
         case 'action':
           if (actionType) {
@@ -337,6 +436,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     edges,
     selectedNode,
     contextMenu,
+    connectionMenu,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -347,9 +447,12 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     onNodeContextMenu,
     onDrop,
     onDragOver,
+    onConnectStart,
     onConnectEnd,
     handleContextMenuAction,
+    handleConnectionMenuSelect,
     closeContextMenu,
+    closeConnectionMenu,
     deleteNode,
     updateNodeData,
     autoLayout,

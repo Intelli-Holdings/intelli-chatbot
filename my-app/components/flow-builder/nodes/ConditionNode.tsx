@@ -46,7 +46,7 @@ function ConditionNode({ data, selected }: ConditionNodeProps) {
       {/* Input Handle */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!h-3 !w-3 !border-2 !border-yellow-500 !bg-white"
       />
 
@@ -81,7 +81,7 @@ function ConditionNode({ data, selected }: ConditionNodeProps) {
         )}
 
         {/* Branch Labels */}
-        <div className="flex justify-between pt-2 border-t mt-2">
+        <div className="flex flex-col gap-1 pt-2 border-t mt-2">
           <div className="flex items-center gap-1 text-xs text-green-600">
             <Check className="h-3 w-3" />
             <span>True</span>
@@ -93,20 +93,20 @@ function ConditionNode({ data, selected }: ConditionNodeProps) {
         </div>
       </div>
 
-      {/* True Handle (Left) */}
+      {/* True Handle (Top) */}
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         id="true"
-        className="!h-3 !w-3 !border-2 !border-green-500 !bg-white !left-[25%]"
+        className="!h-3 !w-3 !border-2 !border-green-500 !bg-white !top-[35%]"
       />
 
-      {/* False Handle (Right) */}
+      {/* False Handle (Bottom) */}
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         id="false"
-        className="!h-3 !w-3 !border-2 !border-red-500 !bg-white !left-[75%]"
+        className="!h-3 !w-3 !border-2 !border-red-500 !bg-white !top-[65%]"
       />
     </div>
   );

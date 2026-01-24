@@ -18,6 +18,7 @@ import CustomEdge from './edges/CustomEdge';
 import FlowToolbar from './FlowToolbar';
 import NodeEditorPanel from './panels/NodeEditorPanel';
 import ContextMenu from './ContextMenu';
+import ConnectionMenu from './ConnectionMenu';
 import { useFlowState } from './hooks/useFlowState';
 import { ExtendedFlowNode } from './utils/node-factories';
 
@@ -39,6 +40,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     edges,
     selectedNode,
     contextMenu,
+    connectionMenu,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -49,9 +51,12 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     onNodeContextMenu,
     onDrop,
     onDragOver,
+    onConnectStart,
     onConnectEnd,
     handleContextMenuAction,
+    handleConnectionMenuSelect,
     closeContextMenu,
+    closeConnectionMenu,
     deleteNode,
     updateNodeData,
     autoLayout,
@@ -126,6 +131,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
         onNodeContextMenu={onNodeContextMenu}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -166,6 +172,10 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
                 return '#6366f1';
               case 'condition':
                 return '#eab308';
+              case 'user_input_flow':
+                return '#14b8a6';
+              case 'question_input':
+                return '#06b6d4';
               case 'action':
                 return '#a855f7';
               case 'media':
@@ -188,6 +198,13 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
         nodeId={contextMenu?.nodeId}
         onAction={handleContextMenuAction}
         onClose={closeContextMenu}
+      />
+
+      {/* Connection Menu - appears when dragging from output handle */}
+      <ConnectionMenu
+        position={connectionMenu}
+        onSelect={(item) => handleConnectionMenuSelect(item.type, item.actionType, item.mediaType)}
+        onClose={closeConnectionMenu}
       />
 
       {/* Node Editor Panel */}

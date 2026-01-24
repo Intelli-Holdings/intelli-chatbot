@@ -22,7 +22,7 @@ const NODE_HEIGHT = 150;
 function getLayoutedElements(
   nodes: ChatbotFlowNode[],
   edges: ChatbotFlowEdge[],
-  direction: 'TB' | 'LR' = 'TB'
+  direction: 'TB' | 'LR' = 'LR'
 ): { nodes: ChatbotFlowNode[]; edges: ChatbotFlowEdge[] } {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -89,7 +89,7 @@ export function chatbotToFlow(chatbot: ChatbotAutomation): {
     nodes.push({
       id: nodeId,
       type: 'start',
-      position: savedPos || { x: 50, y: 50 + index * 200 },
+      position: savedPos || { x: 50, y: 100 + index * 200 },
       data: nodeData,
     });
 
@@ -121,7 +121,7 @@ export function chatbotToFlow(chatbot: ChatbotAutomation): {
     nodes.push({
       id: nodeId,
       type: 'question',
-      position: savedPos || { x: 400, y: 50 + index * 250 },
+      position: savedPos || { x: 400, y: 100 + index * 250 },
       data: nodeData,
     });
 

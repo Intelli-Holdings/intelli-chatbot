@@ -62,7 +62,7 @@ function ActionNode({ data, selected }: ActionNodeProps) {
       {/* Input Handle */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!h-3 !w-3 !border-2 !bg-white"
         style={{ borderColor: config.borderColor }}
       />
