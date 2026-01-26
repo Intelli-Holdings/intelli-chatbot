@@ -12,7 +12,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ConditionNodeData, ConditionRule } from '../nodes/ConditionNode';
-import { generateId } from '@/types/chatbot-automation';
+import {
+  generateId,
+  CUSTOM_FIELD_PREFIX,
+  isCustomField,
+  getCustomFieldKey,
+  createCustomFieldName,
+} from '@/types/chatbot-automation';
 import { useCustomFields } from '@/hooks/use-custom-fields';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 
@@ -116,10 +122,10 @@ export default function ConditionNodeEditor({
                 <div className="flex-1 space-y-2">
                   {/* Field */}
                   <Select
-                    value={rule.field.startsWith('custom:') ? 'custom_field' : rule.field}
+                    value={isCustomField(rule.field) ? 'custom_field' : rule.field}
                     onValueChange={(value) => {
                       if (value === 'custom_field') {
-                        updateRule(index, { field: 'custom:' });
+                        updateRule(index, { field: CUSTOM_FIELD_PREFIX });
                       } else {
                         updateRule(index, { field: value });
                       }
@@ -138,37 +144,46 @@ export default function ConditionNodeEditor({
                   </Select>
 
                   {/* Custom Field Selection */}
-                  {rule.field.startsWith('custom:') && (
-                    <Select
-                      value={rule.field.replace('custom:', '')}
-                      onValueChange={(value) =>
-                        updateRule(index, { field: `custom:${value}` })
-                      }
-                    >
-                      <SelectTrigger className="h-8">
-                        {loadingFields ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            <span>Loading...</span>
-                          </div>
-                        ) : (
-                          <SelectValue placeholder="Select custom field" />
-                        )}
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customFields.length === 0 ? (
-                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                            No custom fields found
-                          </div>
-                        ) : (
-                          customFields.map((field) => (
-                            <SelectItem key={field.id} value={field.key}>
-                              {field.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                  {isCustomField(rule.field) && (
+                    <div className="space-y-1">
+                      <Select
+                        value={getCustomFieldKey(rule.field) || undefined}
+                        onValueChange={(value) => {
+                          if (value) {
+                            updateRule(index, { field: createCustomFieldName(value) });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-8">
+                          {loadingFields ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Loading...</span>
+                            </div>
+                          ) : (
+                            <SelectValue placeholder="Select custom field" />
+                          )}
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customFields.length === 0 ? (
+                            <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                              No custom fields found
+                            </div>
+                          ) : (
+                            customFields.map((field) => (
+                              <SelectItem key={field.id} value={field.key}>
+                                {field.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {rule.field === CUSTOM_FIELD_PREFIX && (
+                        <p className="text-xs text-destructive">
+                          Please select a custom field
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   {/* Operator */}

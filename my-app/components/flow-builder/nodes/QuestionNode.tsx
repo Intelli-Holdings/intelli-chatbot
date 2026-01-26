@@ -6,6 +6,7 @@ import { MessageSquare, ChevronRight, Image, Video, FileText } from 'lucide-reac
 import { Badge } from '@/components/ui/badge';
 import { QuestionNodeData } from '@/types/chatbot-automation';
 import { cn } from '@/lib/utils';
+import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
 
 interface QuestionNodeProps extends NodeProps<QuestionNodeData> {}
 
@@ -16,8 +17,9 @@ const BODY_HEIGHT = 44; // Approximate for truncated text
 const OPTIONS_GAP = 6;
 const OPTION_HEIGHT = 28;
 
-function QuestionNode({ data, selected }: QuestionNodeProps) {
+function QuestionNode({ id, data, selected }: QuestionNodeProps) {
   const { menu } = data;
+  const validationClass = useNodeValidationClass(id);
 
   const getTypeBadge = () => {
     switch (menu.messageType) {
@@ -58,10 +60,13 @@ function QuestionNode({ data, selected }: QuestionNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[280px] max-w-[320px] rounded-lg border bg-card shadow-sm transition-all',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'min-w-[280px] max-w-[320px] rounded-lg border bg-card shadow-sm transition-all relative',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !selected && validationClass
       )}
     >
+      <NodeValidationIndicator nodeId={id} />
+
       {/* Input Handle */}
       <Handle
         type="target"

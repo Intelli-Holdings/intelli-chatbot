@@ -286,20 +286,44 @@ export function cloneNode(
     y: node.position.y + offset.y,
   };
 
-  // Deep clone the data
-  const clonedData = JSON.parse(JSON.stringify(node.data));
+  // Deep clone the data with validation
+  let clonedData: ExtendedFlowNodeData;
+  try {
+    clonedData = JSON.parse(JSON.stringify(node.data)) as ExtendedFlowNodeData;
+  } catch (error) {
+    console.error('Failed to clone node data:', error);
+    // Return a copy with the original data reference as fallback
+    clonedData = { ...node.data } as ExtendedFlowNodeData;
+  }
 
-  // Update IDs in the cloned data
-  if (clonedData.type === 'start' && clonedData.trigger) {
-    clonedData.trigger.id = newId;
-  } else if (clonedData.type === 'question' && clonedData.menu) {
-    clonedData.menu.id = newId;
-    clonedData.menu.name = `${clonedData.menu.name} (Copy)`;
-    // Update option IDs
-    clonedData.menu.options = clonedData.menu.options.map((opt: any) => ({
-      ...opt,
-      id: generateId(),
-    }));
+  // Validate cloned data has required type property
+  if (!clonedData || typeof clonedData !== 'object' || !('type' in clonedData)) {
+    console.error('Invalid cloned data structure');
+    clonedData = { ...node.data } as ExtendedFlowNodeData;
+  }
+
+  // Update IDs in the cloned data based on type
+  if (clonedData.type === 'start') {
+    const startData = clonedData as StartNodeData;
+    if (startData.trigger) {
+      startData.trigger = { ...startData.trigger, id: newId };
+    }
+  } else if (clonedData.type === 'question') {
+    const questionData = clonedData as QuestionNodeData;
+    if (questionData.menu) {
+      questionData.menu = {
+        ...questionData.menu,
+        id: newId,
+        name: `${questionData.menu.name} (Copy)`,
+        // Update option IDs with proper typing
+        options: Array.isArray(questionData.menu.options)
+          ? questionData.menu.options.map((opt) => ({
+              ...opt,
+              id: generateId(),
+            }))
+          : [],
+      };
+    }
   }
 
   return {

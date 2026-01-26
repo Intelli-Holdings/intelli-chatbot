@@ -37,31 +37,55 @@ export default function ActionNodeEditor({ data, onUpdate }: ActionNodeEditorPro
 
   // Fetch assistants only for fallback_ai action type
   useEffect(() => {
-    if (data.actionType !== 'fallback_ai') return;
+    if (data.actionType !== 'fallback_ai') {
+      setAssistants([]);
+      return;
+    }
+
+    if (!organizationId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const abortController = new AbortController();
+    let isMounted = true;
 
     const fetchAssistants = async () => {
-      if (!organizationId) {
-        setIsLoading(false);
-        return;
-      }
-
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/assistants/${organizationId}`);
+        const response = await fetch(`/api/assistants/${organizationId}`, {
+          signal: abortController.signal,
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch assistants');
         }
         const result = await response.json();
-        setAssistants(Array.isArray(result) ? result : result.results || []);
+        // Only update state if component is still mounted and action type hasn't changed
+        if (isMounted) {
+          setAssistants(Array.isArray(result) ? result : result.results || []);
+        }
       } catch (error) {
+        // Ignore abort errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
         console.error('Error fetching assistants:', error);
-        setAssistants([]);
+        if (isMounted) {
+          setAssistants([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchAssistants();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [organizationId, data.actionType]);
 
   // Reset message when switching nodes

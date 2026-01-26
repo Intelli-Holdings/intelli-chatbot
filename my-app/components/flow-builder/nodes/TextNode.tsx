@@ -5,6 +5,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { Type, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
 
 export interface TextNodeData {
   type: 'text';
@@ -15,8 +16,9 @@ export interface TextNodeData {
 
 interface TextNodeProps extends NodeProps<TextNodeData> {}
 
-function TextNode({ data, selected }: TextNodeProps) {
+function TextNode({ id, data, selected }: TextNodeProps) {
   const { message, delaySeconds } = data;
+  const validationClass = useNodeValidationClass(id);
 
   // Truncate message
   const truncatedMessage = message && message.length > 100
@@ -26,10 +28,13 @@ function TextNode({ data, selected }: TextNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[220px] max-w-[280px] rounded-lg border bg-card shadow-sm transition-all',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'min-w-[220px] max-w-[280px] rounded-lg border bg-card shadow-sm transition-all relative',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !selected && validationClass
       )}
     >
+      <NodeValidationIndicator nodeId={id} />
+
       {/* Input Handle */}
       <Handle
         type="target"

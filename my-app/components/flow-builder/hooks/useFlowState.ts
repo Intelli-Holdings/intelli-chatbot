@@ -18,7 +18,8 @@ import {
   ChatbotFlowEdge,
   ActionNodeData,
 } from '@/types/chatbot-automation';
-import { chatbotToFlow, flowToChatbot, autoLayoutFlow } from '../utils/flow-converters';
+import { chatbotToFlow, flowToChatbot, autoLayoutFlow, flowNodesToBackend } from '../utils/flow-converters';
+import { ChatbotAutomationService } from '@/services/chatbot-automation';
 import {
   createStartNode,
   createQuestionNode,
@@ -88,13 +89,53 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
   const [pendingConnection, setPendingConnection] = useState<ConnectionState | null>(null);
 
   // Sync to chatbot when nodes/edges change
-  const syncToChatbot = useCallback(() => {
-    const updates = flowToChatbot(
-      nodes as ChatbotFlowNode[],
-      edges as ChatbotFlowEdge[],
-      chatbot
-    );
-    onUpdate(updates);
+  const syncToChatbot = useCallback(async () => {
+    try {
+      // Validate nodes and edges before conversion
+      if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
+        console.warn('syncToChatbot: Invalid or empty nodes array');
+        return;
+      }
+      if (!edges || !Array.isArray(edges)) {
+        console.warn('syncToChatbot: Invalid edges array');
+        return;
+      }
+
+      // Convert to frontend format for local state
+      const updates = flowToChatbot(
+        nodes as ChatbotFlowNode[],
+        edges as ChatbotFlowEdge[],
+        chatbot
+      );
+
+      if (updates) {
+        onUpdate(updates);
+      }
+
+      // Also sync to backend if chatbot has an ID
+      if (chatbot.id) {
+        try {
+          // Convert to backend format
+          const { nodes: backendNodes, edges: backendEdges } = flowNodesToBackend(
+            nodes as ExtendedFlowNode[],
+            edges as ChatbotFlowEdge[]
+          );
+
+          // Update backend
+          await ChatbotAutomationService.updateFlowNodes(
+            chatbot.id,
+            backendNodes,
+            backendEdges
+          );
+          console.log('Flow synced to backend successfully');
+        } catch (backendError) {
+          console.warn('Failed to sync to backend (will retry on next save):', backendError);
+          // Don't throw - local state is still updated
+        }
+      }
+    } catch (error) {
+      console.error('syncToChatbot: Error converting flow to chatbot:', error);
+    }
   }, [nodes, edges, chatbot, onUpdate]);
 
   // Handle new edge connection
@@ -107,9 +148,12 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
 
       if (sourceNode && connection.sourceHandle?.startsWith('option-')) {
         const optionId = connection.sourceHandle.replace('option-', '');
-        const questionData = sourceNode.data as { menu?: { options?: Array<{ id: string; title: string }> } };
-        const option = questionData.menu?.options?.find((o) => o.id === optionId);
-        label = option?.title;
+        // Type guard for question node data
+        if (sourceNode.data && 'menu' in sourceNode.data) {
+          const questionData = sourceNode.data as { menu?: { options?: Array<{ id: string; title: string }> } };
+          const option = questionData.menu?.options?.find((o) => o.id === optionId);
+          label = option?.title;
+        }
       }
 
       // Add label for condition nodes
@@ -237,7 +281,11 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
   // Handle connection menu selection - create node and connect
   const handleConnectionMenuSelect = useCallback(
     (nodeType: string, actionType?: string, mediaType?: string) => {
-      if (!connectionMenu) return;
+      if (!connectionMenu || !connectionMenu.flowPosition) {
+        console.warn('handleConnectionMenuSelect: Invalid connection menu state');
+        closeConnectionMenu();
+        return;
+      }
 
       const position = connectionMenu.flowPosition;
       let newNode: ExtendedFlowNode | null = null;
@@ -262,18 +310,20 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           newNode = createQuestionInputNode(position);
           break;
         case 'action':
-          if (actionType) {
+          // Only create action node if actionType is provided and valid
+          if (actionType && ['send_message', 'fallback_ai', 'end'].includes(actionType)) {
             newNode = createActionNode(position, actionType as ActionNodeData['actionType']);
           }
           break;
         case 'media':
-          if (mediaType) {
+          // Only create media node if mediaType is provided and valid
+          if (mediaType && ['image', 'video', 'document', 'audio'].includes(mediaType)) {
             newNode = createMediaNode(position, mediaType as MediaType);
           }
           break;
       }
 
-      if (newNode) {
+      if (newNode && connectionMenu.sourceNodeId) {
         // Add the new node
         setNodes((nds) => [...nds, newNode as Node]);
 

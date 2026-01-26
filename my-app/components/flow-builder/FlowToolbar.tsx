@@ -14,6 +14,10 @@ import {
   FileText,
   Music,
   HelpCircle,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +30,11 @@ import { Separator } from '@/components/ui/separator';
 
 interface FlowToolbarProps {
   onAutoLayout: () => void;
+  onValidate: () => void;
+  onSimulate: () => void;
+  errorCount: number;
+  warningCount: number;
+  isSimulating: boolean;
 }
 
 interface DraggableNodeItem {
@@ -124,7 +133,8 @@ const nodeItems: DraggableNodeItem[] = [
   },
 ];
 
-export default function FlowToolbar({ onAutoLayout }: FlowToolbarProps) {
+export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, errorCount, warningCount, isSimulating }: FlowToolbarProps) {
+  const hasIssues = errorCount > 0 || warningCount > 0;
   const onDragStart = (event: DragEvent<HTMLDivElement>, item: DraggableNodeItem) => {
     const data = JSON.stringify({
       type: item.type,
@@ -186,6 +196,61 @@ export default function FlowToolbar({ onAutoLayout }: FlowToolbarProps) {
           <TooltipContent side="bottom" sideOffset={5} collisionPadding={10} className="z-50">
             <p className="font-medium">Auto Layout</p>
             <p className="text-xs text-muted-foreground">Arrange nodes automatically</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Validate Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={hasIssues ? (errorCount > 0 ? 'destructive' : 'outline') : 'outline'}
+              size="icon"
+              onClick={onValidate}
+              className={`h-12 w-12 relative ${!hasIssues ? '' : errorCount > 0 ? '' : 'border-yellow-500 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950/20'}`}
+            >
+              {errorCount > 0 ? (
+                <AlertCircle className="h-5 w-5" />
+              ) : warningCount > 0 ? (
+                <AlertTriangle className="h-5 w-5" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5" />
+              )}
+              {hasIssues && (
+                <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center text-white ${errorCount > 0 ? 'bg-red-500' : 'bg-yellow-500'}`}>
+                  {errorCount + warningCount}
+                </span>
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={5} collisionPadding={10} className="z-50">
+            <p className="font-medium">Validate Flow</p>
+            <p className="text-xs text-muted-foreground">
+              {errorCount > 0
+                ? `${errorCount} error${errorCount !== 1 ? 's' : ''}`
+                : warningCount > 0
+                ? `${warningCount} warning${warningCount !== 1 ? 's' : ''}`
+                : 'Check flow for issues'}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Simulate/Preview Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={isSimulating ? 'default' : 'outline'}
+              size="icon"
+              onClick={onSimulate}
+              className="h-12 w-12"
+            >
+              <Play className={`h-5 w-5 ${isSimulating ? 'text-primary-foreground' : ''}`} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={5} collisionPadding={10} className="z-50">
+            <p className="font-medium">Preview Flow</p>
+            <p className="text-xs text-muted-foreground">
+              {isSimulating ? 'Close preview' : 'Test your flow interactively'}
+            </p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

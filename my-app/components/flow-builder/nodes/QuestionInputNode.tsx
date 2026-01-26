@@ -5,6 +5,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { HelpCircle, MessageCircle, List, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
 
 export interface QuestionInputNodeData {
   type: 'question_input';
@@ -18,8 +19,9 @@ export interface QuestionInputNodeData {
 
 interface QuestionInputNodeProps extends NodeProps<QuestionInputNodeData> {}
 
-function QuestionInputNode({ data, selected }: QuestionInputNodeProps) {
+function QuestionInputNode({ id, data, selected }: QuestionInputNodeProps) {
   const { question, inputType, options, variableName } = data;
+  const validationClass = useNodeValidationClass(id);
 
   const truncatedQuestion = question && question.length > 60
     ? `${question.substring(0, 60)}...`
@@ -28,10 +30,13 @@ function QuestionInputNode({ data, selected }: QuestionInputNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[240px] max-w-[300px] rounded-lg border bg-card shadow-sm transition-all',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'min-w-[240px] max-w-[300px] rounded-lg border bg-card shadow-sm transition-all relative',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !selected && validationClass
       )}
     >
+      <NodeValidationIndicator nodeId={id} />
+
       {/* Input Handle */}
       <Handle
         type="target"

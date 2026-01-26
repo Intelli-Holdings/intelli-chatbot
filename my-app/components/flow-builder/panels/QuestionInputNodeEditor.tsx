@@ -17,6 +17,12 @@ import {
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { useCustomFields } from '@/hooks/use-custom-fields';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import {
+  CUSTOM_FIELD_PREFIX,
+  isCustomField,
+  getCustomFieldKey,
+  createCustomFieldName,
+} from '@/types/chatbot-automation';
 
 const SYSTEM_FIELDS = [
   { value: 'name', label: 'Name' },
@@ -46,7 +52,7 @@ export default function QuestionInputNodeEditor({ data, onUpdate }: QuestionInpu
   const [variableType, setVariableType] = useState<'system' | 'custom'>(() => {
     // Determine initial variable type based on current value
     const varName = data.variableName || '';
-    if (varName.startsWith('custom:')) return 'custom';
+    if (isCustomField(varName)) return 'custom';
     return 'system';
   });
 
@@ -63,7 +69,7 @@ export default function QuestionInputNodeEditor({ data, onUpdate }: QuestionInpu
 
     // Update variable type
     const varName = data.variableName || '';
-    if (varName.startsWith('custom:')) {
+    if (isCustomField(varName)) {
       setVariableType('custom');
     } else {
       setVariableType('system');
@@ -121,7 +127,7 @@ export default function QuestionInputNodeEditor({ data, onUpdate }: QuestionInpu
           onValueChange={(value) => {
             if (value === 'custom_field') {
               setVariableType('custom');
-              handleChange({ variableName: 'custom:' });
+              handleChange({ variableName: CUSTOM_FIELD_PREFIX });
             } else {
               setVariableType('system');
               handleChange({ variableName: value });
@@ -142,38 +148,49 @@ export default function QuestionInputNodeEditor({ data, onUpdate }: QuestionInpu
 
         {/* Custom Field Selection */}
         {variableType === 'custom' && (
-          <Select
-            value={localData.variableName.replace('custom:', '')}
-            onValueChange={(value) => handleChange({ variableName: `custom:${value}` })}
-          >
-            <SelectTrigger>
-              {loadingFields ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Loading...</span>
-                </div>
-              ) : (
-                <SelectValue placeholder="Select custom field" />
-              )}
-            </SelectTrigger>
-            <SelectContent>
-              {customFields.length === 0 ? (
-                <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                  No custom fields found
-                </div>
-              ) : (
-                customFields.map((field) => (
-                  <SelectItem key={field.id} value={field.key}>
-                    {field.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+          <div className="space-y-1">
+            <Select
+              value={getCustomFieldKey(localData.variableName) || undefined}
+              onValueChange={(value) => {
+                if (value) {
+                  handleChange({ variableName: createCustomFieldName(value) });
+                }
+              }}
+            >
+              <SelectTrigger>
+                {loadingFields ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Loading...</span>
+                  </div>
+                ) : (
+                  <SelectValue placeholder="Select custom field" />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                {customFields.length === 0 ? (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    No custom fields found
+                  </div>
+                ) : (
+                  customFields.map((field) => (
+                    <SelectItem key={field.id} value={field.key}>
+                      {field.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {localData.variableName === CUSTOM_FIELD_PREFIX && (
+              <p className="text-xs text-destructive">
+                Please select a custom field
+              </p>
+            )}
+          </div>
         )}
 
         <p className="text-xs text-muted-foreground">
-          Use <code className="bg-muted px-1 rounded">{`{{${localData.variableName?.replace('custom:', '') || 'variable'}}}`}</code> to reference this answer later.
+          Use <code className="bg-muted px-1 rounded">{`{{${getCustomFieldKey(localData.variableName) || localData.variableName || 'variable'}}}`}</code> to reference this answer later.
         </p>
       </div>
 
@@ -182,12 +199,17 @@ export default function QuestionInputNodeEditor({ data, onUpdate }: QuestionInpu
         <Label>Answer Type</Label>
         <Select
           value={localData.inputType}
-          onValueChange={(value: 'free_text' | 'multiple_choice') =>
+          onValueChange={(value: 'free_text' | 'multiple_choice') => {
+            // Preserve options when switching to multiple_choice if they exist
+            // Only clear options when switching to free_text
+            const newOptions = value === 'multiple_choice'
+              ? (localData.options && localData.options.length > 0 ? localData.options : ['Option 1'])
+              : [];
             handleChange({
               inputType: value,
-              options: value === 'multiple_choice' ? (localData.options.length > 0 ? localData.options : ['']) : []
-            })
-          }
+              options: newOptions
+            });
+          }}
         >
           <SelectTrigger>
             <SelectValue />

@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { FileInput } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
 
 export interface UserInputFlowNodeData {
   type: 'user_input_flow';
@@ -14,16 +15,20 @@ export interface UserInputFlowNodeData {
 
 interface UserInputFlowNodeProps extends NodeProps<UserInputFlowNodeData> {}
 
-function UserInputFlowNode({ data, selected }: UserInputFlowNodeProps) {
+function UserInputFlowNode({ id, data, selected }: UserInputFlowNodeProps) {
   const { flowName, description } = data;
+  const validationClass = useNodeValidationClass(id);
 
   return (
     <div
       className={cn(
-        'min-w-[220px] max-w-[280px] rounded-lg border bg-card shadow-sm transition-all',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'min-w-[220px] max-w-[280px] rounded-lg border bg-card shadow-sm transition-all relative',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !selected && validationClass
       )}
     >
+      <NodeValidationIndicator nodeId={id} />
+
       {/* Input Handle */}
       <Handle
         type="target"

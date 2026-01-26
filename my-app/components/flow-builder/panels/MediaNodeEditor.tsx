@@ -56,6 +56,11 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
       return;
     }
 
+    if (!selectedAppService.access_token || !selectedAppService.phone_number_id) {
+      toast.error('WhatsApp service is not properly configured');
+      return;
+    }
+
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -75,6 +80,11 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
       }
 
       const result = await response.json();
+
+      // Validate result has required id
+      if (!result || !result.id) {
+        throw new Error('Invalid response: missing media ID');
+      }
 
       onUpdate({
         mediaId: result.id,

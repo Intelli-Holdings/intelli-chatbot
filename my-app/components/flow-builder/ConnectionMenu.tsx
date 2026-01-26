@@ -164,6 +164,9 @@ export default function ConnectionMenu({ position, onSelect, onClose }: Connecti
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Only set up listeners when position is truthy (menu is open)
+    if (!position) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         onClose();
@@ -176,12 +179,14 @@ export default function ConnectionMenu({ position, onSelect, onClose }: Connecti
       }
     };
 
-    if (position) {
+    // Use requestAnimationFrame to ensure listeners are added after render
+    const rafId = requestAnimationFrame(() => {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
-    }
+    });
 
     return () => {
+      cancelAnimationFrame(rafId);
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };

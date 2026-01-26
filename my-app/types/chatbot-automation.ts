@@ -323,3 +323,175 @@ export const CHATBOT_LIMITS = {
   maxTriggerKeywords: 20,
   maxMenus: 50,
 };
+
+// Custom field prefix constant - used to identify custom fields in variable names
+export const CUSTOM_FIELD_PREFIX = 'custom:';
+
+// Helper functions for custom field handling
+export function isCustomField(fieldName: string): boolean {
+  return fieldName.startsWith(CUSTOM_FIELD_PREFIX);
+}
+
+export function getCustomFieldKey(fieldName: string): string {
+  return fieldName.replace(CUSTOM_FIELD_PREFIX, '');
+}
+
+export function createCustomFieldName(key: string): string {
+  return `${CUSTOM_FIELD_PREFIX}${key}`;
+}
+
+// ========================================
+// Backend API Types (Django REST Framework)
+// ========================================
+
+// Execution status enum matching backend
+export type ExecutionStatus =
+  | 'running'
+  | 'waiting_for_input'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+// Backend ChatbotFlow model - uses snake_case
+export interface ChatbotFlowBackend {
+  id: string;
+  organization: string;
+  name: string;
+  description: string;
+  nodes: BackendFlowNode[];
+  edges: BackendFlowEdge[];
+  menus: ChatbotMenu[];  // For backward compatibility
+  trigger_keywords: string[];
+  is_active: boolean;
+  is_published: boolean;
+  published_at: string | null;
+  version: number;
+  execution_count: number;
+  last_executed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Backend node format
+export interface BackendFlowNode {
+  id: string;
+  type: string;
+  position: NodePosition;
+  data: Record<string, unknown>;
+}
+
+// Backend edge format
+export interface BackendFlowEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+  label?: string;
+  animated?: boolean;
+}
+
+// Flow execution record
+export interface FlowExecution {
+  id: string;
+  flow: string;
+  contact_id: string;
+  trigger_keyword: string;
+  status: ExecutionStatus;
+  current_node_id: string | null;
+  visited_nodes: string[];
+  collected_variables: Record<string, unknown>;
+  started_at: string;
+  completed_at: string | null;
+  error_message: string | null;
+}
+
+// Flow validation result
+export interface FlowValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// Flow stats
+export interface FlowStats {
+  execution_count: number;
+  completion_rate: number;
+  avg_duration_seconds: number;
+  last_executed_at: string | null;
+}
+
+// API request/response types for backend
+export interface CreateFlowRequest {
+  organization: string;
+  name: string;
+  description?: string;
+  nodes: BackendFlowNode[];
+  edges: BackendFlowEdge[];
+  menus?: ChatbotMenu[];
+}
+
+export interface UpdateFlowRequest {
+  name?: string;
+  description?: string;
+  nodes?: BackendFlowNode[];
+  edges?: BackendFlowEdge[];
+  menus?: ChatbotMenu[];
+  is_active?: boolean;
+}
+
+// Helper to convert camelCase to snake_case
+export function toSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+// Helper to convert snake_case to camelCase
+export function toCamelCase(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+// Convert object keys from camelCase to snake_case
+export function objectToSnakeCase<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const snakeKey = toSnakeCase(key);
+      const value = obj[key];
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        result[snakeKey] = objectToSnakeCase(value as Record<string, unknown>);
+      } else if (Array.isArray(value)) {
+        result[snakeKey] = value.map(item =>
+          typeof item === 'object' && item !== null
+            ? objectToSnakeCase(item as Record<string, unknown>)
+            : item
+        );
+      } else {
+        result[snakeKey] = value;
+      }
+    }
+  }
+  return result;
+}
+
+// Convert object keys from snake_case to camelCase
+export function objectToCamelCase<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const camelKey = toCamelCase(key);
+      const value = obj[key];
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        result[camelKey] = objectToCamelCase(value as Record<string, unknown>);
+      } else if (Array.isArray(value)) {
+        result[camelKey] = value.map(item =>
+          typeof item === 'object' && item !== null
+            ? objectToCamelCase(item as Record<string, unknown>)
+            : item
+        );
+      } else {
+        result[camelKey] = value;
+      }
+    }
+  }
+  return result;
+}

@@ -9,9 +9,16 @@ import {
   StartNodeData,
   QuestionNodeData,
   ActionNodeData,
-  MenuOption,
   generateId,
+  BackendFlowNode,
+  BackendFlowEdge,
 } from '@/types/chatbot-automation';
+import { TextNodeData } from '../nodes/TextNode';
+import { ConditionNodeData } from '../nodes/ConditionNode';
+import { MediaNodeData } from '../nodes/MediaNode';
+import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
+import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
+import { ExtendedFlowNode, ExtendedFlowNodeData } from './node-factories';
 
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 150;
@@ -56,6 +63,7 @@ function getLayoutedElements(
 
 /**
  * Convert a ChatbotAutomation to flow nodes and edges
+ * Handles both legacy menu-based format and new React Flow format
  */
 export function chatbotToFlow(chatbot: ChatbotAutomation): {
   nodes: ChatbotFlowNode[];
@@ -76,6 +84,7 @@ export function chatbotToFlow(chatbot: ChatbotAutomation): {
     const nodeId = `start-${trigger.id}`;
     const savedPos = getSavedPosition(nodeId);
 
+    // Use keywords directly in data (backend format)
     const nodeData: StartNodeData = {
       type: 'start',
       label: trigger.type === 'keyword'
@@ -182,12 +191,23 @@ export function chatbotToFlow(chatbot: ChatbotAutomation): {
 
 /**
  * Convert flow nodes and edges back to ChatbotAutomation format
+ * Also handles conversion to backend format
  */
 export function flowToChatbot(
   nodes: ChatbotFlowNode[],
   edges: ChatbotFlowEdge[],
   existingChatbot: ChatbotAutomation
 ): Partial<ChatbotAutomation> {
+  // Validate inputs - return existing chatbot if inputs are invalid
+  if (!nodes || !Array.isArray(nodes)) {
+    console.warn('flowToChatbot: nodes is not a valid array');
+    return existingChatbot;
+  }
+  if (!edges || !Array.isArray(edges)) {
+    console.warn('flowToChatbot: edges is not a valid array');
+    return existingChatbot;
+  }
+
   const triggers: ChatbotTrigger[] = [];
   const menus: ChatbotMenu[] = [];
   const flowLayout: FlowLayout = {
@@ -201,7 +221,7 @@ export function flowToChatbot(
       const outgoingEdge = edges.find((e) => e.source === node.id);
 
       // Get target menu ID from edge
-      let menuId = startData.trigger.menuId;
+      let menuId = startData.trigger?.menuId || '';
       if (outgoingEdge) {
         const targetId = outgoingEdge.target;
         if (targetId.startsWith('question-')) {
@@ -209,8 +229,16 @@ export function flowToChatbot(
         }
       }
 
+      // Extract keywords - support both trigger.keywords and data.keywords
+      const keywords = startData.trigger?.keywords ||
+        (startData as unknown as { keywords?: string[] }).keywords ||
+        [];
+
       triggers.push({
-        ...startData.trigger,
+        id: startData.trigger?.id || node.id.replace('start-', ''),
+        type: startData.trigger?.type || 'keyword',
+        keywords,
+        caseSensitive: startData.trigger?.caseSensitive || false,
         menuId,
       });
     }
@@ -243,15 +271,18 @@ export function flowToChatbot(
           } else if (targetId.startsWith('action-')) {
             // Connect to action node
             const actionNode = nodes.find((n) => n.id === targetId);
-            if (actionNode && actionNode.data.type === 'action') {
+            if (actionNode && actionNode.data && actionNode.data.type === 'action') {
               const actionData = actionNode.data as ActionNodeData;
-              return {
-                ...option,
-                action: {
-                  type: actionData.actionType,
-                  message: actionData.message,
-                },
-              };
+              // Only update if actionType is valid
+              if (actionData.actionType) {
+                return {
+                  ...option,
+                  action: {
+                    type: actionData.actionType,
+                    message: actionData.message,
+                  },
+                };
+              }
             }
           }
         }
@@ -269,6 +300,266 @@ export function flowToChatbot(
     menus,
     flowLayout,
   };
+}
+
+/**
+ * Convert frontend React Flow nodes to backend format
+ * This function converts the extended node types to the backend API format
+ */
+export function flowNodesToBackend(
+  nodes: ExtendedFlowNode[],
+  edges: ChatbotFlowEdge[]
+): { nodes: BackendFlowNode[]; edges: BackendFlowEdge[] } {
+  const backendNodes: BackendFlowNode[] = nodes.map((node) => {
+    const data: Record<string, unknown> = { ...node.data };
+
+    // Convert start node trigger to keywords format for backend
+    if (node.type === 'start' && node.data.type === 'start') {
+      const startData = node.data as StartNodeData;
+      // Backend expects keywords at data.keywords, not data.trigger.keywords
+      data.keywords = startData.trigger?.keywords || [];
+      data.caseSensitive = startData.trigger?.caseSensitive || false;
+      // Keep trigger for backward compatibility but primary is keywords
+    }
+
+    // Convert question node - backend expects data directly
+    if (node.type === 'question' && node.data.type === 'question') {
+      const questionData = node.data as QuestionNodeData;
+      // Backend can use the menu structure directly
+      // Map to backend expected format
+      data.body = questionData.menu?.body || '';
+      data.header = questionData.menu?.header?.content || '';
+      data.footer = questionData.menu?.footer || '';
+      data.options = questionData.menu?.options?.map(opt => ({
+        id: opt.id,
+        title: opt.title,
+        description: opt.description,
+      })) || [];
+      data.type = questionData.menu?.options?.length > 3 ? 'list' : 'buttons';
+      data.saveAnswerTo = (questionData as unknown as { saveAnswerTo?: string }).saveAnswerTo;
+    }
+
+    // Convert text node
+    if (node.type === 'text' && node.data.type === 'text') {
+      const textData = node.data as TextNodeData;
+      data.text = textData.message || '';
+    }
+
+    // Convert media node
+    if (node.type === 'media' && node.data.type === 'media') {
+      const mediaData = node.data as MediaNodeData;
+      data.mediaType = mediaData.mediaType;
+      data.mediaId = mediaData.mediaId || '';
+      data.caption = mediaData.caption || '';
+      data.filename = mediaData.fileName;
+    }
+
+    // Convert condition node
+    if (node.type === 'condition' && node.data.type === 'condition') {
+      const conditionData = node.data as ConditionNodeData;
+      data.rules = conditionData.rules?.map(rule => ({
+        field: rule.field,
+        operator: rule.operator,
+        value: rule.value,
+      })) || [];
+    }
+
+    // Convert action node
+    if (node.type === 'action' && node.data.type === 'action') {
+      const actionData = node.data as ActionNodeData;
+      data.actionType = actionData.actionType;
+      data.message = actionData.message;
+      data.assistantId = actionData.assistantId;
+    }
+
+    // Convert question_input node
+    if (node.type === 'question_input' && node.data.type === 'question_input') {
+      const qiData = node.data as QuestionInputNodeData;
+      data.question = qiData.question;
+      data.variableName = qiData.variableName;
+      data.inputType = qiData.inputType;
+      data.required = qiData.required;
+      data.options = qiData.options;
+    }
+
+    // Convert user_input_flow node
+    if (node.type === 'user_input_flow' && node.data.type === 'user_input_flow') {
+      const uifData = node.data as UserInputFlowNodeData;
+      data.flowName = uifData.flowName;
+      data.description = uifData.description;
+    }
+
+    return {
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data,
+    };
+  });
+
+  // Edges can be used directly (same format)
+  const backendEdges: BackendFlowEdge[] = edges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    label: edge.label,
+    animated: edge.animated,
+  }));
+
+  return { nodes: backendNodes, edges: backendEdges };
+}
+
+/**
+ * Convert backend nodes to frontend React Flow format
+ */
+export function backendNodesToFlow(
+  backendNodes: BackendFlowNode[],
+  backendEdges: BackendFlowEdge[]
+): { nodes: ExtendedFlowNode[]; edges: ChatbotFlowEdge[] } {
+  const nodes: ExtendedFlowNode[] = backendNodes.map((node) => {
+    let data: ExtendedFlowNodeData;
+    const backendData = node.data;
+
+    switch (node.type) {
+      case 'start': {
+        // Convert backend keywords format to frontend trigger format
+        const keywords = (backendData.keywords as string[]) || [];
+        data = {
+          type: 'start',
+          label: `Keywords: ${keywords.join(', ') || 'None'}`,
+          trigger: {
+            id: node.id.replace('start-', ''),
+            type: 'keyword',
+            keywords,
+            caseSensitive: (backendData.caseSensitive as boolean) || false,
+            menuId: '',
+          },
+        } as StartNodeData;
+        break;
+      }
+      case 'text': {
+        data = {
+          type: 'text',
+          label: 'Text Message',
+          message: (backendData.text as string) || '',
+          delaySeconds: (backendData.delaySeconds as number) || 0,
+        } as TextNodeData;
+        break;
+      }
+      case 'question': {
+        // Convert backend format to menu format
+        data = {
+          type: 'question',
+          label: (backendData.label as string) || 'Interactive Message',
+          menu: {
+            id: node.id.replace('question-', '') || generateId(),
+            name: (backendData.label as string) || 'Interactive Message',
+            messageType: (backendData.type as string) === 'list' ? 'interactive_list' : 'interactive_buttons',
+            body: (backendData.body as string) || '',
+            header: backendData.header ? { type: 'text', content: backendData.header as string } : undefined,
+            footer: backendData.footer as string,
+            options: ((backendData.options as Array<{ id: string; title: string; description?: string }>) || []).map(opt => ({
+              id: opt.id,
+              title: opt.title,
+              description: opt.description,
+              action: { type: 'end' as const },
+            })),
+          },
+        } as QuestionNodeData;
+        break;
+      }
+      case 'media': {
+        data = {
+          type: 'media',
+          label: (backendData.mediaType as string) || 'Media',
+          mediaType: (backendData.mediaType as 'image' | 'video' | 'document' | 'audio') || 'image',
+          mediaId: backendData.mediaId as string,
+          caption: backendData.caption as string,
+          fileName: backendData.filename as string,
+        } as MediaNodeData;
+        break;
+      }
+      case 'condition': {
+        data = {
+          type: 'condition',
+          label: 'Condition',
+          matchType: 'all',
+          rules: ((backendData.rules as Array<{ field: string; operator: string; value: string }>) || []).map(r => ({
+            field: r.field,
+            operator: r.operator as 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'starts_with' | 'ends_with' | 'is_empty' | 'is_not_empty',
+            value: r.value,
+          })),
+        } as ConditionNodeData;
+        break;
+      }
+      case 'action': {
+        data = {
+          type: 'action',
+          label: getActionLabel((backendData.actionType as string) || 'end'),
+          actionType: (backendData.actionType as ActionNodeData['actionType']) || 'end',
+          message: backendData.message as string,
+          assistantId: backendData.assistantId as string,
+        } as ActionNodeData;
+        break;
+      }
+      case 'question_input': {
+        data = {
+          type: 'question_input',
+          label: 'Question',
+          question: (backendData.question as string) || '',
+          variableName: (backendData.variableName as string) || `answer_${Date.now().toString(36)}`,
+          inputType: (backendData.inputType as QuestionInputNodeData['inputType']) || 'free_text',
+          required: (backendData.required as boolean) ?? true,
+          options: backendData.options as string[],
+        } as QuestionInputNodeData;
+        break;
+      }
+      case 'user_input_flow': {
+        data = {
+          type: 'user_input_flow',
+          label: 'User Input Flow',
+          flowName: (backendData.flowName as string) || '',
+          description: (backendData.description as string) || '',
+        } as UserInputFlowNodeData;
+        break;
+      }
+      default: {
+        // Fallback for unknown types
+        data = {
+          type: node.type as 'start',
+          label: (backendData.label as string) || node.type,
+          trigger: {
+            id: generateId(),
+            type: 'keyword',
+            keywords: [],
+            caseSensitive: false,
+            menuId: '',
+          },
+        } as StartNodeData;
+      }
+    }
+
+    return {
+      id: node.id,
+      type: node.type as ExtendedFlowNode['type'],
+      position: node.position,
+      data,
+    };
+  });
+
+  const edges: ChatbotFlowEdge[] = backendEdges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    label: edge.label,
+    animated: edge.animated,
+  }));
+
+  return { nodes, edges };
 }
 
 /**
@@ -295,4 +586,23 @@ export function autoLayoutFlow(
   edges: ChatbotFlowEdge[]
 ): { nodes: ChatbotFlowNode[]; edges: ChatbotFlowEdge[] } {
   return getLayoutedElements(nodes, edges);
+}
+
+/**
+ * Extract trigger keywords from flow nodes (for backend)
+ */
+export function extractTriggerKeywords(nodes: ExtendedFlowNode[]): string[] {
+  const keywords: string[] = [];
+
+  nodes.forEach((node) => {
+    if (node.type === 'start' && node.data.type === 'start') {
+      const startData = node.data as StartNodeData;
+      const nodeKeywords = startData.trigger?.keywords ||
+        (startData as unknown as { keywords?: string[] }).keywords ||
+        [];
+      keywords.push(...nodeKeywords);
+    }
+  });
+
+  return Array.from(new Set(keywords)); // Remove duplicates
 }

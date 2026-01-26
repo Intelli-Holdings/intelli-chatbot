@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Image, Video, FileText, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
 
 export type MediaType = 'image' | 'video' | 'document' | 'audio';
 
@@ -45,18 +46,22 @@ const MEDIA_CONFIG: Record<MediaType, { icon: typeof Image; title: string; color
   },
 };
 
-function MediaNode({ data, selected }: MediaNodeProps) {
+function MediaNode({ id, data, selected }: MediaNodeProps) {
   const { mediaType, fileName, caption } = data;
   const config = MEDIA_CONFIG[mediaType];
   const Icon = config.icon;
+  const validationClass = useNodeValidationClass(id);
 
   return (
     <div
       className={cn(
-        'min-w-[180px] max-w-[220px] rounded-lg border bg-card shadow-sm transition-all',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'min-w-[180px] max-w-[220px] rounded-lg border bg-card shadow-sm transition-all relative',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !selected && validationClass
       )}
     >
+      <NodeValidationIndicator nodeId={id} />
+
       {/* Input Handle */}
       <Handle
         type="target"

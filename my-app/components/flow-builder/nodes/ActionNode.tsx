@@ -5,11 +5,13 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { Send, Bot, XCircle } from 'lucide-react';
 import { ActionNodeData } from '@/types/chatbot-automation';
 import { cn } from '@/lib/utils';
+import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
 
 interface ActionNodeProps extends NodeProps<ActionNodeData> {}
 
-function ActionNode({ data, selected }: ActionNodeProps) {
+function ActionNode({ id, data, selected }: ActionNodeProps) {
   const { actionType, message, assistantId } = data;
+  const validationClass = useNodeValidationClass(id);
 
   const getConfig = () => {
     switch (actionType) {
@@ -55,10 +57,13 @@ function ActionNode({ data, selected }: ActionNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[200px] max-w-[260px] rounded-lg border bg-card shadow-sm transition-all',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'min-w-[200px] max-w-[260px] rounded-lg border bg-card shadow-sm transition-all relative',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !selected && validationClass
       )}
     >
+      <NodeValidationIndicator nodeId={id} />
+
       {/* Input Handle */}
       <Handle
         type="target"

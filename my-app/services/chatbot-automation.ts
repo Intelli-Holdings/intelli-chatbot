@@ -3,7 +3,6 @@ import {
   ChatbotMenu,
   ChatbotTrigger,
   ChatbotSettings,
-  ChatbotSession,
   CreateChatbotRequest,
   UpdateChatbotRequest,
   TestChatbotRequest,
@@ -13,25 +12,143 @@ import {
   createDefaultMenu,
   WhatsAppInteractiveButtonMessage,
   WhatsAppInteractiveList,
+  ChatbotFlowBackend,
+  BackendFlowNode,
+  BackendFlowEdge,
+  CreateFlowRequest,
+  UpdateFlowRequest,
+  FlowValidationResult,
+  FlowStats,
+  FlowExecution,
+  objectToSnakeCase,
+  objectToCamelCase,
 } from '@/types/chatbot-automation';
 
-// Use local Next.js API routes for chatbot automation
-// Change to process.env.NEXT_PUBLIC_API_BASE_URL when backend is ready
-const API_BASE_URL = '';
+// Use Django backend API for chatbot automation
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend.intelliconcierge.com';
+
+// Helper to get auth headers (Clerk JWT)
+async function getAuthHeaders(): Promise<HeadersInit> {
+  // Get the Clerk session token if available
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  // Try to get auth token from Clerk (client-side)
+  if (typeof window !== 'undefined') {
+    try {
+      // @ts-expect-error - Clerk is loaded globally
+      const clerk = window.Clerk;
+      if (clerk?.session) {
+        const token = await clerk.session.getToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to get Clerk token:', e);
+    }
+  }
+
+  return headers;
+}
+
+// Convert frontend ChatbotAutomation to backend format
+function toBackendFormat(chatbot: Partial<ChatbotAutomation>, organizationId: string): CreateFlowRequest | UpdateFlowRequest {
+  // Convert nodes from frontend format (with trigger/menu) to backend format (with data.keywords)
+  const nodes: BackendFlowNode[] = [];
+  const edges: BackendFlowEdge[] = [];
+
+  // If we have flowLayout with nodes/edges, use them directly
+  if (chatbot.flowLayout?.nodes) {
+    // This means we're using the new flow builder format
+    // The nodes and edges should be passed separately
+  }
+
+  // Extract trigger keywords from start nodes or triggers
+  const triggerKeywords: string[] = [];
+  chatbot.triggers?.forEach(trigger => {
+    if (trigger.keywords) {
+      triggerKeywords.push(...trigger.keywords);
+    }
+  });
+
+  return {
+    organization: organizationId,
+    name: chatbot.name || 'Untitled Flow',
+    description: chatbot.description,
+    nodes,
+    edges,
+    menus: chatbot.menus,
+  };
+}
+
+// Convert backend ChatbotFlowBackend to frontend ChatbotAutomation format
+function toFrontendFormat(flow: ChatbotFlowBackend): ChatbotAutomation {
+  // Extract triggers from start nodes
+  const triggers: ChatbotTrigger[] = [];
+  const menus: ChatbotMenu[] = flow.menus || [];
+
+  // Process nodes to extract triggers
+  flow.nodes.forEach(node => {
+    if (node.type === 'start') {
+      const data = node.data as { trigger?: ChatbotTrigger; keywords?: string[] };
+      if (data.trigger) {
+        triggers.push(data.trigger);
+      } else if (data.keywords) {
+        // Convert backend keywords format to frontend trigger format
+        triggers.push({
+          id: node.id.replace('start-', ''),
+          type: 'keyword',
+          keywords: data.keywords,
+          caseSensitive: false,
+          menuId: '',
+        });
+      }
+    }
+  });
+
+  // If no triggers found but we have trigger_keywords, create triggers
+  if (triggers.length === 0 && flow.trigger_keywords.length > 0) {
+    triggers.push({
+      id: generateId(),
+      type: 'keyword',
+      keywords: flow.trigger_keywords,
+      caseSensitive: false,
+      menuId: menus[0]?.id || '',
+    });
+  }
+
+  return {
+    id: flow.id,
+    organizationId: flow.organization,
+    name: flow.name,
+    description: flow.description,
+    isActive: flow.is_active,
+    priority: 1,
+    triggers,
+    menus,
+    settings: DEFAULT_CHATBOT_SETTINGS,
+    flowLayout: {
+      nodes: flow.nodes.map(n => ({ id: n.id, position: n.position })),
+    },
+    createdAt: flow.created_at,
+    updatedAt: flow.updated_at,
+  };
+}
 
 export class ChatbotAutomationService {
   /**
-   * Fetch all chatbots for an organization
+   * Fetch all chatbots/flows for an organization
    */
   static async getChatbots(organizationId: string): Promise<ChatbotAutomation[]> {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
-        `${API_BASE_URL}/api/chatbot-automations/org/${organizationId}/`,
+        `${API_BASE_URL}/chatbot_automation/flows/?organization=${organizationId}`,
         {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       );
 
@@ -39,7 +156,8 @@ export class ChatbotAutomationService {
         throw new Error('Failed to fetch chatbots');
       }
 
-      return await response.json();
+      const flows: ChatbotFlowBackend[] = await response.json();
+      return flows.map(toFrontendFormat);
     } catch (error) {
       console.error('Error fetching chatbots:', error);
       throw error;
@@ -47,17 +165,16 @@ export class ChatbotAutomationService {
   }
 
   /**
-   * Fetch a single chatbot by ID
+   * Fetch a single chatbot/flow by ID
    */
   static async getChatbot(id: string): Promise<ChatbotAutomation> {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
-        `${API_BASE_URL}/api/chatbot-automations/${id}/`,
+        `${API_BASE_URL}/chatbot_automation/flows/${id}/`,
         {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       );
 
@@ -65,7 +182,8 @@ export class ChatbotAutomationService {
         throw new Error('Failed to fetch chatbot');
       }
 
-      return await response.json();
+      const flow: ChatbotFlowBackend = await response.json();
+      return toFrontendFormat(flow);
     } catch (error) {
       console.error('Error fetching chatbot:', error);
       throw error;
@@ -73,55 +191,56 @@ export class ChatbotAutomationService {
   }
 
   /**
-   * Create a new chatbot
+   * Create a new chatbot/flow
    */
   static async createChatbot(data: CreateChatbotRequest): Promise<ChatbotAutomation> {
     try {
+      const headers = await getAuthHeaders();
+
       // Create default structure if not provided
       const defaultMenuId = generateId();
       const defaultMainMenu = createDefaultMenu(defaultMenuId, 'Interactive Message');
 
-      // Create default trigger (Start Flow node) that connects to the main menu
-      const defaultTrigger: ChatbotTrigger = {
-        id: generateId(),
-        type: 'keyword',
-        keywords: [],
-        caseSensitive: false,
-        menuId: defaultMenuId,
-      };
+      // Create default start node
+      const startNodeId = `start-${generateId()}`;
+      const defaultNodes: BackendFlowNode[] = [
+        {
+          id: startNodeId,
+          type: 'start',
+          position: { x: 50, y: 100 },
+          data: {
+            type: 'start',
+            label: 'Start',
+            keywords: [],
+          },
+        },
+      ];
 
-      const chatbotData: Partial<ChatbotAutomation> = {
-        organizationId: data.organizationId,
-        appServiceId: data.appServiceId,
+      const requestData: CreateFlowRequest = {
+        organization: data.organizationId,
         name: data.name,
         description: data.description || '',
-        isActive: false,
-        priority: 1,
-        triggers: data.triggers || [defaultTrigger],
+        nodes: defaultNodes,
+        edges: [],
         menus: data.menus || [defaultMainMenu],
-        settings: {
-          ...DEFAULT_CHATBOT_SETTINGS,
-          ...data.settings,
-        },
       };
 
       const response = await fetch(
-        `${API_BASE_URL}/api/chatbot-automations/`,
+        `${API_BASE_URL}/chatbot_automation/flows/`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(chatbotData),
+          headers,
+          body: JSON.stringify(requestData),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to create chatbot');
+        throw new Error(errorData.message || errorData.detail || 'Failed to create chatbot');
       }
 
-      return await response.json();
+      const flow: ChatbotFlowBackend = await response.json();
+      return toFrontendFormat(flow);
     } catch (error) {
       console.error('Error creating chatbot:', error);
       throw error;
@@ -129,30 +248,44 @@ export class ChatbotAutomationService {
   }
 
   /**
-   * Update an existing chatbot
+   * Update an existing chatbot/flow
    */
   static async updateChatbot(
     id: string,
     data: UpdateChatbotRequest
   ): Promise<ChatbotAutomation> {
     try {
+      const headers = await getAuthHeaders();
+
+      // Convert frontend format to backend format
+      const requestData: UpdateFlowRequest = {
+        name: data.name,
+        description: data.description,
+        menus: data.menus,
+        is_active: data.isActive,
+      };
+
+      // If flowLayout contains node positions, extract nodes
+      if (data.flowLayout?.nodes) {
+        // Nodes and edges should be provided separately via updateFlowNodes
+      }
+
       const response = await fetch(
-        `${API_BASE_URL}/api/chatbot-automations/${id}/`,
+        `${API_BASE_URL}/chatbot_automation/flows/${id}/`,
         {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(requestData),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to update chatbot');
+        throw new Error(errorData.message || errorData.detail || 'Failed to update chatbot');
       }
 
-      return await response.json();
+      const flow: ChatbotFlowBackend = await response.json();
+      return toFrontendFormat(flow);
     } catch (error) {
       console.error('Error updating chatbot:', error);
       throw error;
@@ -160,17 +293,54 @@ export class ChatbotAutomationService {
   }
 
   /**
-   * Delete a chatbot
+   * Update flow nodes and edges (for flow builder)
+   */
+  static async updateFlowNodes(
+    id: string,
+    nodes: BackendFlowNode[],
+    edges: BackendFlowEdge[]
+  ): Promise<ChatbotAutomation> {
+    try {
+      const headers = await getAuthHeaders();
+
+      const requestData = {
+        nodes,
+        edges,
+      };
+
+      const response = await fetch(
+        `${API_BASE_URL}/chatbot_automation/flows/${id}/`,
+        {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(requestData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.detail || 'Failed to update flow nodes');
+      }
+
+      const flow: ChatbotFlowBackend = await response.json();
+      return toFrontendFormat(flow);
+    } catch (error) {
+      console.error('Error updating flow nodes:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a chatbot/flow
    */
   static async deleteChatbot(id: string): Promise<void> {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
-        `${API_BASE_URL}/api/chatbot-automations/${id}/`,
+        `${API_BASE_URL}/chatbot_automation/flows/${id}/`,
         {
           method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
         }
       );
 
@@ -184,26 +354,28 @@ export class ChatbotAutomationService {
   }
 
   /**
-   * Toggle chatbot active status
+   * Toggle chatbot active status (publish/unpublish)
    */
   static async toggleChatbot(id: string, isActive: boolean): Promise<ChatbotAutomation> {
     try {
+      const headers = await getAuthHeaders();
+      const endpoint = isActive ? 'publish' : 'unpublish';
+
       const response = await fetch(
-        `${API_BASE_URL}/api/chatbot-automations/${id}/toggle/`,
+        `${API_BASE_URL}/chatbot_automation/flows/${id}/${endpoint}/`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ isActive }),
+          headers,
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to toggle chatbot status');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.detail || 'Failed to toggle chatbot status');
       }
 
-      return await response.json();
+      const flow: ChatbotFlowBackend = await response.json();
+      return toFrontendFormat(flow);
     } catch (error) {
       console.error('Error toggling chatbot:', error);
       throw error;
@@ -211,20 +383,19 @@ export class ChatbotAutomationService {
   }
 
   /**
-   * Duplicate a chatbot
+   * Duplicate a chatbot/flow
    */
   static async duplicateChatbot(
     id: string,
     newName: string
   ): Promise<ChatbotAutomation> {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
-        `${API_BASE_URL}/api/chatbot-automations/${id}/duplicate/`,
+        `${API_BASE_URL}/chatbot_automation/flows/${id}/duplicate/`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({ name: newName }),
         }
       );
@@ -233,7 +404,8 @@ export class ChatbotAutomationService {
         throw new Error('Failed to duplicate chatbot');
       }
 
-      return await response.json();
+      const flow: ChatbotFlowBackend = await response.json();
+      return toFrontendFormat(flow);
     } catch (error) {
       console.error('Error duplicating chatbot:', error);
       throw error;
@@ -241,26 +413,109 @@ export class ChatbotAutomationService {
   }
 
   /**
-   * Test a chatbot with mock input
+   * Validate a flow
    */
-  static async testChatbot(data: TestChatbotRequest): Promise<TestChatbotResponse> {
+  static async validateFlow(id: string): Promise<FlowValidationResult> {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
-        `${API_BASE_URL}/api/chatbot-automations/test/`,
+        `${API_BASE_URL}/chatbot_automation/flows/${id}/validate/`,
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
+          method: 'GET',
+          headers,
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to test chatbot');
+        throw new Error('Failed to validate flow');
       }
 
       return await response.json();
+    } catch (error) {
+      console.error('Error validating flow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get flow statistics
+   */
+  static async getFlowStats(id: string): Promise<FlowStats> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${API_BASE_URL}/chatbot_automation/flows/${id}/stats/`,
+        {
+          method: 'GET',
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to get flow stats');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting flow stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get flow executions
+   */
+  static async getFlowExecutions(flowId?: string): Promise<FlowExecution[]> {
+    try {
+      const headers = await getAuthHeaders();
+      const url = flowId
+        ? `${API_BASE_URL}/chatbot_automation/executions/?flow=${flowId}`
+        : `${API_BASE_URL}/chatbot_automation/executions/`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get flow executions');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting flow executions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test a chatbot with mock input (local simulation)
+   */
+  static async testChatbot(data: TestChatbotRequest): Promise<TestChatbotResponse> {
+    // For now, this runs locally since the backend test endpoint
+    // would require a real WhatsApp connection
+    // TODO: Implement backend simulation endpoint
+    try {
+      const chatbot = await this.getChatbot(data.chatbotId);
+      const menu = this.findMenuByKeyword(chatbot, data.input);
+
+      if (menu) {
+        return {
+          sessionId: generateId(),
+          menu,
+          message: menu.body,
+          action: 'show_menu',
+          fallbackTriggered: false,
+        };
+      }
+
+      return {
+        sessionId: generateId(),
+        menu: null,
+        message: chatbot.settings.fallbackMessage,
+        action: 'fallback_ai',
+        fallbackTriggered: true,
+      };
     } catch (error) {
       console.error('Error testing chatbot:', error);
       throw error;
@@ -451,7 +706,7 @@ export class ChatbotAutomationService {
       errors.push('At least one menu is required');
     }
 
-    chatbot.menus?.forEach((menu, index) => {
+    chatbot.menus?.forEach((menu) => {
       if (!menu.body?.trim()) {
         errors.push(`Menu "${menu.name}" body text is required`);
       }

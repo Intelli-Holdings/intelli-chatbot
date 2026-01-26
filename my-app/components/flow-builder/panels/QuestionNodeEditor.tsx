@@ -61,6 +61,18 @@ export default function QuestionNodeEditor({
   const handleFileUpload = async (file: File, type: 'image' | 'video' | 'document') => {
     if (!selectedAppService) {
       toast.error('No WhatsApp service configured');
+      // Reset file input on error
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    if (!selectedAppService.access_token || !selectedAppService.phone_number_id) {
+      toast.error('WhatsApp service is not properly configured');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       return;
     }
 
@@ -84,6 +96,11 @@ export default function QuestionNodeEditor({
 
       const result = await response.json();
 
+      // Validate result has required id
+      if (!result || !result.id) {
+        throw new Error('Invalid response: missing media ID');
+      }
+
       // Store the media ID and file name
       updateLocalMenu({
         header: {
@@ -96,6 +113,10 @@ export default function QuestionNodeEditor({
     } catch (error) {
       console.error('Upload error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to upload file');
+      // Reset file input on error
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } finally {
       setIsUploading(false);
     }
@@ -160,12 +181,17 @@ export default function QuestionNodeEditor({
   };
 
   const addOption = () => {
-    if (localMenu.messageType === 'interactive_buttons' && localMenu.options.length >= 3) {
-      toast.error('Maximum 3 buttons allowed for interactive buttons');
-      return;
-    }
-    if (localMenu.options.length >= CHATBOT_LIMITS.maxListItemsPerSection) {
-      toast.error(`Maximum ${CHATBOT_LIMITS.maxListItemsPerSection} options allowed`);
+    // Validate based on message type
+    const maxOptions = localMenu.messageType === 'interactive_buttons'
+      ? 3
+      : CHATBOT_LIMITS.maxListItemsPerSection;
+
+    if (localMenu.options.length >= maxOptions) {
+      toast.error(
+        localMenu.messageType === 'interactive_buttons'
+          ? 'Maximum 3 buttons allowed for interactive buttons'
+          : `Maximum ${CHATBOT_LIMITS.maxListItemsPerSection} options allowed`
+      );
       return;
     }
 

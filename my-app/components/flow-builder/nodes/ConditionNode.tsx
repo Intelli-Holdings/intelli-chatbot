@@ -5,6 +5,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { GitBranch, Check, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
 
 export interface ConditionRule {
   field: string;
@@ -21,8 +22,9 @@ export interface ConditionNodeData {
 
 interface ConditionNodeProps extends NodeProps<ConditionNodeData> {}
 
-function ConditionNode({ data, selected }: ConditionNodeProps) {
+function ConditionNode({ id, data, selected }: ConditionNodeProps) {
   const { matchType, rules } = data;
+  const validationClass = useNodeValidationClass(id);
 
   const getOperatorLabel = (op: ConditionRule['operator']) => {
     switch (op) {
@@ -39,10 +41,13 @@ function ConditionNode({ data, selected }: ConditionNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[240px] max-w-[300px] rounded-lg border bg-card shadow-sm transition-all',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'min-w-[240px] max-w-[300px] rounded-lg border bg-card shadow-sm transition-all relative',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !selected && validationClass
       )}
     >
+      <NodeValidationIndicator nodeId={id} />
+
       {/* Input Handle */}
       <Handle
         type="target"

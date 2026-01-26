@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -19,8 +19,15 @@ import FlowToolbar from './FlowToolbar';
 import NodeEditorPanel from './panels/NodeEditorPanel';
 import ContextMenu from './ContextMenu';
 import ConnectionMenu from './ConnectionMenu';
+import ValidationPanel from './panels/ValidationPanel';
 import { useFlowState } from './hooks/useFlowState';
+import { useFlowValidation } from './hooks/useFlowValidation';
+import { useFlowSimulation } from './hooks/useFlowSimulation';
+import { ValidationProvider } from './context/ValidationContext';
+import { SimulationProvider } from './context/SimulationContext';
+import SimulationPanel from './panels/SimulationPanel';
 import { ExtendedFlowNode } from './utils/node-factories';
+import { getNodeErrors } from './utils/flow-validation';
 
 const edgeTypes = {
   custom: CustomEdge,
@@ -33,7 +40,8 @@ interface FlowBuilderInnerProps {
 
 function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { fitView } = useReactFlow();
+  const { fitView, setCenter } = useReactFlow();
+  const [showValidationPanel, setShowValidationPanel] = useState(false);
 
   const {
     nodes,
@@ -62,6 +70,64 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     autoLayout,
     syncToChatbot,
   } = useFlowState({ chatbot, onUpdate });
+
+  // Validation
+  const {
+    validationResult,
+    validate,
+    errorCount,
+    warningCount,
+    hasErrorsForNode,
+    hasWarningsForNode,
+    getErrorsForNode,
+  } = useFlowValidation(nodes, edges);
+
+  // Validation context value
+  const validationContextValue = {
+    validationResult,
+    hasErrorsForNode,
+    hasWarningsForNode,
+    getErrorsForNode,
+  };
+
+  // Simulation
+  const {
+    state: simulationState,
+    availableTriggers,
+    isOpen: isSimulationOpen,
+    openSimulation,
+    closeSimulation,
+    startSimulation,
+    sendMessage: sendSimulationMessage,
+    resetSimulation,
+  } = useFlowSimulation(nodes, edges);
+
+  // Handle simulation toggle
+  const handleSimulationToggle = useCallback(() => {
+    if (isSimulationOpen) {
+      closeSimulation();
+    } else {
+      openSimulation();
+    }
+  }, [isSimulationOpen, openSimulation, closeSimulation]);
+
+  // Navigate to node from simulation
+  const handleSimulationNodeClick = useCallback(
+    (nodeId: string) => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node) {
+        setCenter(node.position.x + 140, node.position.y + 75, { zoom: 1, duration: 500 });
+      }
+    },
+    [nodes, setCenter]
+  );
+
+  // Simulation context value
+  const simulationContextValue = {
+    currentNodeId: simulationState.currentNodeId,
+    visitedNodes: simulationState.visitedNodes,
+    isSimulating: isSimulationOpen,
+  };
 
   // Sync changes to chatbot after interactions
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -94,6 +160,27 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     setTimeout(() => fitView({ padding: 0.2 }), 50);
   }, [autoLayout, fitView]);
 
+  // Handle validation
+  const handleValidate = useCallback(() => {
+    validate();
+    setShowValidationPanel(true);
+  }, [validate]);
+
+  // Navigate to node from validation panel
+  const handleValidationNodeClick = useCallback(
+    (nodeId: string) => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node) {
+        // Center on the node
+        setCenter(node.position.x + 140, node.position.y + 75, { zoom: 1, duration: 500 });
+        // Select the node by triggering a click
+        const syntheticEvent = { preventDefault: () => {} } as React.MouseEvent;
+        onNodeClick(syntheticEvent, node);
+      }
+    },
+    [nodes, setCenter, onNodeClick]
+  );
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -118,7 +205,9 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
 
   return (
     <div ref={reactFlowWrapper} className="h-full w-full relative">
-      <ReactFlow
+      <SimulationProvider value={simulationContextValue}>
+        <ValidationProvider value={validationContextValue}>
+          <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -189,8 +278,17 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
           pannable
           zoomable
         />
-        <FlowToolbar onAutoLayout={handleAutoLayout} />
-      </ReactFlow>
+        <FlowToolbar
+          onAutoLayout={handleAutoLayout}
+          onValidate={handleValidate}
+          onSimulate={handleSimulationToggle}
+          errorCount={errorCount}
+          warningCount={warningCount}
+          isSimulating={isSimulationOpen}
+        />
+        </ReactFlow>
+        </ValidationProvider>
+      </SimulationProvider>
 
       {/* Context Menu */}
       <ContextMenu
@@ -215,6 +313,29 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
         onClose={() => onPaneClick()}
         menus={chatbot.menus}
       />
+
+      {/* Validation Panel */}
+      {showValidationPanel && (
+        <ValidationPanel
+          validationResult={validationResult}
+          onNodeClick={handleValidationNodeClick}
+          onValidate={handleValidate}
+          onClose={() => setShowValidationPanel(false)}
+        />
+      )}
+
+      {/* Simulation Panel */}
+      {isSimulationOpen && (
+        <SimulationPanel
+          state={simulationState}
+          availableTriggers={availableTriggers}
+          onStart={startSimulation}
+          onSendMessage={sendSimulationMessage}
+          onReset={resetSimulation}
+          onClose={closeSimulation}
+          onNodeClick={handleSimulationNodeClick}
+        />
+      )}
     </div>
   );
 }

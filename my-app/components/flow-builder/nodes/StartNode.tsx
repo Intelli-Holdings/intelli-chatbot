@@ -6,19 +6,23 @@ import { Zap, Key } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { StartNodeData } from '@/types/chatbot-automation';
 import { cn } from '@/lib/utils';
+import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
 
 interface StartNodeProps extends NodeProps<StartNodeData> {}
 
-function StartNode({ data, selected }: StartNodeProps) {
+function StartNode({ id, data, selected }: StartNodeProps) {
   const { trigger } = data;
+  const validationClass = useNodeValidationClass(id);
 
   return (
     <div
       className={cn(
-        'min-w-[240px] rounded-lg border bg-card shadow-sm transition-all',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'min-w-[240px] rounded-lg border bg-card shadow-sm transition-all relative',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !selected && validationClass
       )}
     >
+      <NodeValidationIndicator nodeId={id} />
       {/* Header */}
       <div className="flex items-center gap-2 rounded-t-lg bg-green-500 px-3 py-2 text-white">
         <Zap className="h-4 w-4" />
