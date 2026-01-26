@@ -210,8 +210,17 @@ export function flowToChatbot(
 
   const triggers: ChatbotTrigger[] = [];
   const menus: ChatbotMenu[] = [];
+
+  // Convert nodes to backend format for storage in flowLayout
+  const { nodes: backendNodes, edges: backendEdges } = flowNodesToBackend(
+    nodes as ExtendedFlowNode[],
+    edges
+  );
+
   const flowLayout: FlowLayout = {
     nodes: nodes.map((n) => ({ id: n.id, position: n.position })),
+    rawNodes: backendNodes,
+    rawEdges: backendEdges,
   };
 
   // Extract triggers from start nodes

@@ -225,14 +225,25 @@ export class FlowSimulator {
       type: 'bot',
       content: menu.body,
       nodeId: node.id,
-      options: menu.options.map((opt) => ({
+      options: menu.options?.length > 0 ? menu.options.map((opt) => ({
         id: opt.id,
         title: opt.title,
-      })),
+      })) : undefined,
     });
 
-    // Wait for user to select an option
-    this.updateState({ waitingForInput: true });
+    // If there are options, wait for user to select one
+    // If no options, continue to next node (using default edge)
+    if (menu.options && menu.options.length > 0) {
+      this.updateState({ waitingForInput: true });
+    } else {
+      // No options - continue to next node
+      const nextNodeId = this.getNextNodeId(node.id);
+      if (nextNodeId) {
+        await this.processNode(nextNodeId);
+      } else {
+        this.endSimulation();
+      }
+    }
   }
 
   /**

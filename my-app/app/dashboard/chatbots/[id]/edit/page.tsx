@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -15,6 +15,15 @@ import {
   ExternalLink,
   Loader2,
   Phone,
+  Send,
+  RotateCcw,
+  Bot,
+  User,
+  Info,
+  Image,
+  Video,
+  FileText,
+  Music,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,6 +66,13 @@ import {
   ChannelConfig,
   ChatbotChannel,
 } from "@/types/chatbot-automation";
+import {
+  FlowSimulator,
+  SimulationState,
+  getAvailableTriggers,
+} from "@/components/flow-builder/simulation/flow-simulator";
+import { backendNodesToFlow, chatbotToFlow } from "@/components/flow-builder/utils/flow-converters";
+import { cn } from "@/lib/utils";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { MessengerIcon } from "@/components/icons/messenger-icon";
 import { InstagramIcon } from "@/components/icons/instagram-icon";
@@ -94,12 +110,20 @@ export default function ChatbotEditorPage() {
   // WhatsApp services
   const { appServices, loading: loadingServices, refetch: refetchServices } = useAppServices();
 
-  // Preview dialog
+  // Preview dialog - Flow-based simulation
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewInput, setPreviewInput] = useState("");
-  const [previewMessages, setPreviewMessages] = useState<
-    { type: "user" | "bot"; content: string; menu?: ChatbotMenu }[]
-  >([]);
+  const [simulationState, setSimulationState] = useState<SimulationState>({
+    isRunning: false,
+    currentNodeId: null,
+    messages: [],
+    variables: {},
+    waitingForInput: false,
+    pendingVariableName: null,
+    visitedNodes: [],
+  });
+  const simulatorRef = useRef<FlowSimulator | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Validation
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -188,26 +212,106 @@ export default function ChatbotEditorPage() {
     }
   };
 
-  // Preview simulation
-  const simulatePreview = () => {
-    if (!chatbot || !previewInput.trim()) return;
-
-    // Add user message
-    setPreviewMessages((prev) => [...prev, { type: "user", content: previewInput }]);
-
-    // Find matching menu
-    const menu = ChatbotAutomationService.findMenuByKeyword(chatbot, previewInput);
-
-    if (menu) {
-      setPreviewMessages((prev) => [...prev, { type: "bot", content: menu.body, menu }]);
-    } else {
-      setPreviewMessages((prev) => [
-        ...prev,
-        { type: "bot", content: chatbot.settings.fallbackMessage || "I'll connect you with support." },
-      ]);
+  // Get flow nodes and edges from chatbot
+  // Uses raw backend data if available, otherwise falls back to legacy conversion
+  const getFlowNodesAndEdges = useCallback(() => {
+    if (!chatbot) {
+      return { nodes: [], edges: [] };
     }
 
+    const rawNodes = chatbot.flowLayout?.rawNodes;
+    const rawEdges = chatbot.flowLayout?.rawEdges;
+
+    if (rawNodes && rawNodes.length > 0) {
+      return backendNodesToFlow(rawNodes, rawEdges || []);
+    }
+
+    // Fall back to legacy menu-based format
+    return chatbotToFlow(chatbot);
+  }, [chatbot]);
+
+  // Get available trigger keywords
+  const availableTriggers = chatbot ? getAvailableTriggers(getFlowNodesAndEdges().nodes) : [];
+
+  // Initialize simulator when preview opens (only once, not on chatbot changes)
+  useEffect(() => {
+    if (isPreviewOpen && chatbot && !simulatorRef.current) {
+      const { nodes, edges } = getFlowNodesAndEdges();
+      if (nodes.length > 0) {
+        simulatorRef.current = new FlowSimulator(nodes, edges, setSimulationState);
+      }
+    }
+    // Cleanup when preview closes
+    if (!isPreviewOpen) {
+      simulatorRef.current = null;
+    }
+  }, [isPreviewOpen, chatbot, getFlowNodesAndEdges]);
+
+  // Auto-scroll messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [simulationState.messages]);
+
+  // Start simulation with keyword
+  const startSimulation = (keyword: string) => {
+    if (simulatorRef.current) {
+      simulatorRef.current.start(keyword);
+    }
     setPreviewInput("");
+  };
+
+  // Handle user input during simulation
+  const handleSimulationInput = (input: string, optionId?: string) => {
+    if (simulatorRef.current) {
+      simulatorRef.current.handleUserInput(input, optionId);
+    }
+    setPreviewInput("");
+  };
+
+  // Reset simulation
+  const resetSimulation = () => {
+    if (simulatorRef.current) {
+      simulatorRef.current.reset();
+    }
+    setSimulationState({
+      isRunning: false,
+      currentNodeId: null,
+      messages: [],
+      variables: {},
+      waitingForInput: false,
+      pendingVariableName: null,
+      visitedNodes: [],
+    });
+  };
+
+  // Handle form submit in preview
+  const handlePreviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!previewInput.trim()) return;
+
+    if (!simulationState.isRunning && simulationState.messages.length === 0) {
+      // Start simulation with keyword
+      startSimulation(previewInput.trim());
+    } else if (simulationState.waitingForInput) {
+      // Send user response
+      handleSimulationInput(previewInput.trim());
+    }
+  };
+
+  // Handle option click
+  const handleOptionClick = (optionId: string, title: string) => {
+    handleSimulationInput(title, optionId);
+  };
+
+  // Get media icon for message
+  const getMediaIcon = (type?: string) => {
+    switch (type) {
+      case "image": return Image;
+      case "video": return Video;
+      case "document": return FileText;
+      case "audio": return Music;
+      default: return Image;
+    }
   };
 
   if (loading) {
@@ -497,102 +601,187 @@ export default function ChatbotEditorPage() {
         </SheetContent>
       </Sheet>
 
-      {/* Preview Dialog */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+      {/* Preview Dialog - Flow-based Simulation */}
+      <Dialog open={isPreviewOpen} onOpenChange={(open) => {
+        setIsPreviewOpen(open);
+        if (!open) {
+          resetSimulation();
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Preview Chatbot</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Play className="h-4 w-4 text-primary" />
+              Preview Chatbot
+              {simulationState.isRunning && (
+                <Badge variant="secondary" className="text-xs">Running</Badge>
+              )}
+            </DialogTitle>
             <DialogDescription>Test your chatbot flow with sample inputs</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <ScrollArea className="h-[300px] border rounded-lg p-4">
-              {previewMessages.length === 0 ? (
-                <div className="text-center text-sm text-muted-foreground py-8">
-                  Send a message to start testing
+            <ScrollArea className="h-[350px] border rounded-lg p-4">
+              {simulationState.messages.length === 0 ? (
+                <div className="space-y-4">
+                  <div className="text-center text-sm text-muted-foreground py-4">
+                    Type a trigger keyword to start testing
+                  </div>
+
+                  {availableTriggers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground text-center">
+                        Available triggers:
+                      </p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {availableTriggers.slice(0, 8).map((trigger, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => startSimulation(trigger)}
+                          >
+                            {trigger}
+                          </Button>
+                        ))}
+                      </div>
+                      {availableTriggers.length > 8 && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          +{availableTriggers.length - 8} more
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {availableTriggers.length === 0 && (
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">
+                        No triggers configured. Add keywords to a Trigger node.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {previewMessages.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                          msg.type === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
-                        }`}
-                      >
-                        <p>{msg.content}</p>
-                        {msg.menu && msg.menu.options.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {msg.menu.options.map((opt) => (
-                              <Button
-                                key={opt.id}
-                                variant="outline"
-                                size="sm"
-                                className="w-full h-7 text-xs"
-                                onClick={() => {
-                                  setPreviewMessages((prev) => [
-                                    ...prev,
-                                    { type: "user", content: opt.title },
-                                  ]);
-                                  // Handle option action
-                                  if (opt.action.type === "show_menu") {
-                                    const targetMenu = chatbot.menus.find(
-                                      (m) => m.id === opt.action.targetMenuId
-                                    );
-                                    if (targetMenu) {
-                                      setPreviewMessages((prev) => [
-                                        ...prev,
-                                        { type: "bot", content: targetMenu.body, menu: targetMenu },
-                                      ]);
-                                    }
-                                  } else if (opt.action.type === "send_message") {
-                                    setPreviewMessages((prev) => [
-                                      ...prev,
-                                      { type: "bot", content: opt.action.message || "Message sent" },
-                                    ]);
-                                  } else if (opt.action.type === "fallback_ai") {
-                                    setPreviewMessages((prev) => [
-                                      ...prev,
-                                      { type: "bot", content: "Connecting to AI assistant..." },
-                                    ]);
-                                  } else {
-                                    setPreviewMessages((prev) => [
-                                      ...prev,
-                                      { type: "bot", content: "Conversation ended. Thank you!" },
-                                    ]);
-                                  }
-                                }}
-                              >
-                                {opt.title}
-                              </Button>
-                            ))}
+                <div className="space-y-4">
+                  {simulationState.messages.map((message) => {
+                    const isBot = message.type === "bot";
+                    const isUser = message.type === "user";
+                    const isSystem = message.type === "system";
+                    const MediaIcon = message.mediaType ? getMediaIcon(message.mediaType) : null;
+
+                    if (isSystem) {
+                      return (
+                        <div key={message.id} className="flex justify-center">
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full text-xs text-muted-foreground">
+                            <Info className="h-3 w-3" />
+                            {message.content}
                           </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={message.id}
+                        className={cn(
+                          "flex gap-2",
+                          isUser ? "flex-row-reverse" : "flex-row"
                         )}
+                      >
+                        {/* Avatar */}
+                        <div
+                          className={cn(
+                            "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+                            isBot ? "bg-primary text-primary-foreground" : "bg-muted"
+                          )}
+                        >
+                          {isBot ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                        </div>
+
+                        {/* Message Content */}
+                        <div className={cn("max-w-[80%] space-y-2", isUser ? "items-end" : "items-start")}>
+                          <div
+                            className={cn(
+                              "rounded-lg px-3 py-2",
+                              isBot
+                                ? "bg-muted text-foreground"
+                                : "bg-primary text-primary-foreground"
+                            )}
+                          >
+                            {/* Media indicator */}
+                            {MediaIcon && (
+                              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                                <MediaIcon className="h-4 w-4" />
+                                <span className="text-xs capitalize">{message.mediaType}</span>
+                              </div>
+                            )}
+
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          </div>
+
+                          {/* Options/Buttons */}
+                          {message.options && message.options.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {message.options.map((option) => (
+                                <Button
+                                  key={option.id}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  onClick={() => handleOptionClick(option.id, option.title)}
+                                >
+                                  {option.title}
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Timestamp */}
+                          <p className="text-[10px] text-muted-foreground">
+                            {message.timestamp.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </ScrollArea>
-            <div className="flex gap-2">
+            <form onSubmit={handlePreviewSubmit} className="flex gap-2">
               <Input
                 value={previewInput}
                 onChange={(e) => setPreviewInput(e.target.value)}
-                placeholder="Type a message..."
-                onKeyDown={(e) => e.key === "Enter" && simulatePreview()}
+                placeholder={
+                  simulationState.messages.length === 0
+                    ? "Type a trigger keyword..."
+                    : simulationState.waitingForInput
+                    ? "Type your response..."
+                    : "Simulation ended"
+                }
+                disabled={simulationState.messages.length > 0 && !simulationState.waitingForInput}
               />
-              <Button onClick={simulatePreview}>Send</Button>
-            </div>
+              <Button
+                type="submit"
+                size="icon"
+                disabled={
+                  !previewInput.trim() ||
+                  (simulationState.messages.length > 0 && !simulationState.waitingForInput)
+                }
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => setPreviewMessages([])}
+              onClick={resetSimulation}
             >
-              Clear Chat
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset Preview
             </Button>
           </div>
         </DialogContent>
