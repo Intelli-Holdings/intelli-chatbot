@@ -18,7 +18,7 @@ import {
   ChatbotFlowEdge,
   ActionNodeData,
 } from '@/types/chatbot-automation';
-import { chatbotToFlow, flowToChatbot, autoLayoutFlow, flowNodesToBackend } from '../utils/flow-converters';
+import { chatbotToFlow, flowToChatbot, autoLayoutFlow, flowNodesToBackend, backendNodesToFlow } from '../utils/flow-converters';
 import { ChatbotAutomationService } from '@/services/chatbot-automation';
 import {
   createStartNode,
@@ -79,7 +79,28 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
   const { screenToFlowPosition } = useReactFlow();
 
   // Convert chatbot to flow format
-  const initialFlow = chatbotToFlow(chatbot);
+  // Use raw backend data if available, otherwise fall back to legacy conversion
+  const initialFlow = (() => {
+    const rawNodes = chatbot.flowLayout?.rawNodes;
+    const rawEdges = chatbot.flowLayout?.rawEdges;
+
+    console.log('=== useFlowState initialFlow ===');
+    console.log('chatbot.flowLayout:', chatbot.flowLayout);
+    console.log('rawNodes:', rawNodes?.length, rawNodes);
+    console.log('rawEdges:', rawEdges?.length, rawEdges);
+
+    if (rawNodes && rawNodes.length > 0) {
+      // Use the direct backend format conversion
+      console.log('Loading flow from raw backend data:', rawNodes.length, 'nodes,', rawEdges?.length || 0, 'edges');
+      const result = backendNodesToFlow(rawNodes, rawEdges || []);
+      console.log('Converted result - nodes:', result.nodes.length, 'edges:', result.edges.length);
+      return result;
+    }
+
+    // Fall back to legacy menu-based format
+    console.log('Loading flow from legacy format (no rawNodes)');
+    return chatbotToFlow(chatbot);
+  })();
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges as Edge[]);
@@ -120,6 +141,10 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
             nodes as ExtendedFlowNode[],
             edges as ChatbotFlowEdge[]
           );
+
+          console.log('=== Syncing to backend ===');
+          console.log('Backend nodes:', backendNodes);
+          console.log('Backend edges:', backendEdges);
 
           // Update backend
           await ChatbotAutomationService.updateFlowNodes(

@@ -85,12 +85,21 @@ function toBackendFormat(chatbot: Partial<ChatbotAutomation>, organizationId: st
 
 // Convert backend ChatbotFlowBackend to frontend ChatbotAutomation format
 function toFrontendFormat(flow: ChatbotFlowBackend): ChatbotAutomation {
+  console.log('=== toFrontendFormat ===');
+  console.log('Backend flow.nodes:', flow.nodes?.length, flow.nodes);
+  console.log('Backend flow.edges:', flow.edges?.length, flow.edges);
+
+  // Ensure arrays are initialized (backend may return null/undefined)
+  const nodes = flow.nodes || [];
+  const edges = flow.edges || [];
+  const menus: ChatbotMenu[] = flow.menus || [];
+  const triggerKeywords = flow.trigger_keywords || [];
+
   // Extract triggers from start nodes
   const triggers: ChatbotTrigger[] = [];
-  const menus: ChatbotMenu[] = flow.menus || [];
 
   // Process nodes to extract triggers
-  flow.nodes.forEach(node => {
+  nodes.forEach(node => {
     if (node.type === 'start') {
       const data = node.data as { trigger?: ChatbotTrigger; keywords?: string[] };
       if (data.trigger) {
@@ -109,11 +118,11 @@ function toFrontendFormat(flow: ChatbotFlowBackend): ChatbotAutomation {
   });
 
   // If no triggers found but we have trigger_keywords, create triggers
-  if (triggers.length === 0 && flow.trigger_keywords.length > 0) {
+  if (triggers.length === 0 && triggerKeywords.length > 0) {
     triggers.push({
       id: generateId(),
       type: 'keyword',
-      keywords: flow.trigger_keywords,
+      keywords: triggerKeywords,
       caseSensitive: false,
       menuId: menus[0]?.id || '',
     });
@@ -130,7 +139,10 @@ function toFrontendFormat(flow: ChatbotFlowBackend): ChatbotAutomation {
     menus,
     settings: DEFAULT_CHATBOT_SETTINGS,
     flowLayout: {
-      nodes: flow.nodes.map(n => ({ id: n.id, position: n.position })),
+      nodes: nodes.map(n => ({ id: n.id, position: n.position })),
+      // Include raw backend data for React Flow to use directly
+      rawNodes: nodes,
+      rawEdges: edges,
     },
     createdAt: flow.created_at,
     updatedAt: flow.updated_at,
@@ -143,6 +155,11 @@ export class ChatbotAutomationService {
    */
   static async getChatbots(organizationId: string): Promise<ChatbotAutomation[]> {
     try {
+      if (!organizationId) {
+        console.warn('getChatbots: organizationId is required');
+        return [];
+      }
+
       const headers = await getAuthHeaders();
       const response = await fetch(
         `${API_BASE_URL}/chatbot_automation/flows/?organization=${organizationId}`,
@@ -156,7 +173,20 @@ export class ChatbotAutomationService {
         throw new Error('Failed to fetch chatbots');
       }
 
-      const flows: ChatbotFlowBackend[] = await response.json();
+      const data = await response.json();
+
+      // Handle DRF paginated response format: {count, next, previous, results: [...]}
+      // or direct array response
+      let flows: ChatbotFlowBackend[];
+      if (Array.isArray(data)) {
+        flows = data;
+      } else if (data && Array.isArray(data.results)) {
+        flows = data.results;
+      } else {
+        console.warn('Unexpected API response format:', data);
+        flows = [];
+      }
+
       return flows.map(toFrontendFormat);
     } catch (error) {
       console.error('Error fetching chatbots:', error);
@@ -169,6 +199,10 @@ export class ChatbotAutomationService {
    */
   static async getChatbot(id: string): Promise<ChatbotAutomation> {
     try {
+      if (!id || id === 'undefined' || id === 'null') {
+        throw new Error('Invalid chatbot ID: ID is required');
+      }
+
       const headers = await getAuthHeaders();
       const response = await fetch(
         `${API_BASE_URL}/chatbot_automation/flows/${id}/`,
@@ -236,10 +270,18 @@ export class ChatbotAutomationService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('Create chatbot error response:', errorData);
         throw new Error(errorData.message || errorData.detail || 'Failed to create chatbot');
       }
 
       const flow: ChatbotFlowBackend = await response.json();
+      console.log('Created chatbot response:', flow);
+
+      if (!flow.id) {
+        console.error('Backend did not return an ID for the created chatbot');
+        throw new Error('Failed to create chatbot: No ID returned');
+      }
+
       return toFrontendFormat(flow);
     } catch (error) {
       console.error('Error creating chatbot:', error);
@@ -481,7 +523,17 @@ export class ChatbotAutomationService {
         throw new Error('Failed to get flow executions');
       }
 
-      return await response.json();
+      const data = await response.json();
+
+      // Handle DRF paginated response format
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && Array.isArray(data.results)) {
+        return data.results;
+      } else {
+        console.warn('Unexpected executions API response format:', data);
+        return [];
+      }
     } catch (error) {
       console.error('Error getting flow executions:', error);
       throw error;

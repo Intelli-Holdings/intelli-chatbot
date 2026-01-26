@@ -343,6 +343,8 @@ export function flowNodesToBackend(
     if (node.type === 'text' && node.data.type === 'text') {
       const textData = node.data as TextNodeData;
       data.text = textData.message || '';
+      data.delaySeconds = textData.delaySeconds || 0;
+      console.log('Converting text node to backend:', { text: data.text, delaySeconds: data.delaySeconds });
     }
 
     // Convert media node
@@ -440,12 +442,14 @@ export function backendNodesToFlow(
         break;
       }
       case 'text': {
+        console.log('Converting text node from backend:', backendData);
         data = {
           type: 'text',
           label: 'Text Message',
-          message: (backendData.text as string) || '',
+          message: (backendData.text as string) || (backendData.message as string) || '',
           delaySeconds: (backendData.delaySeconds as number) || 0,
         } as TextNodeData;
+        console.log('Converted text node data:', data);
         break;
       }
       case 'question': {

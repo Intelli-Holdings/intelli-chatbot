@@ -306,6 +306,9 @@ export interface FlowLayout {
     y: number;
     zoom: number;
   };
+  // Raw backend data for React Flow (full node/edge data)
+  rawNodes?: BackendFlowNode[];
+  rawEdges?: BackendFlowEdge[];
 }
 
 // Validation constants

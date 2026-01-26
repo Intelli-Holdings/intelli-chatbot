@@ -106,6 +106,14 @@ export default function ChatbotEditorPage() {
 
   // Fetch chatbot
   const fetchChatbot = useCallback(async () => {
+    // Validate chatbot ID before making request
+    if (!chatbotId || chatbotId === 'undefined' || chatbotId === 'null') {
+      console.warn("Invalid chatbot ID:", chatbotId);
+      toast.error("Invalid chatbot ID");
+      router.push("/dashboard/chatbots");
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await ChatbotAutomationService.getChatbot(chatbotId);
