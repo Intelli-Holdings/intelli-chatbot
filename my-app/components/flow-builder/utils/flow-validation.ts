@@ -10,6 +10,7 @@ import { ConditionNodeData } from '../nodes/ConditionNode';
 import { MediaNodeData } from '../nodes/MediaNode';
 import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
+import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 
 // Validation error severity
 export type ValidationSeverity = 'error' | 'warning';
@@ -121,6 +122,9 @@ export function validateNode(node: Node, allNodes: Node[], edges: Edge[]): Valid
       break;
     case 'question_input':
       errors.push(...validateQuestionInputNode(node));
+      break;
+    case 'cta_button':
+      errors.push(...validateCTAButtonNode(node));
       break;
   }
 
@@ -448,6 +452,59 @@ function validateQuestionInputNode(node: Node): ValidationError[] {
 }
 
 /**
+ * Validate CTA button node
+ */
+function validateCTAButtonNode(node: Node): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const data = node.data as CTAButtonNodeData;
+
+  if (!data.body || data.body.trim() === '') {
+    errors.push({
+      nodeId: node.id,
+      nodeType: 'cta_button',
+      field: 'body',
+      message: 'CTA button needs a message body.',
+      severity: 'error',
+    });
+  }
+
+  if (!data.buttonText || data.buttonText.trim() === '') {
+    errors.push({
+      nodeId: node.id,
+      nodeType: 'cta_button',
+      field: 'buttonText',
+      message: 'CTA button needs button text.',
+      severity: 'error',
+    });
+  }
+
+  if (!data.url || data.url.trim() === '') {
+    errors.push({
+      nodeId: node.id,
+      nodeType: 'cta_button',
+      field: 'url',
+      message: 'CTA button needs a URL.',
+      severity: 'error',
+    });
+  } else {
+    // Basic URL validation
+    try {
+      new URL(data.url);
+    } catch {
+      errors.push({
+        nodeId: node.id,
+        nodeType: 'cta_button',
+        field: 'url',
+        message: 'CTA button URL is not valid.',
+        severity: 'error',
+      });
+    }
+  }
+
+  return errors;
+}
+
+/**
  * Find nodes that are not reachable from any start node
  */
 function findOrphanedNodes(nodes: Node[], edges: Edge[]): string[] {
@@ -526,6 +583,7 @@ export function getNodeTypeLabel(nodeType: string): string {
     media: 'Media',
     user_input_flow: 'User Input Flow',
     question_input: 'Question',
+    cta_button: 'CTA Button',
   };
   return labels[nodeType] || nodeType;
 }

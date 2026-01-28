@@ -754,39 +754,69 @@ export class ChatbotAutomationService {
       errors.push('Chatbot name is required');
     }
 
-    if (!chatbot.menus || chatbot.menus.length === 0) {
-      errors.push('At least one menu is required');
-    }
+    // Check if using new flow format (rawNodes) or legacy format (menus)
+    const hasRawNodes = chatbot.flowLayout?.rawNodes && chatbot.flowLayout.rawNodes.length > 0;
+    const hasRawEdges = chatbot.flowLayout?.rawEdges || [];
 
-    chatbot.menus?.forEach((menu) => {
-      if (!menu.body?.trim()) {
-        errors.push(`Menu "${menu.name}" body text is required`);
+    if (hasRawNodes) {
+      // New flow format validation
+      const rawNodes = chatbot.flowLayout!.rawNodes!;
+      const rawEdges = hasRawEdges;
+
+      // Check for at least one start node
+      const startNodes = rawNodes.filter((n) => n.type === 'start');
+      if (startNodes.length === 0) {
+        errors.push('Flow needs at least one Trigger node');
       }
 
-      if (menu.messageType === 'interactive_buttons' && menu.options.length > 3) {
-        errors.push(`Menu "${menu.name}" can have maximum 3 buttons`);
-      }
-
-      menu.options.forEach((option) => {
-        if (option.title.length > 20) {
-          errors.push(`Option "${option.title}" title exceeds 20 characters`);
+      // Check that start nodes have keywords and are connected
+      startNodes.forEach((startNode) => {
+        const data = startNode.data as { keywords?: string[] };
+        if (!data.keywords || data.keywords.length === 0) {
+          errors.push('Trigger node must have at least one keyword');
         }
 
-        if (option.action.type === 'show_menu' && !option.action.targetMenuId) {
-          errors.push(`Option "${option.title}" is missing target menu`);
+        const hasConnection = rawEdges.some((e) => e.source === startNode.id);
+        if (!hasConnection) {
+          errors.push('Trigger node must be connected to another node');
         }
       });
-    });
-
-    chatbot.triggers?.forEach((trigger) => {
-      if (trigger.type === 'keyword' && (!trigger.keywords || trigger.keywords.length === 0)) {
-        errors.push('Keyword trigger must have at least one keyword');
+    } else {
+      // Legacy format validation (menus-based)
+      if (!chatbot.menus || chatbot.menus.length === 0) {
+        errors.push('At least one menu is required');
       }
 
-      if (!trigger.menuId) {
-        errors.push('Trigger must be linked to a menu');
-      }
-    });
+      chatbot.menus?.forEach((menu) => {
+        if (!menu.body?.trim()) {
+          errors.push(`Menu "${menu.name}" body text is required`);
+        }
+
+        if (menu.messageType === 'interactive_buttons' && menu.options.length > 3) {
+          errors.push(`Menu "${menu.name}" can have maximum 3 buttons`);
+        }
+
+        menu.options.forEach((option) => {
+          if (option.title.length > 20) {
+            errors.push(`Option "${option.title}" title exceeds 20 characters`);
+          }
+
+          if (option.action.type === 'show_menu' && !option.action.targetMenuId) {
+            errors.push(`Option "${option.title}" is missing target menu`);
+          }
+        });
+      });
+
+      chatbot.triggers?.forEach((trigger) => {
+        if (trigger.type === 'keyword' && (!trigger.keywords || trigger.keywords.length === 0)) {
+          errors.push('Keyword trigger must have at least one keyword');
+        }
+
+        if (!trigger.menuId) {
+          errors.push('Trigger must be linked to a menu');
+        }
+      });
+    }
 
     return errors;
   }

@@ -14,6 +14,7 @@ import { ConditionNodeData, ConditionRule } from '../nodes/ConditionNode';
 import { MediaNodeData, MediaType } from '../nodes/MediaNode';
 import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
+import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 
 // Extended node data type
 export type ExtendedFlowNodeData =
@@ -24,11 +25,12 @@ export type ExtendedFlowNodeData =
   | ConditionNodeData
   | MediaNodeData
   | UserInputFlowNodeData
-  | QuestionInputNodeData;
+  | QuestionInputNodeData
+  | CTAButtonNodeData;
 
 export interface ExtendedFlowNode {
   id: string;
-  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input';
+  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button';
   position: NodePosition;
   data: ExtendedFlowNodeData;
 }
@@ -235,6 +237,28 @@ export function createQuestionInputNode(position: NodePosition): ExtendedFlowNod
 }
 
 /**
+ * Create a new CTA Button node
+ */
+export function createCTAButtonNode(position: NodePosition): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const data: CTAButtonNodeData = {
+    type: 'cta_button',
+    label: 'CTA Button',
+    body: '',
+    buttonText: '',
+    url: '',
+  };
+
+  return {
+    id: `cta_button-${nodeId}`,
+    type: 'cta_button',
+    position,
+    data,
+  };
+}
+
+/**
  * Create node from context menu action
  */
 export function createNodeFromAction(
@@ -268,6 +292,8 @@ export function createNodeFromAction(
       return createMediaNode(position, 'document');
     case 'add-media-audio':
       return createMediaNode(position, 'audio');
+    case 'add-cta-button':
+      return createCTAButtonNode(position);
     default:
       return null;
   }
@@ -383,6 +409,12 @@ export function getToolbarItems() {
       label: 'End',
       description: 'End the conversation',
       color: 'bg-red-500',
+    },
+    {
+      type: 'cta_button',
+      label: 'CTA Button',
+      description: 'Button with URL link',
+      color: 'bg-orange-500',
     },
   ];
 }

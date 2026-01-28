@@ -255,6 +255,8 @@ export interface FlowNodeDataBase {
 export interface StartNodeData extends FlowNodeDataBase {
   type: 'start';
   trigger: ChatbotTrigger;
+  tagSlug?: string;  // Optional tag to apply to contacts who trigger this flow
+  tagName?: string;  // Tag name for display purposes
 }
 
 // Question node data (menu/interactive message)

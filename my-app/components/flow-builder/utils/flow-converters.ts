@@ -18,6 +18,7 @@ import { ConditionNodeData } from '../nodes/ConditionNode';
 import { MediaNodeData } from '../nodes/MediaNode';
 import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
+import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from './node-factories';
 
 const NODE_WIDTH = 280;
@@ -328,6 +329,11 @@ export function flowNodesToBackend(
       // Backend expects keywords at data.keywords, not data.trigger.keywords
       data.keywords = startData.trigger?.keywords || [];
       data.caseSensitive = startData.trigger?.caseSensitive || false;
+      // Include tag for auto-tagging contacts
+      if (startData.tagSlug) {
+        data.tagSlug = startData.tagSlug;
+        data.tagName = startData.tagName;
+      }
       // Keep trigger for backward compatibility but primary is keywords
     }
 
@@ -337,14 +343,31 @@ export function flowNodesToBackend(
       // Backend can use the menu structure directly
       // Map to backend expected format
       data.body = questionData.menu?.body || '';
-      data.header = questionData.menu?.header?.content || '';
       data.footer = questionData.menu?.footer || '';
       data.options = questionData.menu?.options?.map(opt => ({
         id: opt.id,
         title: opt.title,
         description: opt.description,
       })) || [];
-      data.type = questionData.menu?.options?.length > 3 ? 'list' : 'buttons';
+
+      // Preserve the actual messageType - map frontend values to backend values
+      const messageType = questionData.menu?.messageType || 'interactive_buttons';
+      if (messageType === 'text') {
+        data.type = 'text';
+      } else if (messageType === 'interactive_list') {
+        data.type = 'list';
+      } else {
+        data.type = 'buttons';
+      }
+
+      // Preserve header with type info for media headers
+      if (questionData.menu?.header) {
+        data.header = {
+          type: questionData.menu.header.type,
+          content: questionData.menu.header.content,
+        };
+      }
+
       data.saveAnswerTo = (questionData as unknown as { saveAnswerTo?: string }).saveAnswerTo;
     }
 
@@ -400,6 +423,16 @@ export function flowNodesToBackend(
       data.description = uifData.description;
     }
 
+    // Convert cta_button node
+    if (node.type === 'cta_button' && node.data.type === 'cta_button') {
+      const ctaData = node.data as CTAButtonNodeData;
+      data.body = ctaData.body;
+      data.buttonText = ctaData.buttonText;
+      data.url = ctaData.url;
+      data.header = ctaData.header;
+      data.footer = ctaData.footer;
+    }
+
     return {
       id: node.id,
       type: node.type,
@@ -447,6 +480,9 @@ export function backendNodesToFlow(
             caseSensitive: (backendData.caseSensitive as boolean) || false,
             menuId: '',
           },
+          // Load tag for auto-tagging contacts
+          tagSlug: backendData.tagSlug as string | undefined,
+          tagName: backendData.tagName as string | undefined,
         } as StartNodeData;
         break;
       }
@@ -463,15 +499,42 @@ export function backendNodesToFlow(
       }
       case 'question': {
         // Convert backend format to menu format
+        // Map backend type to frontend messageType
+        let messageType: 'text' | 'interactive_buttons' | 'interactive_list' = 'interactive_buttons';
+        const backendType = backendData.type as string;
+        if (backendType === 'text') {
+          messageType = 'text';
+        } else if (backendType === 'list') {
+          messageType = 'interactive_list';
+        } else {
+          messageType = 'interactive_buttons';
+        }
+
+        // Handle header - can be string (old format) or object with type/content (new format)
+        let header: { type: 'text' | 'image' | 'video' | 'document'; content: string } | undefined;
+        if (backendData.header) {
+          if (typeof backendData.header === 'string') {
+            // Old format - just a string
+            header = { type: 'text', content: backendData.header };
+          } else if (typeof backendData.header === 'object') {
+            // New format - object with type and content
+            const headerObj = backendData.header as { type?: string; content?: string };
+            header = {
+              type: (headerObj.type as 'text' | 'image' | 'video' | 'document') || 'text',
+              content: headerObj.content || '',
+            };
+          }
+        }
+
         data = {
           type: 'question',
           label: (backendData.label as string) || 'Interactive Message',
           menu: {
             id: node.id.replace('question-', '') || generateId(),
             name: (backendData.label as string) || 'Interactive Message',
-            messageType: (backendData.type as string) === 'list' ? 'interactive_list' : 'interactive_buttons',
+            messageType,
             body: (backendData.body as string) || '',
-            header: backendData.header ? { type: 'text', content: backendData.header as string } : undefined,
+            header,
             footer: backendData.footer as string,
             options: ((backendData.options as Array<{ id: string; title: string; description?: string }>) || []).map(opt => ({
               id: opt.id,
@@ -536,6 +599,18 @@ export function backendNodesToFlow(
           flowName: (backendData.flowName as string) || '',
           description: (backendData.description as string) || '',
         } as UserInputFlowNodeData;
+        break;
+      }
+      case 'cta_button': {
+        data = {
+          type: 'cta_button',
+          label: 'CTA Button',
+          body: (backendData.body as string) || '',
+          buttonText: (backendData.buttonText as string) || '',
+          url: (backendData.url as string) || '',
+          header: backendData.header as string,
+          footer: backendData.footer as string,
+        } as CTAButtonNodeData;
         break;
       }
       default: {

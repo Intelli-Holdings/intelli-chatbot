@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Zap, Key } from 'lucide-react';
+import { Zap, Key, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { StartNodeData } from '@/types/chatbot-automation';
 import { cn } from '@/lib/utils';
@@ -54,6 +54,16 @@ function StartNode({ id, data, selected }: StartNodeProps) {
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>{trigger.caseSensitive ? 'Exact match' : 'Contains'}</span>
         </div>
+
+        {/* Tag Assignment */}
+        {data.tagSlug && (
+          <div className="flex items-center gap-2 pt-2 border-t">
+            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+            <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+              {data.tagName || data.tagSlug}
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* Output Handle */}

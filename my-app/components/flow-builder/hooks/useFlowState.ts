@@ -29,6 +29,7 @@ import {
   createMediaNode,
   createUserInputFlowNode,
   createQuestionInputNode,
+  createCTAButtonNode,
   createNodeFromAction,
   cloneNode,
   ExtendedFlowNode,
@@ -346,6 +347,9 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
             newNode = createMediaNode(position, mediaType as MediaType);
           }
           break;
+        case 'cta_button':
+          newNode = createCTAButtonNode(position);
+          break;
       }
 
       if (newNode && connectionMenu.sourceNodeId) {
@@ -444,6 +448,9 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           if (mediaType) {
             newNode = createMediaNode(position, mediaType);
           }
+          break;
+        case 'cta_button':
+          newNode = createCTAButtonNode(position);
           break;
       }
 

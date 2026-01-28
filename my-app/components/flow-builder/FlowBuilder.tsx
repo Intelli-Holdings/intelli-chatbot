@@ -269,6 +269,8 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
                 return '#a855f7';
               case 'media':
                 return '#ec4899';
+              case 'cta_button':
+                return '#f97316';
               default:
                 return '#94a3b8';
             }

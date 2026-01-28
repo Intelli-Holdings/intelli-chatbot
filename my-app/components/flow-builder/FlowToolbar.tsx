@@ -18,6 +18,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Play,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -68,6 +69,13 @@ const nodeItems: DraggableNodeItem[] = [
     description: 'Send a text message',
     icon: Send,
     color: 'bg-indigo-500 hover:bg-indigo-600',
+  },
+  {
+    type: 'cta_button',
+    label: 'CTA',
+    description: 'Button with URL link',
+    icon: ExternalLink,
+    color: 'bg-orange-500 hover:bg-orange-600',
   },
   {
     type: 'user_input_flow',

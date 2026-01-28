@@ -14,6 +14,7 @@ import {
   Music,
   FileInput,
   HelpCircle,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +78,14 @@ const menuItems: NodeMenuItem[] = [
     description: 'Simple text message',
     icon: Send,
     color: 'bg-indigo-500',
+    category: 'message',
+  },
+  {
+    type: 'cta_button',
+    label: 'CTA Button',
+    description: 'Button with URL link',
+    icon: ExternalLink,
+    color: 'bg-orange-500',
     category: 'message',
   },
   // Media
