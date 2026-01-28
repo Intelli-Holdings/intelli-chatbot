@@ -820,6 +820,91 @@ export class ChatbotAutomationService {
 
     return errors;
   }
+
+  // ==========================================
+  // Template Button Flow Mapping Methods
+  // ==========================================
+
+  /**
+   * Get all template button flow mappings for a template
+   */
+  static async getTemplateButtonMappings(
+    templateId: string,
+    organizationId: string
+  ): Promise<TemplateButtonFlowMapping[]> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${API_BASE_URL}/chatbot_automation/template-button-mappings/by-template/${templateId}/?organization=${organizationId}`,
+        {
+          method: 'GET',
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch template button mappings');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching template button mappings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk update template button flow mappings
+   */
+  static async updateTemplateButtonMappings(
+    organizationId: string,
+    templateId: string,
+    templateName: string,
+    mappings: Array<{
+      button_text: string;
+      button_index: number;
+      flow: string | null;
+    }>
+  ): Promise<{ status: string; results: any[] }> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${API_BASE_URL}/chatbot_automation/template-button-mappings/bulk-update/`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            organization: organizationId,
+            template_id: templateId,
+            template_name: templateName,
+            mappings,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update template button mappings');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating template button mappings:', error);
+      throw error;
+    }
+  }
+}
+
+// Type for template button flow mapping
+export interface TemplateButtonFlowMapping {
+  id: string;
+  template_id: string;
+  template_name: string;
+  button_text: string;
+  button_index: number;
+  flow: string;
+  flow_name: string;
+  is_active: boolean;
 }
 
 export default ChatbotAutomationService;
