@@ -7,30 +7,37 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useNextStep } from "nextstepjs";
 import { useUser } from "@clerk/nextjs";
 // Onborda
-import { useOnborda } from "onborda";
+// import { useOnborda } from "onborda";
 import { DynamicDashboard } from './dynamic-dashboard';
 
 const Dashboard: React.FC = () => {
-    const { startOnborda, closeOnborda } = useOnborda();
-    const handleStartOnborda = () => {
-        if (typeof document === "undefined") {
-            startOnborda("mainTour");
-            return;
-        }
+    // const { startOnborda, closeOnborda } = useOnborda();
+    const { startNextStep, closeNextStep } = useNextStep();
 
+    const handleStartOnborda = () => {
+        // if (typeof document === "undefined") {
+        //     startOnborda("mainTour");
+        //     return;
+        // }
+
+        // const hasGettingStartedCards = Boolean(
+        //     document.querySelector("#tour-step-connect-channel")
+        // );
+        // startOnborda(hasGettingStartedCards ? "gettingStartedTour" : "mainTour");
+
+        // Logic for NextStep
         const hasGettingStartedCards = Boolean(
             document.querySelector("#tour-step-connect-channel")
         );
-        startOnborda(hasGettingStartedCards ? "gettingStartedTour" : "mainTour");
+        startNextStep(hasGettingStartedCards ? "gettingStartedTour" : "mainTour");
     };
-    const { closeNextStep } = useNextStep();
     const { isLoaded, isSignedIn, user } = useUser();
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
         setMounted(true);
         // Close tour components on mount
-        closeOnborda();
+        // closeOnborda();
         closeNextStep();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

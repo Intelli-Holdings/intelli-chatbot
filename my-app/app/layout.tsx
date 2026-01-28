@@ -4,7 +4,7 @@ import "@/app/globals.css";
 import { Toaster } from 'sonner';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import OnboardingReminder from "@/components/OnboardingReminder"
-import { OnboardingProvider } from "@/context/onboarding-context";
+// import { OnboardingProvider } from "@/context/onboarding-context";
 import AttentionBadge from "@/components/AttentionBadge";
 import Script from "next/script";
 
@@ -16,14 +16,14 @@ import ConsentBanner from "@/components/consent-card";
 
 
 // Onborda
-import { Onborda, OnbordaProvider } from "onborda";
-import { steps } from "@/lib/steps";
+import { Onborda } from "onborda";
+// import { steps } from "@/lib/steps";
 
 // Custom Card
 import CustomCard from "@/components/CustomCard";
 
 //Next Step Js
-import { NextStepProvider, NextStep } from 'nextstepjs';
+import TourProviderWrapper from "@/components/tour-provider-wrapper";
 
 // Aptabase Analytics 
 import { AptabaseProvider } from '@aptabase/react';
@@ -48,8 +48,8 @@ const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
   ssr: false,
 })
 
-const inter = Inter ({ subsets: ["latin"] });
-const manrope = Manrope ({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] });
+const manrope = Manrope({ subsets: ["latin"] });
 <><link
   rel="icon"
   href="/Intelli.svg"
@@ -61,16 +61,16 @@ export const metadata = {
   description: 'Intelli is a Customer Support and Engagement Platform that enables businesses to manage customer conversations using AI across WhatsApp, website, and email.',
   openGraph: {
     siteName: 'Intelli – Engage and support customers',
-    url: 'https://www.intelliconcierge.com',    
+    url: 'https://www.intelliconcierge.com',
     title: 'Intelli',
     description: 'Streamline customer conversations using AI across WhatsApp, website, and email.',
     type: 'website',
     author: 'Intelli',
     images: [
       {
-        url: 'https://www.intelliconcierge.com/api/og', 
-        width: 1200,  
-        height: 630,   
+        url: 'https://www.intelliconcierge.com/api/og',
+        width: 1200,
+        height: 630,
         alt: 'An alternative text for the image',
       },
     ],
@@ -82,7 +82,7 @@ export const metadata = {
     author: 'Intelli',
     images: [
       {
-        url: 'https://www.intelliconcierge.com/api/og', 
+        url: 'https://www.intelliconcierge.com/api/og',
         width: 1200,
         height: 630,
         alt: 'An alternative text for the image',
@@ -109,37 +109,35 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <head>
-<Script async src="https://www.googletagmanager.com/gtag/js?id=G-2V9CBMTJHN"></Script>
-<Script id="google-analytics" strategy="lazyOnload">
-  {
-    `
+          <Script async src="https://www.googletagmanager.com/gtag/js?id=G-2V9CBMTJHN"></Script>
+          <Script id="google-analytics" strategy="lazyOnload">
+            {
+              `
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', 'G-2V9CBMTJHN');
     `
-  }
-</Script>
+            }
+          </Script>
         </head>
         <PHProvider>
-        
+
           <SpeedInsights />
           <SignedOut></SignedOut>
           <SignedIn></SignedIn>
           <body className={inter.className}>
-               <ConsentGate /> {/* renders MetaPixel only after consent */}
-          <AttentionBadge />
+            <ConsentGate /> {/* renders MetaPixel only after consent */}
+            <AttentionBadge />
             <PostHogPageView />
             <PointerEventsFix />
             <AptabaseProvider appKey="A-US-3705920924">
-            <NextStepProvider>
-            <OnboardingProvider>
-              <NextStep steps={steps}>{children}</NextStep>
-            </OnboardingProvider>
-            </NextStepProvider>
+              <TourProviderWrapper>
+                {children}
+              </TourProviderWrapper>
             </AptabaseProvider>
             <ToastProvider />
-          </body>          
+          </body>
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />
         </PHProvider>
