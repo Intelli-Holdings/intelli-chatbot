@@ -26,6 +26,7 @@ import { useFlowSimulation } from './hooks/useFlowSimulation';
 import { ValidationProvider } from './context/ValidationContext';
 import { SimulationProvider } from './context/SimulationContext';
 import SimulationPanel from './panels/SimulationPanel';
+import { FlowAnalyticsModal } from './FlowAnalyticsModal';
 import { ExtendedFlowNode } from './utils/node-factories';
 import { getNodeErrors } from './utils/flow-validation';
 
@@ -42,6 +43,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { fitView, setCenter } = useReactFlow();
   const [showValidationPanel, setShowValidationPanel] = useState(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
 
   const {
     nodes,
@@ -166,6 +168,11 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     setShowValidationPanel(true);
   }, [validate]);
 
+  // Handle analytics
+  const handleOpenAnalytics = useCallback(() => {
+    setShowAnalyticsModal(true);
+  }, []);
+
   // Navigate to node from validation panel
   const handleValidationNodeClick = useCallback(
     (nodeId: string) => {
@@ -284,6 +291,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
           onAutoLayout={handleAutoLayout}
           onValidate={handleValidate}
           onSimulate={handleSimulationToggle}
+          onAnalytics={handleOpenAnalytics}
           errorCount={errorCount}
           warningCount={warningCount}
           isSimulating={isSimulationOpen}
@@ -338,6 +346,14 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
           onNodeClick={handleSimulationNodeClick}
         />
       )}
+
+      {/* Flow Analytics Modal */}
+      <FlowAnalyticsModal
+        open={showAnalyticsModal}
+        onClose={() => setShowAnalyticsModal(false)}
+        flowId={chatbot.id}
+        flowName={chatbot.name}
+      />
     </div>
   );
 }
