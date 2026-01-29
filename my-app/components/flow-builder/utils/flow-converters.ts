@@ -369,6 +369,11 @@ export function flowNodesToBackend(
       }
 
       data.saveAnswerTo = (questionData as unknown as { saveAnswerTo?: string }).saveAnswerTo;
+
+      // Add delay if configured
+      if (questionData.delaySeconds && questionData.delaySeconds > 0) {
+        data.delaySeconds = questionData.delaySeconds;
+      }
     }
 
     // Convert text node
@@ -543,6 +548,7 @@ export function backendNodesToFlow(
               action: { type: 'end' as const },
             })),
           },
+          delaySeconds: (backendData.delaySeconds as number) || 0,
         } as QuestionNodeData;
         break;
       }
