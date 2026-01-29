@@ -263,6 +263,7 @@ export interface StartNodeData extends FlowNodeDataBase {
 export interface QuestionNodeData extends FlowNodeDataBase {
   type: 'question';
   menu: ChatbotMenu;
+  delaySeconds?: number; // Optional delay before sending this message
 }
 
 // Action node data types
