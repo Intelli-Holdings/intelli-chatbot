@@ -822,6 +822,38 @@ export class ChatbotAutomationService {
   }
 
   // ==========================================
+  // Analytics Methods
+  // ==========================================
+
+  /**
+   * Get comprehensive flow analytics
+   */
+  static async getFlowAnalytics(
+    flowId: string,
+    days: number = 30
+  ): Promise<FlowAnalytics> {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(
+        `${API_BASE_URL}/chatbot_automation/flows/${flowId}/analytics/?days=${days}`,
+        {
+          method: 'GET',
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch flow analytics');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching flow analytics:', error);
+      throw error;
+    }
+  }
+
+  // ==========================================
   // Template Button Flow Mapping Methods
   // ==========================================
 
@@ -905,6 +937,69 @@ export interface TemplateButtonFlowMapping {
   flow: string;
   flow_name: string;
   is_active: boolean;
+}
+
+// Types for flow analytics
+export interface FlowAnalyticsSummary {
+  total_executions: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  waiting: number;
+  completion_rate: number;
+  avg_completion_time_seconds: number | null;
+}
+
+export interface FlowAnalyticsAllTime {
+  total_executions: number;
+  completed: number;
+  completion_rate: number;
+}
+
+export interface DropOffNode {
+  node_id: string;
+  node_type: string;
+  node_label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface NodeStats {
+  node_id: string;
+  node_type: string;
+  node_label: string;
+  visits: number;
+  visit_rate: number;
+}
+
+export interface TimeSeriesEntry {
+  date: string;
+  total: number;
+  completed: number;
+  failed: number;
+}
+
+export interface PathNode {
+  node_id: string;
+  node_type: string;
+  node_label: string;
+}
+
+export interface PopularPath {
+  path: PathNode[];
+  count: number;
+  percentage: number;
+}
+
+export interface FlowAnalytics {
+  period_days: number;
+  summary: FlowAnalyticsSummary;
+  all_time: FlowAnalyticsAllTime;
+  drop_offs: DropOffNode[];
+  node_stats: NodeStats[];
+  time_series: TimeSeriesEntry[];
+  popular_paths: PopularPath[];
+  last_executed_at: string | null;
 }
 
 export default ChatbotAutomationService;
