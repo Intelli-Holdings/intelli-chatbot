@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, GripVertical, Image, Video, FileText, Type, X, Check, Upload, Loader2 } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Image, Video, FileText, Type, X, Check, Upload, Loader2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ export default function QuestionNodeEditor({
 }: QuestionNodeEditorProps) {
   // Local state for editing
   const [localMenu, setLocalMenu] = useState<ChatbotMenu>(data.menu);
+  const [delaySeconds, setDelaySeconds] = useState<number>(data.delaySeconds || 0);
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
@@ -51,9 +53,10 @@ export default function QuestionNodeEditor({
   // Reset local state when data changes (e.g., switching nodes)
   useEffect(() => {
     setLocalMenu(data.menu);
+    setDelaySeconds(data.delaySeconds || 0);
     setHasChanges(false);
     setUploadedFileName('');
-  }, [data.menu.id]);
+  }, [data.menu.id, data.delaySeconds]);
 
   const currentHeaderType: HeaderType = localMenu.header?.type || 'none';
 
@@ -154,9 +157,19 @@ export default function QuestionNodeEditor({
       toast.error('Please enter a body message');
       return;
     }
-    onUpdate({ menu: localMenu, label: 'Interactive Message' });
+    onUpdate({ menu: localMenu, label: 'Interactive Message', delaySeconds });
     setHasChanges(false);
     toast.success('Changes saved');
+  };
+
+  const handleDelayChange = (enabled: boolean) => {
+    setDelaySeconds(enabled ? 2 : 0);
+    setHasChanges(true);
+  };
+
+  const handleDelaySecondsChange = (value: number) => {
+    setDelaySeconds(Math.max(1, Math.min(30, value)));
+    setHasChanges(true);
   };
 
   const handleHeaderTypeChange = (type: HeaderType) => {
@@ -424,6 +437,38 @@ export default function QuestionNodeEditor({
           placeholder="Footer text"
           maxLength={CHATBOT_LIMITS.maxFooterLength}
         />
+      </div>
+
+      {/* Delay */}
+      <div className="space-y-3 pt-2 border-t">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <Label>Delay Reply</Label>
+              <p className="text-xs text-muted-foreground">
+                Add a delay before sending
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={delaySeconds > 0}
+            onCheckedChange={handleDelayChange}
+          />
+        </div>
+
+        {delaySeconds > 0 && (
+          <div className="space-y-2">
+            <Label>Delay Duration (seconds)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={30}
+              value={delaySeconds}
+              onChange={(e) => handleDelaySecondsChange(parseInt(e.target.value) || 0)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Options */}
