@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Play,
   ExternalLink,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +34,7 @@ interface FlowToolbarProps {
   onAutoLayout: () => void;
   onValidate: () => void;
   onSimulate: () => void;
+  onAnalytics: () => void;
   errorCount: number;
   warningCount: number;
   isSimulating: boolean;
@@ -141,7 +143,7 @@ const nodeItems: DraggableNodeItem[] = [
   },
 ];
 
-export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, errorCount, warningCount, isSimulating }: FlowToolbarProps) {
+export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, onAnalytics, errorCount, warningCount, isSimulating }: FlowToolbarProps) {
   const hasIssues = errorCount > 0 || warningCount > 0;
   const onDragStart = (event: DragEvent<HTMLDivElement>, item: DraggableNodeItem) => {
     const data = JSON.stringify({
@@ -259,6 +261,24 @@ export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, erro
             <p className="text-xs text-muted-foreground">
               {isSimulating ? 'Close preview' : 'Test your flow interactively'}
             </p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Analytics Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onAnalytics}
+              className="h-12 w-12"
+            >
+              <BarChart3 className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={5} collisionPadding={10} className="z-50">
+            <p className="font-medium">Analytics</p>
+            <p className="text-xs text-muted-foreground">View flow performance & metrics</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
