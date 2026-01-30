@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { List, Building2, BellDot, ShieldQuestion } from "lucide-react"
+import { List, Building2, BellDot, ShieldQuestion, Bot } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { SettingsSearch } from "@/components/settings-search"
 
@@ -11,6 +11,10 @@ const settingsNavigation = [
   {
     title: "General",
     href: "/dashboard/settings",
+  },
+  {
+    title: "Automation",
+    href: "/dashboard/settings/automation",
   },
   {
     title: "Custom Fields",
@@ -81,6 +85,21 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
+              <Link
+                href="/dashboard/settings/automation"
+                className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-primary/10 p-2">
+                    <Bot className="size-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold group-hover:text-primary">Automation</h3>
+                    <p className="text-sm text-muted-foreground">Configure chatbot and AI assistant modes</p>
+                  </div>
+                </div>
+              </Link>
+
               <Link
                 href="/dashboard/settings/custom-fields"
                 className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary"

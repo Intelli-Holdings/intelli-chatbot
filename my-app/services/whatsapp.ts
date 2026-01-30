@@ -149,6 +149,7 @@ interface FlowMessagePayload {
 }
 
 const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v23.0';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend.intelliconcierge.com';
 
 // Language code mappings for WhatsApp templates
 const LANGUAGE_CODES: Record<string, string[]> = {
@@ -2086,6 +2087,55 @@ static formatTemplateComponents(components: any[]): any[] {
     } catch (error) {
       console.error('Error deprecating flow:', error);
       throw error;
+    }
+  }
+
+  // ============================================================================
+  // TYPING INDICATOR METHODS
+  // ============================================================================
+
+  /**
+   * Send a typing indicator to a WhatsApp user.
+   *
+   * This shows the user that an agent is preparing a response.
+   * The typing indicator will be dismissed once a message is sent,
+   * or after 25 seconds, whichever comes first.
+   *
+   * @param phoneNumber - The business phone number
+   * @param customerNumber - The customer's WhatsApp number
+   * @param messageId - Optional specific message ID to mark as read
+   * @returns Promise<boolean> - True if successful
+   */
+  static async sendTypingIndicator(
+    phoneNumber: string,
+    customerNumber: string,
+    messageId?: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/appservice/whatsapp/typing-indicator/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          phone_number: phoneNumber,
+          customer_number: customerNumber,
+          ...(messageId && { message_id: messageId })
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Typing indicator error:', data);
+        return { success: false, message: data.error || 'Failed to send typing indicator' };
+      }
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      console.error('Error sending typing indicator:', error);
+      return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 

@@ -250,3 +250,171 @@ When working with organization data, always:
 1. Get `organizationId` from `useActiveOrganizationId()`
 2. Pass to service methods for tenant isolation
 3. Handle missing organization context gracefully
+
+## Chatbot Flow Builder
+
+The flow builder (`/components/flow-builder/`) is a visual automation builder using React Flow for creating chatbot conversation flows.
+
+### Architecture Overview
+
+```
+components/flow-builder/
+├── FlowBuilder.tsx          # Main component with ReactFlow integration
+├── FlowToolbar.tsx          # Draggable node toolbar
+├── ContextMenu.tsx          # Right-click context menu
+├── ConnectionMenu.tsx       # Menu shown when dragging from output handles
+├── nodes/                   # Node components (visual representation)
+│   ├── index.ts             # Exports nodeTypes registry
+│   ├── StartNode.tsx        # Trigger/entry point node
+│   ├── TextNode.tsx         # Simple text message node
+│   ├── QuestionNode.tsx     # Interactive message with buttons/list
+│   ├── ActionNode.tsx       # Terminal actions (AI handoff, end)
+│   ├── ConditionNode.tsx    # Branching logic node
+│   ├── MediaNode.tsx        # Image/video/document/audio node
+│   ├── UserInputFlowNode.tsx # User input flow container
+│   └── QuestionInputNode.tsx # Individual question for user input
+├── panels/                  # Editor panels for each node type
+│   ├── NodeEditorPanel.tsx  # Main panel wrapper
+│   ├── StartNodeEditor.tsx
+│   ├── TextNodeEditor.tsx
+│   ├── QuestionNodeEditor.tsx
+│   ├── ActionNodeEditor.tsx
+│   ├── ConditionNodeEditor.tsx
+│   ├── MediaNodeEditor.tsx
+│   ├── UserInputFlowNodeEditor.tsx
+│   └── QuestionInputNodeEditor.tsx
+├── edges/
+│   └── CustomEdge.tsx       # Styled edge with labels
+├── hooks/
+│   └── useFlowState.ts      # Flow state management hook
+└── utils/
+    ├── node-factories.ts    # Node creation functions
+    └── flow-converters.ts   # Convert between flow and chatbot data
+```
+
+### Node Types
+
+| Node Type | File | Purpose | Handles |
+|-----------|------|---------|---------|
+| `start` | StartNode.tsx | Entry point with keyword triggers | Output: Right |
+| `text` | TextNode.tsx | Send text message | Input: Left, Output: Right |
+| `question` | QuestionNode.tsx | Interactive message (buttons/list) | Input: Left, Output: Right (per option) |
+| `action` | ActionNode.tsx | Terminal actions (AI, end) | Input: Left only |
+| `condition` | ConditionNode.tsx | Branch based on rules | Input: Left, Output: Right (true/false) |
+| `media` | MediaNode.tsx | Send media files | Input: Left, Output: Right |
+| `user_input_flow` | UserInputFlowNode.tsx | User input flow container | Input: Left, Output: Right |
+| `question_input` | QuestionInputNode.tsx | Single question in flow | Input: Left, Output: Right |
+
+### Flow Direction
+
+**Horizontal layout (Left → Right)**:
+- Input handles: `Position.Left`
+- Output handles: `Position.Right`
+- Auto-layout uses `direction: 'LR'` (dagre)
+
+### Key Patterns
+
+#### Node Data Interfaces
+
+```typescript
+// All node data types in node-factories.ts
+export type ExtendedFlowNodeData =
+  | StartNodeData
+  | QuestionNodeData
+  | ActionNodeData
+  | TextNodeData
+  | ConditionNodeData
+  | MediaNodeData
+  | UserInputFlowNodeData
+  | QuestionInputNodeData;
+
+export interface ExtendedFlowNode {
+  id: string;
+  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input';
+  position: NodePosition;
+  data: ExtendedFlowNodeData;
+}
+```
+
+#### Node Registration
+
+Nodes must be registered in `nodes/index.ts`:
+```typescript
+export const nodeTypes = {
+  start: StartNode,
+  question: QuestionNode,
+  action: ActionNode,
+  text: TextNode,
+  condition: ConditionNode,
+  media: MediaNode,
+  user_input_flow: UserInputFlowNode,
+  question_input: QuestionInputNode,
+};
+```
+
+#### Creating New Nodes
+
+1. Create node component in `nodes/NewNode.tsx`
+2. Create editor in `panels/NewNodeEditor.tsx`
+3. Add to `nodes/index.ts` exports
+4. Add factory function in `utils/node-factories.ts`
+5. Add to toolbar in `FlowToolbar.tsx`
+6. Add to `useFlowState.ts` onDrop handler
+7. Add to `NodeEditorPanel.tsx`
+8. Add to `ConnectionMenu.tsx` menu items
+9. Update `FlowBuilder.tsx` minimap colors
+
+#### Editor Pattern with Save Button
+
+Editors use local state with explicit save:
+```typescript
+const [localData, setLocalData] = useState({ ...data });
+const [isDirty, setIsDirty] = useState(false);
+const [showSaved, setShowSaved] = useState(false);
+
+const handleChange = (updates) => {
+  setLocalData(prev => ({ ...prev, ...updates }));
+  setIsDirty(true);
+};
+
+const handleSave = () => {
+  onUpdate(localData);
+  setIsDirty(false);
+  setShowSaved(true);
+  setTimeout(() => setShowSaved(false), 2000);
+};
+```
+
+#### Connection Menu UX
+
+When dragging from an output handle to empty canvas:
+1. `onConnectStart` stores source node/handle info
+2. `onConnectEnd` shows `ConnectionMenu` at drop position
+3. User selects node type from categorized menu
+4. New node is created and automatically connected
+
+### State Management
+
+`useFlowState` hook manages:
+- `nodes` / `edges` - React Flow state
+- `selectedNode` - Currently selected node for editor
+- `contextMenu` - Right-click menu state
+- `connectionMenu` - Drag-to-connect menu state
+- Auto-sync to chatbot after 500ms debounce
+
+### Custom Fields Integration
+
+Question nodes can save answers to:
+- System fields: `name`, `email`, `phone`
+- Custom fields: `custom:field_key` (via `useCustomFields` hook)
+
+```typescript
+const { customFields, loading } = useCustomFields(organizationId);
+```
+
+### Conversion Functions
+
+`flow-converters.ts` handles:
+- `chatbotToFlow()` - Convert ChatbotAutomation → React Flow nodes/edges
+- `flowToChatbot()` - Convert React Flow → ChatbotAutomation updates
+- `autoLayoutFlow()` - Apply dagre auto-layout (LR direction)

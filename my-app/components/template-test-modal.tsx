@@ -1,12 +1,19 @@
 "use client"
 
 import Image from "next/image"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Send,
   Loader2,
@@ -20,9 +27,13 @@ import {
   Phone,
   MoreVertical,
   Info,
+  Bot,
+  Save,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useOrganization } from "@clerk/nextjs"
+import { ChatbotAutomationService, TemplateButtonFlowMapping } from "@/services/chatbot-automation"
+import { ChatbotAutomation } from "@/types/chatbot-automation"
 
 interface TemplateTestModalProps {
   open: boolean
@@ -80,10 +91,95 @@ export function TemplateTestModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Flow mapping states
+  const [chatbotFlows, setChatbotFlows] = useState<ChatbotAutomation[]>([])
+  const [flowMappings, setFlowMappings] = useState<Record<number, string>>({})
+  const [loadingFlows, setLoadingFlows] = useState(false)
+  const [savingMappings, setSavingMappings] = useState(false)
+  const [hasFlowChanges, setHasFlowChanges] = useState(false)
+
   const headerComponent = template?.components?.find((c: any) => c.type === "HEADER")
   const bodyComponent = template?.components?.find((c: any) => c.type === "BODY")
   const footerComponent = template?.components?.find((c: any) => c.type === "FOOTER")
   const buttonsComponent = template?.components?.find((c: any) => c.type === "BUTTONS")
+
+  // Get quick reply buttons only (these are the ones that can trigger flows)
+  const quickReplyButtons = buttonsComponent?.buttons?.filter((b: any) => b.type === "QUICK_REPLY") || []
+  const allButtons = buttonsComponent?.buttons || []
+
+  // Fetch chatbot flows and existing mappings
+  const fetchFlowsAndMappings = useCallback(async () => {
+    const resolvedOrgId = organizationId || organization?.id
+    if (!resolvedOrgId || !template?.id || quickReplyButtons.length === 0) return
+
+    setLoadingFlows(true)
+    try {
+      const [flows, mappings] = await Promise.all([
+        ChatbotAutomationService.getChatbots(resolvedOrgId),
+        ChatbotAutomationService.getTemplateButtonMappings(template.id, resolvedOrgId)
+      ])
+
+      setChatbotFlows(flows.filter(f => f.isActive))
+
+      // Initialize flow mappings from existing data
+      const initialMappings: Record<number, string> = {}
+      mappings.forEach((m: TemplateButtonFlowMapping) => {
+        initialMappings[m.button_index] = m.flow
+      })
+      setFlowMappings(initialMappings)
+      setHasFlowChanges(false)
+    } catch (error) {
+      console.error("Error fetching flows and mappings:", error)
+    } finally {
+      setLoadingFlows(false)
+    }
+  }, [organizationId, organization?.id, template?.id, quickReplyButtons.length])
+
+  // Handle flow selection change
+  const handleFlowChange = (buttonIndex: number, flowId: string) => {
+    setFlowMappings(prev => ({
+      ...prev,
+      [buttonIndex]: flowId === "none" ? "" : flowId
+    }))
+    setHasFlowChanges(true)
+  }
+
+  // Save flow mappings
+  const handleSaveFlowMappings = async () => {
+    const resolvedOrgId = organizationId || organization?.id
+    if (!resolvedOrgId || !template) return
+
+    setSavingMappings(true)
+    try {
+      const mappingsToSave = quickReplyButtons.map((button: any, index: number) => ({
+        button_text: button.text,
+        button_index: index,
+        flow: flowMappings[index] || null
+      }))
+
+      await ChatbotAutomationService.updateTemplateButtonMappings(
+        resolvedOrgId,
+        template.id,
+        template.name,
+        mappingsToSave
+      )
+
+      toast({
+        title: "Flow mappings saved",
+        description: "Quick reply buttons are now linked to chatbot flows.",
+      })
+      setHasFlowChanges(false)
+    } catch (error) {
+      console.error("Error saving flow mappings:", error)
+      toast({
+        title: "Failed to save",
+        description: "Could not save flow mappings. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSavingMappings(false)
+    }
+  }
 
   const headerFormat = ((headerComponent?.format || "TEXT") as string).toUpperCase() as HeaderFormat
   const isMediaHeader = ["IMAGE", "VIDEO", "DOCUMENT"].includes(headerFormat)
@@ -150,7 +246,10 @@ export function TemplateTestModal({
 
     const exampleHandle = header?.example?.header_handle?.[0]
     setTemplateMediaHandle(exampleHandle || "")
-  }, [open, template])
+
+    // Fetch flows for quick reply button mapping
+    fetchFlowsAndMappings()
+  }, [open, template, fetchFlowsAndMappings])
 
   useEffect(() => {
     return () => {
@@ -796,6 +895,95 @@ export function TemplateTestModal({
                       </>
                     )}
                   </Button>
+                )}
+              </div>
+            )}
+
+            {/* Flow Mapping for Quick Reply Buttons */}
+            {allButtons.length > 0 && (
+              <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Bot className="h-4 w-4 text-emerald-700" />
+                  Button Flow Mapping
+                </div>
+                {quickReplyButtons.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">
+                    <p className="mb-2">This template has <strong>{allButtons.length}</strong> button(s), but none are Quick Reply type.</p>
+                    <div className="space-y-1">
+                      {allButtons.map((btn: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px]">{btn.type}</Badge>
+                          <span>{btn.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-amber-600">
+                      Only QUICK_REPLY buttons can trigger chatbot flows. URL/CTA buttons open links instead.
+                    </p>
+                  </div>
+                ) : loadingFlows ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading chatbot flows...
+                  </div>
+                ) : chatbotFlows.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No active chatbot flows available. Create a flow first to map buttons.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Map quick reply buttons to chatbot flows. When a user clicks the button, the flow triggers.
+                    </p>
+                    {quickReplyButtons.map((button: any, index: number) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <Badge variant="outline" className="text-xs">
+                            {button.text}
+                          </Badge>
+                        </div>
+                        <Select
+                          value={flowMappings[index] || "none"}
+                          onValueChange={(value) => handleFlowChange(index, value)}
+                        >
+                          <SelectTrigger className="w-[180px] h-8 text-xs">
+                            <SelectValue placeholder="Select flow" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground">No flow</span>
+                            </SelectItem>
+                            {chatbotFlows.map((flow) => (
+                              <SelectItem key={flow.id} value={flow.id}>
+                                {flow.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                    {hasFlowChanges && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleSaveFlowMappings}
+                        disabled={savingMappings}
+                        className="w-full"
+                      >
+                        {savingMappings ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-3 w-3 mr-2" />
+                            Save Flow Mappings
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             )}

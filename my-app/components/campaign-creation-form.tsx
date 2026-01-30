@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQueryClient } from 'react-query';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2 } from 'lucide-react';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2, Bot, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,8 @@ import Papa from 'papaparse';
 import { autoMapCSVToFields, type AutoMappingResult, type FieldDefinition } from '@/lib/auto-mapping-engine';
 import { transformCSVToRecipients, validateMappings, getRequiredFields } from '@/lib/csv-transform-utils';
 import MappingPreviewPanel from '@/components/mapping-preview-panel';
+import { ChatbotAutomationService, TemplateButtonFlowMapping } from '@/services/chatbot-automation';
+import { ChatbotAutomation } from '@/types/chatbot-automation';
 
 interface Contact {
   id: string;
@@ -112,6 +114,13 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [searchTerm, setSearchTerm] = useState('');
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Flow mapping state for quick reply buttons
+  const [chatbotFlows, setChatbotFlows] = useState<ChatbotAutomation[]>([]);
+  const [flowMappings, setFlowMappings] = useState<Record<number, string>>({});
+  const [loadingFlows, setLoadingFlows] = useState(false);
+  const [savingFlowMappings, setSavingFlowMappings] = useState(false);
+  const [hasFlowMappingChanges, setHasFlowMappingChanges] = useState(false);
 
   // CSV Import state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -432,7 +441,94 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setGlobalHeaderMediaHandle('');
       setGlobalHeaderMediaId('');
       setIsUploadingHeaderMedia(false);
+
+      // Fetch flow mappings if template has quick reply buttons
+      const buttonsComp = template.components?.find((c: any) => c.type === 'BUTTONS');
+      const quickReplyBtns = buttonsComp?.buttons?.filter((b: any) => b.type === 'QUICK_REPLY') || [];
+      if (quickReplyBtns.length > 0 && organizationId) {
+        fetchFlowsAndMappings(template.id);
+      } else {
+        setFlowMappings({});
+        setHasFlowMappingChanges(false);
+      }
     }
+  };
+
+  // Fetch chatbot flows and existing mappings for a template
+  const fetchFlowsAndMappings = useCallback(async (templateId: string) => {
+    if (!organizationId) return;
+
+    setLoadingFlows(true);
+    try {
+      const [flows, mappings] = await Promise.all([
+        ChatbotAutomationService.getChatbots(organizationId),
+        ChatbotAutomationService.getTemplateButtonMappings(templateId, organizationId)
+      ]);
+
+      setChatbotFlows(flows.filter(f => f.isActive));
+
+      // Initialize flow mappings from existing data
+      const initialMappings: Record<number, string> = {};
+      mappings.forEach((m: TemplateButtonFlowMapping) => {
+        initialMappings[m.button_index] = m.flow;
+      });
+      setFlowMappings(initialMappings);
+      setHasFlowMappingChanges(false);
+    } catch (error) {
+      console.error('Error fetching flows and mappings:', error);
+    } finally {
+      setLoadingFlows(false);
+    }
+  }, [organizationId]);
+
+  // Handle flow selection change
+  const handleFlowMappingChange = (buttonIndex: number, flowId: string) => {
+    setFlowMappings(prev => ({
+      ...prev,
+      [buttonIndex]: flowId === 'none' ? '' : flowId
+    }));
+    setHasFlowMappingChanges(true);
+  };
+
+  // Save flow mappings
+  const handleSaveFlowMappings = async () => {
+    const selectedTemplate = getSelectedTemplate();
+    if (!organizationId || !selectedTemplate) return;
+
+    const buttonsComp = selectedTemplate.components?.find((c: any) => c.type === 'BUTTONS');
+    const quickReplyButtons = buttonsComp?.buttons?.filter((b: any) => b.type === 'QUICK_REPLY') || [];
+
+    setSavingFlowMappings(true);
+    try {
+      const mappingsToSave = quickReplyButtons.map((button: any, index: number) => ({
+        button_text: button.text,
+        button_index: index,
+        flow: flowMappings[index] || null
+      }));
+
+      await ChatbotAutomationService.updateTemplateButtonMappings(
+        organizationId,
+        selectedTemplate.id,
+        selectedTemplate.name,
+        mappingsToSave
+      );
+
+      toast.success('Flow mappings saved successfully');
+      setHasFlowMappingChanges(false);
+    } catch (error) {
+      console.error('Error saving flow mappings:', error);
+      toast.error('Failed to save flow mappings');
+    } finally {
+      setSavingFlowMappings(false);
+    }
+  };
+
+  // Get quick reply buttons from selected template
+  const getQuickReplyButtons = () => {
+    const selectedTemplate = getSelectedTemplate();
+    if (!selectedTemplate) return [];
+    const buttonsComp = selectedTemplate.components?.find((c: any) => c.type === 'BUTTONS');
+    return buttonsComp?.buttons?.filter((b: any) => b.type === 'QUICK_REPLY') || [];
   };
 
   const uploadGlobalHeaderMedia = async (file: File) => {
@@ -1694,6 +1790,83 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                               You&apos;ll be able to upload parameter values after selecting recipients.
                             </AlertDescription>
                           </Alert>
+                        )}
+
+                        {/* Flow Mapping for Quick Reply Buttons */}
+                        {getSelectedTemplate() && getQuickReplyButtons().length > 0 && (
+                          <Card className="border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <Bot className="h-5 w-5 text-emerald-600" />
+                                Chatbot Flow Mapping
+                              </CardTitle>
+                              <CardDescription>
+                                Map quick reply buttons to chatbot flows. When a recipient clicks a button, the selected flow will trigger.
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              {loadingFlows ? (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Loading chatbot flows...
+                                </div>
+                              ) : chatbotFlows.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                  No active chatbot flows available. Create a flow first to map buttons.
+                                </p>
+                              ) : (
+                                <>
+                                  {getQuickReplyButtons().map((button: any, index: number) => (
+                                    <div key={index} className="flex items-center gap-3 p-2 bg-white dark:bg-gray-900 rounded-lg border">
+                                      <div className="flex-1">
+                                        <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-300">
+                                          {button.text}
+                                        </Badge>
+                                      </div>
+                                      <Select
+                                        value={flowMappings[index] || 'none'}
+                                        onValueChange={(value) => handleFlowMappingChange(index, value)}
+                                      >
+                                        <SelectTrigger className="w-[200px] h-9">
+                                          <SelectValue placeholder="Select flow" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">
+                                            <span className="text-muted-foreground">No flow</span>
+                                          </SelectItem>
+                                          {chatbotFlows.map((flow) => (
+                                            <SelectItem key={flow.id} value={flow.id}>
+                                              {flow.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  ))}
+                                  {hasFlowMappingChanges && (
+                                    <Button
+                                      size="sm"
+                                      onClick={handleSaveFlowMappings}
+                                      disabled={savingFlowMappings}
+                                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                    >
+                                      {savingFlowMappings ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Save className="h-4 w-4 mr-2" />
+                                          Save Flow Mappings
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                            </CardContent>
+                          </Card>
                         )}
                       </div>
                     )}
