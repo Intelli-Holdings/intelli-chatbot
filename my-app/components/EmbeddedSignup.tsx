@@ -16,18 +16,12 @@ import {
   assistantsQueryKey,
   fetchAssistantsForOrg,
 } from "@/hooks/use-assistants-cache"
-
-declare global {
-  interface Window {
-    FB?: FacebookSDK
-    fbAsyncInit?: () => void
-  }
-}
+import type { FacebookAuthResponse } from "@/lib/facebook-sdk"
 
 // Define type for WhatsApp embedded signup message
 interface WhatsAppSignupMessage {
   type: string
-  event: "FINISH" | "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" | "CANCEL" | "ERROR" 
+  event: "FINISH" | "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" | "CANCEL" | "ERROR"
   data: {
     phone_number_id?: string
     waba_id?: string
@@ -36,25 +30,8 @@ interface WhatsAppSignupMessage {
   }
 }
 
-// Define types for Facebook SDK
-interface FacebookSDK {
-  init: (params: {
-    appId: string
-    autoLogAppEvents: boolean
-    xfbml: boolean
-    version: string
-  }) => void
-  login: (callback: (response: FacebookLoginResponse) => void, params: FacebookLoginParams) => void
-}
-
-interface FacebookLoginResponse {
-  authResponse: {
-    code: string | null
-  } | null
-  status?: string
-}
-
-interface FacebookLoginParams {
+// WhatsApp-specific Facebook login params (extends the base SDK)
+interface WhatsAppFacebookLoginParams {
   config_id?: string
   response_type: string
   override_default_response_type: boolean
@@ -144,10 +121,11 @@ const EmbeddedSignup = () => {
     window.fbAsyncInit = () => {
       window.FB?.init({
         appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID!,
-        autoLogAppEvents: true,
+        cookie: true,
         xfbml: true,
         version: "v22.0",
       })
+      window.FB?.AppEvents?.logPageView()
     }
     const script = document.createElement("script")
     script.src = "https://connect.facebook.net/en_US/sdk.js"
@@ -158,7 +136,7 @@ const EmbeddedSignup = () => {
   }, [])
 
   // 2) Handle FB login to get the code
-  const handleFBLogin = useCallback((response: FacebookLoginResponse) => {
+  const handleFBLogin = useCallback((response: FacebookAuthResponse) => {
     if (response.authResponse?.code) {
       setSdkCode(response.authResponse.code)
       setStep("codeReceived")
@@ -170,17 +148,18 @@ const EmbeddedSignup = () => {
   // 3) Launch FB login to start embedded WhatsApp signup
   const launchWhatsAppSignup = useCallback(() => {
     if (!window.FB) return
-    window.FB.login(handleFBLogin, {
+    // Cast to any to support WhatsApp-specific extras parameter
+    (window.FB.login as any)(handleFBLogin, {
       config_id: process.env.NEXT_PUBLIC_FACEBOOK_CONFIG_ID!,
       response_type: "code",
       override_default_response_type: true,
-      extras: { 
-        setup: {}, 
-        version: "v3", 
-        featureType: "whatsapp_business_app_onboarding", 
-        sessionInfoVersion: "3" 
+      extras: {
+        setup: {},
+        version: "v3",
+        featureType: "whatsapp_business_app_onboarding",
+        sessionInfoVersion: "3"
       },
-    })
+    } as WhatsAppFacebookLoginParams)
   }, [handleFBLogin])
 
   // 4) Exchange code for access token (user initiated) - Using server-side proxy
