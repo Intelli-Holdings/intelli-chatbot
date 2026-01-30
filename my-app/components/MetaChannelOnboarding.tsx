@@ -7,21 +7,51 @@ import { Input } from "@/components/ui/input"
 import { AlertCircle, ArrowRight, Loader, RefreshCcw } from "lucide-react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 
+declare global {
+  interface Window {
+    FB?: FacebookSDK
+    fbAsyncInit?: () => void
+  }
+}
+
+interface FacebookSDK {
+  init: (params: {
+    appId: string
+    autoLogAppEvents: boolean
+    xfbml: boolean
+    version: string
+  }) => void
+  login: (callback: (response: FacebookLoginResponse) => void, params: FacebookLoginParams) => void
+}
+
+interface FacebookLoginParams {
+  config_id?: string
+  response_type: string
+  override_default_response_type: boolean
+  scope?: string
+  extras?: {
+    setup: Record<string, unknown>
+    featureType: string
+    sessionInfoVersion: string
+    version: string
+  }
+}
+
+interface FacebookLoginResponse {
+  authResponse: {
+    code: string | null
+  } | null
+  status?: string
+}
+
 type MetaChannel = "facebook" | "instagram"
-type AuthMethod = "facebook" | "instagram" // New: specify auth method
+type AuthMethod = "facebook" | "instagram"
 
 type MetaPage = {
   id: string
   name: string
   access_token?: string
   instagram_business_account?: { id: string }
-}
-
-type FacebookLoginResponse = {
-  authResponse: {
-    code: string | null
-  } | null
-  status?: string
 }
 
 type InstagramUserInfo = {
@@ -147,7 +177,9 @@ const MetaChannelOnboarding = ({ channel, authMethod = "facebook" }: MetaChannel
     }
 
     if (!window.FB) return
+
     window.FB.login(handleFBLogin, {
+      config_id: process.env.NEXT_PUBLIC_FACEBOOK_CONFIG_ID,
       response_type: "code",
       override_default_response_type: true,
       scope: scopeByChannel[channel],
