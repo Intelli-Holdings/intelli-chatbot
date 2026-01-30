@@ -629,6 +629,7 @@ export default function TemplatesPage() {
         open={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
         template={selectedTemplate}
+        organizationId={organizationId}
       />
 
       {selectedTemplate && (
