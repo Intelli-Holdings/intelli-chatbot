@@ -2,7 +2,7 @@ export {};
 
 declare global {
   interface Window {
-    FB?: import('./components/EmbeddedSignup').FacebookSDK;
+    FB?: import('./lib/facebook-sdk').FacebookSDK;
     fbAsyncInit?: () => void;
   }
 }
