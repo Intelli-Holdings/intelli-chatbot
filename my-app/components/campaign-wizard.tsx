@@ -223,7 +223,9 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       const formData = new FormData()
       formData.append("media_file", file)
       formData.append("appservice_phone_number", appService.phone_number)
-      formData.append("upload_type", "resumable")
+      // Use 'media' upload type for campaigns (returns Media ID for sending)
+      // 'resumable' is only for template creation (returns handle)
+      formData.append("upload_type", "media")
 
       const organizationId = appService.organization_id || appService.organization?.id || appService.organizationId
       if (organizationId) {
@@ -247,11 +249,13 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       }
 
       const data = await response.json()
-      if (!data.handle) {
-        throw new Error("No media handle received from upload")
+      // Media API returns 'id', resumable returns 'handle'
+      const mediaId = data.id || data.handle
+      if (!mediaId) {
+        throw new Error("No media ID received from upload")
       }
 
-      return data.handle
+      return mediaId
     } finally {
       setIsUploadingMedia(false)
     }
