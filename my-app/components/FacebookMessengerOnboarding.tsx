@@ -1,14 +1,14 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import MetaChannelOnboarding from "@/components/MetaChannelOnboarding"
+import MessengerEmbeddedSignup from "@/components/MessengerEmbeddedSignup"
 
 const FacebookMessengerOnboarding = () => {
   return (
     <div className="flex flex-col md:flex-row gap-6 p-6">
-      <Card className="md:w-1/2 shadow-md p-6 rounded-lg">
-        <MetaChannelOnboarding channel="facebook" />
-      </Card>
+      <div className="md:w-1/2">
+        <MessengerEmbeddedSignup />
+      </div>
 
       <div className="md:w-1/2 flex flex-col gap-4">
         <Card className="bg-white shadow-md p-6 rounded-lg">
