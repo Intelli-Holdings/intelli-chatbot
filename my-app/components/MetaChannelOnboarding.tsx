@@ -76,7 +76,7 @@ const MetaChannelOnboarding = ({ channel, authMethod = "facebook" }: MetaChannel
     if (window.FB) return
     window.fbAsyncInit = () => {
       window.FB?.init({
-        appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID!,
+        appId: process.env.NEXT_PUBLIC_FACEBOOK_TEST_APP_ID!,
         autoLogAppEvents: true,
         xfbml: true,
         version: "v22.0",
@@ -348,12 +348,11 @@ const MetaChannelOnboarding = ({ channel, authMethod = "facebook" }: MetaChannel
 
     try {
       const payload = {
-        choice: channel === "facebook" ? "facebook_messenger" : "instagram",
+        choice: channel === "facebook" ? "messenger" : "instagram",
         data: {
           page_id: pageId,
-          page_access_token: pageAccessToken,
-          user_access_token: accessToken,
-          instagram_business_account_id: instagramBusinessAccountId,
+          page_name: selectedPage?.name || manualPageId || "Facebook Page",
+          access_token: pageAccessToken,
         },
         organization_id: organizationId,
       }
