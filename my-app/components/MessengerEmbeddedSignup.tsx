@@ -125,11 +125,11 @@ const MessengerEmbeddedSignup = () => {
 
       // Create the channel package
       const payload = {
-        choice: "facebook_messenger",
+        choice: "messenger",
         data: {
           page_id: page.id,
-          page_access_token: page.access_token,
-          user_access_token: token
+          page_name: page.name,
+          access_token: page.access_token,
         },
         organization_id: organizationId
       }
