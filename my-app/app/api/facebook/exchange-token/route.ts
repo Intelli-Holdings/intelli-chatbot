@@ -20,10 +20,18 @@ export async function POST(request: Request) {
     }
 
     // Use the Graph API with URL-encoded form data (required by Facebook)
+    // For Embedded Signup, redirect_uri should be empty string
     const params = new URLSearchParams({
       client_id: appId,
       client_secret: appSecret,
       code: code,
+      redirect_uri: '',  // Required for Embedded Signup code exchange
+    })
+
+    console.log("Calling Facebook token exchange with params:", {
+      client_id: appId,
+      code: code.substring(0, 20) + '...',
+      redirect_uri: '',
     })
 
     const response = await fetch(`https://graph.facebook.com/v22.0/oauth/access_token?${params.toString()}`, {
@@ -37,11 +45,15 @@ export async function POST(request: Request) {
       hasAccessToken: !!data.access_token,
       tokenType: data.token_type,
       error: data.error,
+      errorDescription: data.error_description,
     })
 
-    if (!response.ok) {
-      console.error("Facebook API error:", data)
-      return NextResponse.json({ error: "Failed to exchange code", details: data }, { status: 500 })
+    if (!response.ok || data.error) {
+      console.error("Facebook API error:", JSON.stringify(data, null, 2))
+      return NextResponse.json({
+        error: data.error?.message || data.error_description || "Failed to exchange code",
+        details: data
+      }, { status: 500 })
     }
 
     // If we got a token, let's verify it and get its details
