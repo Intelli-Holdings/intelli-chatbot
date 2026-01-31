@@ -1,17 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { useQueryClient } from "react-query"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, ArrowRight, CheckCircle, Loader, RefreshCcw } from "lucide-react"
-import useActiveOrganizationId from "@/hooks/use-organization-id"
-import {
-  ASSISTANTS_STALE_TIME_MS,
-  assistantsQueryKey,
-  fetchAssistantsForOrg,
-} from "@/hooks/use-assistants-cache"
+import { useOrganization } from "@clerk/nextjs"
 import Image from 'next/image'
 
 type SetupStep = "processing" | "exchanging" | "creating" | "selectingAssistant" | "creatingAppService" | "complete" | "error"
@@ -46,14 +40,15 @@ type InstagramAccountInfo = {
  * creates the appservice, and redirects to conversations
  */
 export default function InstagramRedirectPage() {
-  const queryClient = useQueryClient()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const organizationId = useActiveOrganizationId()
+  const { organization } = useOrganization()
+  const organizationId = organization?.id
 
   const [step, setStep] = useState<SetupStep>("processing")
   const [error, setError] = useState<string | null>(null)
   const [statusMessage, setStatusMessage] = useState<string>("Processing authorization...")
+  const [hasStarted, setHasStarted] = useState(false)
 
   // Token and account info
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -66,7 +61,6 @@ export default function InstagramRedirectPage() {
   const [assistants, setAssistants] = useState<Assistant[]>([])
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null)
   const [isFetchingAssistants, setIsFetchingAssistants] = useState(false)
-  const [isCreatingAppService, setIsCreatingAppService] = useState(false)
   const [appServiceError, setAppServiceError] = useState<string | null>(null)
 
   // Exchange authorization code for access token
@@ -162,15 +156,17 @@ export default function InstagramRedirectPage() {
     }
   }, [])
 
-  // Fetch assistants
+  // Fetch assistants using regular fetch (not react-query)
   const fetchAssistants = useCallback(async (orgId: string) => {
     setIsFetchingAssistants(true)
     try {
-      const data = await queryClient.fetchQuery(
-        assistantsQueryKey(orgId),
-        () => fetchAssistantsForOrg<Assistant>(orgId),
-        { staleTime: ASSISTANTS_STALE_TIME_MS },
-      )
+      const response = await fetch(`/api/assistants?organization_id=${orgId}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch assistants")
+      }
+
       setAssistants(data)
 
       if (data.length === 0) {
@@ -184,7 +180,7 @@ export default function InstagramRedirectPage() {
     } finally {
       setIsFetchingAssistants(false)
     }
-  }, [queryClient])
+  }, [])
 
   // Create AppService
   const createAppService = useCallback(async () => {
@@ -193,7 +189,6 @@ export default function InstagramRedirectPage() {
       return
     }
 
-    setIsCreatingAppService(true)
     setAppServiceError(null)
     setStep("creatingAppService")
     setStatusMessage("Creating AppService...")
@@ -230,7 +225,6 @@ export default function InstagramRedirectPage() {
       console.error("Error creating AppService:", e)
       setAppServiceError(e instanceof Error ? e.message : "Error creating AppService")
       setStatusMessage("Error creating AppService. Please try again.")
-      setIsCreatingAppService(false)
     }
   }, [organizationId, selectedAssistant, packageResponse, accountInfo, router])
 
@@ -264,6 +258,10 @@ export default function InstagramRedirectPage() {
       return
     }
 
+    // Prevent running multiple times
+    if (hasStarted) return
+    setHasStarted(true)
+
     // Build redirect URI - must match what was used in OAuth start
     const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
       `${window.location.origin}/instagram-redirect`
@@ -287,11 +285,8 @@ export default function InstagramRedirectPage() {
       }
     }
 
-    // Only run once when we have the code and org ID
-    if (step === "processing") {
-      setupInstagram()
-    }
-  }, [searchParams, organizationId, step, exchangeCodeForToken, createInstagramChannel, fetchAssistants])
+    setupInstagram()
+  }, [searchParams, organizationId, hasStarted, exchangeCodeForToken, createInstagramChannel, fetchAssistants])
 
   // Go back to channels
   const handleGoToChannels = useCallback(() => {
