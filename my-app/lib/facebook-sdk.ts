@@ -78,9 +78,7 @@ export const initializeFacebookSDK = (): Promise<void> => {
  * Launch Facebook Login with Embedded Signup for Messenger
  * Uses redirect-based OAuth flow
  */
-export const launchMessengerEmbeddedSignup = (
-  callback?: (response: FacebookAuthResponse) => void
-): void => {
+export const launchMessengerEmbeddedSignup = (): void => {
   const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
   const configId = process.env.NEXT_PUBLIC_FACEBOOK_APP_CONFIG_ID_MESSENGER
   const redirectUri = process.env.NEXT_PUBLIC_MESSENGER_REDIRECT_URI ||
@@ -106,9 +104,7 @@ export const launchMessengerEmbeddedSignup = (
  * Launch Facebook Login for Instagram
  * Uses redirect-based OAuth flow
  */
-export const launchInstagramSignup = (
-  callback?: (response: FacebookAuthResponse) => void
-): void => {
+export const launchInstagramSignup = (): void => {
   const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
   const configId = process.env.NEXT_PUBLIC_FACEBOOK_APP_CONFIG_ID_INSTAGRAM
   const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
