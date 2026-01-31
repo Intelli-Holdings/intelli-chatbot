@@ -29,7 +29,7 @@ import FacebookMessengerOnboarding from "@/components/FacebookMessengerOnboardin
 import InstagramOnboarding from "@/components/InstagramOnboarding";
 import UnifiedWidgets from '@/components/UnifiedWidgets';
 import Channels from './channels';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 // Recharts imports
@@ -242,20 +242,6 @@ export const DynamicDashboard: React.FC = () => {
   const [websiteDialogOpen, setWebsiteDialogOpen] = useState(false);
   const [facebookDialogOpen, setFacebookDialogOpen] = useState(false);
   const [instagramDialogOpen, setInstagramDialogOpen] = useState(false);
-
-  // Get search params to detect OAuth redirects
-  const searchParams = useSearchParams();
-
-  // Auto-open Messenger dialog when redirected back with messenger_code
-  useEffect(() => {
-    const messengerCode = searchParams.get("messenger_code");
-    const messengerAuth = searchParams.get("messenger_auth");
-
-    if (messengerCode && messengerAuth === "success") {
-      console.log("Detected messenger_code in URL, opening Facebook dialog");
-      setFacebookDialogOpen(true);
-    }
-  }, [searchParams]);
 
   const handleEscalationClick = React.useCallback(() => {
     router.push('/dashboard/notifications');
