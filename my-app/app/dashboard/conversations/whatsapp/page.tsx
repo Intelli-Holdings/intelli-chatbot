@@ -9,6 +9,8 @@ import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { useWhatsAppAppServices } from "@/hooks/use-whatsapp-appservices"
 import { useWhatsAppChatSessions } from "@/hooks/use-whatsapp-chat-sessions"
 import { useWhatsAppChatMessages } from "@/hooks/use-whatsapp-chat-messages"
+import { useAutomationStatus } from "@/hooks/use-automation-status"
+import { AutomationStatusIndicator } from "@/components/automation-status-indicator"
 import { useMediaQuery } from "@/app/hooks/use-media-query"
 import type { Conversation } from "@/app/dashboard/conversations/components/types"
 import { toast } from "sonner"
@@ -88,12 +90,22 @@ export default function WhatsAppConvosPage() {
   const hasAutoSelectedRef = useRef(false)
 
   const {
+    appServices,
     primaryPhoneNumber,
     isLoading: appServicesLoading,
     error: appServicesError,
   } = useWhatsAppAppServices(activeOrganizationId || undefined)
 
   const phoneNumber = primaryPhoneNumber
+  const primaryAppServiceId = appServices[0]?.id
+
+  // Automation status for the primary app service
+  const {
+    status: automationStatus,
+    loading: automationLoading,
+    togglePause: toggleAutomationPause,
+    toggling: automationToggling,
+  } = useAutomationStatus(primaryAppServiceId)
 
   const {
     sessions,
@@ -431,17 +443,35 @@ export default function WhatsAppConvosPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
-      <ChatSidebar
-        conversations={conversations}
-        onSelectConversation={handleSelectConversation}
-        selectedConversationId={selectedConversation?.id || null}
-        loading={listLoading}
-        hasMore={listHasMore}
-        loadMore={loadMoreConversations}
-        isLoadingMore={isFetchingNextPage}
-      />
-      <div className="flex-1 relative bg-[#efeae2]">
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
+      {/* Automation Status Header */}
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-[#e9edef]">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-[#667781]">WhatsApp Conversations</span>
+          {phoneNumber && (
+            <span className="text-xs text-[#8696a0]">({phoneNumber})</span>
+          )}
+        </div>
+        <AutomationStatusIndicator
+          status={automationStatus}
+          loading={automationLoading}
+          onTogglePause={toggleAutomationPause}
+          toggling={automationToggling}
+        />
+      </div>
+
+      {/* Main Chat Layout */}
+      <div className="flex flex-1 overflow-hidden rounded-b-lg border border-t-0 border-[#e9edef] bg-white shadow-lg">
+        <ChatSidebar
+          conversations={conversations}
+          onSelectConversation={handleSelectConversation}
+          selectedConversationId={selectedConversation?.id || null}
+          loading={listLoading}
+          hasMore={listHasMore}
+          loadMore={loadMoreConversations}
+          isLoadingMore={isFetchingNextPage}
+        />
+        <div className="flex-1 relative bg-[#efeae2]">
         {selectedConversation ? (
           <ChatArea
             conversation={selectedConversation}
@@ -463,6 +493,7 @@ export default function WhatsAppConvosPage() {
             <DownloadPage />
           </div>
         )}
+        </div>
       </div>
 
       {/* Conversation View - Mobile */}
