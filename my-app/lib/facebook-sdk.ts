@@ -51,7 +51,7 @@ export const initializeFacebookSDK = (): Promise<void> => {
     // Set up the async init function
     window.fbAsyncInit = function() {
       window.FB?.init({
-        appId: process.env.NEXT_PUBLIC_FACEBOOK_TEST_APP_ID!,
+        appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID!,
         cookie: true,
         xfbml: true,
         version: 'v22.0'
@@ -85,7 +85,7 @@ export const launchMessengerEmbeddedSignup = (
     return
   }
 
-  const configId = process.env.NEXT_PUBLIC_FACEBOOK_TEST_APP_CONFIG_ID!
+  const configId = process.env.NEXT_PUBLIC_FACEBOOK_APP_CONFIG_ID_MESSENGER!
 
   window.FB.login(
     (response: FacebookAuthResponse) => {
