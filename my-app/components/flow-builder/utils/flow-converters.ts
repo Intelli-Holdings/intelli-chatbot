@@ -19,6 +19,7 @@ import { MediaNodeData } from '../nodes/MediaNode';
 import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
+import { HttpApiNodeData } from '../nodes/HttpApiNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from './node-factories';
 
 const NODE_WIDTH = 280;
@@ -438,6 +439,19 @@ export function flowNodesToBackend(
       data.footer = ctaData.footer;
     }
 
+    // Convert http_api node
+    if (node.type === 'http_api' && node.data.type === 'http_api') {
+      const httpData = node.data as HttpApiNodeData;
+      data.method = httpData.method;
+      data.url = httpData.url;
+      data.headers = httpData.headers;
+      data.body = httpData.body;
+      data.bodyType = httpData.bodyType;
+      data.responseVariable = httpData.responseVariable;
+      data.timeout = httpData.timeout;
+      data.auth = httpData.auth;
+    }
+
     return {
       id: node.id,
       type: node.type,
@@ -617,6 +631,21 @@ export function backendNodesToFlow(
           header: backendData.header as string,
           footer: backendData.footer as string,
         } as CTAButtonNodeData;
+        break;
+      }
+      case 'http_api': {
+        data = {
+          type: 'http_api',
+          label: 'HTTP API',
+          method: (backendData.method as HttpApiNodeData['method']) || 'GET',
+          url: (backendData.url as string) || '',
+          headers: (backendData.headers as HttpApiNodeData['headers']) || [],
+          body: (backendData.body as string) || '',
+          bodyType: (backendData.bodyType as HttpApiNodeData['bodyType']) || 'json',
+          responseVariable: (backendData.responseVariable as string) || '',
+          timeout: (backendData.timeout as number) || 30,
+          auth: (backendData.auth as HttpApiNodeData['auth']) || { type: 'none' },
+        } as HttpApiNodeData;
         break;
       }
       default: {

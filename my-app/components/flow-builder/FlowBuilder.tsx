@@ -278,6 +278,8 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
                 return '#ec4899';
               case 'cta_button':
                 return '#f97316';
+              case 'http_api':
+                return '#8b5cf6';
               default:
                 return '#94a3b8';
             }
