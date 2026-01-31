@@ -85,7 +85,7 @@ export const launchMessengerEmbeddedSignup = (
     return
   }
 
-  const configId = process.env.NEXT_PUBLIC_FACEBOOK_TEST_APP_CONFIG_ID!
+  const configId = process.env.NEXT_PUBLIC_FACEBOOK_APP_CONFIG_ID_MESSENGER!
 
   window.FB.login(
     (response: FacebookAuthResponse) => {
