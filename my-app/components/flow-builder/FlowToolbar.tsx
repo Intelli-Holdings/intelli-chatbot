@@ -20,6 +20,7 @@ import {
   Play,
   ExternalLink,
   BarChart3,
+  Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -124,6 +125,13 @@ const nodeItems: DraggableNodeItem[] = [
     description: 'Branch on rules',
     icon: GitBranch,
     color: 'bg-yellow-500 hover:bg-yellow-600',
+  },
+  {
+    type: 'http_api',
+    label: 'API',
+    description: 'Call external APIs',
+    icon: Globe,
+    color: 'bg-violet-500 hover:bg-violet-600',
   },
   {
     type: 'action',
