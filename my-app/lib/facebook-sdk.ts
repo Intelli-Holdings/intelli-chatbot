@@ -94,7 +94,8 @@ export const launchMessengerEmbeddedSignup = (
     {
       config_id: configId,
       response_type: 'code',
-      override_default_response_type: true
+      override_default_response_type: true,
+      scope: 'email,pages_show_list,pages_messaging,pages_read_engagement,pages_read_user_content'
     }
   )
 }
