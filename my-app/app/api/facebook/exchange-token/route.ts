@@ -11,19 +11,23 @@ export async function POST(request: Request) {
 
     console.log("Exchanging code for token...")
 
-    // Use the Graph API directly with the app credentials
-    const response = await fetch("https://graph.facebook.com/v22.0/oauth/access_token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        client_id: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID,
-        client_secret: process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET,
-        code: code,
-        grant_type: "authorization_code",
-        redirect_uri: "",
-      }),
+    const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
+    const appSecret = process.env.FACEBOOK_APP_SECRET || process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET
+
+    if (!appId || !appSecret) {
+      console.error("Missing Facebook app credentials")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
+    // Use the Graph API with URL-encoded form data (required by Facebook)
+    const params = new URLSearchParams({
+      client_id: appId,
+      client_secret: appSecret,
+      code: code,
+    })
+
+    const response = await fetch(`https://graph.facebook.com/v22.0/oauth/access_token?${params.toString()}`, {
+      method: "GET",
     })
 
     const data = await response.json()
@@ -43,8 +47,9 @@ export async function POST(request: Request) {
     // If we got a token, let's verify it and get its details
     if (data.access_token) {
       try {
+        const debugAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET
         const debugResponse = await fetch(
-          `https://graph.facebook.com/debug_token?input_token=${data.access_token}&access_token=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID}|${process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET}`,
+          `https://graph.facebook.com/debug_token?input_token=${data.access_token}&access_token=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID}|${debugAppSecret}`,
         )
         const debugData = await debugResponse.json()
         console.log("Token debug info:", {
