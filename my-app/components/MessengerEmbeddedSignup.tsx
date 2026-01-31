@@ -1,21 +1,44 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
+import { useQueryClient } from "react-query"
+import { useSearchParams, useRouter } from "next/navigation"
+import { Card, CardContent, CardDescription, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, ArrowRight, CheckCircle, Loader } from "lucide-react"
+import { AlertCircle, ArrowRight, CheckCircle, Loader, RefreshCcw } from "lucide-react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import {
-  initializeFacebookSDK,
   launchMessengerEmbeddedSignup,
-  checkLoginStatus,
-  type FacebookAuthResponse
 } from "@/lib/facebook-sdk"
+import {
+  ASSISTANTS_STALE_TIME_MS,
+  assistantsQueryKey,
+  fetchAssistantsForOrg,
+} from "@/hooks/use-assistants-cache"
 import Image from 'next/image';
 
-type SetupStep = "initial" | "authorizing" | "exchanging" | "creating" | "complete"
+type SetupStep = "initial" | "authorizing" | "exchanging" | "creating" | "selectingAssistant" | "creatingAppService" | "complete"
+
+type Assistant = {
+  id: number
+  name: string
+  prompt: string
+  assistant_id: string
+  organization: string
+  organization_id: string
+}
+
+type PackageResponse = {
+  id: number
+  page_id: string
+  page_name: string
+  [key: string]: any
+}
 
 const MessengerEmbeddedSignup = () => {
+  const queryClient = useQueryClient()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const organizationId = useActiveOrganizationId()
   const [step, setStep] = useState<SetupStep>("initial")
   const [isLoading, setIsLoading] = useState(false)
@@ -23,55 +46,87 @@ const MessengerEmbeddedSignup = () => {
   const [statusMessage, setStatusMessage] = useState<string>("")
   const [authCode, setAuthCode] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [pageInfo, setPageInfo] = useState<{ id: string; name: string } | null>(null)
+  const [pageInfo, setPageInfo] = useState<{ id: string; name: string; access_token: string } | null>(null)
 
-  // Initialize Facebook SDK on component mount
+  // Package and AppService state
+  const [packageResponse, setPackageResponse] = useState<PackageResponse | null>(null)
+  const [appServiceResponse, setAppServiceResponse] = useState<any>(null)
+
+  // Assistant state
+  const [assistants, setAssistants] = useState<Assistant[]>([])
+  const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null)
+  const [isFetchingAssistants, setIsFetchingAssistants] = useState(false)
+  const [isCreatingAppService, setIsCreatingAppService] = useState(false)
+  const [appServiceError, setAppServiceError] = useState<string | null>(null)
+
+  // Check for messenger_code from redirect on component mount
   useEffect(() => {
-    initializeFacebookSDK().catch((err) => {
-      console.error("Failed to initialize Facebook SDK:", err)
-      setError("Failed to load Facebook SDK. Please refresh the page.")
-    })
-  }, [])
+    const messengerCode = searchParams.get("messenger_code")
+    const messengerAuth = searchParams.get("messenger_auth")
+    const urlError = searchParams.get("error")
 
-  // Handle the login response
-  const handleLoginResponse = useCallback(async (response: FacebookAuthResponse) => {
-    console.log("Facebook Login Response:", response)
-
-    if (response.status === 'connected' && response.authResponse) {
-      const code = response.authResponse.code
-
-      if (code) {
-        setAuthCode(code)
-        setStep("exchanging")
-        setStatusMessage("Authorization successful. Exchanging code for access token...")
-
-        // Exchange code for token
-        await exchangeCodeForToken(code)
-      } else if (response.authResponse.accessToken) {
-        // If we got an access token directly
-        setAccessToken(response.authResponse.accessToken)
-        setStep("creating")
-        setStatusMessage("Access token received. Setting up your Messenger channel...")
-        await createMessengerChannel(response.authResponse.accessToken)
-      }
-    } else if (response.status === 'not_authorized') {
-      setError("You need to authorize the app to continue.")
-      setStep("initial")
-    } else {
-      setError("Login was cancelled or failed. Please try again.")
-      setStep("initial")
+    if (urlError) {
+      setError(decodeURIComponent(urlError))
+      // Clear URL params
+      router.replace(window.location.pathname)
+      return
     }
-  }, [])
+
+    if (messengerCode && messengerAuth === "success") {
+      console.log("Received messenger code from redirect:", messengerCode.substring(0, 20) + "...")
+      setAuthCode(messengerCode)
+      setStep("exchanging")
+      setStatusMessage("Authorization successful. Exchanging code for access token...")
+
+      // Build redirect URI - must match what was used in OAuth start
+      const redirectUri = process.env.NEXT_PUBLIC_MESSENGER_REDIRECT_URI ||
+        `${window.location.origin}/messenger-redirect`
+
+      console.log("Using redirect_uri for token exchange:", redirectUri)
+
+      // Clear URL params
+      router.replace(window.location.pathname)
+
+      // Exchange the code for token - pass the redirect_uri to ensure it matches
+      exchangeCodeForToken(messengerCode, redirectUri)
+    }
+  }, [searchParams, router])
+
+  // Fetch assistants
+  const fetchAssistants = useCallback(async () => {
+    if (!organizationId) return
+
+    setIsFetchingAssistants(true)
+    try {
+      const data = await queryClient.fetchQuery(
+        assistantsQueryKey(organizationId),
+        () => fetchAssistantsForOrg<Assistant>(organizationId),
+        { staleTime: ASSISTANTS_STALE_TIME_MS },
+      )
+      setAssistants(data)
+
+      if (data.length === 0) {
+        setError("No assistants found. Please create an assistant first.")
+        setStatusMessage("You need to create an assistant before setting up Messenger.")
+      }
+    } catch (error) {
+      console.error("Error fetching assistants:", error)
+      setError(error instanceof Error ? error.message : "Failed to fetch assistants")
+      setStatusMessage("Error fetching assistants. Please try again.")
+    } finally {
+      setIsFetchingAssistants(false)
+    }
+  }, [organizationId, queryClient])
 
   // Exchange authorization code for access token
-  const exchangeCodeForToken = async (code: string) => {
+  const exchangeCodeForToken = async (code: string, redirectUri?: string) => {
     try {
       setIsLoading(true)
 
       const response = await fetch("/api/facebook/exchange-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ code, redirect_uri: redirectUri })
       })
 
       const data = await response.json()
@@ -121,7 +176,7 @@ const MessengerEmbeddedSignup = () => {
 
       // Use the first page for now
       const page = pagesData.data[0]
-      setPageInfo({ id: page.id, name: page.name })
+      setPageInfo({ id: page.id, name: page.name, access_token: page.access_token })
 
       // Create the channel package
       const payload = {
@@ -146,8 +201,11 @@ const MessengerEmbeddedSignup = () => {
         throw new Error(data.error || data.detail || "Failed to create Messenger channel")
       }
 
-      setStep("complete")
-      setStatusMessage("Messenger channel created successfully!")
+      // Store package response and move to assistant selection
+      setPackageResponse(data)
+      setStatusMessage("Package created. Please select an assistant.")
+      setStep("selectingAssistant")
+      fetchAssistants()
     } catch (err) {
       console.error("Channel creation error:", err)
       setError(err instanceof Error ? err.message : "Failed to create Messenger channel")
@@ -157,13 +215,65 @@ const MessengerEmbeddedSignup = () => {
     }
   }
 
-  // Start the signup process
+  // Create AppService
+  const createAppService = useCallback(async () => {
+    if (!packageResponse || !organizationId || !selectedAssistant || !pageInfo) {
+      setAppServiceError("Missing required information to create AppService")
+      return
+    }
+
+    setIsCreatingAppService(true)
+    setAppServiceError(null)
+    setStatusMessage("Creating AppService...")
+
+    try {
+      const data = {
+        organization_id: organizationId,
+        page_id: pageInfo.id,
+        assistant_id: selectedAssistant.assistant_id,
+      }
+      console.log("Creating Messenger AppService with data:", data)
+
+      const res = await fetch("/api/appservice/create-messenger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      const appsvc = await res.json()
+
+      if (!res.ok) {
+        console.error("AppService creation error:", appsvc)
+        throw new Error(appsvc.error || appsvc.detail || "Failed to create AppService")
+      }
+
+      setAppServiceResponse(appsvc)
+      setStep("complete")
+      setStatusMessage("Setup complete! Your Messenger channel is ready.")
+    } catch (e) {
+      console.error("Error creating AppService:", e)
+      setAppServiceError(e instanceof Error ? e.message : "Error creating AppService")
+      setStatusMessage("Error creating AppService. Please try again.")
+    } finally {
+      setIsCreatingAppService(false)
+    }
+  }, [organizationId, selectedAssistant, packageResponse, pageInfo])
+
+  // Handle assistant confirmation
+  const handleAssistantConfirm = useCallback(() => {
+    if (!selectedAssistant || !packageResponse) return
+    setStep("creatingAppService")
+    createAppService()
+  }, [selectedAssistant, packageResponse, createAppService])
+
+  // Start the signup process - redirects to Facebook OAuth
   const handleStartSignup = useCallback(() => {
     setError(null)
     setStep("authorizing")
-    setStatusMessage("Opening Facebook authorization...")
-    launchMessengerEmbeddedSignup(handleLoginResponse)
-  }, [handleLoginResponse])
+    setStatusMessage("Redirecting to Facebook authorization...")
+    // This will redirect the user to Facebook
+    launchMessengerEmbeddedSignup()
+  }, [])
 
   // Reset to start over
   const handleReset = useCallback(() => {
@@ -173,6 +283,11 @@ const MessengerEmbeddedSignup = () => {
     setAuthCode(null)
     setAccessToken(null)
     setPageInfo(null)
+    setPackageResponse(null)
+    setAppServiceResponse(null)
+    setSelectedAssistant(null)
+    setAssistants([])
+    setAppServiceError(null)
   }, [])
 
   return (
@@ -243,6 +358,101 @@ const MessengerEmbeddedSignup = () => {
             </div>
           )}
 
+          {/* Selecting Assistant */}
+          {step === "selectingAssistant" && (
+            <div className="flex flex-col space-y-4">
+              <div className="p-4 bg-gray-50 rounded-md">
+                <p className="font-medium">Select Your Assistant</p>
+                <p className="text-sm text-gray-500 mb-4">Choose an assistant to handle Messenger conversations</p>
+                {pageInfo && (
+                  <div className="mb-4 p-2 bg-blue-50 rounded-md">
+                    <p className="text-sm text-blue-600">
+                      Connected Page: <strong>{pageInfo.name}</strong>
+                    </p>
+                  </div>
+                )}
+                <div className="mt-2 space-y-2">
+                  {isFetchingAssistants ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span className="ml-2">Loading assistants...</span>
+                    </div>
+                  ) : assistants.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                      No assistants found. Please create an assistant first.
+                    </div>
+                  ) : (
+                    assistants.map((assistant) => (
+                      <div
+                        key={assistant.id}
+                        className={`p-3 border rounded-md cursor-pointer ${
+                          selectedAssistant?.id === assistant.id
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 hover:border-blue-300"
+                        }`}
+                        onClick={() => setSelectedAssistant(assistant)}
+                      >
+                        <p className="font-medium">{assistant.name}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              <CardFooter className="flex justify-end pt-0 px-0">
+                <Button
+                  onClick={handleAssistantConfirm}
+                  disabled={isLoading || !selectedAssistant || isFetchingAssistants}
+                  className="flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" /> Processing...
+                    </>
+                  ) : (
+                    <>
+                      Continue <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </CardFooter>
+            </div>
+          )}
+
+          {/* Creating AppService */}
+          {step === "creatingAppService" && (
+            <div className="flex flex-col space-y-4">
+              <div className="p-4 bg-gray-50 rounded-md">
+                <p className="font-medium">Creating AppService</p>
+                {pageInfo && (
+                  <p className="text-sm text-gray-500">Page: {pageInfo.name}</p>
+                )}
+                {selectedAssistant && (
+                  <p className="text-sm text-gray-500">Assistant: {selectedAssistant.name}</p>
+                )}
+              </div>
+              <div className="flex items-center justify-center p-4">
+                <Loader className="w-6 h-6 animate-spin" />
+                <span className="ml-2">Creating AppService...</span>
+              </div>
+              {appServiceError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{appServiceError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 text-xs"
+                    onClick={() => {
+                      setAppServiceError(null)
+                      createAppService()
+                    }}
+                  >
+                    <RefreshCcw className="w-3 h-3 mr-1" /> Try Again
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Complete */}
           {step === "complete" && (
             <div className="flex flex-col space-y-4">
@@ -257,6 +467,11 @@ const MessengerEmbeddedSignup = () => {
                     {pageInfo && (
                       <p className="text-sm text-green-600 mt-2">
                         Connected Page: <strong>{pageInfo.name}</strong>
+                      </p>
+                    )}
+                    {selectedAssistant && (
+                      <p className="text-sm text-green-600">
+                        Assistant: <strong>{selectedAssistant.name}</strong>
                       </p>
                     )}
                   </div>
