@@ -525,7 +525,6 @@ export default function WhatsAppConvosPage() {
             <DownloadPage />
           </div>
         )}
-        </div>
       </div>
 
       {/* Conversation View - Mobile */}
