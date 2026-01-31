@@ -19,19 +19,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
+    // Get the redirect URI from environment or construct it
+    const redirectUri = process.env.NEXT_PUBLIC_MESSENGER_REDIRECT_URI ||
+      `${process.env.NEXT_PUBLIC_APP_URL}/messenger-redirect`
+
     // Use the Graph API with URL-encoded form data (required by Facebook)
-    // For Embedded Signup, redirect_uri should be empty string
     const params = new URLSearchParams({
       client_id: appId,
       client_secret: appSecret,
       code: code,
-      redirect_uri: '',  // Required for Embedded Signup code exchange
+      redirect_uri: redirectUri,
     })
 
     console.log("Calling Facebook token exchange with params:", {
       client_id: appId,
       code: code.substring(0, 20) + '...',
-      redirect_uri: '',
+      redirect_uri: redirectUri,
     })
 
     const response = await fetch(`https://graph.facebook.com/v22.0/oauth/access_token?${params.toString()}`, {
