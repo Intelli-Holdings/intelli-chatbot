@@ -103,29 +103,31 @@ export const launchMessengerEmbeddedSignup = (
 }
 
 /**
- * Launch Facebook Login for Instagram (supports both Facebook and Instagram login)
+ * Launch Facebook Login for Instagram
+ * Uses redirect-based OAuth flow
  */
 export const launchInstagramSignup = (
-  callback: (response: FacebookAuthResponse) => void,
-  useInstagramAuth: boolean = false
+  callback?: (response: FacebookAuthResponse) => void
 ): void => {
-  if (!window.FB) {
-    console.error('Facebook SDK not initialized')
-    return
-  }
+  const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
+  const configId = process.env.NEXT_PUBLIC_FACEBOOK_APP_CONFIG_ID_INSTAGRAM
+  const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
+    `${window.location.origin}/instagram-redirect`
 
   const scope = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights,pages_show_list,pages_manage_metadata'
 
-  window.FB.login(
-    (response: FacebookAuthResponse) => {
-      callback(response)
-    },
-    {
-      response_type: 'code',
-      override_default_response_type: true,
-      scope: scope
-    }
-  )
+  // Build the OAuth URL for redirect-based flow
+  const oauthUrl = new URL('https://www.facebook.com/v22.0/dialog/oauth')
+  oauthUrl.searchParams.set('client_id', appId!)
+  oauthUrl.searchParams.set('redirect_uri', redirectUri)
+  oauthUrl.searchParams.set('scope', scope)
+  oauthUrl.searchParams.set('response_type', 'code')
+  if (configId) {
+    oauthUrl.searchParams.set('config_id', configId)
+  }
+
+  // Redirect to Facebook OAuth
+  window.location.href = oauthUrl.toString()
 }
 
 /**
