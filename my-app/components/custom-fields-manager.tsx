@@ -21,6 +21,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 
 interface CustomFieldFormData {
@@ -51,6 +61,9 @@ export default function CustomFieldsManager() {
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [fieldToDelete, setFieldToDelete] = useState<CustomField | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formData, setFormData] = useState<CustomFieldFormData>({
     name: '',
@@ -172,18 +185,26 @@ export default function CustomFieldsManager() {
     }
   };
 
-  const handleDelete = async (field: CustomField) => {
-    if (!confirm(`Are you sure you want to delete the custom field "${field.name}"?`)) {
-      return;
-    }
+  const openDeleteDialog = (field: CustomField) => {
+    setFieldToDelete(field);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!fieldToDelete) return;
 
     try {
-      await deleteCustomField(field.id);
+      setIsDeleting(true);
+      await deleteCustomField(fieldToDelete.id);
       toast.success('Custom field deleted successfully');
       refetch();
     } catch (error) {
       console.error('Error deleting custom field:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete custom field');
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setFieldToDelete(null);
     }
   };
 
@@ -308,7 +329,7 @@ export default function CustomFieldsManager() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(field)}
+                          onClick={() => openDeleteDialog(field)}
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
@@ -452,6 +473,35 @@ export default function CustomFieldsManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Custom Field</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the custom field &quot;{fieldToDelete?.name}&quot;?
+              This action cannot be undone and will remove this field from all contacts.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

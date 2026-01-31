@@ -108,6 +108,11 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
   // Manual selection state
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [contactSearch, setContactSearch] = useState("")
+  const [createdWhatsAppCampaignId, setCreatedWhatsAppCampaignId] = useState<string | null>(null)
+  const [previewMessages, setPreviewMessages] = useState<any[]>([])
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const [previewUpdatedAt, setPreviewUpdatedAt] = useState<string | null>(null)
 
   // CSV import state
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -168,6 +173,12 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       toast.error('Failed to load contacts')
     }
   }, [contactsError])
+
+  useEffect(() => {
+    setPreviewMessages([])
+    setPreviewError(null)
+    setPreviewUpdatedAt(null)
+  }, [selectedTemplate])
 
   const filteredContacts = contacts.filter((c: any) =>
     c.fullname?.toLowerCase().includes(contactSearch.toLowerCase()) ||
@@ -422,13 +433,14 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       const total = typeof recipients?.count === "number"
         ? recipients.count
         : Array.isArray(recipients)
-        ? recipients.length
-        : recipients?.results?.length || 0
+          ? recipients.length
+          : recipients?.results?.length || 0
 
       if (!total) {
         throw new Error("Cannot execute campaign with no recipients. Please add recipients first.")
       }
     }
+
 
     setSubmitting(true)
     try {
@@ -471,6 +483,8 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       if (!createdCampaign.whatsapp_campaign_id) {
         throw new Error("Campaign created but no WhatsApp campaign ID returned")
       }
+
+      setCreatedWhatsAppCampaignId(createdCampaign.whatsapp_campaign_id)
 
       // Step 2: Add recipients with parameters
       const shouldSendHeaderParams = templateHasMediaHeader && (templateRequiresHeaderParams || overrideMedia)
@@ -571,6 +585,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       )
 
       await ensureRecipientsExist(createdCampaign.whatsapp_campaign_id)
+      await loadPreviewMessages(3, createdCampaign.whatsapp_campaign_id)
 
       // Step 3: Execute or schedule based on launch option
       if (launchOption === "immediate") {
@@ -609,6 +624,37 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
     }
   }
 
+  const loadPreviewMessages = async (limit = 3, whatsappCampaignId?: string) => {
+    const campaignId = whatsappCampaignId || createdWhatsAppCampaignId
+    if (!campaignId || !organizationId) {
+      setPreviewMessages([])
+      setPreviewError("Create the WhatsApp campaign and add recipients to see a preview.")
+      setPreviewUpdatedAt(null)
+      return
+    }
+
+    setPreviewLoading(true)
+    try {
+      const data = await CampaignService.previewWhatsAppCampaignMessages(
+        campaignId,
+        organizationId,
+        limit
+      )
+
+      const fetchedPreviews = Array.isArray(data.previews) ? data.previews : []
+      setPreviewMessages(fetchedPreviews)
+      setPreviewError(null)
+      setPreviewUpdatedAt(new Date().toISOString())
+    } catch (error) {
+      console.error("Error loading campaign preview:", error)
+      const message = error instanceof Error ? error.message : "Failed to fetch campaign preview"
+      setPreviewError(message)
+      toast.error(message)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
   const renderStepIndicator = () => {
     return (
       <div className="flex items-center justify-center gap-2 mb-8">
@@ -627,13 +673,12 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
             <div key={step} className="flex items-center">
               <div className="flex flex-col items-center">
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-                    isCompleted
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${isCompleted
                       ? "border-green-500 bg-green-500 text-white"
                       : isCurrent
-                      ? "border-blue-500 bg-blue-500 text-white"
-                      : "border-gray-300 bg-white text-gray-400"
-                  }`}
+                        ? "border-blue-500 bg-blue-500 text-white"
+                        : "border-gray-300 bg-white text-gray-400"
+                    }`}
                 >
                   {isCompleted ? (
                     <CheckCircle2 className="h-5 w-5" />
@@ -642,18 +687,16 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
                   )}
                 </div>
                 <span
-                  className={`mt-2 text-xs font-medium ${
-                    isCurrent ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-400"
-                  }`}
+                  className={`mt-2 text-xs font-medium ${isCurrent ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-400"
+                    }`}
                 >
                   {stepLabels[step]}
                 </span>
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`mx-2 h-0.5 w-16 ${
-                    isCompleted ? "bg-green-500" : "bg-gray-300"
-                  }`}
+                  className={`mx-2 h-0.5 w-16 ${isCompleted ? "bg-green-500" : "bg-gray-300"
+                    }`}
                 />
               )}
             </div>
@@ -687,754 +730,809 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto px-1 -mx-1">
 
-        {/* Step 1: Campaign Details */}
-        {currentStep === "details" && (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-500" />
-                  Campaign Details
-                </CardTitle>
-                <CardDescription>
-                  Give your campaign a name and description
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">
-                    Campaign Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="e.g., Black Friday Promotion 2025"
-                    value={campaignName}
-                    onChange={(e) => setCampaignName(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (optional)</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="What is this campaign about?"
-                    value={campaignDescription}
-                    onChange={(e) => setCampaignDescription(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Channel: <strong>WhatsApp</strong> via {appService?.phone_number}
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Step 2: Template Selection */}
-        {currentStep === "template" && (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-purple-500" />
-                  Select Template
-                </CardTitle>
-                <CardDescription>
-                  Choose an approved WhatsApp template for your campaign
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {templatesLoading ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                    <p>Loading templates...</p>
+          {/* Step 1: Campaign Details */}
+          {currentStep === "details" && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-500" />
+                    Campaign Details
+                  </CardTitle>
+                  <CardDescription>
+                    Give your campaign a name and description
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">
+                      Campaign Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      placeholder="e.g., Black Friday Promotion 2025"
+                      value={campaignName}
+                      onChange={(e) => setCampaignName(e.target.value)}
+                    />
                   </div>
-                ) : templates.length === 0 ? (
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description (optional)</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="What is this campaign about?"
+                      value={campaignDescription}
+                      onChange={(e) => setCampaignDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <p className="font-medium mb-2">No templates found</p>
-                      <p>Please create and get WhatsApp templates approved first.</p>
+                      Channel: <strong>WhatsApp</strong> via {appService?.phone_number}
                     </AlertDescription>
                   </Alert>
-                ) : approvedTemplates.length === 0 ? (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <p className="font-medium mb-2">No approved templates</p>
-                      <p>You have {templates.length} template(s), but none are approved yet.</p>
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="max-h-[400px] overflow-y-auto pr-2 space-y-3">
-                    <div className="grid gap-3">
-                      {approvedTemplates.map((template) => (
-                        <Card
-                          key={template.id}
-                          className={`cursor-pointer transition-all ${
-                            selectedTemplate === template.id
-                              ? "border-blue-500 border-2 bg-blue-50"
-                              : "hover:border-gray-300"
-                          }`}
-                          onClick={() => setSelectedTemplate(template.id)}
-                        >
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <CardTitle className="text-base">{template.name}</CardTitle>
-                                <CardDescription className="mt-1">
-                                  {template.category} • {template.language}
-                              </CardDescription>
-                            </div>
-                            <div className="flex gap-2">
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                {template.status}
-                              </Badge>
-                              {selectedTemplate === template.id && (
-                                <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                              )}
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </Card>
-                    ))}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Step 2: Template Selection */}
+          {currentStep === "template" && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-purple-500" />
+                    Select Template
+                  </CardTitle>
+                  <CardDescription>
+                    Choose an approved WhatsApp template for your campaign
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {templatesLoading ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                      <p>Loading templates...</p>
                     </div>
-                  </div>
-                )}
-
-                {/* Media Upload Section */}
-                {selectedTemplate && templateHasMediaHeader && (
-                  <div className="mt-4 space-y-4 pt-4 border-t">
-                    <div className="flex items-center gap-2">
-                      <ImageIcon className="h-5 w-5 text-orange-500" />
-                      <Label className="text-base font-semibold">
-                        {mediaHeaderType} Upload Required
-                      </Label>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      By default, the template&apos;s approved media will be used. Turn on override to send a different file.
-                    </p>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="override-media"
-                        className="h-4 w-4 rounded border-gray-300"
-                        checked={overrideMedia}
-                        onChange={(e) => {
-                          setOverrideMedia(e.target.checked)
-                          if (!e.target.checked) {
-                            setSingleMediaUrl("")
-                            setSingleMediaFile(null)
-                            setMediaUploadMode("single")
-                          }
-                        }}
-                      />
-                      <Label htmlFor="override-media" className="cursor-pointer">
-                        Override template media for this campaign
-                      </Label>
-                    </div>
-
-                    {overrideMedia && (
-                      <>
-                        <RadioGroup value={mediaUploadMode} onValueChange={(value: any) => setMediaUploadMode(value)}>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="single" id="single-media" />
-                            <Label htmlFor="single-media" className="cursor-pointer">
-                              Use the same {mediaHeaderType?.toLowerCase()} for all recipients
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="per_recipient" id="per-recipient-media" />
-                            <Label htmlFor="per-recipient-media" className="cursor-pointer">
-                              Use different {mediaHeaderType?.toLowerCase()} per recipient
-                            </Label>
-                          </div>
-                        </RadioGroup>
-
-                        {mediaUploadMode === "single" && (
-                          <div className="space-y-2">
-                            <Label className="flex items-center gap-2">
-                              {mediaHeaderType} File <span className="text-red-500">*</span>
-                            </Label>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => mediaFileInputRef.current?.click()}
-                                disabled={isUploadingMedia}
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                {singleMediaFile ? "Replace File" : "Upload File"}
-                              </Button>
-                              {singleMediaFile && (
-                                <span className="text-sm text-muted-foreground truncate">
-                                  {singleMediaFile.name}
-                                </span>
-                              )}
-                            </div>
-                            <input
-                              ref={mediaFileInputRef}
-                              type="file"
-                              accept={getAcceptForMediaHeader()}
-                              className="hidden"
-                              onChange={handleSingleMediaFile}
-                            />
-                            <Input
-                              id="media-url"
-                              type="text"
-                              placeholder="Or paste an existing media URL or handle"
-                              value={singleMediaUrl}
-                              onChange={(e) => setSingleMediaUrl(e.target.value)}
-                              disabled={isUploadingMedia}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              You can upload once to get a Meta media handle, or paste an existing handle/URL.
-                            </p>
-                          </div>
-                        )}
-
-                        {mediaUploadMode === "per_recipient" && (
-                          <Alert className="bg-blue-50 border-blue-200">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              You&apos;ll be able to specify a {mediaHeaderType?.toLowerCase()} URL for each recipient in the next step
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Parameter Inputs */}
-                {selectedTemplate && !templateHasMediaHeader && (
-                  <div className="mt-4 space-y-3 pt-4 border-t">
-                    <Label>Template Parameters</Label>
-                    <div className="space-y-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="param1" className="text-sm">Customer Name</Label>
-                        <Input
-                          id="param1"
-                          placeholder="e.g., {{1}}"
-                          value={parameters.name || ""}
-                          onChange={(e) => setParameters({ ...parameters, name: e.target.value })}
-                        />
+                  ) : templates.length === 0 ? (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="font-medium mb-2">No templates found</p>
+                        <p>Please create and get WhatsApp templates approved first.</p>
+                      </AlertDescription>
+                    </Alert>
+                  ) : approvedTemplates.length === 0 ? (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="font-medium mb-2">No approved templates</p>
+                        <p>You have {templates.length} template(s), but none are approved yet.</p>
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <div className="max-h-[400px] overflow-y-auto pr-2 space-y-3">
+                      <div className="grid gap-3">
+                        {approvedTemplates.map((template) => (
+                          <Card
+                            key={template.id}
+                            className={`cursor-pointer transition-all ${selectedTemplate === template.id
+                                ? "border-blue-500 border-2 bg-blue-50"
+                                : "hover:border-gray-300"
+                              }`}
+                            onClick={() => setSelectedTemplate(template.id)}
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <CardTitle className="text-base">{template.name}</CardTitle>
+                                  <CardDescription className="mt-1">
+                                    {template.category} • {template.language}
+                                  </CardDescription>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                    {template.status}
+                                  </Badge>
+                                  {selectedTemplate === template.id && (
+                                    <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                                  )}
+                                </div>
+                              </div>
+                            </CardHeader>
+                          </Card>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                  )}
 
-        {/* Step 3: Audience Selection */}
-        {currentStep === "audience" && (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-orange-500" />
-                  Select Audience
-                </CardTitle>
-                <CardDescription>
-                  Choose who will receive this campaign
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <RadioGroup value={audienceType} onValueChange={(value: any) => setAudienceType(value)}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="segment" id="segment" />
-                    <Label htmlFor="segment" className="cursor-pointer">
-                      Use Saved Segment
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="manual" id="manual" />
-                    <Label htmlFor="manual" className="cursor-pointer">
-                      Select Contacts Manually
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="csv" id="csv" />
-                    <Label htmlFor="csv" className="cursor-pointer">
-                      Import from CSV
-                    </Label>
-                  </div>
-                </RadioGroup>
+                  {/* Media Upload Section */}
+                  {selectedTemplate && templateHasMediaHeader && (
+                    <div className="mt-4 space-y-4 pt-4 border-t">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-5 w-5 text-orange-500" />
+                        <Label className="text-base font-semibold">
+                          {mediaHeaderType} Upload Required
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        By default, the template&apos;s approved media will be used. Turn on override to send a different file.
+                      </p>
 
-                {templateHasMediaHeader && mediaUploadMode === "per_recipient" && audienceType !== "manual" && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-sm">
-                      Per-recipient media requires manual contact selection. Switch audience to Manual or change the media option to use a single file for everyone.
-                    </AlertDescription>
-                  </Alert>
-                )}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="override-media"
+                          className="h-4 w-4 rounded border-gray-300"
+                          checked={overrideMedia}
+                          onChange={(e) => {
+                            setOverrideMedia(e.target.checked)
+                            if (!e.target.checked) {
+                              setSingleMediaUrl("")
+                              setSingleMediaFile(null)
+                              setMediaUploadMode("single")
+                            }
+                          }}
+                        />
+                        <Label htmlFor="override-media" className="cursor-pointer">
+                          Override template media for this campaign
+                        </Label>
+                      </div>
 
-                {audienceType === "segment" && (
-                  <div className="space-y-2 pt-2">
-                    <Label>Choose Tag/Segment</Label>
-                    <Select value={selectedSegment} onValueChange={setSelectedSegment}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a tag" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tagsLoading ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            Loading tags...
-                          </div>
-                        ) : tags.length === 0 ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            No tags found. Create tags first.
-                          </div>
-                        ) : (
-                          tags.map((tag: any) => (
-                            <SelectItem key={tag.id} value={tag.id.toString()}>
-                              <div className="flex items-center justify-between w-full">
-                                <span>{tag.name}</span>
-                                {tag.contact_count !== undefined && (
-                                  <Badge variant="secondary" className="ml-2">
-                                    {tag.contact_count.toLocaleString()} contacts
-                                  </Badge>
+                      {overrideMedia && (
+                        <>
+                          <RadioGroup value={mediaUploadMode} onValueChange={(value: any) => setMediaUploadMode(value)}>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="single" id="single-media" />
+                              <Label htmlFor="single-media" className="cursor-pointer">
+                                Use the same {mediaHeaderType?.toLowerCase()} for all recipients
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="per_recipient" id="per-recipient-media" />
+                              <Label htmlFor="per-recipient-media" className="cursor-pointer">
+                                Use different {mediaHeaderType?.toLowerCase()} per recipient
+                              </Label>
+                            </div>
+                          </RadioGroup>
+
+                          {mediaUploadMode === "single" && (
+                            <div className="space-y-2">
+                              <Label className="flex items-center gap-2">
+                                {mediaHeaderType} File <span className="text-red-500">*</span>
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => mediaFileInputRef.current?.click()}
+                                  disabled={isUploadingMedia}
+                                >
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  {singleMediaFile ? "Replace File" : "Upload File"}
+                                </Button>
+                                {singleMediaFile && (
+                                  <span className="text-sm text-muted-foreground truncate">
+                                    {singleMediaFile.name}
+                                  </span>
                                 )}
                               </div>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-
-                    {selectedSegmentData && (
-                      <Alert className="mt-3">
-                        <Target className="h-4 w-4" />
-                        <AlertDescription>
-                          {selectedSegmentData.contact_count !== undefined ? (
-                            <>
-                              <strong>{selectedSegmentData.contact_count.toLocaleString()}</strong> contacts in &quot;{selectedSegmentData.name}&quot;
-                            </>
-                          ) : (
-                            <>Tag: <strong>{selectedSegmentData.name}</strong></>
+                              <input
+                                ref={mediaFileInputRef}
+                                type="file"
+                                accept={getAcceptForMediaHeader()}
+                                className="hidden"
+                                onChange={handleSingleMediaFile}
+                              />
+                              <Input
+                                id="media-url"
+                                type="text"
+                                placeholder="Or paste an existing media URL or handle"
+                                value={singleMediaUrl}
+                                onChange={(e) => setSingleMediaUrl(e.target.value)}
+                                disabled={isUploadingMedia}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                You can upload once to get a Meta media handle, or paste an existing handle/URL.
+                              </p>
+                            </div>
                           )}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                )}
 
-                {audienceType === "manual" && (
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Select Contacts</Label>
-                      <Badge variant="secondary">
-                        {selectedContacts.length} selected
-                      </Badge>
+                          {mediaUploadMode === "per_recipient" && (
+                            <Alert className="bg-blue-50 border-blue-200">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription>
+                                You&apos;ll be able to specify a {mediaHeaderType?.toLowerCase()} URL for each recipient in the next step
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </>
+                      )}
                     </div>
+                  )}
 
-                    <Input
-                      placeholder="Search contacts by name or phone..."
-                      value={contactSearch}
-                      onChange={(e) => setContactSearch(e.target.value)}
-                    />
-
-                    <div className="max-h-[300px] overflow-y-auto border rounded-lg">
-                      {contactsLoading ? (
-                        <div className="p-8 text-center">
-                          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">Loading contacts...</p>
+                  {/* Parameter Inputs */}
+                  {selectedTemplate && !templateHasMediaHeader && (
+                    <div className="mt-4 space-y-3 pt-4 border-t">
+                      <Label>Template Parameters</Label>
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          <Label htmlFor="param1" className="text-sm">Customer Name</Label>
+                          <Input
+                            id="param1"
+                            placeholder="e.g., {{1}}"
+                            value={parameters.name || ""}
+                            onChange={(e) => setParameters({ ...parameters, name: e.target.value })}
+                          />
                         </div>
-                      ) : filteredContacts.length === 0 ? (
-                        <div className="p-4 text-center text-muted-foreground">
-                          {contactSearch ? "No contacts match your search" : "No contacts found"}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Step 3: Audience Selection */}
+          {currentStep === "audience" && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-orange-500" />
+                    Select Audience
+                  </CardTitle>
+                  <CardDescription>
+                    Choose who will receive this campaign
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <RadioGroup value={audienceType} onValueChange={(value: any) => setAudienceType(value)}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="segment" id="segment" />
+                      <Label htmlFor="segment" className="cursor-pointer">
+                        Use Saved Segment
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="manual" id="manual" />
+                      <Label htmlFor="manual" className="cursor-pointer">
+                        Select Contacts Manually
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="csv" id="csv" />
+                      <Label htmlFor="csv" className="cursor-pointer">
+                        Import from CSV
+                      </Label>
+                    </div>
+                  </RadioGroup>
+
+                  {templateHasMediaHeader && mediaUploadMode === "per_recipient" && audienceType !== "manual" && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-sm">
+                        Per-recipient media requires manual contact selection. Switch audience to Manual or change the media option to use a single file for everyone.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {audienceType === "segment" && (
+                    <div className="space-y-2 pt-2">
+                      <Label>Choose Tag/Segment</Label>
+                      <Select value={selectedSegment} onValueChange={setSelectedSegment}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a tag" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tagsLoading ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              Loading tags...
+                            </div>
+                          ) : tags.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              No tags found. Create tags first.
+                            </div>
+                          ) : (
+                            tags.map((tag: any) => (
+                              <SelectItem key={tag.id} value={tag.id.toString()}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{tag.name}</span>
+                                  {tag.contact_count !== undefined && (
+                                    <Badge variant="secondary" className="ml-2">
+                                      {tag.contact_count.toLocaleString()} contacts
+                                    </Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+
+                      {selectedSegmentData && (
+                        <Alert className="mt-3">
+                          <Target className="h-4 w-4" />
+                          <AlertDescription>
+                            {selectedSegmentData.contact_count !== undefined ? (
+                              <>
+                                <strong>{selectedSegmentData.contact_count.toLocaleString()}</strong> contacts in &quot;{selectedSegmentData.name}&quot;
+                              </>
+                            ) : (
+                              <>Tag: <strong>{selectedSegmentData.name}</strong></>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  )}
+
+                  {audienceType === "manual" && (
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Select Contacts</Label>
+                        <Badge variant="secondary">
+                          {selectedContacts.length} selected
+                        </Badge>
+                      </div>
+
+                      <Input
+                        placeholder="Search contacts by name or phone..."
+                        value={contactSearch}
+                        onChange={(e) => setContactSearch(e.target.value)}
+                      />
+
+                      <div className="max-h-[300px] overflow-y-auto border rounded-lg">
+                        {contactsLoading ? (
+                          <div className="p-8 text-center">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">Loading contacts...</p>
+                          </div>
+                        ) : filteredContacts.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            {contactSearch ? "No contacts match your search" : "No contacts found"}
+                          </div>
+                        ) : (
+                          <div className="divide-y">
+                            {filteredContacts.map((contact: any) => (
+                              <div
+                                key={contact.id}
+                                className="p-3 space-y-2"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedContacts.includes(contact.id)}
+                                    onChange={() => toggleContact(contact.id)}
+                                    className="h-4 w-4 rounded border-gray-300"
+                                  />
+                                  <div className="flex-1">
+                                    <p className="font-medium">{contact.fullname || contact.name || "Unknown"}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {contact.phone || "No phone"} {contact.email && `• ${contact.email}`}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Per-recipient media URL input */}
+                                {selectedContacts.includes(contact.id) &&
+                                  templateHasMediaHeader &&
+                                  mediaUploadMode === "per_recipient" && (
+                                    <div className="ml-7 space-y-1">
+                                      <Label htmlFor={`media-${contact.id}`} className="text-xs">
+                                        {mediaHeaderType} URL for this contact <span className="text-red-500">*</span>
+                                      </Label>
+                                      <Input
+                                        id={`media-${contact.id}`}
+                                        type="url"
+                                        placeholder={`https://example.com/${mediaHeaderType?.toLowerCase()}.jpg`}
+                                        value={perRecipientMedia[contact.id] || ""}
+                                        onChange={(e) => handleMediaUrlChange(contact.id, e.target.value)}
+                                        className="h-9 text-sm"
+                                      />
+                                    </div>
+                                  )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedContacts.length > 0 && (
+                        <Alert>
+                          <Users className="h-4 w-4" />
+                          <AlertDescription>
+                            <strong>{selectedContacts.length}</strong> contact(s) selected
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  )}
+
+                  {audienceType === "csv" && (
+                    <div className="space-y-3 pt-2">
+                      <Label>Upload CSV File</Label>
+
+                      {!csvFile ? (
+                        <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                          <Input
+                            type="file"
+                            accept=".csv"
+                            onChange={handleCsvUpload}
+                            className="hidden"
+                            id="csv-upload"
+                          />
+                          <label htmlFor="csv-upload" className="cursor-pointer">
+                            <div className="flex flex-col items-center gap-2">
+                              <Upload className="h-8 w-8 text-muted-foreground" />
+                              <p className="font-medium">Click to upload CSV</p>
+                              <p className="text-sm text-muted-foreground">
+                                CSV file with contact information
+                              </p>
+                            </div>
+                          </label>
                         </div>
                       ) : (
-                        <div className="divide-y">
-                          {filteredContacts.map((contact: any) => (
-                            <div
-                              key={contact.id}
-                              className="p-3 space-y-2"
-                            >
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedContacts.includes(contact.id)}
-                                  onChange={() => toggleContact(contact.id)}
-                                  className="h-4 w-4 rounded border-gray-300"
-                                />
-                                <div className="flex-1">
-                                  <p className="font-medium">{contact.fullname || contact.name || "Unknown"}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {contact.phone || "No phone"} {contact.email && `• ${contact.email}`}
+                        <div className="space-y-3">
+                          <Alert>
+                            <FileText className="h-4 w-4" />
+                            <AlertDescription>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium">{csvFile.name}</p>
+                                  <p className="text-sm">
+                                    {csvContactCount} contact(s) found
                                   </p>
                                 </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setCsvFile(null)
+                                    setCsvData([])
+                                    setCsvContactCount(0)
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
                               </div>
+                            </AlertDescription>
+                          </Alert>
 
-                              {/* Per-recipient media URL input */}
-                              {selectedContacts.includes(contact.id) &&
-                               templateHasMediaHeader &&
-                               mediaUploadMode === "per_recipient" && (
-                                <div className="ml-7 space-y-1">
-                                  <Label htmlFor={`media-${contact.id}`} className="text-xs">
-                                    {mediaHeaderType} URL for this contact <span className="text-red-500">*</span>
-                                  </Label>
-                                  <Input
-                                    id={`media-${contact.id}`}
-                                    type="url"
-                                    placeholder={`https://example.com/${mediaHeaderType?.toLowerCase()}.jpg`}
-                                    value={perRecipientMedia[contact.id] || ""}
-                                    onChange={(e) => handleMediaUrlChange(contact.id, e.target.value)}
-                                    className="h-9 text-sm"
-                                  />
-                                </div>
-                              )}
+                          {csvData.length > 0 && (
+                            <div className="border rounded-lg p-4 max-h-[200px] overflow-y-auto">
+                              <p className="text-sm font-medium mb-2">Preview:</p>
+                              <div className="space-y-1">
+                                {csvData.slice(0, 5).map((row, index) => (
+                                  <div key={index} className="text-sm text-muted-foreground">
+                                    {Object.values(row).join(', ')}
+                                  </div>
+                                ))}
+                                {csvData.length > 5 && (
+                                  <p className="text-sm text-muted-foreground italic">
+                                    ... and {csvData.length - 5} more
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                          ))}
+                          )}
                         </div>
                       )}
                     </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-                    {selectedContacts.length > 0 && (
-                      <Alert>
-                        <Users className="h-4 w-4" />
-                        <AlertDescription>
-                          <strong>{selectedContacts.length}</strong> contact(s) selected
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                )}
-
-                {audienceType === "csv" && (
-                  <div className="space-y-3 pt-2">
-                    <Label>Upload CSV File</Label>
-
-                    {!csvFile ? (
-                      <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                        <Input
-                          type="file"
-                          accept=".csv"
-                          onChange={handleCsvUpload}
-                          className="hidden"
-                          id="csv-upload"
-                        />
-                        <label htmlFor="csv-upload" className="cursor-pointer">
-                          <div className="flex flex-col items-center gap-2">
-                            <Upload className="h-8 w-8 text-muted-foreground" />
-                            <p className="font-medium">Click to upload CSV</p>
-                            <p className="text-sm text-muted-foreground">
-                              CSV file with contact information
-                            </p>
-                          </div>
-                        </label>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <Alert>
-                          <FileText className="h-4 w-4" />
-                          <AlertDescription>
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium">{csvFile.name}</p>
-                                <p className="text-sm">
-                                  {csvContactCount} contact(s) found
-                                </p>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setCsvFile(null)
-                                  setCsvData([])
-                                  setCsvContactCount(0)
-                                }}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </AlertDescription>
-                        </Alert>
-
-                        {csvData.length > 0 && (
-                          <div className="border rounded-lg p-4 max-h-[200px] overflow-y-auto">
-                            <p className="text-sm font-medium mb-2">Preview:</p>
-                            <div className="space-y-1">
-                              {csvData.slice(0, 5).map((row, index) => (
-                                <div key={index} className="text-sm text-muted-foreground">
-                                  {Object.values(row).join(', ')}
-                                </div>
-                              ))}
-                              {csvData.length > 5 && (
-                                <p className="text-sm text-muted-foreground italic">
-                                  ... and {csvData.length - 5} more
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Step 4: Launch Options */}
-        {currentStep === "schedule" && (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Rocket className="h-5 w-5 text-green-500" />
-                  Launch Options
-                </CardTitle>
-                <CardDescription>
-                  Choose when to launch your campaign (required before review)
+          {selectedTemplate && (
+            <Card className="border-border/60 bg-muted/30">
+              <CardHeader className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold">WhatsApp Preview</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => loadPreviewMessages()}
+                    disabled={previewLoading || !createdWhatsAppCampaignId}
+                  >
+                    {previewLoading ? "Refreshing..." : "Refresh preview"}
+                  </Button>
+                </div>
+                <CardDescription className="text-xs">
+                  See how your template renders for the latest recipients.
+                  {previewUpdatedAt && (
+                    <> Updated {new Date(previewUpdatedAt).toLocaleTimeString()}.</>
+                  )}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  {/* Save as Draft */}
-                  <Card
-                    className={`cursor-pointer transition-all ${
-                      launchOption === "draft"
-                        ? "border-blue-500 border-2 bg-blue-50"
-                        : "hover:border-gray-300"
-                    }`}
-                    onClick={() => setLaunchOption("draft")}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-                          <Save className="h-6 w-6 text-gray-600" />
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-base">Save as Draft</CardTitle>
-                          <CardDescription>
-                            Save campaign without sending. Launch it later from the campaigns page.
-                          </CardDescription>
-                        </div>
-                        {launchOption === "draft" && (
-                          <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                        )}
-                      </div>
-                    </CardHeader>
-                  </Card>
-
-                  {/* Launch Immediately */}
-                  <Card
-                    className={`cursor-pointer transition-all ${
-                      launchOption === "immediate"
-                        ? "border-blue-500 border-2 bg-blue-50"
-                        : "hover:border-gray-300"
-                    }`}
-                    onClick={() => setLaunchOption("immediate")}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                          <Send className="h-6 w-6 text-green-600" />
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-base">Launch Immediately</CardTitle>
-                          <CardDescription>
-                            Start sending messages right away
-                          </CardDescription>
-                        </div>
-                        {launchOption === "immediate" && (
-                          <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                        )}
-                      </div>
-                    </CardHeader>
-                  </Card>
-
-                  {/* Schedule for Later */}
-                  <Card
-                    className={`cursor-pointer transition-all ${
-                      launchOption === "scheduled"
-                        ? "border-blue-500 border-2 bg-blue-50"
-                        : "hover:border-gray-300"
-                    }`}
-                    onClick={() => setLaunchOption("scheduled")}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-                          <Clock className="h-6 w-6 text-orange-600" />
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-base">Schedule for Later</CardTitle>
-                          <CardDescription>
-                            Choose a specific date and time to launch
-                          </CardDescription>
-                        </div>
-                        {launchOption === "scheduled" && (
-                          <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                        )}
-                      </div>
-                    </CardHeader>
-
-                    {launchOption === "scheduled" && (
-                      <CardContent className="space-y-3 pt-0">
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="date">
-                              Date <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                              id="date"
-                              type="date"
-                              value={scheduledDate}
-                              onChange={(e) => setScheduledDate(e.target.value)}
-                              min={new Date().toISOString().split('T')[0]}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="time">
-                              Time <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                              id="time"
-                              type="time"
-                              value={scheduledTime}
-                              onChange={(e) => setScheduledTime(e.target.value)}
-                            />
-                          </div>
-                        </div>
-
-                        {scheduledDate && scheduledTime && (
-                          <Alert>
-                            <Calendar className="h-4 w-4" />
-                            <AlertDescription>
-                              Campaign will launch on <strong>{scheduledDate}</strong> at <strong>{scheduledTime}</strong>
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </CardContent>
-                    )}
-                  </Card>
-                </div>
-
-                {!launchOption && (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-sm">
-                      Select a launch option to continue to review.
+              <CardContent className="space-y-3">
+                {previewError && (
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <AlertDescription className="text-xs text-amber-700">
+                      {previewError}
                     </AlertDescription>
                   </Alert>
                 )}
+
+                {previewMessages.length === 0 && !previewLoading && !previewError && (
+                  <p className="text-xs text-muted-foreground">
+                    Add recipients to the campaign and refresh to view how the template looks for them.
+                  </p>
+                )}
+
+                {previewMessages.map((preview, index) => (
+                  <Card key={`${preview.recipient?.phone || index}-${index}`} className="bg-white border">
+                    <CardContent className="p-3 space-y-2">
+                      <div className="text-xs text-muted-foreground">Recipient</div>
+                      <div className="text-sm font-semibold">
+                        {preview.recipient?.fullname || preview.recipient?.phone || `Recipient ${index + 1}`}
+                      </div>
+                      {preview.recipient?.phone && (
+                        <div className="text-xs text-muted-foreground">{preview.recipient.phone}</div>
+                      )}
+                      <div className="border-t border-border/30 pt-2">
+                        <div className="text-xs text-muted-foreground">Message preview</div>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {preview.message?.formatted_preview || preview.message?.body || "Preview unavailable"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </CardContent>
             </Card>
-          </div>
-        )}
+          )}
 
-        {/* Step 5: Review */}
-        {currentStep === "review" && (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                  Review Campaign
-                </CardTitle>
-                <CardDescription>
-                  Review your campaign details before creating
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between border-b pb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Campaign Name</span>
-                    <span className="text-sm font-medium">{campaignName}</span>
+          {/* Step 4: Launch Options */}
+          {currentStep === "schedule" && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Rocket className="h-5 w-5 text-green-500" />
+                    Launch Options
+                  </CardTitle>
+                  <CardDescription>
+                    Choose when to launch your campaign (required before review)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4">
+                    {/* Save as Draft */}
+                    <Card
+                      className={`cursor-pointer transition-all ${launchOption === "draft"
+                          ? "border-blue-500 border-2 bg-blue-50"
+                          : "hover:border-gray-300"
+                        }`}
+                      onClick={() => setLaunchOption("draft")}
+                    >
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                            <Save className="h-6 w-6 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <CardTitle className="text-base">Save as Draft</CardTitle>
+                            <CardDescription>
+                              Save campaign without sending. Launch it later from the campaigns page.
+                            </CardDescription>
+                          </div>
+                          {launchOption === "draft" && (
+                            <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                          )}
+                        </div>
+                      </CardHeader>
+                    </Card>
+
+                    {/* Launch Immediately */}
+                    <Card
+                      className={`cursor-pointer transition-all ${launchOption === "immediate"
+                          ? "border-blue-500 border-2 bg-blue-50"
+                          : "hover:border-gray-300"
+                        }`}
+                      onClick={() => setLaunchOption("immediate")}
+                    >
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                            <Send className="h-6 w-6 text-green-600" />
+                          </div>
+                          <div className="flex-1">
+                            <CardTitle className="text-base">Launch Immediately</CardTitle>
+                            <CardDescription>
+                              Start sending messages right away
+                            </CardDescription>
+                          </div>
+                          {launchOption === "immediate" && (
+                            <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                          )}
+                        </div>
+                      </CardHeader>
+                    </Card>
+
+                    {/* Schedule for Later */}
+                    <Card
+                      className={`cursor-pointer transition-all ${launchOption === "scheduled"
+                          ? "border-blue-500 border-2 bg-blue-50"
+                          : "hover:border-gray-300"
+                        }`}
+                      onClick={() => setLaunchOption("scheduled")}
+                    >
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                            <Clock className="h-6 w-6 text-orange-600" />
+                          </div>
+                          <div className="flex-1">
+                            <CardTitle className="text-base">Schedule for Later</CardTitle>
+                            <CardDescription>
+                              Choose a specific date and time to launch
+                            </CardDescription>
+                          </div>
+                          {launchOption === "scheduled" && (
+                            <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                          )}
+                        </div>
+                      </CardHeader>
+
+                      {launchOption === "scheduled" && (
+                        <CardContent className="space-y-3 pt-0">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="date">
+                                Date <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="date"
+                                type="date"
+                                value={scheduledDate}
+                                onChange={(e) => setScheduledDate(e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="time">
+                                Time <span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="time"
+                                type="time"
+                                value={scheduledTime}
+                                onChange={(e) => setScheduledTime(e.target.value)}
+                              />
+                            </div>
+                          </div>
+
+                          {scheduledDate && scheduledTime && (
+                            <Alert>
+                              <Calendar className="h-4 w-4" />
+                              <AlertDescription>
+                                Campaign will launch on <strong>{scheduledDate}</strong> at <strong>{scheduledTime}</strong>
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </CardContent>
+                      )}
+                    </Card>
                   </div>
 
-                  {campaignDescription && (
-                    <div className="flex items-start justify-between border-b pb-2">
-                      <span className="text-sm font-medium text-muted-foreground">Description</span>
-                      <span className="text-sm font-medium max-w-xs text-right">{campaignDescription}</span>
-                    </div>
+                  {!launchOption && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-sm">
+                        Select a launch option to continue to review.
+                      </AlertDescription>
+                    </Alert>
                   )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-                  <div className="flex items-start justify-between border-b pb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Template</span>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">{selectedTemplateData?.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedTemplateData?.category} • {selectedTemplateData?.language}
-                      </p>
-                    </div>
-                  </div>
-
-                  {templateHasMediaHeader && (
+          {/* Step 5: Review */}
+          {currentStep === "review" && (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500" />
+                    Review Campaign
+                  </CardTitle>
+                  <CardDescription>
+                    Review your campaign details before creating
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-start justify-between border-b pb-2">
-                      <span className="text-sm font-medium text-muted-foreground">Media</span>
+                      <span className="text-sm font-medium text-muted-foreground">Campaign Name</span>
+                      <span className="text-sm font-medium">{campaignName}</span>
+                    </div>
+
+                    {campaignDescription && (
+                      <div className="flex items-start justify-between border-b pb-2">
+                        <span className="text-sm font-medium text-muted-foreground">Description</span>
+                        <span className="text-sm font-medium max-w-xs text-right">{campaignDescription}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-start justify-between border-b pb-2">
+                      <span className="text-sm font-medium text-muted-foreground">Template</span>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{selectedTemplateData?.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedTemplateData?.category} • {selectedTemplateData?.language}
+                        </p>
+                      </div>
+                    </div>
+
+                    {templateHasMediaHeader && (
+                      <div className="flex items-start justify-between border-b pb-2">
+                        <span className="text-sm font-medium text-muted-foreground">Media</span>
+                        <span className="text-sm font-medium">
+                          {mediaUploadMode === "single"
+                            ? `Single ${mediaHeaderType} for all`
+                            : `Different ${mediaHeaderType} per recipient`}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-start justify-between border-b pb-2">
+                      <span className="text-sm font-medium text-muted-foreground">Audience</span>
                       <span className="text-sm font-medium">
-                        {mediaUploadMode === "single"
-                          ? `Single ${mediaHeaderType} for all`
-                          : `Different ${mediaHeaderType} per recipient`}
+                        {audienceType === "segment" && selectedSegmentData
+                          ? `${selectedSegmentData.name}${selectedSegmentData.contact_count !== undefined ? ` (${selectedSegmentData.contact_count} contacts)` : ''}`
+                          : audienceType === "manual"
+                            ? `Manual Selection (${selectedContacts.length} contacts)`
+                            : audienceType === "csv"
+                              ? `CSV Import (${csvContactCount} contacts)`
+                              : "Not selected"}
                       </span>
                     </div>
-                  )}
 
-                  <div className="flex items-start justify-between border-b pb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Audience</span>
-                    <span className="text-sm font-medium">
-                      {audienceType === "segment" && selectedSegmentData
-                        ? `${selectedSegmentData.name}${selectedSegmentData.contact_count !== undefined ? ` (${selectedSegmentData.contact_count} contacts)` : ''}`
-                        : audienceType === "manual"
-                        ? `Manual Selection (${selectedContacts.length} contacts)`
-                        : audienceType === "csv"
-                        ? `CSV Import (${csvContactCount} contacts)`
-                        : "Not selected"}
-                    </span>
+                    <div className="flex items-start justify-between border-b pb-2">
+                      <span className="text-sm font-medium text-muted-foreground">Launch</span>
+                      <span className="text-sm font-medium">
+                        {launchOption === "draft"
+                          ? "Save as Draft"
+                          : launchOption === "immediate"
+                            ? "Launch Immediately"
+                            : launchOption === "scheduled"
+                              ? (scheduledDate && scheduledTime
+                                ? `Schedule: ${scheduledDate} at ${scheduledTime}`
+                                : "Schedule: date/time missing")
+                              : "Not selected"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-start justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Estimated Recipients</span>
+                      <span className="text-sm font-medium">
+                        {selectedSegmentData
+                          ? (selectedSegmentData.contact_count !== undefined ? selectedSegmentData.contact_count : "Unknown")
+                          : audienceType === "manual"
+                            ? selectedContacts.length
+                            : csvContactCount}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-start justify-between border-b pb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Launch</span>
-                    <span className="text-sm font-medium">
-                      {launchOption === "draft"
-                        ? "Save as Draft"
-                        : launchOption === "immediate"
-                        ? "Launch Immediately"
-                        : launchOption === "scheduled"
-                        ? (scheduledDate && scheduledTime
-                          ? `Schedule: ${scheduledDate} at ${scheduledTime}`
-                          : "Schedule: date/time missing")
-                        : "Not selected"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-start justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Estimated Recipients</span>
-                    <span className="text-sm font-medium">
-                      {selectedSegmentData
-                        ? (selectedSegmentData.contact_count !== undefined ? selectedSegmentData.contact_count : "Unknown")
-                        : audienceType === "manual"
-                        ? selectedContacts.length
-                        : csvContactCount}
-                    </span>
-                  </div>
-                </div>
-
-                <Alert>
-                  <CheckCircle2 className="h-4 w-4" />
-                  <AlertDescription>
-                    {launchOption
-                      ? <>Everything looks good! Click &quot;{launchOption === "draft" ? "Save Campaign" : launchOption === "immediate" ? "Launch Campaign" : "Schedule Campaign"}&quot; to finalize.</>
-                      : "Choose a launch option to finish."}
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                  <Alert>
+                    <CheckCircle2 className="h-4 w-4" />
+                    <AlertDescription>
+                      {launchOption
+                        ? <>Everything looks good! Click &quot;{launchOption === "draft" ? "Save Campaign" : launchOption === "immediate" ? "Launch Campaign" : "Schedule Campaign"}&quot; to finalize.</>
+                        : "Choose a launch option to finish."}
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
 
         {/* Navigation Buttons - Fixed at bottom */}
@@ -1466,23 +1564,50 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
                   !launchOption ||
                   (launchOption === "scheduled" && (!scheduledDate || !scheduledTime))
                 }
+                className={`transform transition-all duration-200 relative overflow-hidden ${submitting ? 'bg-blue-600 hover:bg-blue-600' : ''}`}
               >
-                {submitting ? (
-                  "Processing..."
-                ) : (
+                {/* Liquid Charging Effect */}
+                {submitting && (
                   <>
-                    {launchOption === "draft" && <Save className="mr-2 h-4 w-4" />}
-                    {launchOption === "immediate" && <Send className="mr-2 h-4 w-4" />}
-                    {launchOption === "scheduled" && <Clock className="mr-2 h-4 w-4" />}
-                    {!launchOption
-                      ? "Select Launch Option"
-                      : launchOption === "draft"
-                      ? "Save Campaign"
-                      : launchOption === "immediate"
-                      ? "Launch Campaign"
-                      : "Schedule Campaign"}
+                    <div
+                      className="absolute left-0 top-0 bottom-0 bg-white/30 z-0"
+                      style={{
+                        width: '100%',
+                        transformOrigin: 'left',
+                        animation: 'liquid-charge 2s cubic-bezier(0.4, 0, 0.2, 1) infinite'
+                      }}
+                    />
+                    <style>{`
+                      @keyframes liquid-charge {
+                        0% { transform: scaleX(0); }
+                        50% { transform: scaleX(0.7); }
+                        100% { transform: scaleX(1); opacity: 0; }
+                      }
+                    `}</style>
                   </>
                 )}
+
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {submitting ? (
+                    <>
+                      <Rocket className="mr-2 h-4 w-4 animate-pulse" />
+                      Launching...
+                    </>
+                  ) : (
+                    <>
+                      {launchOption === "draft" && <Save className="mr-2 h-4 w-4" />}
+                      {launchOption === "immediate" && <Send className="mr-2 h-4 w-4" />}
+                      {launchOption === "scheduled" && <Clock className="mr-2 h-4 w-4" />}
+                      {!launchOption
+                        ? "Select Launch Option"
+                        : launchOption === "draft"
+                          ? "Save Campaign"
+                          : launchOption === "immediate"
+                            ? "Launch Campaign"
+                            : "Schedule Campaign"}
+                    </>
+                  )}
+                </span>
               </Button>
             )}
           </div>

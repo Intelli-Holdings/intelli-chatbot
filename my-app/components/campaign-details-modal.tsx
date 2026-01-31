@@ -23,18 +23,31 @@ interface CampaignDetailsModalProps {
   onRefresh: () => void;
 }
 
+interface CampaignStats {
+  total: number;
+  sent: number;
+  delivered: number;
+  failed: number;
+  read: number;
+  replied: number;
+  progress: number;
+}
+
+const buildInitialStats = (campaign: Campaign): CampaignStats => ({
+  total: campaign.stats?.total || campaign.audience?.total || 0,
+  sent: campaign.stats?.sent || 0,
+  delivered: campaign.stats?.delivered || 0,
+  failed: campaign.stats?.failed || 0,
+  read: campaign.stats?.read || 0,
+  replied: campaign.stats?.replied || 0,
+  progress: campaign.stats?.progress || 0
+});
+
 export default function CampaignDetailsModal({ campaign, open, onClose, onRefresh }: CampaignDetailsModalProps) {
   const organizationId = useActiveOrganizationId();
   const [recipientStatusFilter, setRecipientStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState(campaign.stats || {
-    sent: 0,
-    delivered: 0,
-    failed: 0,
-    read: 0,
-    replied: 0,
-    progress: 0
-  });
+  const [stats, setStats] = useState<CampaignStats>(() => buildInitialStats(campaign));
 
   // Fetch recipients if campaign is WhatsApp
   const {
@@ -57,18 +70,19 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
         const summary = await CampaignService.getCampaignStats(campaign.id, organizationId!);
 
         // Extract stats from the summary response
-        if (summary.whatsapp_campaign?.statistics) {
-          const backendStats = summary.whatsapp_campaign.statistics;
-          setStats({
-            sent: backendStats.sent || 0,
-            delivered: backendStats.delivered || 0,
-            failed: backendStats.failed || 0,
-            read: backendStats.read || 0,
-            replied: backendStats.replied || 0,
-            progress: backendStats.progress || 0
-          });
-        }
-      } catch (error) {
+          if (summary.whatsapp_campaign?.statistics) {
+            const backendStats = summary.whatsapp_campaign.statistics;
+            setStats({
+              total: backendStats.total || 0,
+              sent: backendStats.sent || 0,
+              delivered: backendStats.delivered || 0,
+              failed: backendStats.failed || 0,
+              read: backendStats.read || 0,
+              replied: backendStats.replied || 0,
+              progress: backendStats.progress || 0
+            });
+          }
+        } catch (error) {
         console.error('Error refreshing stats:', error);
       }
     };
@@ -126,6 +140,11 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
   const calculateDeliveryRate = () => {
     if (stats.sent === 0) return 0;
     return Math.round((stats.delivered / stats.sent) * 100);
+  };
+
+  const calculateSentRate = () => {
+    if (stats.total === 0) return 0;
+    return Math.round((stats.sent / stats.total) * 100);
   };
 
   const calculateReadRate = () => {
@@ -192,7 +211,23 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
           </TabsList>
 
           <TabsContent value="stats" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-center">Sent Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-indigo-600 mb-2">
+                      {calculateSentRate()}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {stats.sent} of {stats.total || stats.sent} sent
+                    </div>
+                    <Progress value={calculateSentRate()} className="mt-2" />
+                  </div>
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-center">Delivery Rate</CardTitle>

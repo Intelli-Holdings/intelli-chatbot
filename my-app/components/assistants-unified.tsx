@@ -1014,7 +1014,7 @@ export default function AssistantsUnified() {
                 <CardHeader>
                   <CardTitle className="text-base">Upload Knowledge Base Files</CardTitle>
                   <CardDescription>
-                    Supported: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JSON, HTML, PY, SH, TEX, TS (max 512MB per file)
+                    Supported: PDF, DOC, DOCX, PPT, PPTX, TXT, JSON, HTML, TS (max 512MB per file)
                     <br />
                     <span className="text-xs text-muted-foreground">Note: CSV and Excel files are not supported yet</span>
                   </CardDescription>

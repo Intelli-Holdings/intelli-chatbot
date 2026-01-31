@@ -28,13 +28,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Call external API to produce snapshot
-    const response = await fetch(`${apiBaseUrl}/monitoring/produce_metrics_snapshot/`, {
+    const response = await fetch(`${apiBaseUrl}/monitoring/produce_metrics_snapshot/${organization_id}/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
       },
-      body: JSON.stringify({ organization_id }),
     })
 
     if (!response.ok) {

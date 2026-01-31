@@ -2,6 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import ChatSidebar from "@/app/dashboard/conversations/components/chat-sidebar"
 import ChatArea from "@/app/dashboard/conversations/components/chat-area"
 import DownloadPage from "@/app/dashboard/conversations/components/download-page"
@@ -96,16 +104,30 @@ export default function WhatsAppConvosPage() {
     error: appServicesError,
   } = useWhatsAppAppServices(activeOrganizationId || undefined)
 
-  const phoneNumber = primaryPhoneNumber
-  const primaryAppServiceId = appServices[0]?.id
+  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string>("")
+  const phoneNumber = selectedPhoneNumber || primaryPhoneNumber
 
-  // Automation status for the primary app service
-  const {
-    status: automationStatus,
-    loading: automationLoading,
-    togglePause: toggleAutomationPause,
-    toggling: automationToggling,
-  } = useAutomationStatus(primaryAppServiceId)
+  // Auto-select first AppService when available
+  useEffect(() => {
+    if (!selectedPhoneNumber && appServices.length > 0 && appServices[0].phone_number) {
+      setSelectedPhoneNumber(appServices[0].phone_number)
+    }
+  }, [appServices, selectedPhoneNumber])
+
+  // Handle AppService selection change
+  const handleAppServiceChange = useCallback((newPhoneNumber: string) => {
+    if (newPhoneNumber === selectedPhoneNumber) return
+
+    // Reset state when switching AppService
+    setSelectedPhoneNumber(newPhoneNumber)
+    setConversations([])
+    setSelectedConversation(null)
+    selectedConversationRef.current = null
+    hasAutoSelectedRef.current = false
+    messageCacheRef.current = {}
+    scrollPositionsRef.current = {}
+    setIsInitializing(true)
+  }, [selectedPhoneNumber])
 
   const {
     sessions,
@@ -443,35 +465,45 @@ export default function WhatsAppConvosPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      {/* Automation Status Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-[#e9edef]">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-[#667781]">WhatsApp Conversations</span>
-          {phoneNumber && (
-            <span className="text-xs text-[#8696a0]">({phoneNumber})</span>
-          )}
-        </div>
-        <AutomationStatusIndicator
-          status={automationStatus}
-          loading={automationLoading}
-          onTogglePause={toggleAutomationPause}
-          toggling={automationToggling}
-        />
-      </div>
+    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
+      {/* Left Panel - AppService Selector + Conversations */}
+      <div className="flex flex-col h-full">
+        {/* AppService Selector - only show if multiple AppServices exist */}
+        {appServices.length > 1 && (
+          <div className="w-[420px] p-3 border-b border-[#e9edef] bg-[#f0f2f5]">
+            <Select value={selectedPhoneNumber} onValueChange={handleAppServiceChange}>
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Select a phone number" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {appServices.map((appService) => (
+                    <SelectItem
+                      key={appService.id}
+                      value={appService.phone_number || ""}
+                    >
+                      {appService.name || appService.phone_number || `AppService ${appService.id}`}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-      {/* Main Chat Layout */}
-      <div className="flex flex-1 overflow-hidden rounded-b-lg border border-t-0 border-[#e9edef] bg-white shadow-lg">
-        <ChatSidebar
-          conversations={conversations}
-          onSelectConversation={handleSelectConversation}
-          selectedConversationId={selectedConversation?.id || null}
-          loading={listLoading}
-          hasMore={listHasMore}
-          loadMore={loadMoreConversations}
-          isLoadingMore={isFetchingNextPage}
-        />
-        <div className="flex-1 relative bg-[#efeae2]">
+        <div className="flex-1 overflow-hidden">
+          <ChatSidebar
+            conversations={conversations}
+            onSelectConversation={handleSelectConversation}
+            selectedConversationId={selectedConversation?.id || null}
+            loading={listLoading}
+            hasMore={listHasMore}
+            loadMore={loadMoreConversations}
+            isLoadingMore={isFetchingNextPage}
+          />
+        </div>
+      </div>
+      <div className="flex-1 relative bg-[#efeae2]">
         {selectedConversation ? (
           <ChatArea
             conversation={selectedConversation}

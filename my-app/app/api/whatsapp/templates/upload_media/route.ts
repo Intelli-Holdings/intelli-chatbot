@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 
+// NOTE: For large file uploads, ensure nginx/reverse proxy has:
+// client_max_body_size 100m;
+// in the server/location block
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // POST /api/whatsapp/templates/upload_media - proxy to backend upload endpoint
