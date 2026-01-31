@@ -3,10 +3,14 @@ import { NextResponse } from "next/server"
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { code } = body
+    const { code, redirect_uri } = body
 
     if (!code) {
       return NextResponse.json({ error: "Code is required" }, { status: 400 })
+    }
+
+    if (!redirect_uri) {
+      return NextResponse.json({ error: "redirect_uri is required" }, { status: 400 })
     }
 
     console.log("Exchanging code for token...")
@@ -19,22 +23,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    // Get the redirect URI from environment or construct it
-    const redirectUri = process.env.NEXT_PUBLIC_MESSENGER_REDIRECT_URI ||
-      `${process.env.NEXT_PUBLIC_APP_URL}/messenger-redirect`
-
-    // Use the Graph API with URL-encoded form data (required by Facebook)
+    // Use the redirect_uri passed from the client to ensure it matches
     const params = new URLSearchParams({
       client_id: appId,
       client_secret: appSecret,
       code: code,
-      redirect_uri: redirectUri,
+      redirect_uri: redirect_uri,
     })
 
     console.log("Calling Facebook token exchange with params:", {
       client_id: appId,
       code: code.substring(0, 20) + '...',
-      redirect_uri: redirectUri,
+      redirect_uri: redirect_uri,
     })
 
     const response = await fetch(`https://graph.facebook.com/v22.0/oauth/access_token?${params.toString()}`, {
