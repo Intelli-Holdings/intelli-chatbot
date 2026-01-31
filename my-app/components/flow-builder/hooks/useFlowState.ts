@@ -30,6 +30,7 @@ import {
   createUserInputFlowNode,
   createQuestionInputNode,
   createCTAButtonNode,
+  createHttpApiNode,
   createNodeFromAction,
   cloneNode,
   ExtendedFlowNode,
@@ -350,6 +351,9 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
         case 'cta_button':
           newNode = createCTAButtonNode(position);
           break;
+        case 'http_api':
+          newNode = createHttpApiNode(position);
+          break;
       }
 
       if (newNode && connectionMenu.sourceNodeId) {
@@ -451,6 +455,9 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           break;
         case 'cta_button':
           newNode = createCTAButtonNode(position);
+          break;
+        case 'http_api':
+          newNode = createHttpApiNode(position);
           break;
       }
 
