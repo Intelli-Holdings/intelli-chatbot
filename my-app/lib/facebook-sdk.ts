@@ -110,7 +110,7 @@ export const launchInstagramSignup = (): void => {
   const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
     `${window.location.origin}/instagram-redirect`
 
-  const scope = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights,pages_show_list,pages_manage_metadata'
+  const scope = 'instagram_basic,instagram_manage_messages,instagram_manage_comments,instagram_content_publish,instagram_manage_insights,pages_show_list,pages_manage_metadata'
 
   // Build the OAuth URL for redirect-based flow
   const oauthUrl = new URL('https://www.facebook.com/v22.0/dialog/oauth')
