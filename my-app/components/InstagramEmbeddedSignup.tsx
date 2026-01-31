@@ -1,14 +1,13 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, ArrowRight, CheckCircle, Loader } from "lucide-react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import {
-  initializeFacebookSDK,
   launchInstagramSignup,
-  type FacebookAuthResponse
 } from "@/lib/facebook-sdk"
 import Image from 'next/image';
 
@@ -21,6 +20,8 @@ interface InstagramEmbeddedSignupProps {
 
 const InstagramEmbeddedSignup = ({ defaultLoginMethod = "facebook" }: InstagramEmbeddedSignupProps) => {
   const organizationId = useActiveOrganizationId()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(defaultLoginMethod)
   const [step, setStep] = useState<SetupStep>("initial")
   const [isLoading, setIsLoading] = useState(false)
@@ -30,71 +31,46 @@ const InstagramEmbeddedSignup = ({ defaultLoginMethod = "facebook" }: InstagramE
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [accountInfo, setAccountInfo] = useState<{ id: string; username: string } | null>(null)
 
-  // Initialize Facebook SDK on component mount
+  // Handle Instagram OAuth callback from URL (for both Facebook and Instagram login methods)
   useEffect(() => {
-    if (loginMethod === "facebook") {
-      initializeFacebookSDK().catch((err) => {
-        console.error("Failed to initialize Facebook SDK:", err)
-        setError("Failed to load Facebook SDK. Please refresh the page.")
-      })
+    const instagramCode = searchParams.get("instagram_code")
+    const instagramAuth = searchParams.get("instagram_auth")
+    const urlError = searchParams.get("error")
+
+    if (urlError) {
+      setError(decodeURIComponent(urlError))
+      router.replace(window.location.pathname)
+      return
     }
-  }, [loginMethod])
 
-  // Handle Instagram OAuth callback from URL (for Instagram login method)
-  useEffect(() => {
-    if (loginMethod === "instagram") {
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get("instagram_code")
+    if (instagramCode && instagramAuth === "success" && !authCode) {
+      console.log("Received instagram_code from redirect")
+      setAuthCode(instagramCode)
+      setStep("exchanging")
+      setStatusMessage("Authorization code received. Exchanging for access token...")
 
-      if (code && !authCode) {
-        setAuthCode(code)
-        setStep("exchanging")
-        setStatusMessage("Instagram authorization code received. Exchanging for access token...")
-        exchangeInstagramCodeForToken(code)
+      // Build redirect URI for token exchange
+      const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
+        `${window.location.origin}/instagram-redirect`
 
-        // Clean up URL
-        const newUrl = window.location.pathname
-        window.history.replaceState({}, "", newUrl)
-      }
+      // Clear URL params
+      router.replace(window.location.pathname)
+
+      // Exchange code based on login method
+      // For Facebook login flow (via /instagram-redirect), use Facebook token exchange
+      exchangeFacebookCodeForToken(instagramCode, redirectUri)
     }
-  }, [loginMethod, authCode])
-
-  // Handle Facebook login response
-  const handleFacebookLoginResponse = useCallback(async (response: FacebookAuthResponse) => {
-    console.log("Facebook Login Response:", response)
-
-    if (response.status === 'connected' && response.authResponse) {
-      const code = response.authResponse.code
-
-      if (code) {
-        setAuthCode(code)
-        setStep("exchanging")
-        setStatusMessage("Authorization successful. Exchanging code for access token...")
-        await exchangeFacebookCodeForToken(code)
-      } else if (response.authResponse.accessToken) {
-        setAccessToken(response.authResponse.accessToken)
-        setStep("creating")
-        setStatusMessage("Access token received. Setting up your Instagram channel...")
-        await createInstagramChannel(response.authResponse.accessToken, "facebook")
-      }
-    } else if (response.status === 'not_authorized') {
-      setError("You need to authorize the app to continue.")
-      setStep("initial")
-    } else {
-      setError("Login was cancelled or failed. Please try again.")
-      setStep("initial")
-    }
-  }, [])
+  }, [searchParams, router, authCode])
 
   // Exchange Facebook authorization code for access token
-  const exchangeFacebookCodeForToken = async (code: string) => {
+  const exchangeFacebookCodeForToken = async (code: string, redirectUri?: string) => {
     try {
       setIsLoading(true)
 
       const response = await fetch("/api/facebook/exchange-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ code, redirect_uri: redirectUri })
       })
 
       const data = await response.json()
@@ -255,13 +231,14 @@ const InstagramEmbeddedSignup = ({ defaultLoginMethod = "facebook" }: InstagramE
     }
   }
 
-  // Start the signup process with Facebook
+  // Start the signup process with Facebook - redirects to Facebook OAuth
   const handleStartFacebookSignup = useCallback(() => {
     setError(null)
     setStep("authorizing")
-    setStatusMessage("Opening Facebook authorization...")
-    launchInstagramSignup(handleFacebookLoginResponse, false)
-  }, [handleFacebookLoginResponse])
+    setStatusMessage("Redirecting to Facebook authorization...")
+    // This will redirect the user to Facebook
+    launchInstagramSignup()
+  }, [])
 
   // Start the signup process with Instagram
   const handleStartInstagramSignup = useCallback(() => {
