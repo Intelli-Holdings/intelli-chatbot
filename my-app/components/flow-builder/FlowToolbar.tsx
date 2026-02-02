@@ -21,6 +21,9 @@ import {
   ExternalLink,
   BarChart3,
   Globe,
+  Package,
+  ShoppingBag,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,6 +48,7 @@ interface DraggableNodeItem {
   type: string;
   actionType?: 'send_message' | 'fallback_ai' | 'end';
   mediaType?: 'image' | 'video' | 'document' | 'audio';
+  productMessageType?: 'single' | 'multi';
   label: string;
   description: string;
   icon: React.ElementType;
@@ -149,6 +153,30 @@ const nodeItems: DraggableNodeItem[] = [
     icon: XCircle,
     color: 'bg-red-500 hover:bg-red-600',
   },
+  // Ecommerce nodes
+  {
+    type: 'product_message',
+    productMessageType: 'single',
+    label: 'Product',
+    description: 'Send single product',
+    icon: Package,
+    color: 'bg-emerald-500 hover:bg-emerald-600',
+  },
+  {
+    type: 'product_message',
+    productMessageType: 'multi',
+    label: 'Products',
+    description: 'Send product list',
+    icon: ShoppingBag,
+    color: 'bg-teal-500 hover:bg-teal-600',
+  },
+  {
+    type: 'payment',
+    label: 'Payment',
+    description: 'Request payment',
+    icon: CreditCard,
+    color: 'bg-violet-500 hover:bg-violet-600',
+  },
 ];
 
 export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, onAnalytics, errorCount, warningCount, isSimulating }: FlowToolbarProps) {
@@ -158,6 +186,7 @@ export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, onAn
       type: item.type,
       actionType: item.actionType,
       mediaType: item.mediaType,
+      productMessageType: item.productMessageType,
     });
     event.dataTransfer.setData('application/reactflow', data);
     event.dataTransfer.effectAllowed = 'move';
@@ -169,9 +198,9 @@ export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, onAn
         {/* Draggable Nodes */}
         {nodeItems.map((item, index) => {
           const Icon = item.icon;
-          // Separators: before media nodes (index 4) and before condition (index 8)
-          const showSeparator = index === 4 || index === 8;
-          const uniqueKey = `${item.type}-${item.actionType || item.mediaType || item.label}`;
+          // Separators: before media nodes (index 5), before condition (index 9), and before ecommerce (index 13)
+          const showSeparator = index === 5 || index === 9 || index === 13;
+          const uniqueKey = `${item.type}-${item.actionType || item.mediaType || item.productMessageType || item.label}`;
 
           return (
             <div key={uniqueKey} className="flex items-center">

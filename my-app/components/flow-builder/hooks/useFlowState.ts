@@ -31,10 +31,13 @@ import {
   createQuestionInputNode,
   createCTAButtonNode,
   createHttpApiNode,
+  createProductMessageNode,
+  createPaymentNode,
   createNodeFromAction,
   cloneNode,
   ExtendedFlowNode,
 } from '../utils/node-factories';
+import { ProductMessageType } from '../nodes/ProductMessageNode';
 import { MediaType } from '../nodes/MediaNode';
 import { ContextMenuPosition } from '../ContextMenu';
 import { ConnectionMenuPosition } from '../ConnectionMenu';
@@ -68,7 +71,7 @@ interface UseFlowStateReturn {
   onConnectStart: (event: React.MouseEvent | React.TouchEvent, params: { nodeId: string | null; handleId: string | null }) => void;
   onConnectEnd: (event: MouseEvent | TouchEvent) => void;
   handleContextMenuAction: (action: string, position: ContextMenuPosition) => void;
-  handleConnectionMenuSelect: (nodeType: string, actionType?: string, mediaType?: string) => void;
+  handleConnectionMenuSelect: (nodeType: string, actionType?: string, mediaType?: string, productMessageType?: string) => void;
   closeContextMenu: () => void;
   closeConnectionMenu: () => void;
   deleteNode: (nodeId: string) => void;
@@ -307,7 +310,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
 
   // Handle connection menu selection - create node and connect
   const handleConnectionMenuSelect = useCallback(
-    (nodeType: string, actionType?: string, mediaType?: string) => {
+    (nodeType: string, actionType?: string, mediaType?: string, productMessageType?: string) => {
       if (!connectionMenu || !connectionMenu.flowPosition) {
         console.warn('handleConnectionMenuSelect: Invalid connection menu state');
         closeConnectionMenu();
@@ -353,6 +356,16 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           break;
         case 'http_api':
           newNode = createHttpApiNode(position);
+          break;
+        case 'product_message':
+          if (productMessageType && ['single', 'multi'].includes(productMessageType)) {
+            newNode = createProductMessageNode(position, productMessageType as ProductMessageType);
+          } else {
+            newNode = createProductMessageNode(position, 'single');
+          }
+          break;
+        case 'payment':
+          newNode = createPaymentNode(position);
           break;
       }
 
@@ -411,10 +424,11 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
       const data = event.dataTransfer.getData('application/reactflow');
       if (!data) return;
 
-      const { type, actionType, mediaType } = JSON.parse(data) as {
+      const { type, actionType, mediaType, productMessageType } = JSON.parse(data) as {
         type: string;
         actionType?: ActionNodeData['actionType'];
         mediaType?: MediaType;
+        productMessageType?: ProductMessageType;
       };
 
       const position = screenToFlowPosition({
@@ -458,6 +472,16 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           break;
         case 'http_api':
           newNode = createHttpApiNode(position);
+          break;
+        case 'product_message':
+          if (productMessageType) {
+            newNode = createProductMessageNode(position, productMessageType);
+          } else {
+            newNode = createProductMessageNode(position, 'single');
+          }
+          break;
+        case 'payment':
+          newNode = createPaymentNode(position);
           break;
       }
 

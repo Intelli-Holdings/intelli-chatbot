@@ -8,6 +8,8 @@ import UserInputFlowNode from './UserInputFlowNode';
 import QuestionInputNode from './QuestionInputNode';
 import CTAButtonNode from './CTAButtonNode';
 import HttpApiNode from './HttpApiNode';
+import ProductMessageNode from './ProductMessageNode';
+import PaymentNode from './PaymentNode';
 
 export const nodeTypes = {
   start: StartNode,
@@ -20,6 +22,8 @@ export const nodeTypes = {
   question_input: QuestionInputNode,
   cta_button: CTAButtonNode,
   http_api: HttpApiNode,
+  product_message: ProductMessageNode,
+  payment: PaymentNode,
 };
 
-export { StartNode, QuestionNode, ActionNode, TextNode, ConditionNode, MediaNode, UserInputFlowNode, QuestionInputNode, CTAButtonNode, HttpApiNode };
+export { StartNode, QuestionNode, ActionNode, TextNode, ConditionNode, MediaNode, UserInputFlowNode, QuestionInputNode, CTAButtonNode, HttpApiNode, ProductMessageNode, PaymentNode };

@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music, FileInput, HelpCircle, ExternalLink, Globe } from 'lucide-react';
+import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music, FileInput, HelpCircle, ExternalLink, Globe, Package, ShoppingBag, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -27,6 +27,8 @@ import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { HttpApiNodeData } from '../nodes/HttpApiNode';
+import { ProductMessageNodeData } from '../nodes/ProductMessageNode';
+import { PaymentNodeData } from '../nodes/PaymentNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from '../utils/node-factories';
 import StartNodeEditor from './StartNodeEditor';
 import QuestionNodeEditor from './QuestionNodeEditor';
@@ -38,6 +40,8 @@ import UserInputFlowNodeEditor from './UserInputFlowNodeEditor';
 import QuestionInputNodeEditor from './QuestionInputNodeEditor';
 import CTAButtonNodeEditor from './CTAButtonNodeEditor';
 import HttpApiNodeEditor from './HttpApiNodeEditor';
+import ProductMessageNodeEditor from './ProductMessageNodeEditor';
+import PaymentNodeEditor from './PaymentNodeEditor';
 import { cn } from '@/lib/utils';
 
 interface NodeEditorPanelProps {
@@ -113,6 +117,27 @@ export default function NodeEditorPanel({
         return {
           title: 'Configure HTTP API',
           icon: Globe,
+          color: 'bg-violet-500',
+        };
+      case 'product_message': {
+        const productData = selectedNode.data as ProductMessageNodeData;
+        if (productData.messageType === 'single') {
+          return {
+            title: 'Configure Single Product',
+            icon: Package,
+            color: 'bg-emerald-500',
+          };
+        }
+        return {
+          title: 'Configure Product List',
+          icon: ShoppingBag,
+          color: 'bg-teal-500',
+        };
+      }
+      case 'payment':
+        return {
+          title: 'Configure Payment',
+          icon: CreditCard,
           color: 'bg-violet-500',
         };
       case 'action': {
@@ -246,6 +271,20 @@ export default function NodeEditorPanel({
         {selectedNode.data.type === 'http_api' && (
           <HttpApiNodeEditor
             data={selectedNode.data as HttpApiNodeData}
+            onUpdate={handleUpdate}
+          />
+        )}
+
+        {selectedNode.data.type === 'product_message' && (
+          <ProductMessageNodeEditor
+            data={selectedNode.data as ProductMessageNodeData}
+            onUpdate={handleUpdate}
+          />
+        )}
+
+        {selectedNode.data.type === 'payment' && (
+          <PaymentNodeEditor
+            data={selectedNode.data as PaymentNodeData}
             onUpdate={handleUpdate}
           />
         )}

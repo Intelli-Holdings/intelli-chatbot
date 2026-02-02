@@ -16,6 +16,8 @@ import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { HttpApiNodeData } from '../nodes/HttpApiNode';
+import { ProductMessageNodeData, ProductMessageType } from '../nodes/ProductMessageNode';
+import { PaymentNodeData } from '../nodes/PaymentNode';
 
 // Extended node data type
 export type ExtendedFlowNodeData =
@@ -28,11 +30,13 @@ export type ExtendedFlowNodeData =
   | UserInputFlowNodeData
   | QuestionInputNodeData
   | CTAButtonNodeData
-  | HttpApiNodeData;
+  | HttpApiNodeData
+  | ProductMessageNodeData
+  | PaymentNodeData;
 
 export interface ExtendedFlowNode {
   id: string;
-  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button' | 'http_api';
+  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button' | 'http_api' | 'product_message' | 'payment';
   position: NodePosition;
   data: ExtendedFlowNodeData;
 }
@@ -287,6 +291,56 @@ export function createHttpApiNode(position: NodePosition): ExtendedFlowNode {
 }
 
 /**
+ * Create a new Product Message node
+ */
+export function createProductMessageNode(
+  position: NodePosition,
+  messageType: ProductMessageType = 'single'
+): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const labels: Record<ProductMessageType, string> = {
+    single: 'Single Product',
+    multi: 'Product List',
+  };
+
+  const data: ProductMessageNodeData = {
+    type: 'product_message',
+    label: labels[messageType],
+    messageType,
+    sections: messageType === 'multi' ? [] : undefined,
+  };
+
+  return {
+    id: `product_message-${nodeId}`,
+    type: 'product_message',
+    position,
+    data,
+  };
+}
+
+/**
+ * Create a new Payment node
+ */
+export function createPaymentNode(position: NodePosition): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const data: PaymentNodeData = {
+    type: 'payment',
+    label: 'Payment',
+    successMessage: 'Payment successful! Your order has been confirmed.',
+    failureMessage: 'Payment failed. Please try again or contact support.',
+  };
+
+  return {
+    id: `payment-${nodeId}`,
+    type: 'payment',
+    position,
+    data,
+  };
+}
+
+/**
  * Create node from context menu action
  */
 export function createNodeFromAction(
@@ -324,6 +378,12 @@ export function createNodeFromAction(
       return createCTAButtonNode(position);
     case 'add-http-api':
       return createHttpApiNode(position);
+    case 'add-product-single':
+      return createProductMessageNode(position, 'single');
+    case 'add-product-multi':
+      return createProductMessageNode(position, 'multi');
+    case 'add-payment':
+      return createPaymentNode(position);
     default:
       return null;
   }
@@ -451,6 +511,28 @@ export function getToolbarItems() {
       label: 'HTTP API',
       description: 'Call external APIs',
       color: 'bg-violet-500',
+    },
+    // Ecommerce nodes
+    {
+      type: 'product-single',
+      label: 'Product',
+      description: 'Send single product message',
+      color: 'bg-emerald-500',
+      category: 'ecommerce',
+    },
+    {
+      type: 'product-multi',
+      label: 'Product List',
+      description: 'Send multi-product message',
+      color: 'bg-teal-500',
+      category: 'ecommerce',
+    },
+    {
+      type: 'payment',
+      label: 'Payment',
+      description: 'Request payment from customer',
+      color: 'bg-violet-500',
+      category: 'ecommerce',
     },
   ];
 }

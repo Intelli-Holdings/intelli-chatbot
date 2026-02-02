@@ -280,6 +280,10 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
                 return '#f97316';
               case 'http_api':
                 return '#8b5cf6';
+              case 'product_message':
+                return '#10b981';
+              case 'payment':
+                return '#8b5cf6';
               default:
                 return '#94a3b8';
             }
@@ -313,7 +317,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
       {/* Connection Menu - appears when dragging from output handle */}
       <ConnectionMenu
         position={connectionMenu}
-        onSelect={(item) => handleConnectionMenuSelect(item.type, item.actionType, item.mediaType)}
+        onSelect={(item) => handleConnectionMenuSelect(item.type, item.actionType, item.mediaType, item.productMessageType)}
         onClose={closeConnectionMenu}
       />
 

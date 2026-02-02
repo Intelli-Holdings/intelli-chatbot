@@ -16,6 +16,9 @@ import {
   HelpCircle,
   ExternalLink,
   Globe,
+  Package,
+  ShoppingBag,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,11 +34,12 @@ interface NodeMenuItem {
   type: string;
   actionType?: 'send_message' | 'fallback_ai' | 'end';
   mediaType?: 'image' | 'video' | 'document' | 'audio';
+  productMessageType?: 'single' | 'multi';
   label: string;
   description: string;
   icon: React.ElementType;
   color: string;
-  category: 'flow' | 'message' | 'media' | 'logic' | 'action';
+  category: 'flow' | 'message' | 'media' | 'logic' | 'action' | 'ecommerce';
 }
 
 const menuItems: NodeMenuItem[] = [
@@ -162,6 +166,33 @@ const menuItems: NodeMenuItem[] = [
     color: 'bg-red-500',
     category: 'action',
   },
+  // Ecommerce
+  {
+    type: 'product_message',
+    productMessageType: 'single',
+    label: 'Single Product',
+    description: 'Send a product message',
+    icon: Package,
+    color: 'bg-emerald-500',
+    category: 'ecommerce',
+  },
+  {
+    type: 'product_message',
+    productMessageType: 'multi',
+    label: 'Product List',
+    description: 'Send multiple products',
+    icon: ShoppingBag,
+    color: 'bg-teal-500',
+    category: 'ecommerce',
+  },
+  {
+    type: 'payment',
+    label: 'Payment',
+    description: 'Request payment',
+    icon: CreditCard,
+    color: 'bg-violet-500',
+    category: 'ecommerce',
+  },
 ];
 
 const categories = [
@@ -170,6 +201,7 @@ const categories = [
   { key: 'media', label: 'Media' },
   { key: 'logic', label: 'Logic' },
   { key: 'action', label: 'Actions' },
+  { key: 'ecommerce', label: 'Ecommerce' },
 ];
 
 interface ConnectionMenuProps {
