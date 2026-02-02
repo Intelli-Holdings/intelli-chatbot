@@ -13,6 +13,10 @@ const settingsNavigation = [
     href: "/dashboard/settings",
   },
   {
+    title: "Automation",
+    href: "/dashboard/settings/automation",
+  },
+  {
     title: "Custom Fields",
     href: "/dashboard/settings/custom-fields",
   },

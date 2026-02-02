@@ -13,6 +13,7 @@ interface ChannelCardProps {
   icon: React.ReactNode;
   buttonState: ButtonState;
   onClick?: () => void;
+  badge?: string;
 }
 
 const getButtonProps = (state: ButtonState) => {
@@ -43,7 +44,8 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
   description,
   icon,
   buttonState,
-  onClick
+  onClick,
+  badge
 }) => {
   const buttonProps = getButtonProps(buttonState);
   const buttonClassName =
@@ -59,7 +61,14 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
         <div className="mb-3">
           {icon}
         </div>
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          {badge && (
+            <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+              {badge}
+            </span>
+          )}
+        </div>
         <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
       </div>
       <div className="mt-auto flex items-center gap-2 pt-2">
@@ -79,9 +88,16 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
 interface ChannelsProps {
   onWhatsAppCreate: () => void;
   onWebsiteCreate: () => void;
+  onFacebookCreate: () => void;
+  onInstagramCreate: () => void;
 }
 
-const Channels: React.FC<ChannelsProps> = ({ onWhatsAppCreate, onWebsiteCreate }) => {
+const Channels: React.FC<ChannelsProps> = ({
+  onWhatsAppCreate,
+  onWebsiteCreate,
+  onFacebookCreate,
+  onInstagramCreate,
+}) => {
   const channels = [
     {
       title: 'Website Widget',
@@ -112,12 +128,12 @@ const Channels: React.FC<ChannelsProps> = ({ onWhatsAppCreate, onWebsiteCreate }
       onClick: onWhatsAppCreate
     },
     {
-      title: 'Facebook',
+      title: 'Facebook Messenger',
       description: 'Create an assistant and connect it to a Facebook page and let it respond to messages from your customers.',
       icon: (
         <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-100 bg-blue-50">
           <Image
-            src="/facebook.png"
+            src="/Messenger_logo.png"
             alt="Facebook"
             width={20}
             height={20}
@@ -125,7 +141,9 @@ const Channels: React.FC<ChannelsProps> = ({ onWhatsAppCreate, onWebsiteCreate }
           />
         </div>
       ),
-      buttonState: 'coming-soon' as ButtonState,
+      buttonState: 'create' as ButtonState,
+      onClick: onFacebookCreate,
+      badge: 'Beta',
     },
     {
       title: 'Instagram',
@@ -141,7 +159,9 @@ const Channels: React.FC<ChannelsProps> = ({ onWhatsAppCreate, onWebsiteCreate }
           />
         </div>
       ),
-      buttonState: 'coming-soon' as ButtonState,
+      buttonState: 'create' as ButtonState,
+      onClick: onInstagramCreate,
+      badge: 'Beta',
     },
     {
       title: 'Voice',

@@ -73,11 +73,19 @@ export async function DELETE(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText || 'Unknown error' };
+      }
+      console.error('Error deleting custom field:', response.status, errorData);
       return NextResponse.json(errorData, { status: response.status });
     }
 
-    return NextResponse.json({ success: true }, { status: 204 });
+    // 204 No Content - return empty response
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting custom field:', error);
     return NextResponse.json(

@@ -570,10 +570,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
                   <div>
                     <p>Drag and drop files here, or click to select</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Supports: PDF, DOC, DOCX, PPT, PPTX, TXT, MD, JSON, HTML, PY, SH, TEX, TS (Max: 512MB)
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1 italic">
-                      Note: CSV and Excel files are not supported by OpenAI
+                      Supports: PDF, DOC, DOCX, PPT, PPTX, TXT, JSON, HTML, TS (Max: 512MB)
                     </p>
                   </div>
                 )}

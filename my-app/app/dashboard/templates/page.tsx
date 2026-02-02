@@ -422,7 +422,7 @@ export default function TemplatesPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Update in Meta
+                Manage in Meta
               </a>
             </Button>
           )}
@@ -629,6 +629,7 @@ export default function TemplatesPage() {
         open={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
         template={selectedTemplate}
+        organizationId={organizationId}
       />
 
       {selectedTemplate && (

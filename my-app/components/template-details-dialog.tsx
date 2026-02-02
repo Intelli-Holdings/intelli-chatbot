@@ -1,10 +1,19 @@
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Edit, Trash2, Copy, FileText } from "lucide-react"
+import { Edit, Trash2, Copy, FileText, Bot, Loader2, Save } from "lucide-react"
 import { toast } from "sonner"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { ChatbotAutomationService, TemplateButtonFlowMapping } from "@/services/chatbot-automation"
+import { ChatbotAutomation } from "@/types/chatbot-automation"
 
 interface WhatsAppTemplate {
   id: string;
@@ -22,16 +31,103 @@ interface TemplateDetailsDialogProps {
   onEdit?: (template: WhatsAppTemplate) => void
   onDelete?: (template: WhatsAppTemplate) => void
   onTest?: (template: WhatsAppTemplate) => void
+  organizationId?: string | null
 }
 
-export function TemplateDetailsDialog({ 
-  template, 
-  open, 
-  onClose, 
-  onEdit, 
-  onDelete, 
-  onTest 
+export function TemplateDetailsDialog({
+  template,
+  open,
+  onClose,
+  onEdit,
+  onDelete,
+  onTest,
+  organizationId
 }: TemplateDetailsDialogProps) {
+  const [chatbotFlows, setChatbotFlows] = useState<ChatbotAutomation[]>([])
+  const [flowMappings, setFlowMappings] = useState<Record<number, string>>({})
+  const [existingMappings, setExistingMappings] = useState<TemplateButtonFlowMapping[]>([])
+  const [loadingFlows, setLoadingFlows] = useState(false)
+  const [savingMappings, setSavingMappings] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
+
+  // Get quick reply buttons from template
+  const quickReplyButtons = template?.components
+    ?.find((c: any) => c.type === "BUTTONS")
+    ?.buttons?.filter((b: any) => b.type === "QUICK_REPLY") || []
+
+  // Fetch chatbot flows and existing mappings
+  const fetchFlowsAndMappings = useCallback(async () => {
+    if (!organizationId || !template?.id || quickReplyButtons.length === 0) return
+
+    setLoadingFlows(true)
+    try {
+      const [flows, mappings] = await Promise.all([
+        ChatbotAutomationService.getChatbots(organizationId),
+        ChatbotAutomationService.getTemplateButtonMappings(template.id, organizationId)
+      ])
+
+      setChatbotFlows(flows.filter(f => f.isActive))
+      setExistingMappings(mappings)
+
+      // Initialize flow mappings from existing data
+      const initialMappings: Record<number, string> = {}
+      mappings.forEach((m) => {
+        initialMappings[m.button_index] = m.flow
+      })
+      setFlowMappings(initialMappings)
+      setHasChanges(false)
+    } catch (error) {
+      console.error("Error fetching flows and mappings:", error)
+    } finally {
+      setLoadingFlows(false)
+    }
+  }, [organizationId, template?.id, quickReplyButtons.length])
+
+  useEffect(() => {
+    if (open && template && organizationId) {
+      fetchFlowsAndMappings()
+    }
+  }, [open, template, organizationId, fetchFlowsAndMappings])
+
+  // Handle flow selection change
+  const handleFlowChange = (buttonIndex: number, flowId: string) => {
+    setFlowMappings(prev => ({
+      ...prev,
+      [buttonIndex]: flowId === "none" ? "" : flowId
+    }))
+    setHasChanges(true)
+  }
+
+  // Save flow mappings
+  const handleSaveMappings = async () => {
+    if (!organizationId || !template) return
+
+    setSavingMappings(true)
+    try {
+      const mappingsToSave = quickReplyButtons.map((button: any, index: number) => ({
+        button_text: button.text,
+        button_index: index,
+        flow: flowMappings[index] || null
+      }))
+
+      await ChatbotAutomationService.updateTemplateButtonMappings(
+        organizationId,
+        template.id,
+        template.name,
+        mappingsToSave
+      )
+
+      toast.success("Flow mappings saved successfully")
+      setHasChanges(false)
+      fetchFlowsAndMappings()
+    } catch (error) {
+      console.error("Error saving flow mappings:", error)
+      toast.error("Failed to save flow mappings")
+    } finally {
+      setSavingMappings(false)
+    }
+  }
+
   if (!template) return null
 
   const handleCopyId = () => {
@@ -181,6 +277,85 @@ export function TemplateDetailsDialog({
             </CardContent>
           </Card>
 
+          {/* Flow Mapping for Quick Reply Buttons */}
+          {quickReplyButtons.length > 0 && organizationId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  Chatbot Flow Mapping
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Map quick reply buttons to chatbot flows. When a user clicks a button, the selected flow will be triggered.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {loadingFlows ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    <span className="text-sm text-muted-foreground">Loading flows...</span>
+                  </div>
+                ) : chatbotFlows.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    No active chatbot flows available. Create a chatbot flow first to map buttons.
+                  </div>
+                ) : (
+                  <>
+                    {quickReplyButtons.map((button: any, index: number) => (
+                      <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              Button {index + 1}
+                            </Badge>
+                            <span className="font-medium">{button.text}</span>
+                          </div>
+                        </div>
+                        <Select
+                          value={flowMappings[index] || "none"}
+                          onValueChange={(value) => handleFlowChange(index, value)}
+                        >
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Select a flow" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground">No flow</span>
+                            </SelectItem>
+                            {chatbotFlows.map((flow) => (
+                              <SelectItem key={flow.id} value={flow.id}>
+                                {flow.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveMappings}
+                        disabled={!hasChanges || savingMappings}
+                      >
+                        {savingMappings ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Mappings
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Actions */}
           <div className="flex justify-end gap-2">
             {statusKey !== 'APPROVED' && onEdit && (
@@ -192,7 +367,7 @@ export function TemplateDetailsDialog({
                 Edit
               </Button>
             )}
-            
+
             {onDelete && (
               <Button
                 variant="outline"
@@ -203,7 +378,7 @@ export function TemplateDetailsDialog({
                 Delete
               </Button>
             )}
-            
+
             {statusKey === 'APPROVED' && onTest && (
               <Button
                 onClick={() => onTest(template)}

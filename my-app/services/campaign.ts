@@ -34,6 +34,7 @@ interface Campaign {
     segments: string[];
   };
   stats?: {
+    total?: number;
     sent: number;
     delivered: number;
     failed: number;
@@ -536,7 +537,7 @@ static async updateCampaign(
       params.append('limit', limit.toString());
 
       const response = await fetch(
-        `/api/campaigns/whatsapp/${campaignId}/preview_messages?${params.toString()}`
+        `/api/campaigns/whatsapp/${campaignId}/preview_messages/?${params.toString()}`
       );
 
       if (!response.ok) {

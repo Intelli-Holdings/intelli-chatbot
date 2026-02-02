@@ -16,7 +16,8 @@ import {
   ChevronRight,
   RadioTower,
   SettingsIcon,
-  CogIcon
+  CogIcon,
+  Workflow,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -36,6 +37,8 @@ import {
   SidebarFooter,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { MessengerIcon } from "./icons/messenger-icon"
+import { InstagramIcon } from "./icons/instagram-icon"
 
 type IconComponent = React.ComponentType<{ className?: string }>
 
@@ -61,6 +64,11 @@ const data = {
       icon: Bot,
     },
     {
+      title: "Chatbots",
+      url: "/dashboard/chatbots",
+      icon: Workflow,
+    },
+    {
       title: "Widgets",
       url: "/dashboard/widgets",
       icon: Globe,
@@ -76,6 +84,16 @@ const data = {
           title: "WhatsApp",
           url: "/dashboard/conversations/whatsapp",
           icon: WhatsAppIcon,
+        },
+        {
+          title: "Instagram",
+          url: "/dashboard/conversations/instagram",
+          icon: InstagramIcon,
+        },
+        {
+          title: "Messenger",
+          url: "/dashboard/conversations/messenger",
+          icon: MessengerIcon,
         },
       ],
     },

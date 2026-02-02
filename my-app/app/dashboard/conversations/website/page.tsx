@@ -24,6 +24,13 @@ import { cn } from "@/lib/utils";
 import "../components/message-bubble.css";
 import { WebsiteSkeletonLoader, VisitorListSkeleton } from "../components/website-skeleton-loader";
 import { useQueryClient } from "react-query";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -76,7 +83,7 @@ function getVisitorDisplayName(visitor: Visitor): string {
 }
 
 // Get last message preview - truncate and clean up whitespace
-function getLastMessagePreview(visitor: Visitor, maxLength: number = 45): string {
+function getLastMessagePreview(visitor: Visitor, maxLength: number = 35): string {
   if (!visitor.messages || visitor.messages.length === 0) return 'No messages yet';
 
   const lastMessage = visitor.messages[visitor.messages.length - 1];
@@ -92,7 +99,6 @@ export default function WebsiteConversationsPage() {
   const [selectedWidgetKey, setSelectedWidgetKey] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
-  const [showVisitorInfo, setShowVisitorInfo] = useState(false);
   const activeOrganizationId = useActiveOrganizationId();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -400,7 +406,6 @@ export default function WebsiteConversationsPage() {
                     key={visitor.id}
                     onClick={() => {
                       setSelectedVisitor(visitor);
-                      setShowVisitorInfo(false);
                     }}
                     className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 border-b border-gray-100 transition-colors ${
                       isSelected ? "bg-gray-100" : ""
@@ -426,20 +431,15 @@ export default function WebsiteConversationsPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-600 truncate flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm text-gray-600 truncate flex-1 min-w-0">
                           {visitor.is_handle_by_human && (
                             <span className="text-blue-600 font-medium mr-1">You:</span>
                           )}
                           {getLastMessagePreview(visitor)}
                         </p>
 
-                        {/* Unread badge */}
-                        {visitor.unread_count && visitor.unread_count > 0 && (
-                          <span className="ml-2 bg-green-500 text-white text-xs font-semibold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5">
-                            {visitor.unread_count}
-                          </span>
-                        )}
+                       
                       </div>
                     </div>
                   </button>
@@ -456,24 +456,99 @@ export default function WebsiteConversationsPage() {
           <>
             {/* Chat Header */}
             <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-              <Button
-                variant="ghost"
-                className="flex items-center gap-3 px-0 hover:bg-transparent h-auto"
-                onClick={() => setShowVisitorInfo(!showVisitorInfo)}
-              >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
-                  {getVisitorDisplayName(selectedVisitor).charAt(0).toUpperCase()}
-                </div>
-                <div className="flex flex-col items-start">
-                  <h2 className="font-semibold text-gray-900">
-                    {getVisitorDisplayName(selectedVisitor)}
-                  </h2>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    click for more info
-                    <ChevronDown className="h-3 w-3" />
-                  </p>
-                </div>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-3 px-0 hover:bg-transparent h-auto"
+                  >
+                    <div className="relative">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage
+                          src={`https://avatar.vercel.sh/${getVisitorDisplayName(selectedVisitor)}.png`}
+                        />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
+                          {getVisitorDisplayName(selectedVisitor).charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <h2 className="text-[15px] font-normal text-[#111b21]">
+                        {getVisitorDisplayName(selectedVisitor)}
+                      </h2>
+                      <p className="text-[12px] text-[#667781] flex items-center gap-1">
+                        click for more info
+                        <ChevronDown className="h-3 w-3" />
+                      </p>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-80 p-0">
+                  <Card className="border-0 shadow-lg">
+                    <CardContent className="p-0">
+                      <div className="flex flex-col items-center pt-8 pb-6 bg-[#f0f2f5]">
+                        <Avatar className="h-24 w-24 mb-4">
+                          <AvatarImage
+                            src={`https://avatar.vercel.sh/${getVisitorDisplayName(selectedVisitor)}.png`}
+                          />
+                          <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white text-2xl">
+                            {getVisitorDisplayName(selectedVisitor).charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <h3 className="text-xl font-normal text-[#111b21] mb-1">
+                          {getVisitorDisplayName(selectedVisitor)}
+                        </h3>
+                        <p className="text-[13px] text-[#667781]">
+                          Last active{" "}
+                          {selectedVisitor.last_seen
+                            ? format(new Date(selectedVisitor.last_seen), "MMM d, h:mm a")
+                            : "Unknown"}
+                        </p>
+                      </div>
+                      <div className="p-4 border-t border-[#e9edef]">
+                        <div className="space-y-4">
+                          {selectedVisitor.visitor_email && (
+                            <div>
+                              <label className="text-[12px] text-[#667781]">Email</label>
+                              <p className="text-[14px] font-normal text-[#111b21]">
+                                {selectedVisitor.visitor_email}
+                              </p>
+                            </div>
+                          )}
+                          {selectedVisitor.visitor_phone && (
+                            <div>
+                              <label className="text-[12px] text-[#667781]">Phone number</label>
+                              <p className="text-[14px] font-normal text-[#111b21]">
+                                {selectedVisitor.visitor_phone}
+                              </p>
+                            </div>
+                          )}
+                          <div>
+                            <label className="text-[12px] text-[#667781]">Location</label>
+                            <div className="text-[14px] font-normal text-[#111b21]">
+                              <CountryInfo ip={selectedVisitor.ip_address || ""} />
+                            </div>
+                          </div>
+                          {selectedVisitor.created_at && (
+                            <div>
+                              <label className="text-[12px] text-[#667781]">First Seen</label>
+                              <p className="text-[14px] font-normal text-[#111b21]">
+                                {format(new Date(selectedVisitor.created_at), "PPp")}
+                              </p>
+                            </div>
+                          )}
+                          <div>
+                            <label className="text-[12px] text-[#667781]">Visitor ID</label>
+                            <p className="text-[14px] font-mono text-[#111b21] bg-gray-50 px-2 py-1 rounded break-all">
+                              {selectedVisitor.visitor_id}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <div className="flex items-center gap-2">
                 <Button
@@ -619,132 +694,6 @@ export default function WebsiteConversationsPage() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Visitor Info Card - Small Overlay */}
-        {showVisitorInfo && selectedVisitor && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="absolute inset-0 bg-black/20 z-20 backdrop-blur-sm"
-              onClick={() => setShowVisitorInfo(false)}
-            />
-
-            {/* Info Card */}
-            <div className="absolute top-20 right-8 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-30 overflow-hidden animate-in slide-in-from-top-5 fade-in duration-200">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-lg">Contact Information</h3>
-                  <button
-                    onClick={() => setShowVisitorInfo(false)}
-                    className="hover:bg-white/20 p-1 rounded-full transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-5 max-h-[500px] overflow-y-auto">
-                {/* Avatar & Name */}
-                <div className="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-2xl">
-                    {getVisitorDisplayName(selectedVisitor).charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-lg">
-                      {getVisitorDisplayName(selectedVisitor)}
-                    </h4>
-                    <p className="text-sm text-gray-500">Website Visitor</p>
-                  </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="space-y-4">
-                  {selectedVisitor.visitor_email && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-500 font-medium mb-0.5">Email</p>
-                        <p className="text-sm text-gray-900">{selectedVisitor.visitor_email}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedVisitor.visitor_phone && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-500 font-medium mb-0.5">Phone</p>
-                        <p className="text-sm text-gray-900">{selectedVisitor.visitor_phone}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500 font-medium mb-0.5">Location</p>
-                      <CountryInfo ip={selectedVisitor.ip_address || ""} />
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500 font-medium mb-0.5">First Seen</p>
-                      <p className="text-sm text-gray-900">{selectedVisitor.created_at ? format(new Date(selectedVisitor.created_at), 'PPp') : ''}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500 font-medium mb-0.5">Last Seen</p>
-                      <p className="text-sm text-gray-900">{selectedVisitor.last_seen ? format(new Date(selectedVisitor.last_seen), 'PPp') : ''}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 pt-3 border-t border-gray-100">
-                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500 font-medium mb-0.5">Visitor ID</p>
-                      <p className="text-xs font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">{selectedVisitor.visitor_id}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
         )}
       </div>
     </div>

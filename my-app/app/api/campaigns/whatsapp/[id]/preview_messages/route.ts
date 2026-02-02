@@ -27,7 +27,7 @@ export async function GET(
       )
     }
 
-    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/preview_messages?organization=${organization}&limit=${limit}`
+    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/preview_messages/?organization=${organization}&limit=${limit}`
 
     const response = await fetch(url, {
       method: "GET",

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   ArrowUpRight,
@@ -25,6 +25,8 @@ import { useDashboardMetrics, type TimePeriod } from "@/hooks/use-dashboard-metr
 import { DashboardEmptyState } from "./empty-state";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import WhatsappOnboarding from '@/components/WhatsappOnboarding';
+import FacebookMessengerOnboarding from "@/components/FacebookMessengerOnboarding";
+import InstagramOnboarding from "@/components/InstagramOnboarding";
 import UnifiedWidgets from '@/components/UnifiedWidgets';
 import Channels from './channels';
 import { useRouter } from 'next/navigation';
@@ -238,6 +240,8 @@ export const DynamicDashboard: React.FC = () => {
 
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [websiteDialogOpen, setWebsiteDialogOpen] = useState(false);
+  const [facebookDialogOpen, setFacebookDialogOpen] = useState(false);
+  const [instagramDialogOpen, setInstagramDialogOpen] = useState(false);
 
   const handleEscalationClick = React.useCallback(() => {
     router.push('/dashboard/notifications');
@@ -249,6 +253,14 @@ export const DynamicDashboard: React.FC = () => {
 
   const handleWebsiteSetup = React.useCallback(() => {
     setWebsiteDialogOpen(true);
+  }, []);
+
+  const handleFacebookSetup = React.useCallback(() => {
+    setFacebookDialogOpen(true);
+  }, []);
+
+  const handleInstagramSetup = React.useCallback(() => {
+    setInstagramDialogOpen(true);
   }, []);
 
   // Use ALL-TIME stats for the empty state, not period-filtered stats
@@ -287,6 +299,18 @@ export const DynamicDashboard: React.FC = () => {
         <Dialog open={websiteDialogOpen} onOpenChange={setWebsiteDialogOpen}>
           <DialogContent className="max-w-4xl">
             <UnifiedWidgets />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={facebookDialogOpen} onOpenChange={setFacebookDialogOpen}>
+          <DialogContent className="max-w-5xl">
+            <FacebookMessengerOnboarding />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={instagramDialogOpen} onOpenChange={setInstagramDialogOpen}>
+          <DialogContent className="max-w-5xl">
+            <InstagramOnboarding />
           </DialogContent>
         </Dialog>
       </>
@@ -691,6 +715,8 @@ export const DynamicDashboard: React.FC = () => {
         <Channels
           onWhatsAppCreate={handleWhatsAppSetup}
           onWebsiteCreate={handleWebsiteSetup}
+          onFacebookCreate={handleFacebookSetup}
+          onInstagramCreate={handleInstagramSetup}
         />
       </section>
 
@@ -704,6 +730,18 @@ export const DynamicDashboard: React.FC = () => {
       <Dialog open={websiteDialogOpen} onOpenChange={setWebsiteDialogOpen}>
         <DialogContent className="max-w-4xl">
           <UnifiedWidgets />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={facebookDialogOpen} onOpenChange={setFacebookDialogOpen}>
+        <DialogContent className="max-w-5xl">
+          <FacebookMessengerOnboarding />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={instagramDialogOpen} onOpenChange={setInstagramDialogOpen}>
+        <DialogContent className="max-w-5xl">
+          <InstagramOnboarding />
         </DialogContent>
       </Dialog>
     </div>

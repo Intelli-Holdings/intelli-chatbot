@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQueryClient } from 'react-query';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2 } from 'lucide-react';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2, Bot, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,8 @@ import Papa from 'papaparse';
 import { autoMapCSVToFields, type AutoMappingResult, type FieldDefinition } from '@/lib/auto-mapping-engine';
 import { transformCSVToRecipients, validateMappings, getRequiredFields } from '@/lib/csv-transform-utils';
 import MappingPreviewPanel from '@/components/mapping-preview-panel';
+import { ChatbotAutomationService, TemplateButtonFlowMapping } from '@/services/chatbot-automation';
+import { ChatbotAutomation } from '@/types/chatbot-automation';
 
 interface Contact {
   id: string;
@@ -103,11 +105,22 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [globalHeaderMediaHandle, setGlobalHeaderMediaHandle] = useState<string>('');
   const [globalHeaderMediaId, setGlobalHeaderMediaId] = useState<string>('');
   const [isUploadingHeaderMedia, setIsUploadingHeaderMedia] = useState(false);
+  const [previewMessages, setPreviewMessages] = useState<any[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewUpdatedAt, setPreviewUpdatedAt] = useState<string | null>(null);
 
   const [showAllTags, setShowAllTags] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Flow mapping state for quick reply buttons
+  const [chatbotFlows, setChatbotFlows] = useState<ChatbotAutomation[]>([]);
+  const [flowMappings, setFlowMappings] = useState<Record<number, string>>({});
+  const [loadingFlows, setLoadingFlows] = useState(false);
+  const [savingFlowMappings, setSavingFlowMappings] = useState(false);
+  const [hasFlowMappingChanges, setHasFlowMappingChanges] = useState(false);
 
   // CSV Import state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -182,6 +195,14 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.error(customFieldsError);
     }
   }, [customFieldsError]);
+
+  useEffect(() => {
+    if (!createdWhatsAppCampaignId) {
+      setPreviewMessages([]);
+      setPreviewError(null);
+      setPreviewUpdatedAt(null);
+    }
+  }, [createdWhatsAppCampaignId]);
 
   // Prefill form when continuing a draft campaign
   useEffect(() => {
@@ -420,7 +441,94 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setGlobalHeaderMediaHandle('');
       setGlobalHeaderMediaId('');
       setIsUploadingHeaderMedia(false);
+
+      // Fetch flow mappings if template has quick reply buttons
+      const buttonsComp = template.components?.find((c: any) => c.type === 'BUTTONS');
+      const quickReplyBtns = buttonsComp?.buttons?.filter((b: any) => b.type === 'QUICK_REPLY') || [];
+      if (quickReplyBtns.length > 0 && organizationId) {
+        fetchFlowsAndMappings(template.id);
+      } else {
+        setFlowMappings({});
+        setHasFlowMappingChanges(false);
+      }
     }
+  };
+
+  // Fetch chatbot flows and existing mappings for a template
+  const fetchFlowsAndMappings = useCallback(async (templateId: string) => {
+    if (!organizationId) return;
+
+    setLoadingFlows(true);
+    try {
+      const [flows, mappings] = await Promise.all([
+        ChatbotAutomationService.getChatbots(organizationId),
+        ChatbotAutomationService.getTemplateButtonMappings(templateId, organizationId)
+      ]);
+
+      setChatbotFlows(flows.filter(f => f.isActive));
+
+      // Initialize flow mappings from existing data
+      const initialMappings: Record<number, string> = {};
+      mappings.forEach((m: TemplateButtonFlowMapping) => {
+        initialMappings[m.button_index] = m.flow;
+      });
+      setFlowMappings(initialMappings);
+      setHasFlowMappingChanges(false);
+    } catch (error) {
+      console.error('Error fetching flows and mappings:', error);
+    } finally {
+      setLoadingFlows(false);
+    }
+  }, [organizationId]);
+
+  // Handle flow selection change
+  const handleFlowMappingChange = (buttonIndex: number, flowId: string) => {
+    setFlowMappings(prev => ({
+      ...prev,
+      [buttonIndex]: flowId === 'none' ? '' : flowId
+    }));
+    setHasFlowMappingChanges(true);
+  };
+
+  // Save flow mappings
+  const handleSaveFlowMappings = async () => {
+    const selectedTemplate = getSelectedTemplate();
+    if (!organizationId || !selectedTemplate) return;
+
+    const buttonsComp = selectedTemplate.components?.find((c: any) => c.type === 'BUTTONS');
+    const quickReplyButtons = buttonsComp?.buttons?.filter((b: any) => b.type === 'QUICK_REPLY') || [];
+
+    setSavingFlowMappings(true);
+    try {
+      const mappingsToSave = quickReplyButtons.map((button: any, index: number) => ({
+        button_text: button.text,
+        button_index: index,
+        flow: flowMappings[index] || null
+      }));
+
+      await ChatbotAutomationService.updateTemplateButtonMappings(
+        organizationId,
+        selectedTemplate.id,
+        selectedTemplate.name,
+        mappingsToSave
+      );
+
+      toast.success('Flow mappings saved successfully');
+      setHasFlowMappingChanges(false);
+    } catch (error) {
+      console.error('Error saving flow mappings:', error);
+      toast.error('Failed to save flow mappings');
+    } finally {
+      setSavingFlowMappings(false);
+    }
+  };
+
+  // Get quick reply buttons from selected template
+  const getQuickReplyButtons = () => {
+    const selectedTemplate = getSelectedTemplate();
+    if (!selectedTemplate) return [];
+    const buttonsComp = selectedTemplate.components?.find((c: any) => c.type === 'BUTTONS');
+    return buttonsComp?.buttons?.filter((b: any) => b.type === 'QUICK_REPLY') || [];
   };
 
   const uploadGlobalHeaderMedia = async (file: File) => {
@@ -1020,6 +1128,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                 );
                 setImportedRecipientsCount(prev => prev + transformResult.recipients.length);
                 toast.success(`${transformResult.recipients.length} recipients added with personalized parameters`);
+                if (campaignType === 'template') {
+                  await loadPreviewMessages();
+                }
               } else {
                 toast.error('No valid recipients found in CSV');
               }
@@ -1044,23 +1155,18 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       }
 
       if (!importComplete) {
-        const timeoutMessage = 'Import is taking longer than expected. This could mean:\n' +
-          '1. Large file is still processing\n' +
-          '2. Backend service may be slow\n' +
-          '3. Import job may be stuck\n\n' +
-          'Please check your contacts list or try importing again with a smaller file.';
-        toast.error(timeoutMessage, { duration: 10000 });
-        console.error('Import timeout after', attempts, 'attempts. Job ID:', importJobId);
+        const timeoutMessage = 'Import is taking longer than expected. You can return to this campaign while we finish processing.';
+        toast.warning(timeoutMessage, { duration: 10000 });
+        console.warn('Import did not complete within timeout (job ID: ', importJobId, ')');
 
-        // Still clear the form to allow retry
+        // Clean UI state but allow later retry
         setSelectedFile(null);
         setCsvHeaders([]);
         setCsvData([]);
         setCsvImportStep('upload');
         setColumnMappings({});
         if (fileInputRef.current) fileInputRef.current.value = '';
-
-        throw new Error('Import timeout - please try again with a smaller file or contact support');
+        return;
       }
 
       // Clear the file after successful import
@@ -1114,6 +1220,35 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     } catch (error) {
       console.error('Error verifying recipients:', error);
       return true; // Do not block launch on verification error
+    }
+  };
+
+  const loadPreviewMessages = async (limit = 3) => {
+    if (!createdWhatsAppCampaignId || !organizationId) {
+      setPreviewMessages([]);
+      setPreviewError('Create the WhatsApp campaign and add recipients to see a preview.');
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const data = await CampaignService.previewWhatsAppCampaignMessages(
+        createdWhatsAppCampaignId,
+        organizationId,
+        limit
+      );
+
+      const fetchedPreviews = Array.isArray(data.previews) ? data.previews : [];
+      setPreviewMessages(fetchedPreviews);
+      setPreviewError(null);
+      setPreviewUpdatedAt(new Date().toISOString());
+    } catch (error) {
+      console.error('Error loading campaign preview:', error);
+      const message = error instanceof Error ? error.message : 'Failed to fetch message preview';
+      setPreviewError(message);
+      toast.error(message);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -1353,11 +1488,14 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
           console.log('Recipients with parameters added successfully');
 
-          const ok = await verifyRecipientsExist();
-          if (!ok) {
-            setLoading(false);
-            return;
-          }
+        const ok = await verifyRecipientsExist();
+        if (!ok) {
+          setLoading(false);
+          return;
+        }
+        if (campaignType === 'template') {
+          await loadPreviewMessages();
+        }
         } else {
           // Use legacy format: Add recipients by tag_ids/contact_ids (no parameters)
           console.log('=== USING LEGACY RECIPIENT FORMAT ===');
@@ -1400,6 +1538,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
             if (!ok) {
               setLoading(false);
               return;
+            }
+            if (campaignType === 'template') {
+              await loadPreviewMessages();
             }
           }
         }
@@ -1649,6 +1790,83 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                               You&apos;ll be able to upload parameter values after selecting recipients.
                             </AlertDescription>
                           </Alert>
+                        )}
+
+                        {/* Flow Mapping for Quick Reply Buttons */}
+                        {getSelectedTemplate() && getQuickReplyButtons().length > 0 && (
+                          <Card className="border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <Bot className="h-5 w-5 text-emerald-600" />
+                                Chatbot Flow Mapping
+                              </CardTitle>
+                              <CardDescription>
+                                Map quick reply buttons to chatbot flows. When a recipient clicks a button, the selected flow will trigger.
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              {loadingFlows ? (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Loading chatbot flows...
+                                </div>
+                              ) : chatbotFlows.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                  No active chatbot flows available. Create a flow first to map buttons.
+                                </p>
+                              ) : (
+                                <>
+                                  {getQuickReplyButtons().map((button: any, index: number) => (
+                                    <div key={index} className="flex items-center gap-3 p-2 bg-white dark:bg-gray-900 rounded-lg border">
+                                      <div className="flex-1">
+                                        <Badge variant="outline" className="text-xs bg-emerald-100 text-emerald-700 border-emerald-300">
+                                          {button.text}
+                                        </Badge>
+                                      </div>
+                                      <Select
+                                        value={flowMappings[index] || 'none'}
+                                        onValueChange={(value) => handleFlowMappingChange(index, value)}
+                                      >
+                                        <SelectTrigger className="w-[200px] h-9">
+                                          <SelectValue placeholder="Select flow" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">
+                                            <span className="text-muted-foreground">No flow</span>
+                                          </SelectItem>
+                                          {chatbotFlows.map((flow) => (
+                                            <SelectItem key={flow.id} value={flow.id}>
+                                              {flow.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  ))}
+                                  {hasFlowMappingChanges && (
+                                    <Button
+                                      size="sm"
+                                      onClick={handleSaveFlowMappings}
+                                      disabled={savingFlowMappings}
+                                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                    >
+                                      {savingFlowMappings ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Save className="h-4 w-4 mr-2" />
+                                          Save Flow Mappings
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                            </CardContent>
+                          </Card>
                         )}
                       </div>
                     )}
@@ -2381,6 +2599,65 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                 mappings={columnMappings}
                                 maxPreviews={3}
                               />
+                            )}
+
+                            {campaignType === 'template' && (
+                              <Card className="border-border/60 bg-muted/30">
+                                <CardHeader className="flex flex-col gap-1">
+                                  <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold">WhatsApp Preview</CardTitle>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => loadPreviewMessages(3)}
+                                      disabled={previewLoading || !createdWhatsAppCampaignId}
+                                    >
+                                      {previewLoading ? 'Refreshing...' : 'Refresh preview'}
+                                    </Button>
+                                  </div>
+                                  <CardDescription className="text-xs">
+                                    See how your message renders for the latest recipients.
+                                    {previewUpdatedAt && (
+                                      <> Updated {new Date(previewUpdatedAt).toLocaleTimeString()}.</>
+                                    )}
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {previewError && (
+                                    <Alert className="bg-amber-50 border-amber-200">
+                                      <AlertDescription className="text-xs text-amber-700">
+                                        {previewError}
+                                      </AlertDescription>
+                                    </Alert>
+                                  )}
+
+                                  {previewMessages.length === 0 && !previewLoading && !previewError && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Add recipients to the campaign and refresh to view how the template will look.
+                                    </p>
+                                  )}
+
+                                  {previewMessages.map((preview, index) => (
+                                    <Card key={`${preview.recipient?.phone || index}-${index}`} className="bg-white border">
+                                      <CardContent className="p-3 space-y-2">
+                                        <div className="text-xs text-muted-foreground">Recipient</div>
+                                        <div className="text-sm font-semibold">
+                                          {preview.recipient?.fullname || preview.recipient?.phone || `Recipient ${index + 1}`}
+                                        </div>
+                                        {preview.recipient?.phone && (
+                                          <div className="text-xs text-muted-foreground">{preview.recipient.phone}</div>
+                                        )}
+                                        <div className="border-t border-border/30 pt-2">
+                                          <div className="text-xs text-muted-foreground">Message preview</div>
+                                          <p className="text-sm whitespace-pre-wrap">
+                                            {preview.message?.formatted_preview || preview.message?.body || 'Preview unavailable'}
+                                          </p>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  ))}
+                                </CardContent>
+                              </Card>
                             )}
                           </div>
                         </div>
