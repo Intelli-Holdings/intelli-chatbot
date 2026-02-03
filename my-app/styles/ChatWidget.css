@@ -1,0 +1,249 @@
+#chat-bubble {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background-color: #007AFF;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    z-index: 1000;
+  }
+  
+  #chat-bubble:hover {
+    transform: scale(1.1);
+  }
+  
+  #chat-bubble.clicked {
+    transform: scale(0.2);
+  }
+  
+  #chat-bubble svg {
+    width: 30px;
+    height: 30px;
+    color: white;
+  }
+  
+  #chat-container {
+    position: fixed;
+    bottom: 90px; /* Increased to lift the widget above the chat icon */
+    right: 20px;
+    width: 400px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 500px;
+    transition: all 0.3s ease;
+    z-index: 999;
+  }
+  
+  #chat-header {
+    padding: 20px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    background-color: #007fff;
+    color: white;
+  }
+  
+  #chat-header-text {
+    flex-grow: 1;
+    text-align: center;
+  }
+  
+  #close-chat {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+  
+  #close-chat:hover {
+    opacity: 1;
+  }
+  
+  #chat-box {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    max-height: 400px;
+    height: 400px;
+    position: relative;
+    scroll-behavior: smooth;
+  }
+  
+  #chat-box::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 15px;
+    background: linear-gradient(to bottom, white, transparent);
+    z-index: 10;
+    pointer-events: none;
+  }
+  
+  #chat-box::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  #chat-box::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  #chat-box::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  
+  #chat-box::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  .message {
+    display: flex;
+    margin-bottom: 10px;
+    clear: both;
+  }
+  
+  .user-message {
+    justify-content: flex-end;
+  }
+  
+  .assistant-message, .business-message {
+    justify-content: flex-start;
+  }
+  
+  .message-bubble {
+    border-radius: 15px;
+    max-width: 80%;
+    padding: 10px 15px;
+    word-wrap: break-word;
+  }
+  
+  .user-bubble {
+    background-color: #007AFF;
+    color: #FFFFFF;
+    align-self: flex-end;
+  }
+  
+  .assistant-bubble {
+    background-color: #E5E5EA;
+    color: black;
+    align-self: flex-start;
+  }
+  
+  .business-bubble {
+    background-color: #007A0F;
+    color: #FFFFFF;
+    align-self: flex-start;
+  }
+  
+  #message-input-container {
+    display: flex;
+    padding: 10px;
+    background: #f0f0f0;
+    align-items: center;
+  }
+  
+  #message-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 20px;
+    outline: none;
+    font-size: 16px;
+    margin-right: 10px;
+  }
+  
+  .message-bubble a {
+    color: #007AFF;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  
+  .business-bubble a {
+    color: #FFFFFF;
+  }
+  
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .typing-bubble {
+    background-color: #E5E5EA;
+    padding: 10px;
+    display: inline-block;
+  }
+  
+  .typing-dots {
+    display: flex;
+    align-items: center;
+  }
+  
+  .dot {
+    width: 6px;
+    height: 6px;
+    margin: 0 3px;
+    background-color: #8E8E93;
+    border-radius: 50%;
+    animation: typingDots 1.4s infinite ease-in-out;
+    display: inline-block;
+  }
+  
+  .dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  
+  .dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  
+  @keyframes typingDots {
+    0%, 80%, 100% {
+      opacity: 0.5;
+      transform: translateY(0);
+    }
+    40% {
+      opacity: 1;
+      transform: translateY(-4px);
+    }
+  }
+  
+  .send-button {
+    background-color: #007AFF;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .send-button:hover {
+    background-color: #0056b3;
+  }
+  
+  .send-button svg {
+    color: white;
+  }
+  
+  

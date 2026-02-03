@@ -1,24 +1,25 @@
 # Intelli
 
-This is the main repository of Intelli concierge, the omnichanel for customer support
+This is the main repository of Intelli, the Multi-channel for customer support
 
 # Use Cases
 
-## Hotel Inquiry and Reservation Automation
+## Parent Inquiries to Schools and student registration
+## NGO program inquiries by applicants
+## Government programs inquiries automation
+## Travel Agencies cusotmer service automation
 
 ### Overview
 
-3-5 star Hotels in Ghana receive high volumes of inquiries and reservations scattered across email, website, and social media. This overwhelms their inadequate customer support staff leading to delayed and inaccurate responses, and potential revenue loss.
-
-Our solution, an automated web application and intelligent chatbot, aims to handle inquiries and reservations across channels, providing a detailed report of all customer support operations, enhancing customer experience, and increasing revenue.
-
-### Solution Statement
-
-Our solution is a web application and intelligent chatbot that automates responses to inquiries and makes reservations. It collects inquiries from all the channels and displays them in one central source, enhancing customer experience and increasing revenue.
+Our solution, an automated web application and intelligent chatbot, aims to handle inquiries and applocations + bookings across channels, providing a detailed report of all customer support operations, enhancing customer experience, and increasing revenue.
 
 ### Value Proposition
 
-Our solution automates the process of handling inquiries and reservations, freeing up time for customer support staff to focus on more complex issues. It provides a detailed report of all customer support operations, enhancing customer experience and increasing revenue.
+- Saves businesses time
+- Reduces business expenditure spent on training staff
+- Reduces revenue leak by reducing customer churn
+- Improves business standing to customers
+
 
 ## Getting Started with the Project
 
@@ -87,6 +88,6 @@ Ensure you periodically run git fetch command;
 - Push changes to your branch before merging into the main branch
 - Rules have been created that won't allow you do otherwise
 
-# That's it Vertices.
+# That's it Folks.
 
 Happy Engineering

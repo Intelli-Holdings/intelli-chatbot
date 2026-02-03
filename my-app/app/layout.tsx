@@ -1,29 +1,97 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Inter, Manrope } from "next/font/google";
 import "@/app/globals.css";
 import { Toaster } from 'sonner';
-import { Analytics } from "@vercel/analytics/react"
-import { CSPostHogProvider } from './providers'
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import OnboardingReminder from "@/components/OnboardingReminder"
+// import { OnboardingProvider } from "@/context/onboarding-context";
+import AttentionBadge from "@/components/AttentionBadge";
+import Script from "next/script";
 
-const inter = Manrope({ subsets: ["latin"] });
-<link
+// Meta Pixel Imports
+import MetaPixel from "@/components/MetaPixel"
+import FBPageView from "@/components/PageView"
+import ConsentGate from "@/components/consent-gate";
+import ConsentBanner from "@/components/consent-card";
+
+
+// Onborda
+import { Onborda } from "onborda";
+// import { steps } from "@/lib/steps";
+
+// Custom Card
+import CustomCard from "@/components/CustomCard";
+
+//Next Step Js
+import TourProviderWrapper from "@/components/tour-provider-wrapper";
+
+// Aptabase Analytics 
+import { AptabaseProvider } from '@aptabase/react';
+
+import { PHProvider } from './providers'
+import dynamic from 'next/dynamic'
+import {
+  ClerkProvider,
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from '@clerk/nextjs';
+
+// Toast notifications
+import ToastProvider from "@/components/ToastProvider";
+
+// Pointer events fix
+import PointerEventsFix from "@/components/pointer-events-fix";
+
+const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
+  ssr: false,
+})
+
+const inter = Inter({ subsets: ["latin"] });
+const manrope = Manrope({ subsets: ["latin"] });
+<><link
   rel="icon"
-  href="/icon.ico"
-  type="image/ico"
-  sizes="16x16"
-/>
-export const metadata: Metadata = {
-  title: "Intelli Concierge",
-  description: "Your Intelligent Assistant",
-  
-  icons: {
-    icon: '/icon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png'
-  },
-  keywords: ["Increase Lead Conversions", "Increase Hotel Bookings", "Increase Revenue for your Hotel", "Intelligent Chatbot", "Global Leader", "Omichannel ", "Automate your sales and customer support", "Put Customer Inquiries on Autopilot", "RPA", "Automation", "Customer Support", "Customer Service", "Customer Experience", "CX", "Customer Success", "Customer Satisfaction", "Customer Feedback", "Customer Journey", "Customer Relationship", "Customer Loyalty", "Customer Retention", "Customer Acquisition", "Customer Engagement", "Customer Advocacy", "Customer Lifetime Value", "Customer Churn", "Customer Segmentation", "Customer Persona", "Customer Data", "Customer Analytics", "Customer Insights", "Customer Intelligence", "Customer Feedback", "Customer Survey", "Customer Review", "Customer Testimonial", "Customer Complaint", "Customer Query", "Customer Request", "Customer Ticket", "Customer Case", "Customer Issue", "Customer Problem", "Customer Solution", "Customer Satisfaction Score", "Customer Effort Score", "Net Promoter Score", "Customer Journey Map", "Customer Persona", "Customer Data Platform", "Customer Relationship Management", "Customer Experience Management", "Customer Success Management", "Customer Support Management", "Customer Service Management", "Customer Feedback Management", "Customer Survey Management", "Customer Review Management", "Customer Testimonial Management", "Customer Complaint Management", "Customer Query Management", "Customer Request Management", "Customer Ticket Management", "Customer Case Management", "Customer Issue Management", "Customer Problem Management", "Customer Solution Management", "Customer Satisfaction Score Management", "Customer Effort Score Management", "Net Promoter Score Management", "Customer Journey Map Management", "Customer Persona Management", "Customer Data Platform Management", "Customer Relationship Management", "Customer Experience Management", "Customer Success Management", "Customer Support Management", "Customer Service Management", "Customer Feedback Management", "Customer Survey Management", "Customer Review Management", "Customer Testimonial Management", "Customer Complaint Management", "Customer Query Management", "Customer Request Management", "Customer Ticket Management", "Customer Case Management", "Customer Issue Management", "Customer Problem Management", "Customer Solution Management", "Customer Satisfaction Score Management", "Customer Effort Score Management", "Net Promoter Score Management", "Customer Journey Map Management", "Customer Persona Management", "Customer Data Platform Management", "Customer Relationship Management", "Customer Experience Management", "Customer Success Management", "Customer Support Management", "Customer Service Management", "Customer Feedback Management", "Customer Survey Management", "Customer Review Management", "Customer Testimonial Management", "Customer Complaint Management", "Customer Query Management", "Customer Request Management", "Customer Ticket Management", "Customer Case Management"]
+  href="/Intelli.svg"
+  type="image/svg"
+  sizes="16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024" /><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /><link rel="icon" type="image/svg+xml" href="/icon.svg" /></>
 
+export const metadata = {
+  title: 'Intelli – Engage and support customers',
+  description: 'Intelli is a Customer Support and Engagement Platform that enables businesses to manage customer conversations using AI across WhatsApp, website, and email.',
+  openGraph: {
+    siteName: 'Intelli – Engage and support customers',
+    url: 'https://www.intelliconcierge.com',
+    title: 'Intelli',
+    description: 'Streamline customer conversations using AI across WhatsApp, website, and email.',
+    type: 'website',
+    author: 'Intelli',
+    images: [
+      {
+        url: 'https://www.intelliconcierge.com/api/og',
+        width: 1200,
+        height: 630,
+        alt: 'An alternative text for the image',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Intelli',
+    description: 'Streamline customer conversations using AI across WhatsApp, website, and email for your business.',
+    author: 'Intelli',
+    images: [
+      {
+        url: 'https://www.intelliconcierge.com/api/og',
+        width: 1200,
+        height: 630,
+        alt: 'An alternative text for the image',
+      },
+    ],
+  },
 };
+
+
 
 export const viewport = {
   themeColor: [
@@ -38,25 +106,42 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <CSPostHogProvider>
-      <Analytics />
-      <body className={inter.className}>{children}
-      <Toaster
-      toastOptions={{
-        classNames: {
-          error: 'bg-red-400',
-          success: 'text-green-400',
-          warning: 'text-yellow-400',
-          info: 'bg-blue-400',
-        },
-      }}
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          <Script async src="https://www.googletagmanager.com/gtag/js?id=G-2V9CBMTJHN"></Script>
+          <Script id="google-analytics" strategy="lazyOnload">
+            {
+              `
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-2V9CBMTJHN');
+    `
+            }
+          </Script>
+        </head>
+        <PHProvider>
 
-      richColors
-    />
-  
-      </body>
-       </CSPostHogProvider>
-    </html>
+          <SpeedInsights />
+          <SignedOut></SignedOut>
+          <SignedIn></SignedIn>
+          <body className={inter.className}>
+            <ConsentGate /> {/* renders MetaPixel only after consent */}
+            <AttentionBadge />
+            <PostHogPageView />
+            <PointerEventsFix />
+            <AptabaseProvider appKey="A-US-3705920924">
+              <TourProviderWrapper>
+                {children}
+              </TourProviderWrapper>
+            </AptabaseProvider>
+            <ToastProvider />
+          </body>
+          <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
+          <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />
+        </PHProvider>
+      </html>
+    </ClerkProvider>
   );
 }

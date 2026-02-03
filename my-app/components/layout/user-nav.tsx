@@ -29,7 +29,10 @@ export const UserNav = React.memo(() => {
       <div>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="/path/to/placeholder.png" alt="Placeholder Avatar" />
+            <AvatarImage
+              src="/path/to/placeholder.png"
+              alt="Placeholder Avatar"
+            />
             <AvatarFallback>?</AvatarFallback>
           </Avatar>
         </Button>
@@ -60,15 +63,17 @@ export const UserNav = React.memo(() => {
               <p className="text-xs leading-none text-muted-foreground">
                 {email}
               </p>
+              <p className="text-xs leading-none text-muted-foreground"></p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => router.push('/dashboard/profile')}>
               Profile
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            {/**
+             * <DropdownMenuItem>
               Billing
               <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
             </DropdownMenuItem>
@@ -77,6 +82,10 @@ export const UserNav = React.memo(() => {
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem>New Team</DropdownMenuItem>
+             * 
+             * 
+             * */}
+            
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>

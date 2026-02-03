@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="whatsappGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2ecc71;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#27ae60;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer circle with chat bubble tail -->
+  <path d="M 200 20
+           C 300 20 380 100 380 200
+           C 380 300 300 380 200 380
+           C 170 380 142 372 118 358
+           L 40 380
+           L 62 305
+           C 45 278 35 246 35 200
+           C 35 100 115 20 200 20 Z"
+        fill="url(#whatsappGradient)"
+        stroke="url(#whatsappGradient)"
+        stroke-width="8"/>
+
+  <!-- Inner white circle -->
+  <circle cx="200" cy="200" r="140" fill="white"/>
+
+  <!-- Phone handset -->
+  <path d="M 120 100
+           C 125 95 135 95 142 100
+           L 165 125
+           C 170 130 170 138 165 143
+           L 155 153
+           C 153 155 153 158 155 160
+           C 165 175 180 195 200 215
+           C 220 235 240 250 255 260
+           C 257 262 260 262 262 260
+           L 272 250
+           C 277 245 285 245 290 250
+           L 315 273
+           C 320 278 320 288 315 293
+           L 295 310
+           C 290 315 282 317 275 315
+           C 230 300 190 275 160 245
+           C 130 215 105 175 90 130
+           C 88 123 90 115 95 110
+           Z"
+        fill="url(#whatsappGradient)"/>
+</svg>

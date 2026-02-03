@@ -2,7 +2,7 @@ import Image from 'next/image'
 
 const navigation = {
   connect: [
-    { name: 'Book Meeting', href: '' },
+    { name: 'Book A Demo', href: 'https://calendly.com/sila-r0a9/30min' },
     {
       name: 'Twitter',
       href: 'https://twitter.com/Intelli',
@@ -17,7 +17,7 @@ const navigation = {
     },
   ],
   company: [
-    { name: 'Terms', href: '/terms' },
+    { name: 'Terms Of Service', href: '/terms-of-service' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Privacy', href: '/privacy' },
     { name: 'Partner', href: '/partner' },
@@ -37,20 +37,12 @@ const TwoColumnFooter = () => {
       <div className="mx-auto max-w-7xl px-2">
         <div className="flex flex-col justify-between lg:flex-row">
           <div className="space-y-8">
-            <Image
-              priority={true}
-              unoptimized={true}
-              width={40}
-              height={40}
-              src="/intelli.svg"
-              alt="logo"
-              className="h-7 w-auto"
-            />
+            <Image height={25} width={25} src="https://www.intelliconcierge.com/Intelli.svg" alt="Intelli logo" className="h-7 w-auto" />
             <p className="text-md max-w-xs leading-6 text-gray-700">
               Put your customer support - on autopilot
             </p>
             <div className="flex space-x-6 text-sm text-gray-700">
-              <div>Made with ❤️ from Africa.</div>
+              <div>Made with ❤️ from SF.</div>
             </div>
           </div>
           {/* Navigations */}

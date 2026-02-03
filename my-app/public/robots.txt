@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Explicitly allow AI crawlers to access llms.txt
+Allow: /llms.txt
+
+# Sitemap location
+Sitemap: https://intelliconcierge.com/sitemap.xml

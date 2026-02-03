@@ -12,8 +12,8 @@ interface User {
 }
 
 interface UserProfile {
-  My_profile: User;
-  email_verified?: string;
+  'My profile': User;
+  'email verified?': string;
 }
 
 const useAuth = () => {
@@ -23,8 +23,8 @@ const useAuth = () => {
     const fetchProfile = async () => {
       try {
         const profile: UserProfile | null = await getProfile();
-        if (profile && profile.My_profile) {
-          setUser(profile.My_profile);
+        if (profile && profile['My profile']) {
+          setUser(profile['My profile']);
         } else {
           setUser(null);
         }

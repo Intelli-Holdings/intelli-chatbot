@@ -1,0 +1,257 @@
+/* Base message bubble styling - WhatsApp style */
+.message-bubble {
+  position: relative;
+  padding: 0.5rem 0.75rem;
+  margin: 0.25rem 0;
+  max-width: 65%; /* WhatsApp-like width */
+  border-radius: 0.5rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  box-shadow: 0 1px 0.5px rgba(11,20,26,.13);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-bubble:hover {
+  box-shadow: 0 1px 1px rgba(11,20,26,.15);
+}
+
+/* Message types - WhatsApp colors */
+.message-customer {
+  background-color: white;
+  color: #111b21;
+  align-self: flex-start;
+  border-top-left-radius: 0;
+}
+
+.message-assistant {
+  background-color: #e3d7ff; /* Light purple for AI */
+  color: #111b21;
+  align-self: flex-end;
+  border-top-right-radius: 0;
+}
+
+.message-human {
+  background-color: #d9fdd3; /* Light green for Business/Human */
+  color: #111b21;
+  align-self: flex-end;
+  border-top-right-radius: 0;
+}
+
+/* Message tails - WhatsApp style */
+.message-tail {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+.message-tail-left {
+  border-width: 8px 8px 0 0;
+  border-color: white transparent transparent transparent;
+  left: -7px;
+  top: 0;
+}
+
+.message-tail-right-assistant {
+  border-width: 8px 0 0 8px;
+  border-color: #e3d7ff transparent transparent transparent; /* Purple tail for AI */
+  right: -7px;
+  top: 0;
+}
+
+.message-tail-right-human {
+  border-width: 8px 0 0 8px;
+  border-color: #d9fdd3 transparent transparent transparent; /* Green tail for Business */
+  right: -7px;
+  top: 0;
+}
+
+/* Enhanced reaction badge with click interaction
+ * Displays WhatsApp-style emoji reactions on messages
+ * Click to change or remove the reaction
+ */
+.message-reaction {
+  position: absolute;
+  bottom: -8px;
+  right: 8px;
+  background-color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  border: 2px solid white;
+  z-index: 10;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.message-reaction:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.message-reaction:active {
+  transform: scale(1.1);
+}
+
+/* Adjust message bubble padding when reaction is present */
+.message-bubble.has-reaction {
+  margin-bottom: 1rem;
+}
+
+/* Typography and spacing */
+.message-bubble p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 5; /* Show first 5 lines */
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
+}
+
+/* Reset when expanded */
+.message-bubble.expanded p {
+  -webkit-line-clamp: unset;
+}
+
+.message-bubble h1,
+.message-bubble h2,
+.message-bubble h3,
+.message-bubble h4,
+.message-bubble h5,
+.message-bubble h6 {
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+/* Typography and spacing */
+.message-bubble p {
+  margin: 0.75rem 0;
+}
+
+.message-bubble p:first-child {
+  margin-top: 0;
+}
+
+.message-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.message-bubble h1,
+.message-bubble h2,
+.message-bubble h3,
+.message-bubble h4,
+.message-bubble h5,
+.message-bubble h6 {
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+/* List styling */
+.message-bubble ol,
+.message-bubble ul {
+  margin: 0.5rem 0 1em;
+  padding-left: 1.5rem;
+}
+
+.message-bubble ol {
+  list-style-type: decimal;
+}
+
+.message-bubble ul {
+  list-style-type: disc;
+}
+
+.message-bubble li {
+  margin: 0.25rem 0 0.5em;
+  padding-left: 0.5rem;
+}
+
+/* Table styling */
+.message-bubble table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+.message-bubble th,
+.message-bubble td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.message-bubble th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+}
+
+/* Link styling - WhatsApp style */
+.message-bubble a {
+  color: #027eb5;
+  text-decoration: underline;
+  text-decoration-color: rgba(2, 126, 181, 0.4);
+  transition: text-decoration-color 0.2s;
+}
+
+.message-bubble.message-customer a {
+  color: #027eb5;
+  text-decoration-color: rgba(2, 126, 181, 0.4);
+}
+
+.message-bubble.message-assistant a {
+  color: #6b21a8; /* Purple links for AI messages */
+  text-decoration-color: rgba(107, 33, 168, 0.4);
+}
+
+.message-bubble.message-human a {
+  color: #00634a; /* Green links for Business messages */
+  text-decoration-color: rgba(0, 99, 74, 0.4);
+}
+
+.message-bubble a:hover {
+  text-decoration-color: currentColor;
+}
+
+/* Formatted text */
+.message-bubble .text-sm {
+  white-space: pre-wrap;
+}
+
+/* Date separator */
+.flex.justify-center.my-4 {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.flex.justify-center.my-4 span {
+  background-color: rgba(192, 192, 204, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.message-bubble + .flex.justify-center.my-4 {
+  margin-top: 1.5rem;
+}
+
+.flex.justify-center.my-4 + .message-bubble {
+  margin-top: 1.5rem;
+}
