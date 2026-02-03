@@ -10,12 +10,23 @@ export type MetaMessagingEvent = {
     title?: string
     payload?: string
   }
+  read?: {
+    watermark?: number
+  }
+  delivery?: {
+    mids?: string[]
+    watermark?: number
+  }
 }
 
 export type MetaWebhookEntry = {
   id: string
   time: number
   messaging?: MetaMessagingEvent[]
+  changes?: Array<{
+    field: string
+    value: any
+  }>
 }
 
 export type MetaWebhookPayload = {
