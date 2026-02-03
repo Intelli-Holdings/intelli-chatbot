@@ -23,10 +23,10 @@ export type MetaWebhookEntry = {
   id: string
   time: number
   messaging?: MetaMessagingEvent[]
-  changes?: {
+  changes?: Array<{
     field: string
-    value: unknown
-  }[]
+    value: any
+  }>
 }
 
 export type MetaWebhookPayload = {
