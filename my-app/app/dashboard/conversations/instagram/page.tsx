@@ -21,7 +21,7 @@ const InstagramPage = () => {
             IG
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#111827]">Instagram Studio</p>
+            <p className="text-sm font-semibold text-[#111827]">Instagram Inbox</p>
             <p className="text-xs text-[#6b7280]">@intelli_concierge</p>
           </div>
         </div>
@@ -50,7 +50,7 @@ const InstagramPage = () => {
       <section className="flex w-[320px] flex-col border-r border-[#f2d9ff] bg-white">
         <div className="border-b border-[#f2d9ff] p-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#fff007] to-[#fff] text-white">
               <Image src="/instagram.png" alt="Instagram" width={18} height={18} />
             </div>
             <div>

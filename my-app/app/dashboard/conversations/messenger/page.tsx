@@ -21,8 +21,8 @@ const MessengerPage = () => {
             M
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#111827]">Messenger Desk</p>
-            <p className="text-xs text-[#6b7280]">Intelli Page</p>
+            <p className="text-sm font-semibold text-[#111827]">Messenger Inbox</p>
+            <p className="text-xs text-[#6b7280]">Your Page</p>
           </div>
         </div>
         <div className="mt-6 space-y-2 text-sm text-[#6b7280]">
@@ -50,8 +50,8 @@ const MessengerPage = () => {
       <section className="flex w-[320px] flex-col border-r border-[#e5e7eb] bg-white">
         <div className="border-b border-[#e5e7eb] p-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1877f2] text-white">
-              <Image src="/facebook.png" alt="Facebook" width={18} height={18} />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f4f6] text-white">
+              <Image src="/messenger.png" alt="Facebook" width={18} height={18} />
             </div>
             <div>
               <h2 className="text-base font-semibold text-[#111827]">Messenger</h2>
