@@ -15,6 +15,7 @@ import { MediaNodeData, MediaType } from '../nodes/MediaNode';
 import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
+import { HttpApiNodeData } from '../nodes/HttpApiNode';
 
 // Extended node data type
 export type ExtendedFlowNodeData =
@@ -26,11 +27,12 @@ export type ExtendedFlowNodeData =
   | MediaNodeData
   | UserInputFlowNodeData
   | QuestionInputNodeData
-  | CTAButtonNodeData;
+  | CTAButtonNodeData
+  | HttpApiNodeData;
 
 export interface ExtendedFlowNode {
   id: string;
-  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button';
+  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button' | 'http_api';
   position: NodePosition;
   data: ExtendedFlowNodeData;
 }
@@ -259,6 +261,32 @@ export function createCTAButtonNode(position: NodePosition): ExtendedFlowNode {
 }
 
 /**
+ * Create a new HTTP API node
+ */
+export function createHttpApiNode(position: NodePosition): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const data: HttpApiNodeData = {
+    type: 'http_api',
+    label: 'HTTP API',
+    method: 'GET',
+    url: '',
+    headers: [],
+    body: '',
+    bodyType: 'json',
+    responseVariable: `api_response_${nodeId.substring(0, 6)}`,
+    timeout: 30,
+  };
+
+  return {
+    id: `http_api-${nodeId}`,
+    type: 'http_api',
+    position,
+    data,
+  };
+}
+
+/**
  * Create node from context menu action
  */
 export function createNodeFromAction(
@@ -294,6 +322,8 @@ export function createNodeFromAction(
       return createMediaNode(position, 'audio');
     case 'add-cta-button':
       return createCTAButtonNode(position);
+    case 'add-http-api':
+      return createHttpApiNode(position);
     default:
       return null;
   }
@@ -415,6 +445,12 @@ export function getToolbarItems() {
       label: 'CTA Button',
       description: 'Button with URL link',
       color: 'bg-orange-500',
+    },
+    {
+      type: 'http_api',
+      label: 'HTTP API',
+      description: 'Call external APIs',
+      color: 'bg-violet-500',
     },
   ];
 }

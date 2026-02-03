@@ -7,6 +7,7 @@ import MediaNode from './MediaNode';
 import UserInputFlowNode from './UserInputFlowNode';
 import QuestionInputNode from './QuestionInputNode';
 import CTAButtonNode from './CTAButtonNode';
+import HttpApiNode from './HttpApiNode';
 
 export const nodeTypes = {
   start: StartNode,
@@ -18,6 +19,7 @@ export const nodeTypes = {
   user_input_flow: UserInputFlowNode,
   question_input: QuestionInputNode,
   cta_button: CTAButtonNode,
+  http_api: HttpApiNode,
 };
 
-export { StartNode, QuestionNode, ActionNode, TextNode, ConditionNode, MediaNode, UserInputFlowNode, QuestionInputNode, CTAButtonNode };
+export { StartNode, QuestionNode, ActionNode, TextNode, ConditionNode, MediaNode, UserInputFlowNode, QuestionInputNode, CTAButtonNode, HttpApiNode };

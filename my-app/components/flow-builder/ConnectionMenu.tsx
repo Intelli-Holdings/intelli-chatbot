@@ -15,6 +15,7 @@ import {
   FileInput,
   HelpCircle,
   ExternalLink,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -132,6 +133,14 @@ const menuItems: NodeMenuItem[] = [
     description: 'Branch based on rules',
     icon: GitBranch,
     color: 'bg-yellow-500',
+    category: 'logic',
+  },
+  {
+    type: 'http_api',
+    label: 'HTTP API',
+    description: 'Call external APIs',
+    icon: Globe,
+    color: 'bg-violet-500',
     category: 'logic',
   },
   // Actions

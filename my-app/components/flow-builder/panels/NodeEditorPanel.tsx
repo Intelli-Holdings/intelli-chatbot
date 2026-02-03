@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music, FileInput, HelpCircle, ExternalLink } from 'lucide-react';
+import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music, FileInput, HelpCircle, ExternalLink, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -26,6 +26,7 @@ import { MediaNodeData } from '../nodes/MediaNode';
 import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
+import { HttpApiNodeData } from '../nodes/HttpApiNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from '../utils/node-factories';
 import StartNodeEditor from './StartNodeEditor';
 import QuestionNodeEditor from './QuestionNodeEditor';
@@ -36,6 +37,7 @@ import MediaNodeEditor from './MediaNodeEditor';
 import UserInputFlowNodeEditor from './UserInputFlowNodeEditor';
 import QuestionInputNodeEditor from './QuestionInputNodeEditor';
 import CTAButtonNodeEditor from './CTAButtonNodeEditor';
+import HttpApiNodeEditor from './HttpApiNodeEditor';
 import { cn } from '@/lib/utils';
 
 interface NodeEditorPanelProps {
@@ -106,6 +108,12 @@ export default function NodeEditorPanel({
           title: 'Configure CTA Button',
           icon: ExternalLink,
           color: 'bg-orange-500',
+        };
+      case 'http_api':
+        return {
+          title: 'Configure HTTP API',
+          icon: Globe,
+          color: 'bg-violet-500',
         };
       case 'action': {
         const actionData = selectedNode.data as ActionNodeData;
@@ -231,6 +239,13 @@ export default function NodeEditorPanel({
         {selectedNode.data.type === 'cta_button' && (
           <CTAButtonNodeEditor
             data={selectedNode.data as CTAButtonNodeData}
+            onUpdate={handleUpdate}
+          />
+        )}
+
+        {selectedNode.data.type === 'http_api' && (
+          <HttpApiNodeEditor
+            data={selectedNode.data as HttpApiNodeData}
             onUpdate={handleUpdate}
           />
         )}

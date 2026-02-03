@@ -21,25 +21,20 @@ type Assistant = {
 
 type PackageResponse = {
   id: number
-  instagram_business_account_id: string
-  page_id?: string
+  page_id: string
+  page_name: string
   [key: string]: any
 }
 
-type InstagramAccountInfo = {
-  page_id: string
-  page_name: string
-  page_access_token: string
-  instagram_business_account_id: string
-}
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 /**
- * Instagram OAuth Redirect Page
+ * Messenger OAuth Redirect Page
  * This page receives the authorization code from Facebook OAuth flow,
- * exchanges it for a token, creates the Instagram package, lets user select assistant,
+ * exchanges it for a token, creates the package, lets user select assistant,
  * creates the appservice, and redirects to conversations
  */
-export default function InstagramRedirectPage() {
+export default function MessengerRedirectPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { organization } = useOrganization()
@@ -50,9 +45,9 @@ export default function InstagramRedirectPage() {
   const [statusMessage, setStatusMessage] = useState<string>("Processing authorization...")
   const [hasStarted, setHasStarted] = useState(false)
 
-  // Token and account info
+  // Token and page info
   const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [accountInfo, setAccountInfo] = useState<InstagramAccountInfo | null>(null)
+  const [pageInfo, setPageInfo] = useState<{ id: string; name: string; access_token: string } | null>(null)
 
   // Package and AppService state
   const [packageResponse, setPackageResponse] = useState<PackageResponse | null>(null)
@@ -93,45 +88,33 @@ export default function InstagramRedirectPage() {
     }
   }, [])
 
-  // Create the Instagram channel package
-  const createInstagramChannel = useCallback(async (token: string, orgId: string) => {
+  // Create the Messenger channel package
+  const createMessengerChannel = useCallback(async (token: string, orgId: string) => {
     try {
       setStep("creating")
-      setStatusMessage("Setting up your Instagram channel...")
+      setStatusMessage("Creating Messenger channel package...")
 
-      // Fetch pages and Instagram Business Account via Facebook
+      // First, fetch the user's pages
       const pagesResponse = await fetch(
-        `https://graph.facebook.com/v22.0/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
+        `https://graph.facebook.com/v22.0/me/accounts?access_token=${token}`
       )
       const pagesData = await pagesResponse.json()
 
       if (!pagesResponse.ok || !pagesData.data || pagesData.data.length === 0) {
-        throw new Error("No Facebook Pages found. Please create a Facebook Page and link it to your Instagram account.")
+        throw new Error("No Facebook Pages found. Please create a Facebook Page first.")
       }
 
-      // Find a page with Instagram Business Account
-      const pageWithInstagram = pagesData.data.find((page: any) => page.instagram_business_account)
-
-      if (!pageWithInstagram) {
-        throw new Error("No Instagram Business Account found linked to your Facebook Pages. Please link your Instagram Professional account to a Facebook Page.")
-      }
-
-      const instagramAccountInfo: InstagramAccountInfo = {
-        page_id: pageWithInstagram.id,
-        page_name: pageWithInstagram.name,
-        page_access_token: pageWithInstagram.access_token,
-        instagram_business_account_id: pageWithInstagram.instagram_business_account.id
-      }
-      setAccountInfo(instagramAccountInfo)
+      // Use the first page for now
+      const page = pagesData.data[0]
+      setPageInfo({ id: page.id, name: page.name, access_token: page.access_token })
 
       // Create the channel package
       const payload = {
-        choice: "instagram",
+        choice: "messenger",
         data: {
-          page_id: pageWithInstagram.id,
-          page_access_token: pageWithInstagram.access_token,
-          user_access_token: token,
-          instagram_business_account_id: pageWithInstagram.instagram_business_account.id
+          page_id: page.id,
+          page_name: page.name,
+          access_token: page.access_token,
         },
         organization_id: orgId
       }
@@ -145,11 +128,11 @@ export default function InstagramRedirectPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || data.detail || "Failed to create Instagram channel")
+        throw new Error(data.error || data.detail || "Failed to create Messenger channel")
       }
 
       setPackageResponse(data)
-      return { package: data, accountInfo: instagramAccountInfo }
+      return { package: data, page }
     } catch (err) {
       console.error("Channel creation error:", err)
       throw err
@@ -171,7 +154,7 @@ export default function InstagramRedirectPage() {
 
       if (data.length === 0) {
         setError("No assistants found. Please create an assistant first.")
-        setStatusMessage("You need to create an assistant before setting up Instagram.")
+        setStatusMessage("You need to create an assistant before setting up Messenger.")
       }
       return data
     } catch (error) {
@@ -184,7 +167,7 @@ export default function InstagramRedirectPage() {
 
   // Create AppService
   const createAppService = useCallback(async () => {
-    if (!packageResponse || !organizationId || !selectedAssistant || !accountInfo) {
+    if (!packageResponse || !organizationId || !selectedAssistant || !pageInfo) {
       setAppServiceError("Missing required information to create AppService")
       return
     }
@@ -196,12 +179,12 @@ export default function InstagramRedirectPage() {
     try {
       const data = {
         organization_id: organizationId,
-        instagram_business_account_id: accountInfo.instagram_business_account_id,
+        page_id: pageInfo.id,
         assistant_id: selectedAssistant.assistant_id,
       }
-      console.log("Creating Instagram AppService with data:", data)
+      console.log("Creating Messenger AppService with data:", data)
 
-      const res = await fetch("/api/appservice/create-instagram", {
+      const res = await fetch("/api/appservice/create-messenger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -219,14 +202,14 @@ export default function InstagramRedirectPage() {
 
       // Redirect to conversations after a brief delay
       setTimeout(() => {
-        router.push("/dashboard/conversations/instagram")
+        router.push("/dashboard/conversations/messenger")
       }, 2000)
     } catch (e) {
       console.error("Error creating AppService:", e)
       setAppServiceError(e instanceof Error ? e.message : "Error creating AppService")
       setStatusMessage("Error creating AppService. Please try again.")
     }
-  }, [organizationId, selectedAssistant, packageResponse, accountInfo, router])
+  }, [organizationId, selectedAssistant, packageResponse, pageInfo, router])
 
   // Handle assistant confirmation
   const handleAssistantConfirm = useCallback(() => {
@@ -263,21 +246,21 @@ export default function InstagramRedirectPage() {
     setHasStarted(true)
 
     // Build redirect URI - must match what was used in OAuth start
-    const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
-      `${window.location.origin}/instagram-redirect`
+    const redirectUri = process.env.NEXT_PUBLIC_MESSENGER_REDIRECT_URI ||
+      `${window.location.origin}/messenger-redirect`
 
     // Start the setup process
-    const setupInstagram = async () => {
+    const setupMessenger = async () => {
       try {
         // Step 1: Exchange code for token
         const token = await exchangeCodeForToken(code, redirectUri)
 
         // Step 2: Create channel package
-        await createInstagramChannel(token, organizationId)
+        await createMessengerChannel(token, organizationId)
 
         // Step 3: Fetch assistants and show selection
         setStep("selectingAssistant")
-        setStatusMessage("Please select an assistant for your Instagram channel.")
+        setStatusMessage("Please select an assistant for your Messenger channel.")
         await fetchAssistants(organizationId)
       } catch (err) {
         setStep("error")
@@ -285,8 +268,8 @@ export default function InstagramRedirectPage() {
       }
     }
 
-    setupInstagram()
-  }, [searchParams, organizationId, hasStarted, exchangeCodeForToken, createInstagramChannel, fetchAssistants])
+    setupMessenger()
+  }, [searchParams, organizationId, hasStarted, exchangeCodeForToken, createMessengerChannel, fetchAssistants])
 
   // Go back to channels
   const handleGoToChannels = useCallback(() => {
@@ -294,21 +277,21 @@ export default function InstagramRedirectPage() {
   }, [router])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-blue-100 to-indigo-100 p-4">
       <Card className="w-full max-w-lg">
         <div className="p-6">
           <CardTitle className="flex items-center gap-2">
             <Image
-              src="/instagram.png"
-              alt="Instagram"
+              src="/Messenger_logo.png"
+              alt="Messenger"
               width={25}
               height={25}
               className="h-5 w-5 object-contain"
             />
-            Instagram Setup
+            Messenger Setup
           </CardTitle>
           <CardDescription className="mt-2">
-            Complete your Instagram Business integration.
+            Complete your Facebook Messenger integration.
           </CardDescription>
         </div>
 
@@ -316,12 +299,12 @@ export default function InstagramRedirectPage() {
           {/* Processing / Exchanging / Creating */}
           {(step === "processing" || step === "exchanging" || step === "creating") && (
             <div className="flex flex-col items-center space-y-4 py-8">
-              <Loader className="w-10 h-10 animate-spin text-purple-600" />
+              <Loader className="w-10 h-10 animate-spin text-blue-600" />
               <div className="text-center">
                 <p className="font-medium text-gray-900">
                   {step === "processing" && "Processing Authorization..."}
                   {step === "exchanging" && "Exchanging Code for Token..."}
-                  {step === "creating" && "Creating Instagram Channel..."}
+                  {step === "creating" && "Creating Messenger Channel..."}
                 </p>
                 <p className="text-sm text-gray-600 mt-2">{statusMessage}</p>
               </div>
@@ -333,14 +316,11 @@ export default function InstagramRedirectPage() {
             <div className="flex flex-col space-y-4">
               <div className="p-4 bg-gray-50 rounded-md">
                 <p className="font-medium">Select Your Assistant</p>
-                <p className="text-sm text-gray-500 mb-4">Choose an assistant to handle Instagram conversations</p>
-                {accountInfo && (
-                  <div className="mb-4 p-2 bg-purple-50 rounded-md">
-                    <p className="text-sm text-purple-600">
-                      Connected Page: <strong>{accountInfo.page_name}</strong>
-                    </p>
-                    <p className="text-xs text-purple-500 mt-1">
-                      Instagram Business Account: {accountInfo.instagram_business_account_id}
+                <p className="text-sm text-gray-500 mb-4">Choose an assistant to handle Messenger conversations</p>
+                {pageInfo && (
+                  <div className="mb-4 p-2 bg-blue-50 rounded-md">
+                    <p className="text-sm text-blue-600">
+                      Connected Page: <strong>{pageInfo.name}</strong>
                     </p>
                   </div>
                 )}
@@ -367,8 +347,8 @@ export default function InstagramRedirectPage() {
                         key={assistant.id}
                         className={`p-3 border rounded-md cursor-pointer transition-colors ${
                           selectedAssistant?.id === assistant.id
-                            ? "border-purple-500 bg-purple-50"
-                            : "border-gray-200 hover:border-purple-300"
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 hover:border-blue-300"
                         }`}
                         onClick={() => setSelectedAssistant(assistant)}
                       >
@@ -382,7 +362,7 @@ export default function InstagramRedirectPage() {
                 <Button
                   onClick={handleAssistantConfirm}
                   disabled={!selectedAssistant || isFetchingAssistants}
-                  className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  className="flex items-center gap-2"
                 >
                   Continue <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -395,15 +375,15 @@ export default function InstagramRedirectPage() {
             <div className="flex flex-col space-y-4">
               <div className="p-4 bg-gray-50 rounded-md">
                 <p className="font-medium">Creating AppService</p>
-                {accountInfo && (
-                  <p className="text-sm text-gray-500">Page: {accountInfo.page_name}</p>
+                {pageInfo && (
+                  <p className="text-sm text-gray-500">Page: {pageInfo.name}</p>
                 )}
                 {selectedAssistant && (
                   <p className="text-sm text-gray-500">Assistant: {selectedAssistant.name}</p>
                 )}
               </div>
               <div className="flex items-center justify-center p-4">
-                <Loader className="w-6 h-6 animate-spin text-purple-600" />
+                <Loader className="w-6 h-6 animate-spin" />
                 <span className="ml-2">Creating AppService...</span>
               </div>
               {appServiceError && (
@@ -434,11 +414,11 @@ export default function InstagramRedirectPage() {
                   <div>
                     <p className="font-semibold text-green-900">Setup Complete!</p>
                     <p className="text-sm text-green-700 mt-1">
-                      Your Instagram channel is now ready to receive messages.
+                      Your Facebook Messenger channel is now ready to receive messages.
                     </p>
-                    {accountInfo && (
+                    {pageInfo && (
                       <p className="text-sm text-green-600 mt-2">
-                        Connected Page: <strong>{accountInfo.page_name}</strong>
+                        Connected Page: <strong>{pageInfo.name}</strong>
                       </p>
                     )}
                     {selectedAssistant && (

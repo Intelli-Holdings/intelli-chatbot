@@ -192,7 +192,7 @@ export default function AutomationSettingsPage() {
       case "chatbot_with_fallback":
         return "Chatbot flow first, then AI assistant if no match or handoff"
       case "manual":
-        return "No automation - all messages require manual handling"
+        return "No automation - all messages require Human Agent"
       default:
         return ""
     }
@@ -328,7 +328,7 @@ export default function AutomationSettingsPage() {
                         {settings.automation_mode === "paused" ? (
                           <Badge variant="secondary">Paused</Badge>
                         ) : settings.automation_mode === "manual" ? (
-                          <Badge variant="outline">Manual</Badge>
+                          <Badge variant="outline">Live Chat</Badge>
                         ) : settings.automation_mode === "ai_only" ? (
                           <Badge className="bg-blue-500">AI Only</Badge>
                         ) : settings.automation_mode === "chatbot_only" ? (
@@ -412,7 +412,7 @@ export default function AutomationSettingsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <Label htmlFor="manual" className="cursor-pointer font-medium">
-                              Manual Only
+                              Live Chat
                             </Label>
                             <MessageSquare className="size-4 text-muted-foreground" />
                           </div>
