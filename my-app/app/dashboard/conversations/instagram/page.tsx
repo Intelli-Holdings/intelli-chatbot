@@ -1,7 +1,48 @@
 "use client"
 
 import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Compass, Heart, MessageCircle, MoreHorizontal, Send, Sparkles, Search } from "lucide-react"
+
+interface Thread {
+  id: string
+  name: string
+  time: string
+  preview: string
+  unread: boolean
+}
+
+const mockThreads: Thread[] = [
+  {
+    id: "1",
+    name: "Luna Street",
+    time: "5m",
+    preview: "Love that. Also, can we pin a partnership offer?",
+    unread: true,
+  },
+  {
+    id: "2",
+    name: "Alex Rivera",
+    time: "2h",
+    preview: "Thanks for the quick response!",
+    unread: true,
+  },
+  {
+    id: "3",
+    name: "Jordan Lee",
+    time: "1d",
+    preview: "Looking forward to our collaboration",
+    unread: false,
+  },
+  {
+    id: "4",
+    name: "Sam Taylor",
+    time: "2d",
+    preview: "Your content is amazing!",
+    unread: false,
+  },
+]
 
 const InstagramPage = () => {
   return (

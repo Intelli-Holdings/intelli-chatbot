@@ -2,6 +2,49 @@
 
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Filter, Phone, Video, Star, BadgeCheck, MoreHorizontal, Sparkles, Search } from "lucide-react"
+
+interface Thread {
+  id: string
+  name: string
+  time: string
+  preview: string
+  unread: boolean
+}
+
+const mockThreads: Thread[] = [
+  {
+    id: "1",
+    name: "Avery Ross",
+    time: "2m",
+    preview: "Perfect. Also, can I integrate with my existing CRM?",
+    unread: true,
+  },
+  {
+    id: "2",
+    name: "Taylor Kim",
+    time: "15m",
+    preview: "Thanks for the quick response!",
+    unread: true,
+  },
+  {
+    id: "3",
+    name: "Morgan Blake",
+    time: "1h",
+    preview: "When can we schedule a demo?",
+    unread: false,
+  },
+  {
+    id: "4",
+    name: "Jordan Smith",
+    time: "3h",
+    preview: "This looks exactly what we need",
+    unread: false,
+  },
+]
+
 
 const MessengerPage = () => {
   return (
