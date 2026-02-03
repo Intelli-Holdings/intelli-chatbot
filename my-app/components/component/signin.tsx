@@ -1,15 +1,15 @@
 "use client";
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { login } from "@/lib/auth/authService";
+import { login, logout } from "@/lib/auth"; 
 import { toast } from 'sonner';
 import Image from "next/image"
 import { CardTitle } from "@/components/ui/card"
-import logo from "@/public/Intelli.svg"
+
+import Cookies from 'js-cookie'; 
 
 export default function Signin() {
   const [email, setEmail] = useState("");
@@ -21,31 +21,33 @@ export default function Signin() {
     e.preventDefault();
     setLoading(true);
 
-    const payload = {
-      email,
-    password,
-    role: null,
-    is_email_verified: false,
-    };
-
     try {
-      const response = await login(payload);
-      console.log('Login successful:', response);
-      toast.success('You have successfully logged In.');
-      router.push('/dashboard');
+      const success = await login(email, password);
+      if (success) {
+        toast.success('You have successfully logged in.');
+        router.push('/dashboard');
+      } else {
+        toast.error('Your login details are incorrect. Please try again.');
+      }
     } catch (error) {
       console.error('Login failed:', error);
-      toast.error('Your login details are incorrect. Please try again.');
+      toast.error('An error occurred during login. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    // Redirect to the login page or perform any additional actions
+    router.push('/');
   };
 
   return (
     <div className="flex min-h-screen flex-col bg-[#E6F4FF]">
       <div className="mx-auto my-auto w-full max-w-md rounded-lg shadow-md bg-white p-8">
         <CardTitle className="flex items-center justify-center">
-         
+          {/* Your logo or header */}
         </CardTitle>
         <h1 className="text-center text-2xl font-semibold">Login to Continue</h1>
         <form className="mt-4 space-y-6" onSubmit={handleSubmit}>
@@ -59,11 +61,10 @@ export default function Signin() {
             <label className="block text-sm font-medium text-gray-700" htmlFor="password">
               Password
             </label>
-            
             <Input id="password" placeholder="**********" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             <Link href="/auth/forgotPassword" className="ml-auto inline-block text-sm underline">
-                Forgot your password?
-              </Link>
+              Forgot your password?
+            </Link>
           </div>
           <Button className="w-full bg-blue-600 text-white" variant="default" type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
@@ -75,8 +76,9 @@ export default function Signin() {
             Create One
           </Link>
         </div>
+        {/* Add a logout button for testing purposes */}
+        
       </div>
     </div>
   )
 }
-

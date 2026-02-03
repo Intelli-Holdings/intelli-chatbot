@@ -3,11 +3,17 @@ import { useState, useEffect } from 'react';
 import { getProfile, logout } from '@/lib/auth/authService';
 
 interface User {
-  photoURL: string | null;
-  displayName: string | null;
-  email: string | null;
-  firstName: string | null;
-  companyName: string | null;
+  id: number;
+  email: string;
+  role: string | null;
+  is_email_verified: boolean;
+  company_name: string;
+  username: string;
+}
+
+interface UserProfile {
+  My_profile: User;
+  email_verified?: string;
 }
 
 const useAuth = () => {
@@ -16,13 +22,17 @@ const useAuth = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const profile = await getProfile();
-        setUser(profile);
+        const profile: UserProfile | null = await getProfile();
+        if (profile && profile.My_profile) {
+          setUser(profile.My_profile);
+        } else {
+          setUser(null);
+        }
       } catch (error) {
         console.error('Error fetching user profile:', error);
+        setUser(null);
       }
     };
-
     fetchProfile();
   }, []);
 

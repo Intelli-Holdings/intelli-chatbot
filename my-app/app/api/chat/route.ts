@@ -7,59 +7,58 @@ const deploymentName = "gpt-35-turbo";
 
 const client = new OpenAIClient(endpoint!, new AzureKeyCredential(apiKey!));
 
-export async function POST(request: Request) {
-  try {
-    // Log the raw request body for debugging
-    const rawBody = await request.text();
-    console.log('Raw request body:', rawBody);
+// (Optional) Functions to save prompt and completion to database (replace with your implementation)
+async function savePromptToDatabase(prompt: string) {
+  // Implement logic to save the prompt to your database
+  console.log(`Prompt saved to database: ${prompt}`);
+}
 
-    // Parse the body
-    const body = JSON.parse(rawBody);
-    console.log('Parsed request body:', body);
+async function saveCompletionToDatabase(completion: string) {
+  // Implement logic to save the final completion to your database
+  console.log(`Completion saved to database: ${completion}`);
+}
 
-    // Handle both formats: either { message: string } or { messages: array }
-    const userMessage = body.message || (body.messages?.[0]?.content);
 
-    if (!userMessage) {
-      return NextResponse.json({ 
-        error: 'Message is required in format { message: "your message" }' 
-      }, { status: 400 });
-    }
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+  
 
-    const result = await client.getChatCompletions(
-      deploymentName,
-      [
-        {
-          role: "system",
-          content: "You are Elli, a WhatsApp travel agent assistant for East Africa Wild Travels. Respond to inquiries concisely, keeping responses under 20 characters, and aim for a conversational tone that drives sales. ANY CONVERSATION OUTSIDE THE SCOPE OF EAST AFRICA WILD TRAVELS YOU ARE NOT PRIVY TO AND SHOULD NOT RESPOND. Services: Travel Insurance Visa Applications: Turkey, USA, China, UAE, Qatar, UK Domestic (Kenya) & International Flight Tickets Travel Consultancy Flight Booking Hotel Accommodation Travel Documentation Airport Transfers Booking trips across East Africa & Africa Booking Trips: Within Africa: Provide destination, travel dates, and preferences. We'll arrange everything. Outside Africa: Provide destination, dates, and any requirements. We handle visas, flights, and accommodations. Sample Q&A: Do you assist with Schengen visas? Yes, consultation is $400. We help with forms and booking an appointment, but don't guarantee visas. Dubai visa cost? $150. Need passport, photo, ticket, and booking. Takes 3 days. Package for Dubai, Zanzibar, Kenya, etc.? Fill out: Number of passengers, rooms, single/double occupancy, departure/arrival dates, and tour country. Contact us: +254 714 466 088 We look forward to helping with your travels!."
-        },
-        {
-          role: "user",
-          content: userMessage
-        }
-      ],
-      {
-        maxTokens: 800,
-        temperature: 0.7,
-        topP: 0.95,
-        frequencyPenalty: 0,
-        presencePenalty: 0
-      }
-    );
+  // Adding system message
+  const messagesWithSystemMessage = [
+    { role: "system", content: "Task: Your name is Elli; Your role: website assistant and widget on Hazelaw Consulting Group Website. ABOUT USWe are a full service firm located in Accra, Ghana that offers US immigration, global tourism, and diaspora investment services. Our team is dedicated to helping individuals and families navigate complex processes and achieve their goals. Contact us today to see how we can assist you!MEET YOUR SUPPORT STAFFSANDRA MELODY APPIAHVISA CONSULTANTKELVIN KING DAWIEDIRECTOR OF OPERATIONSJENNIFER AFEDOOPERATIONS SPECIALISTDENNISEIA HAYNESVISA CONSULTANTERNESTINA YEBOAHRECEPTIONISTATTORNEYKELLISIA HAZLEWOOD, ESQ., LL.M.FOUNDING PARTNERAt our firm, we are passionate about helping individuals and families achieve their dreams of living and working in the United States. As a founding partner, I am committed to providing our clients with the highest quality service, grounded in integrity, professionalism, and empathy.RA’NESHA LAWRENCE, ESQ.FOUNDING PARTNERWe understand that immigration is a deeply personal and transformative experience, and we are honored to be able to support you through this journey. Our team is dedicated to providing personalized attention, clear communication, and compassionate guidance every step of the way.OUR SERVICESUS IMMIGRATIONWant to visit or migrate to the US? Our firm offers services for family- based, employment-based, diversity visa lottery, study abroad and tourist visas. Let us help you navigate the complex processGLOBAL TOURISMDreaming of a trip abroad? Our firm offers services for visa applications and personalized travel itineraries. Let us help you plan your next international adventure!DIASPORA INVESTMENTSAre you apart of the Black Diaspora Community, and you are looking to relocate or invest in Ghana? Our firm offers services strategic planning and consultations for investments, and relocation opportunities in Ghana. We will connect you to some of the best investment opportunities Ghana has to offer.US VISA ASSISTANCE? WE ARE HERE FOR YOU.Book a Chat: +1-917-525-4321, +233(0)257783843, +233(0)508415856 CONTACT INFORMATION PHONE NUMBER: +233(0)257783843 /+ 233(0)508415856 WHATSAPP NUMBER: +1-917-525-4321 LOCATION: 4 Garden Road, East Legon, Ghana Around A&C Mall Across the street from Prime Pharmacy INSTAGRAM: @hl_consulting_group WEBSITE: www.hazelaw.com/hl-consulting" },
+    ...messages
+  ];
 
-    const responseMessage = result.choices[0]?.message?.content || "No response generated.";
-    return NextResponse.json({ response: responseMessage });
+  // Ask Azure OpenAI for a streaming chat completion given the prompt
+  const response = await client.streamChatCompletions(
+    'gpt-35-turbo',
+    messagesWithSystemMessage,
+  );
 
-  } catch (error: any) {
-    console.error("Error details:", {
-      message: error.message,
-      stack: error.stack,
-      body: error.body
-    });
-    
-    return NextResponse.json({ 
-      error: "Failed to generate response", 
-      details: error.message 
-    }, { status: 500 });
-  }
+  // Convert the response into a friendly text-stream
+  const stream = OpenAIStream(response, {
+    onStart: async () => {
+      // This callback is called when the stream starts
+      // You can use this to save the prompt to your database (if applicable)
+      await savePromptToDatabase(messagesWithSystemMessage.join(' ')); // Combine messages into prompt
+    },
+    onToken: async (token) => {
+      // This callback is called for each token in the stream
+      // You can use this to debug the stream or save the tokens to your database (if needed)
+      console.log(token);
+    },
+    onCompletion: async (completion) => {
+      // This callback is called when the stream completes
+      // You can use this to save the final completion to your database (if applicable)
+      await saveCompletionToDatabase(completion);
+    },
+  });
+
+  // Respond with the stream
+  return new StreamingTextResponse(stream);
+}
+
+export async function GET(request: Request) {
+  const responseBody = JSON.stringify({ response: "Some get request" });
+  return new Response(responseBody, { status: 200, headers: { "Content-Type": "text/plain" } });
 }

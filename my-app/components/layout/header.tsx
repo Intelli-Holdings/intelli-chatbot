@@ -8,20 +8,17 @@ import { useUser } from "@clerk/nextjs";
 
 
 interface User {
-  photoURL: string | null;
-  displayName: string | null;
-  email: string | null;
-  firstName: string | null; // Add the firstName property
-  companyName: string | null; // Add the companyName property 
+  email: string;
+  role: string | null;
+  is_email_verified: boolean;
+  company_name: string;
+  username: string;
 }
 
 export default function Header() {
-
-  const { isLoaded, isSignedIn, user } = useUser();
-
-  if (!isLoaded || !isSignedIn) {
-    return null;
-  }
+  const { user } = useAuth();
+  const userName = user ? user.username : '';
+  const companyName = user ? user.company_name : '';
 
   const getGreeting = () => {
     const currentHour = new Date().getHours();
@@ -42,7 +39,7 @@ export default function Header() {
           <Image alt="Intelli Concierge" className="h-16" src="/Intelli.svg" height={25} width={25} />
         </Link>
         <div>
-          <h5 className="text font-semibold">{getGreeting()} <span style={{ color: '#007fff' }}> {user.firstName} </span></h5>
+          <h1 className="text-xl font-semibold">{getGreeting()} {userName}</h1>
         </div>
         
         <div className={cn("block lg:!hidden")}>
