@@ -1,3 +1,14 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "react/no-unescaped-entities": "off"
+  },
+  "overrides": [
+    {
+      "files": ["components/widget-communication.tsx"],
+      "rules": {
+        "react/jsx-no-comment-textnodes": "off"
+      }
+    }
+  ]
 }

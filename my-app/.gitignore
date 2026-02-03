@@ -12,6 +12,8 @@
 # next.js
 /.next/
 /out/
+.env.local
+.env
 
 # production
 /build
@@ -39,3 +41,13 @@ next-env.d.ts
 
 # Sentry Config File
 .sentryclirc
+
+# IDEs and editors
+.idea
+*.iml
+*.xml
+.idea/*.xml
+/idea
+.vscode
+.env
+../.env

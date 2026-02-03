@@ -1,0 +1,66 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { orgId: string } }
+) {
+  try {
+    const { orgId } = params
+    
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Get authentication token from Clerk
+    const { getToken } = await auth()
+    const token = await getToken()
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+    
+    if (!apiBaseUrl) {
+      return NextResponse.json(
+        { error: 'API base URL not configured' },
+        { status: 500 }
+      )
+    }
+
+    const response = await fetch(
+      `${apiBaseUrl}/monitoring/get_metrics_by_organization/${orgId}/`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: `Failed to fetch metrics: ${response.statusText}` },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+
+  } catch (error) {
+    console.error('Error fetching analytics:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
