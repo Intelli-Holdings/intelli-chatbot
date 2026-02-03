@@ -1,5 +1,9 @@
 import { NavItem, SidebarNavItem } from "@/types";
 import { Icon, allIcons } from "@/components/component/icons";
+
+// Private routes that require authentication
+export const privateRoutes = ["/dashboard"];
+
 export type User = {
   id: number;
   name: string;

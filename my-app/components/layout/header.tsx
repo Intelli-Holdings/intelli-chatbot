@@ -16,9 +16,9 @@ interface User {
 }
 
 export default function Header() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const userName = user ? user.username : '';
-  const companyName = user ? user.company_name : '';
+  const companyName = user ? user.publicMetadata?.company_name : '';
 
   const getGreeting = () => {
     const currentHour = new Date().getHours();

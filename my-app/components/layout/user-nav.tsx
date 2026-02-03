@@ -68,7 +68,7 @@ export const UserNav = React.memo(() => {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem onSelect={() => openUserProfile()}>
+            <DropdownMenuItem onSelect={() => router.push('/dashboard/profile')}>
               Profile
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>

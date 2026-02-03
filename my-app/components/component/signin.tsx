@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import Image from "next/image"
 import { CardTitle } from "@/components/ui/card"
 
-import Cookies from 'js-cookie'; 
 
 export default function Signin() {
   const [email, setEmail] = useState("");
