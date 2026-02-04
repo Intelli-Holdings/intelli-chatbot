@@ -16,7 +16,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
  */
 export async function POST(request: NextRequest) {
   try {
-    const { getToken } = await auth();
+    const { getToken, orgId } = await auth();
     const token = await getToken();
 
     if (!token) {
@@ -26,7 +26,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization context required' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
+
+    // Add organization ID to the request body (required by backend)
+    const bodyWithOrg = {
+      ...body,
+      organization: orgId,
+    };
 
     const response = await fetch(
       `${BASE_URL}/broadcast/whatsapp/templates/get_upload_url/`,
@@ -36,7 +49,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(bodyWithOrg),
       }
     );
 
