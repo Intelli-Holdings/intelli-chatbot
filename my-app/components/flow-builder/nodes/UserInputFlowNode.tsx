@@ -2,22 +2,32 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { FileInput } from 'lucide-react';
+import { FileInput, Webhook } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NodeValidationIndicator, { useNodeValidationClass } from './NodeValidationIndicator';
+
+export interface WebhookConfig {
+  enabled: boolean;
+  url: string;
+  method: 'POST' | 'PUT' | 'PATCH';
+  headers?: Record<string, string>;
+  includeMetadata?: boolean; // Include timestamp, flow name, etc.
+}
 
 export interface UserInputFlowNodeData {
   type: 'user_input_flow';
   label: string;
   flowName: string;
   description?: string;
+  webhook?: WebhookConfig;
 }
 
 interface UserInputFlowNodeProps extends NodeProps<UserInputFlowNodeData> {}
 
 function UserInputFlowNode({ id, data, selected }: UserInputFlowNodeProps) {
-  const { flowName, description } = data;
+  const { flowName, description, webhook } = data;
   const validationClass = useNodeValidationClass(id);
+  const hasWebhook = webhook?.enabled && webhook?.url;
 
   return (
     <div
@@ -39,7 +49,12 @@ function UserInputFlowNode({ id, data, selected }: UserInputFlowNodeProps) {
       {/* Header */}
       <div className="flex items-center gap-2 rounded-t-lg bg-teal-500 px-3 py-2 text-white">
         <FileInput className="h-4 w-4" />
-        <span className="text-sm font-medium">User Input Flow</span>
+        <span className="text-sm font-medium flex-1">User Input Flow</span>
+        {hasWebhook && (
+          <span title="Webhook enabled">
+            <Webhook className="h-4 w-4 text-teal-100" />
+          </span>
+        )}
       </div>
 
       {/* Content */}
@@ -54,6 +69,12 @@ function UserInputFlowNode({ id, data, selected }: UserInputFlowNodeProps) {
           <p className="text-xs text-muted-foreground truncate">
             {description}
           </p>
+        )}
+        {hasWebhook && (
+          <div className="flex items-center gap-1 text-xs text-teal-600">
+            <Webhook className="h-3 w-3" />
+            <span>Webhook configured</span>
+          </div>
         )}
       </div>
 
