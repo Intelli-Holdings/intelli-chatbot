@@ -205,6 +205,13 @@ export function createUserInputFlowNode(position: NodePosition): ExtendedFlowNod
     label: 'User Input Flow',
     flowName: '',
     description: '',
+    webhook: {
+      enabled: false,
+      url: '',
+      method: 'POST',
+      headers: {},
+      includeMetadata: true,
+    },
   };
 
   return {
