@@ -43,7 +43,7 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
   const [caption, setCaption] = useState(data.caption || '');
   const [hasChanges, setHasChanges] = useState(false);
 
-  const { selectedAppService } = useAppServices();
+  const { selectedAppService, loading: appServiceLoading } = useAppServices();
   const config = MEDIA_CONFIG[data.mediaType];
 
   useEffect(() => {
@@ -53,8 +53,13 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
 
   // Handle file upload - uses Azure for large files to bypass server limits
   const handleFileUpload = async (file: File) => {
+    if (appServiceLoading) {
+      toast.error('Loading WhatsApp service, please wait...');
+      return;
+    }
+
     if (!selectedAppService) {
-      toast.error('No WhatsApp service configured');
+      toast.error('No WhatsApp service configured. Please set up a WhatsApp Business account first.');
       return;
     }
 
