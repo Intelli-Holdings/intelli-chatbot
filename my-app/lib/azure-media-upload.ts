@@ -87,24 +87,32 @@ export async function uploadMediaViaAzure(
 
   try {
     // Stage 1: Get upload URL from backend
+    console.log('[Azure Upload] Stage 1: Getting upload URL...');
     onProgress?.({
       stage: 'preparing',
       progress: 10,
       message: 'Preparing upload...'
     });
 
-    const uploadUrlResponse = await fetch('/api/whatsapp/media/get-upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
-      }),
-    });
+    let uploadUrlResponse;
+    try {
+      uploadUrlResponse = await fetch('/api/whatsapp/media/get-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_name: file.name,
+          file_type: file.type,
+          file_size: file.size,
+        }),
+      });
+    } catch (fetchError) {
+      console.error('[Azure Upload] Stage 1 fetch error:', fetchError);
+      throw new Error(`Failed to connect to server: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`);
+    }
 
     if (!uploadUrlResponse.ok) {
       const error = await uploadUrlResponse.text();
+      console.error('[Azure Upload] Stage 1 error response:', error);
       let errorMessage = 'Failed to get upload URL';
       try {
         const parsed = JSON.parse(error);
@@ -116,27 +124,37 @@ export async function uploadMediaViaAzure(
     }
 
     const uploadUrlData: GetUploadUrlResponse = await uploadUrlResponse.json();
+    console.log('[Azure Upload] Stage 1 complete. Blob path:', uploadUrlData.blob_path);
 
     // Stage 2: Upload directly to Azure
+    console.log('[Azure Upload] Stage 2: Uploading to Azure...');
     onProgress?.({
       stage: 'uploading',
       progress: 30,
       message: 'Uploading to cloud storage...'
     });
 
-    const azureUploadResponse = await fetch(uploadUrlData.upload_url, {
-      method: 'PUT',
-      headers: {
-        'x-ms-blob-type': 'BlockBlob',
-        'Content-Type': file.type,
-      },
-      body: file,
-    });
+    let azureUploadResponse;
+    try {
+      azureUploadResponse = await fetch(uploadUrlData.upload_url, {
+        method: 'PUT',
+        headers: {
+          'x-ms-blob-type': 'BlockBlob',
+          'Content-Type': file.type,
+        },
+        body: file,
+      });
+    } catch (azureError) {
+      console.error('[Azure Upload] Stage 2 fetch error (likely CORS):', azureError);
+      throw new Error(`Azure upload failed: ${azureError instanceof Error ? azureError.message : 'Network error - check CORS configuration'}`);
+    }
 
     if (!azureUploadResponse.ok) {
       const errorText = await azureUploadResponse.text();
+      console.error('[Azure Upload] Stage 2 error response:', errorText);
       throw new Error(`Azure upload failed: ${errorText || azureUploadResponse.statusText}`);
     }
+    console.log('[Azure Upload] Stage 2 complete.');
 
     onProgress?.({
       stage: 'uploading',
@@ -145,28 +163,36 @@ export async function uploadMediaViaAzure(
     });
 
     // Stage 3: Transfer from Azure to Meta
+    console.log('[Azure Upload] Stage 3: Transferring to WhatsApp...');
     onProgress?.({
       stage: 'processing',
       progress: 80,
       message: 'Processing media...'
     });
 
-    const metaUploadResponse = await fetch('/api/whatsapp/media/upload-from-azure', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        blob_url: uploadUrlData.blob_url,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
-        upload_type: uploadType,
-        accessToken,
-        phoneNumberId,
-      }),
-    });
+    let metaUploadResponse;
+    try {
+      metaUploadResponse = await fetch('/api/whatsapp/media/upload-from-azure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blob_url: uploadUrlData.blob_url,
+          file_name: file.name,
+          file_type: file.type,
+          file_size: file.size,
+          upload_type: uploadType,
+          accessToken,
+          phoneNumberId,
+        }),
+      });
+    } catch (metaError) {
+      console.error('[Azure Upload] Stage 3 fetch error:', metaError);
+      throw new Error(`Failed to process media: ${metaError instanceof Error ? metaError.message : 'Network error'}`);
+    }
 
     if (!metaUploadResponse.ok) {
       const error = await metaUploadResponse.text();
+      console.error('[Azure Upload] Stage 3 error response:', error);
       let errorMessage = 'Failed to process media';
       try {
         const parsed = JSON.parse(error);
@@ -178,6 +204,7 @@ export async function uploadMediaViaAzure(
     }
 
     const result: UploadFromAzureResponse = await metaUploadResponse.json();
+    console.log('[Azure Upload] Stage 3 complete. Media ID:', result.id || result.handle);
 
     onProgress?.({
       stage: 'complete',
