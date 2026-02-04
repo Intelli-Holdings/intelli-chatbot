@@ -49,7 +49,17 @@ export default function QuestionNodeEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get app service for access token
-  const { selectedAppService } = useAppServices();
+  const { selectedAppService, loading: appServiceLoading, error: appServiceError } = useAppServices();
+
+  // Debug: log app service state
+  useEffect(() => {
+    console.log('[FlowBuilder] AppService state:', {
+      loading: appServiceLoading,
+      error: appServiceError,
+      hasService: !!selectedAppService,
+      phoneNumber: selectedAppService?.phone_number,
+    });
+  }, [appServiceLoading, appServiceError, selectedAppService]);
 
   // Reset local state when data changes (e.g., switching nodes)
   useEffect(() => {
@@ -63,8 +73,13 @@ export default function QuestionNodeEditor({
 
   // Handle file upload - uses Azure for large files to bypass server limits
   const handleFileUpload = async (file: File, type: 'image' | 'video' | 'document') => {
+    if (appServiceLoading) {
+      toast.error('Loading WhatsApp service, please wait...');
+      return;
+    }
+
     if (!selectedAppService) {
-      toast.error('No WhatsApp service configured');
+      toast.error('No WhatsApp service configured. Please set up a WhatsApp Business account first.');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
