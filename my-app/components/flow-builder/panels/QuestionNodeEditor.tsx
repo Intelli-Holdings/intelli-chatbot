@@ -25,6 +25,7 @@ import {
 } from '@/types/chatbot-automation';
 import { toast } from 'sonner';
 import { useAppServices } from '@/hooks/use-app-services';
+import { uploadMediaViaAzure, shouldUseAzureUpload } from '@/lib/azure-media-upload';
 
 interface QuestionNodeEditorProps {
   data: QuestionNodeData;
@@ -60,11 +61,10 @@ export default function QuestionNodeEditor({
 
   const currentHeaderType: HeaderType = localMenu.header?.type || 'none';
 
-  // Handle file upload
+  // Handle file upload - uses Azure for large files to bypass server limits
   const handleFileUpload = async (file: File, type: 'image' | 'video' | 'document') => {
     if (!selectedAppService) {
       toast.error('No WhatsApp service configured');
-      // Reset file input on error
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -80,7 +80,39 @@ export default function QuestionNodeEditor({
     }
 
     setIsUploading(true);
+
     try {
+      // Use Azure upload for large files (> 4MB) to bypass server limits
+      if (shouldUseAzureUpload(file)) {
+        const result = await uploadMediaViaAzure(
+          file,
+          {
+            accessToken: selectedAppService.access_token,
+            phoneNumberId: selectedAppService.phone_number_id,
+            uploadType: 'media',
+          },
+          (progress) => {
+            // Could add progress UI here if needed
+            console.log('Upload progress:', progress.message);
+          }
+        );
+
+        if (!result.success || !result.id) {
+          throw new Error(result.error || 'Upload failed: missing media ID');
+        }
+
+        updateLocalMenu({
+          header: {
+            type,
+            content: result.id,
+          },
+        });
+        setUploadedFileName(file.name);
+        toast.success('File uploaded successfully');
+        return;
+      }
+
+      // Standard upload for small files
       const formData = new FormData();
       formData.append('file', file);
       formData.append('accessToken', selectedAppService.access_token);
@@ -93,22 +125,29 @@ export default function QuestionNodeEditor({
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload file');
+        const text = await response.text();
+        let errorMessage = 'Failed to upload file';
+        try {
+          const error = JSON.parse(text);
+          errorMessage = error.error || errorMessage;
+        } catch {
+          if (text) {
+            errorMessage = text;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
 
-      // Validate result has required id
       if (!result || !result.id) {
         throw new Error('Invalid response: missing media ID');
       }
 
-      // Store the media ID and file name
       updateLocalMenu({
         header: {
           type,
-          content: result.id, // Media ID from WhatsApp
+          content: result.id,
         },
       });
       setUploadedFileName(file.name);
@@ -116,7 +155,6 @@ export default function QuestionNodeEditor({
     } catch (error) {
       console.error('Upload error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to upload file');
-      // Reset file input on error
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
