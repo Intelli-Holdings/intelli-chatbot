@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { List, Building2, BellDot, ShieldQuestion, Bot } from "lucide-react"
+import { List, Building2, BellDot, ShieldQuestion, Bot, Webhook } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { SettingsSearch } from "@/components/settings-search"
 
@@ -23,6 +23,10 @@ const settingsNavigation = [
   {
     title: "Escalation Events",
     href: "/dashboard/settings/escalation-events",
+  },
+  {
+    title: "Webhooks",
+    href: "/dashboard/settings/webhooks",
   },
 ]
 
@@ -126,6 +130,21 @@ export default function SettingsPage() {
                   <div>
                     <h3 className="font-semibold group-hover:text-primary">Escalation Events</h3>
                     <p className="text-sm text-muted-foreground">Manage escalation events for your business</p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                href="/dashboard/settings/webhooks"
+                className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-primary/10 p-2">
+                    <Webhook className="size-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold group-hover:text-primary">Webhooks</h3>
+                    <p className="text-sm text-muted-foreground">Configure outbound & inbound webhooks</p>
                   </div>
                 </div>
               </Link>

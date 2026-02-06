@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { MediaNodeData, MediaType } from '../nodes/MediaNode';
 import { toast } from 'sonner';
 import { useAppServices } from '@/hooks/use-app-services';
+import { uploadMediaViaAzure, shouldUseAzureUpload } from '@/lib/azure-media-upload';
 
 interface MediaNodeEditorProps {
   data: MediaNodeData;
@@ -42,7 +43,7 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
   const [caption, setCaption] = useState(data.caption || '');
   const [hasChanges, setHasChanges] = useState(false);
 
-  const { selectedAppService } = useAppServices();
+  const { selectedAppService, loading: appServiceLoading } = useAppServices();
   const config = MEDIA_CONFIG[data.mediaType];
 
   useEffect(() => {
@@ -50,9 +51,15 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
     setHasChanges(false);
   }, [data.caption]);
 
+  // Handle file upload - uses Azure for large files to bypass server limits
   const handleFileUpload = async (file: File) => {
+    if (appServiceLoading) {
+      toast.error('Loading WhatsApp service, please wait...');
+      return;
+    }
+
     if (!selectedAppService) {
-      toast.error('No WhatsApp service configured');
+      toast.error('No WhatsApp service configured. Please set up a WhatsApp Business account first.');
       return;
     }
 
@@ -62,7 +69,35 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
     }
 
     setIsUploading(true);
+
     try {
+      // Use Azure upload for large files (> 4MB) to bypass server limits
+      if (shouldUseAzureUpload(file)) {
+        const result = await uploadMediaViaAzure(
+          file,
+          {
+            accessToken: selectedAppService.access_token,
+            phoneNumberId: selectedAppService.phone_number_id,
+            uploadType: 'media',
+          },
+          (progress) => {
+            console.log('Upload progress:', progress.message);
+          }
+        );
+
+        if (!result.success || !result.id) {
+          throw new Error(result.error || 'Upload failed: missing media ID');
+        }
+
+        onUpdate({
+          mediaId: result.id,
+          fileName: file.name,
+        });
+        toast.success('File uploaded successfully');
+        return;
+      }
+
+      // Standard upload for small files
       const formData = new FormData();
       formData.append('file', file);
       formData.append('accessToken', selectedAppService.access_token);
@@ -75,13 +110,21 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload file');
+        const text = await response.text();
+        let errorMessage = 'Failed to upload file';
+        try {
+          const error = JSON.parse(text);
+          errorMessage = error.error || errorMessage;
+        } catch {
+          if (text) {
+            errorMessage = text;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
 
-      // Validate result has required id
       if (!result || !result.id) {
         throw new Error('Invalid response: missing media ID');
       }
