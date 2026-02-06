@@ -60,16 +60,6 @@ const ACCEPTED_FORMATS: Record<"IMAGE" | "VIDEO" | "DOCUMENT", string> = {
   DOCUMENT: "application/pdf",
 }
 
-// Carousel card media state
-interface CarouselCardMedia {
-  file: File | null
-  handle: string
-  id: string
-  previewUrl: string
-  isUploading: boolean
-  templateHandle: string // existing handle from template
-}
-
 export function TemplateTestModal({
   open,
   onOpenChange,
@@ -99,11 +89,7 @@ export function TemplateTestModal({
     address: "",
   })
 
-  // Carousel state
-  const [carouselCardMedia, setCarouselCardMedia] = useState<CarouselCardMedia[]>([])
-
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const carouselFileInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   // Flow mapping states
   const [chatbotFlows, setChatbotFlows] = useState<ChatbotAutomation[]>([])
@@ -116,26 +102,10 @@ export function TemplateTestModal({
   const bodyComponent = template?.components?.find((c: any) => c.type === "BODY")
   const footerComponent = template?.components?.find((c: any) => c.type === "FOOTER")
   const buttonsComponent = template?.components?.find((c: any) => c.type === "BUTTONS")
-  const carouselComponent = template?.components?.find((c: any) => c.type === "CAROUSEL")
-
-  // Carousel detection
-  const isCarouselTemplate = !!carouselComponent
-  const carouselCards = carouselComponent?.cards || []
 
   // Get quick reply buttons only (these are the ones that can trigger flows)
-  // For carousel templates, buttons are inside each card's components
-  const getCarouselButtons = () => {
-    if (!isCarouselTemplate || !carouselCards.length) return []
-    // Get buttons from the first card (all cards should have same structure)
-    const firstCard = carouselCards[0]
-    const cardButtonsComponent = firstCard?.components?.find((c: any) => c.type === "BUTTONS")
-    return cardButtonsComponent?.buttons || []
-  }
-
-  const carouselButtons = getCarouselButtons()
-  const regularButtons = buttonsComponent?.buttons || []
-  const allButtons = isCarouselTemplate ? carouselButtons : regularButtons
-  const quickReplyButtons = allButtons.filter((b: any) => b.type === "QUICK_REPLY" || b.type === "quick_reply")
+  const quickReplyButtons = buttonsComponent?.buttons?.filter((b: any) => b.type === "QUICK_REPLY") || []
+  const allButtons = buttonsComponent?.buttons || []
 
   // Fetch chatbot flows and existing mappings
   const fetchFlowsAndMappings = useCallback(async () => {
@@ -277,27 +247,6 @@ export function TemplateTestModal({
     const exampleHandle = header?.example?.header_handle?.[0]
     setTemplateMediaHandle(exampleHandle || "")
 
-    // Initialize carousel card media state
-    const carousel = template.components?.find((c: any) => c.type === "CAROUSEL")
-    if (carousel?.cards) {
-      const initialCarouselMedia: CarouselCardMedia[] = carousel.cards.map((card: any, index: number) => {
-        const cardHeader = card.components?.find((c: any) => c.type === "HEADER")
-        const existingHandle = cardHeader?.example?.header_handle?.[0] || ""
-        return {
-          file: null,
-          handle: "",
-          id: "",
-          previewUrl: "",
-          isUploading: false,
-          templateHandle: existingHandle,
-        }
-      })
-      setCarouselCardMedia(initialCarouselMedia)
-      carouselFileInputRefs.current = new Array(carousel.cards.length).fill(null)
-    } else {
-      setCarouselCardMedia([])
-    }
-
     // Fetch flows for quick reply button mapping
     fetchFlowsAndMappings()
   }, [open, template, fetchFlowsAndMappings])
@@ -345,15 +294,8 @@ export function TemplateTestModal({
       !locationData.name.trim() ||
       !locationData.address.trim())
 
-  // Carousel validation
-  const isAnyCarouselCardUploading = carouselCardMedia.some(card => card.isUploading)
-  const missingCarouselMedia = isCarouselTemplate && carouselCardMedia.some(card => {
-    const effectiveId = card.id || card.handle || card.templateHandle
-    return !effectiveId
-  })
-
   const sendDisabled =
-    sending || isUploadingMedia || isAnyCarouselCardUploading || !isPhoneValid || missingParams || missingMedia || missingLocation || missingCarouselMedia
+    sending || isUploadingMedia || !isPhoneValid || missingParams || missingMedia || missingLocation
 
   const replacePlaceholders = (text: string, prefix: "header" | "body") => {
     let index = 0
@@ -462,73 +404,6 @@ export function TemplateTestModal({
     }
   }
 
-  // Handle carousel card file upload
-  const handleCarouselFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, cardIndex: number) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    // Update card state to show uploading
-    setCarouselCardMedia(prev => {
-      const updated = [...prev]
-      if (updated[cardIndex]) {
-        if (updated[cardIndex].previewUrl) {
-          URL.revokeObjectURL(updated[cardIndex].previewUrl)
-        }
-        updated[cardIndex] = {
-          ...updated[cardIndex],
-          file,
-          previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : "",
-          isUploading: true,
-        }
-      }
-      return updated
-    })
-
-    try {
-      const { handle, id } = await uploadMediaToMeta(file)
-      setCarouselCardMedia(prev => {
-        const updated = [...prev]
-        if (updated[cardIndex]) {
-          updated[cardIndex] = {
-            ...updated[cardIndex],
-            handle,
-            id: id || handle,
-            isUploading: false,
-          }
-        }
-        return updated
-      })
-      toast({
-        title: "Media uploaded",
-        description: `Card ${cardIndex + 1} image is ready to send.`,
-      })
-    } catch (error: any) {
-      console.error("Carousel file upload error:", error)
-      toast({
-        title: "Upload failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      })
-      setCarouselCardMedia(prev => {
-        const updated = [...prev]
-        if (updated[cardIndex]) {
-          if (updated[cardIndex].previewUrl) {
-            URL.revokeObjectURL(updated[cardIndex].previewUrl)
-          }
-          updated[cardIndex] = {
-            ...updated[cardIndex],
-            file: null,
-            handle: "",
-            id: "",
-            previewUrl: "",
-            isUploading: false,
-          }
-        }
-        return updated
-      })
-    }
-  }
-
   const validateLocationData = (): boolean => {
     if (!locationData.latitude.trim()) {
       toast({ title: "Latitude required", variant: "destructive" })
@@ -632,31 +507,10 @@ export function TemplateTestModal({
       return
     }
 
-    // Validate carousel media
-    if (isCarouselTemplate) {
-      const missingCardIndex = carouselCardMedia.findIndex(card => {
-        const effectiveId = card.id || card.handle || card.templateHandle
-        return !effectiveId
-      })
-      if (missingCardIndex !== -1) {
-        toast({
-          title: "Carousel media required",
-          description: `Upload an image for Card ${missingCardIndex + 1}`,
-          variant: "destructive",
-        })
-        return
-      }
-    }
-
     setSending(true)
     setTestResult(null)
 
     try {
-      // Prepare carousel media IDs if applicable
-      const carouselMediaIds = isCarouselTemplate
-        ? carouselCardMedia.map(card => card.id || card.handle || card.templateHandle)
-        : undefined
-
       const response = await fetch(`/api/whatsapp/templates/${template.id}/send_test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -671,8 +525,6 @@ export function TemplateTestModal({
           button_params: buttonParamValues,
           location: isLocationHeader ? locationData : undefined,
           header_media_id: isMediaHeader ? effectiveMediaId : undefined,
-          carousel_card_media_ids: carouselMediaIds,
-          is_carousel: isCarouselTemplate,
           appservice_id: appService?.id,
           appservice_phone_number: appService?.phone_number,
         }),
@@ -1047,138 +899,6 @@ export function TemplateTestModal({
               </div>
             )}
 
-            {/* Carousel Card Media Upload Section */}
-            {isCarouselTemplate && carouselCards.length > 0 && (
-              <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <ImageIcon className="h-4 w-4 text-emerald-700" />
-                  Carousel Card Images ({carouselCards.length} cards)
-                </div>
-                <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-                  <Info className="h-4 w-4" />
-                  <span>Each carousel card requires an image. Upload images to override stored media or use existing media if available.</span>
-                </div>
-                <div className="space-y-3">
-                  {carouselCards.map((card: any, cardIndex: number) => {
-                    const cardMedia = carouselCardMedia[cardIndex]
-                    const cardHeader = card.components?.find((c: any) => c.type === "HEADER")
-                    const mediaFormat = cardHeader?.format?.toUpperCase() || "IMAGE"
-                    const effectiveId = cardMedia?.id || cardMedia?.handle || cardMedia?.templateHandle
-                    const hasMedia = !!effectiveId
-
-                    return (
-                      <div key={cardIndex} className="rounded-lg border bg-white p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              Card {cardIndex + 1}
-                            </Badge>
-                            {hasMedia && !cardMedia?.isUploading && (
-                              <Badge variant="outline" className="text-xs text-green-600 bg-green-50">
-                                Ready
-                              </Badge>
-                            )}
-                            {cardMedia?.templateHandle && !cardMedia?.handle && (
-                              <Badge variant="outline" className="text-xs text-blue-600 bg-blue-50">
-                                Using template media
-                              </Badge>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {mediaFormat}
-                          </span>
-                        </div>
-
-                        {/* Preview if available */}
-                        {cardMedia?.previewUrl && (
-                          <div className="relative h-20 w-full overflow-hidden rounded-md bg-gray-100">
-                            <img
-                              src={cardMedia.previewUrl}
-                              alt={`Card ${cardIndex + 1} preview`}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        )}
-
-                        <input
-                          ref={(el) => { carouselFileInputRefs.current[cardIndex] = el }}
-                          type="file"
-                          accept={ACCEPTED_FORMATS.IMAGE}
-                          onChange={(e) => handleCarouselFileUpload(e, cardIndex)}
-                          className="hidden"
-                        />
-
-                        {cardMedia?.file ? (
-                          <div className="flex items-center justify-between rounded-lg border bg-gray-50 px-3 py-2 text-xs">
-                            <div className="flex items-center gap-2">
-                              <ImageIcon className="h-4 w-4 text-emerald-700" />
-                              <span className="truncate max-w-[120px]">{cardMedia.file.name}</span>
-                              {cardMedia.isUploading && (
-                                <span className="flex items-center gap-1 text-emerald-700">
-                                  <Loader2 className="h-3 w-3 animate-spin" /> Uploading
-                                </span>
-                              )}
-                              {!cardMedia.isUploading && cardMedia.handle && (
-                                <span className="text-emerald-700">Uploaded</span>
-                              )}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2"
-                              onClick={() => {
-                                setCarouselCardMedia(prev => {
-                                  const updated = [...prev]
-                                  if (updated[cardIndex]) {
-                                    if (updated[cardIndex].previewUrl) {
-                                      URL.revokeObjectURL(updated[cardIndex].previewUrl)
-                                    }
-                                    updated[cardIndex] = {
-                                      ...updated[cardIndex],
-                                      file: null,
-                                      handle: "",
-                                      id: "",
-                                      previewUrl: "",
-                                    }
-                                  }
-                                  return updated
-                                })
-                              }}
-                              disabled={cardMedia.isUploading}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => carouselFileInputRefs.current[cardIndex]?.click()}
-                            disabled={cardMedia?.isUploading || isUploadingMedia}
-                          >
-                            {cardMedia?.isUploading ? (
-                              <>
-                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="mr-2 h-3 w-3" />
-                                {cardMedia?.templateHandle ? "Replace Image" : "Upload Image"}
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Flow Mapping for Quick Reply Buttons */}
             {allButtons.length > 0 && (
               <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
@@ -1339,7 +1059,7 @@ export function TemplateTestModal({
               </div>
             )}
 
-            {(missingParams || missingMedia || missingLocation || missingCarouselMedia || !isPhoneValid) && (
+            {(missingParams || missingMedia || missingLocation || !isPhoneValid) && (
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
                 <Info className="mt-0.5 h-4 w-4" />
                 <div className="space-y-1">
@@ -1347,7 +1067,6 @@ export function TemplateTestModal({
                   {!isPhoneValid && <p>Enter a valid phone number with country code.</p>}
                   {missingParams && <p>Fill in all template parameters.</p>}
                   {missingMedia && <p>Upload header media or use template media.</p>}
-                  {missingCarouselMedia && <p>Upload images for all carousel cards.</p>}
                   {missingLocation && <p>Complete location details.</p>}
                 </div>
               </div>
