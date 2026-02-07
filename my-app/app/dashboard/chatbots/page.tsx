@@ -12,10 +12,10 @@ import {
   Trash2,
   Pencil,
   Bot,
-  MessageSquare,
   Zap,
-  Settings,
   Search,
+  CircleDot,
+  Workflow,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -186,9 +186,9 @@ export default function ChatbotsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Chatbot Automation</h1>
+          <h1 className="text-2xl font-semibold">Chatbot Flows</h1>
           <p className="text-sm text-muted-foreground">
-            Create no-code chatbot flows for WhatsApp, Widget, and Messenger
+            Create no-code chatbot flows for WhatsApp
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -255,18 +255,31 @@ export default function ChatbotsPage() {
           {filteredChatbots.map((chatbot) => (
             <Card
               key={chatbot.id}
-              className="group hover:shadow-md transition-shadow cursor-pointer"
+              className="group hover:shadow-md transition-shadow cursor-pointer flex flex-col"
               onClick={() => router.push(`/dashboard/chatbots/${chatbot.id}/edit`)}
             >
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <CardTitle className="text-base truncate">{chatbot.name}</CardTitle>
-                    {chatbot.description && (
-                      <CardDescription className="line-clamp-2">
-                        {chatbot.description}
-                      </CardDescription>
-                    )}
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                      <Workflow className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <CardTitle className="text-base truncate">{chatbot.name}</CardTitle>
+                      <div className="flex items-center space-x-1.5 mt-0.5">
+                        {chatbot.isActive ? (
+                          <>
+                            <CircleDot className="w-3 h-3 fill-green-500 text-green-500" />
+                            <span className="text-xs text-green-600">Active</span>
+                          </>
+                        ) : (
+                          <>
+                            <CircleDot className="w-3 h-3 fill-amber-500 text-amber-500" />
+                            <span className="text-xs text-amber-600">Paused</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -329,23 +342,36 @@ export default function ChatbotsPage() {
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <MessageSquare className="h-4 w-4" />
-                    <span>{chatbot.menus?.length || 0} menus</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Zap className="h-4 w-4" />
-                    <span>{chatbot.triggers?.length || 0} triggers</span>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <Badge variant={chatbot.isActive ? "default" : "secondary"}>
-                    {chatbot.isActive ? "Active" : "Paused"}
-                  </Badge>
-                  {chatbot.settings?.welcomeEnabled && (
-                    <Badge variant="outline">Welcome Message</Badge>
+              <CardContent className="flex-grow space-y-3">
+                {chatbot.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {chatbot.description}
+                  </p>
+                )}
+                <div className="pt-1 border-t">
+                  <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1.5">
+                    <Zap className="h-3 w-3" />
+                    Triggers
+                  </span>
+                  {chatbot.triggers?.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {chatbot.triggers.slice(0, 3).map((trigger, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs font-normal">
+                          {trigger.type === 'keyword'
+                            ? trigger.keywords?.join(', ') || 'keyword'
+                            : trigger.type === 'first_message'
+                            ? 'First message'
+                            : 'Button click'}
+                        </Badge>
+                      ))}
+                      {chatbot.triggers.length > 3 && (
+                        <span className="text-xs text-muted-foreground self-center">
+                          +{chatbot.triggers.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No triggers configured</p>
                   )}
                 </div>
               </CardContent>
