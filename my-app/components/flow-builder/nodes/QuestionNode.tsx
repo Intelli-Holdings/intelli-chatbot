@@ -60,8 +60,8 @@ function QuestionNode({ id, data, selected }: QuestionNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[280px] max-w-[320px] rounded-lg border bg-card shadow-sm transition-all relative',
-        selected && 'ring-2 ring-primary ring-offset-2',
+        'w-[280px] rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md transition-all relative',
+        selected && 'ring-2 ring-[#007fff] ring-offset-2 shadow-[0_0_20px_rgba(0,127,255,0.3)]',
         !selected && validationClass
       )}
     >
@@ -75,7 +75,7 @@ function QuestionNode({ id, data, selected }: QuestionNodeProps) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 rounded-t-lg bg-blue-500 px-3 py-2 text-white">
+      <div className="flex items-center justify-between gap-2 rounded-t-xl bg-gradient-to-r from-blue-500 to-blue-400 px-3 py-2 text-white">
         <div className="flex items-center gap-2 min-w-0">
           <MessageSquare className="h-4 w-4 flex-shrink-0" />
           <span className="text-sm font-medium truncate">Interactive Message</span>
@@ -93,7 +93,7 @@ function QuestionNode({ id, data, selected }: QuestionNodeProps) {
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-3">
+      <div className="p-3 min-h-[48px] space-y-3">
         {/* Body Preview */}
         <p className="text-sm text-muted-foreground leading-snug">
           {truncatedBody}
