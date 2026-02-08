@@ -703,6 +703,44 @@ static async updateCampaign(
   }
 
   /**
+   * Retry failed messages in a WhatsApp campaign
+   * Resets failed message statuses to pending and re-triggers the campaign
+   */
+  static async retryFailedMessages(
+    whatsappCampaignId: string,
+    organizationId: string
+  ): Promise<{
+    message: string;
+    task_id: string;
+    retry_count: number;
+  }> {
+    try {
+      const response = await fetch(
+        `/api/campaigns/whatsapp/${whatsappCampaignId}/retry_messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            organization_id: organizationId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || errorData.detail || 'Failed to retry messages');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error retrying failed messages:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Import CSV template with campaign parameter values
    * New workflow: Creates contacts and recipients automatically
    *
