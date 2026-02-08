@@ -9,7 +9,6 @@ import {
   Pause,
   Settings,
   Eye,
-  Globe,
   Check,
   AlertCircle,
   ExternalLink,
@@ -32,14 +31,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -64,7 +55,6 @@ import {
   ChatbotAutomation,
   ChatbotMenu,
   ChannelConfig,
-  ChatbotChannel,
 } from "@/types/chatbot-automation";
 import {
   FlowSimulator,
@@ -74,18 +64,8 @@ import {
 import { backendNodesToFlow, chatbotToFlow } from "@/components/flow-builder/utils/flow-converters";
 import { cn } from "@/lib/utils";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { MessengerIcon } from "@/components/icons/messenger-icon";
-import { InstagramIcon } from "@/components/icons/instagram-icon";
 import FlowBuilder from "@/components/flow-builder/FlowBuilder";
 import { useAppServices } from "@/hooks/use-app-services";
-
-// Channel configuration
-const AVAILABLE_CHANNELS: { id: ChatbotChannel; name: string; icon: React.ComponentType<{ className?: string }>; description: string }[] = [
-  { id: "whatsapp", name: "WhatsApp", icon: WhatsAppIcon, description: "WhatsApp Business API" },
-  { id: "widget", name: "Website Widget", icon: Globe, description: "Embed on your website" },
-  { id: "messenger", name: "Messenger", icon: MessengerIcon, description: "Facebook Messenger" },
-  { id: "instagram", name: "Instagram", icon: InstagramIcon, description: "Instagram DMs" },
-];
 
 // Main Page Component
 export default function ChatbotEditorPage() {
@@ -101,11 +81,8 @@ export default function ChatbotEditorPage() {
   // Settings sheet
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Channel setup dialog
-  const [channelSetupDialog, setChannelSetupDialog] = useState<{
-    open: boolean;
-    channel: ChatbotChannel | null;
-  }>({ open: false, channel: null });
+  // WhatsApp channel dialog
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
 
   // WhatsApp services
   const { appServices, loading: loadingServices, refetch: refetchServices } = useAppServices();
@@ -348,7 +325,7 @@ export default function ChatbotEditorPage() {
                 onChange={(e) => updateChatbot({ name: e.target.value })}
                 className="text-xl font-semibold border-none p-0 h-auto focus-visible:ring-0 max-w-[300px]"
               />
-              <Badge variant={chatbot.isActive ? "default" : "secondary"}>
+              <Badge variant="outline" className={chatbot.isActive ? "border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30" : "border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30"}>
                 {chatbot.isActive ? "Active" : "Paused"}
               </Badge>
             </div>
@@ -436,166 +413,47 @@ export default function ChatbotEditorPage() {
                 </div>
               </div>
 
-              {/* Channels */}
+              {/* WhatsApp Channel */}
               <div className="space-y-4">
-                <h3 className="font-medium">Channels</h3>
-                <p className="text-sm text-muted-foreground">
-                  Select which channels this chatbot should be active on.
-                </p>
-                <div className="space-y-2">
-                  {AVAILABLE_CHANNELS.map((channel) => {
-                    const channelConfig = chatbot.channels?.find(
-                      (c) => c.channel === channel.id
-                    );
-                    const isEnabled = channelConfig?.enabled;
-                    const IconComponent = channel.icon;
+                <h3 className="font-medium">WhatsApp Channel</h3>
+                {(() => {
+                  const whatsappConfig = chatbot.channels?.find((c) => c.channel === "whatsapp");
+                  const isConnected = whatsappConfig?.enabled;
+                  const connectedService = whatsappConfig?.appServiceId
+                    ? appServices.find((s) => s.id === whatsappConfig.appServiceId)
+                    : null;
 
-                    // For WhatsApp, show connected phone number
-                    const connectedService = channel.id === "whatsapp" && channelConfig?.appServiceId
-                      ? appServices.find((s) => s.id === channelConfig.appServiceId)
-                      : null;
-
-                    return (
-                      <div
-                        key={channel.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                          isEnabled
-                            ? "border-primary bg-primary/5"
-                            : "border-muted hover:bg-muted/50"
-                        }`}
-                        onClick={() => {
-                          // Open channel setup dialog
-                          setChannelSetupDialog({ open: true, channel: channel.id });
-                        }}
-                      >
-                        <IconComponent className="h-5 w-5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{channel.name}</p>
-                          {isEnabled && connectedService ? (
-                            <p className="text-xs text-primary truncate">
-                              {connectedService.phone_number || connectedService.name}
-                            </p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {channel.description}
-                            </p>
-                          )}
-                        </div>
-                        {isEnabled && (
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                  return (
+                    <div
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isConnected
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/10"
+                          : "border-muted hover:bg-muted/50"
+                      }`}
+                      onClick={() => setIsWhatsAppDialogOpen(true)}
+                    >
+                      <WhatsAppIcon className="h-5 w-5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">WhatsApp</p>
+                        {isConnected && connectedService ? (
+                          <p className="text-xs text-green-600 dark:text-green-400 truncate">
+                            {connectedService.phone_number || connectedService.name}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Connect a WhatsApp Business number
+                          </p>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
+                      {isConnected && (
+                        <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
-              {/* Welcome Message */}
-              <div className="space-y-4">
-                <h3 className="font-medium">Welcome Message</h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Enable Welcome Message</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Automatically greet new conversations
-                    </p>
-                  </div>
-                  <Switch
-                    checked={chatbot.settings.welcomeEnabled}
-                    onCheckedChange={(checked) =>
-                      updateChatbot({
-                        settings: { ...chatbot.settings, welcomeEnabled: checked },
-                      })
-                    }
-                  />
-                </div>
-                {chatbot.settings.welcomeEnabled && (
-                  <div className="space-y-2">
-                    <Label>Welcome Menu</Label>
-                    <Select
-                      value={chatbot.settings.welcomeMenuId || ""}
-                      onValueChange={(value) =>
-                        updateChatbot({
-                          settings: { ...chatbot.settings, welcomeMenuId: value },
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select welcome menu" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {chatbot.menus.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
 
-              {/* Fallback Settings */}
-              <div className="space-y-4">
-                <h3 className="font-medium">Fallback Behavior</h3>
-                <div className="space-y-2">
-                  <Label>Unknown Input Behavior</Label>
-                  <Select
-                    value={chatbot.settings.unknownInputBehavior}
-                    onValueChange={(value: "repeat_menu" | "fallback_ai") =>
-                      updateChatbot({
-                        settings: { ...chatbot.settings, unknownInputBehavior: value },
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="repeat_menu">Repeat Current Menu</SelectItem>
-                      <SelectItem value="fallback_ai">Hand off to AI</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Fallback Message</Label>
-                  <Textarea
-                    value={chatbot.settings.fallbackMessage}
-                    onChange={(e) =>
-                      updateChatbot({
-                        settings: { ...chatbot.settings, fallbackMessage: e.target.value },
-                      })
-                    }
-                    placeholder="Message shown before AI takes over"
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              {/* Session Settings */}
-              <div className="space-y-4">
-                <h3 className="font-medium">Session Settings</h3>
-                <div className="space-y-2">
-                  <Label>Session Timeout (minutes)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={1440}
-                    value={chatbot.settings.sessionTimeoutMinutes}
-                    onChange={(e) =>
-                      updateChatbot({
-                        settings: {
-                          ...chatbot.settings,
-                          sessionTimeoutMinutes: parseInt(e.target.value) || 30,
-                        },
-                      })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    How long before a session expires and restarts
-                  </p>
-                </div>
-              </div>
             </div>
           </ScrollArea>
         </SheetContent>
@@ -787,272 +645,143 @@ export default function ChatbotEditorPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Channel Setup Dialog */}
-      <Dialog
-        open={channelSetupDialog.open}
-        onOpenChange={(open) => setChannelSetupDialog({ open, channel: open ? channelSetupDialog.channel : null })}
-      >
+      {/* WhatsApp Channel Dialog */}
+      <Dialog open={isWhatsAppDialogOpen} onOpenChange={setIsWhatsAppDialogOpen}>
         <DialogContent className="max-w-md">
-          {channelSetupDialog.channel === "whatsapp" && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <WhatsAppIcon className="h-5 w-5" />
-                  Connect WhatsApp
-                </DialogTitle>
-                <DialogDescription>
-                  {appServices.length > 0
-                    ? "Select a WhatsApp number to use with this chatbot"
-                    : "Connect your WhatsApp Business account to use this channel"}
-                </DialogDescription>
-              </DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <WhatsAppIcon className="h-5 w-5" />
+              Connect WhatsApp
+            </DialogTitle>
+            <DialogDescription>
+              {appServices.length > 0
+                ? "Select a WhatsApp number to use with this chatbot"
+                : "Connect your WhatsApp Business account"}
+            </DialogDescription>
+          </DialogHeader>
 
-              {loadingServices ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : appServices.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    {appServices.map((service) => {
-                      const isSelected = chatbot.channels?.some(
-                        (c) => c.channel === "whatsapp" && c.appServiceId === service.id && c.enabled
-                      );
+          {loadingServices ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : appServices.length > 0 ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                {appServices.map((service) => {
+                  const isSelected = chatbot.channels?.some(
+                    (c) => c.channel === "whatsapp" && c.appServiceId === service.id && c.enabled
+                  );
 
-                      return (
-                        <div
-                          key={service.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-muted hover:bg-muted/50"
-                          }`}
-                          onClick={() => {
-                            const currentChannels = chatbot.channels || [];
-                            const existingIndex = currentChannels.findIndex(
-                              (c) => c.channel === "whatsapp"
-                            );
-
-                            let newChannels: ChannelConfig[];
-                            if (existingIndex >= 0) {
-                              // Toggle off if clicking same service, or update to new service
-                              const existing = currentChannels[existingIndex];
-                              if (existing.appServiceId === service.id && existing.enabled) {
-                                newChannels = currentChannels.map((c, i) =>
-                                  i === existingIndex ? { ...c, enabled: false } : c
-                                );
-                              } else {
-                                newChannels = currentChannels.map((c, i) =>
-                                  i === existingIndex
-                                    ? {
-                                        ...c,
-                                        enabled: true,
-                                        appServiceId: service.id,
-                                        phoneNumberId: service.phone_number_id,
-                                      }
-                                    : c
-                                );
-                              }
-                            } else {
-                              newChannels = [
-                                ...currentChannels,
-                                {
-                                  channel: "whatsapp",
-                                  enabled: true,
-                                  appServiceId: service.id,
-                                  phoneNumberId: service.phone_number_id,
-                                },
-                              ];
-                            }
-
-                            updateChatbot({ channels: newChannels });
-                            setChannelSetupDialog({ open: false, channel: null });
-                            toast.success(
-                              isSelected
-                                ? "WhatsApp disconnected from chatbot"
-                                : `Connected to ${service.phone_number || service.name}`
-                            );
-                          }}
-                        >
-                          <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <Phone className="h-5 w-5 text-green-600 dark:text-green-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">{service.name || "WhatsApp Business"}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {service.phone_number}
-                            </p>
-                          </div>
-                          {isSelected && (
-                            <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="pt-2 border-t">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => router.push("/dashboard/channels/whatsapp")}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Connect Another Number
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="text-center py-6">
-                    <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
-                      <WhatsAppIcon className="h-8 w-8 text-green-600 dark:text-green-400" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      You haven&apos;t connected any WhatsApp Business numbers yet.
-                      Connect your first number to enable this channel.
-                    </p>
-                  </div>
-
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setChannelSetupDialog({ open: false, channel: null })}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => router.push("/dashboard/channels/whatsapp")}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <WhatsAppIcon className="h-4 w-4 mr-2" />
-                      Connect WhatsApp
-                    </Button>
-                  </DialogFooter>
-                </div>
-              )}
-            </>
-          )}
-
-          {channelSetupDialog.channel === "widget" && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  Website Widget
-                </DialogTitle>
-                <DialogDescription>
-                  Enable the website widget for this chatbot
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  When enabled, this chatbot will be available through website widgets
-                  embedded on your site.
-                </p>
-
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setChannelSetupDialog({ open: false, channel: null })}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const currentChannels = chatbot.channels || [];
-                      const existingIndex = currentChannels.findIndex(
-                        (c) => c.channel === "widget"
-                      );
-                      const isCurrentlyEnabled =
-                        existingIndex >= 0 && currentChannels[existingIndex].enabled;
-
-                      let newChannels: ChannelConfig[];
-                      if (existingIndex >= 0) {
-                        newChannels = currentChannels.map((c, i) =>
-                          i === existingIndex ? { ...c, enabled: !c.enabled } : c
+                  return (
+                    <div
+                      key={service.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isSelected
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/10"
+                          : "border-muted hover:bg-muted/50"
+                      }`}
+                      onClick={() => {
+                        const currentChannels = chatbot.channels || [];
+                        const existingIndex = currentChannels.findIndex(
+                          (c) => c.channel === "whatsapp"
                         );
-                      } else {
-                        newChannels = [
-                          ...currentChannels,
-                          { channel: "widget", enabled: true },
-                        ];
-                      }
 
-                      updateChatbot({ channels: newChannels });
-                      setChannelSetupDialog({ open: false, channel: null });
-                      toast.success(
-                        isCurrentlyEnabled
-                          ? "Widget channel disabled"
-                          : "Widget channel enabled"
-                      );
-                    }}
-                  >
-                    {chatbot.channels?.some((c) => c.channel === "widget" && c.enabled)
-                      ? "Disable Widget"
-                      : "Enable Widget"}
-                  </Button>
-                </DialogFooter>
+                        let newChannels: ChannelConfig[];
+                        if (existingIndex >= 0) {
+                          const existing = currentChannels[existingIndex];
+                          if (existing.appServiceId === service.id && existing.enabled) {
+                            newChannels = currentChannels.map((c, i) =>
+                              i === existingIndex ? { ...c, enabled: false } : c
+                            );
+                          } else {
+                            newChannels = currentChannels.map((c, i) =>
+                              i === existingIndex
+                                ? {
+                                    ...c,
+                                    enabled: true,
+                                    appServiceId: service.id,
+                                    phoneNumberId: service.phone_number_id,
+                                  }
+                                : c
+                            );
+                          }
+                        } else {
+                          newChannels = [
+                            ...currentChannels,
+                            {
+                              channel: "whatsapp",
+                              enabled: true,
+                              appServiceId: service.id,
+                              phoneNumberId: service.phone_number_id,
+                            },
+                          ];
+                        }
+
+                        updateChatbot({ channels: newChannels });
+                        setIsWhatsAppDialogOpen(false);
+                        toast.success(
+                          isSelected
+                            ? "WhatsApp disconnected from chatbot"
+                            : `Connected to ${service.phone_number || service.name}`
+                        );
+                      }}
+                    >
+                      <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <Phone className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{service.name || "WhatsApp Business"}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {service.phone_number}
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            </>
-          )}
 
-          {(channelSetupDialog.channel === "messenger" ||
-            channelSetupDialog.channel === "instagram") && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {channelSetupDialog.channel === "messenger" ? (
-                    <MessengerIcon className="h-5 w-5" />
-                  ) : (
-                    <InstagramIcon className="h-5 w-5" />
-                  )}
-                  {channelSetupDialog.channel === "messenger" ? "Messenger" : "Instagram"}
-                </DialogTitle>
-                <DialogDescription>
-                  Connect your {channelSetupDialog.channel === "messenger" ? "Facebook Page" : "Instagram account"}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                <div className="text-center py-6">
-                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                    {channelSetupDialog.channel === "messenger" ? (
-                      <MessengerIcon className="h-8 w-8" />
-                    ) : (
-                      <InstagramIcon className="h-8 w-8" />
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {channelSetupDialog.channel === "messenger"
-                      ? "Connect your Facebook Page to enable Messenger integration."
-                      : "Connect your Instagram account to enable DM integration."}
-                  </p>
+              <div className="pt-2 border-t">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => router.push("/dashboard/channels/whatsapp")}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Connect Another Number
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-center py-6">
+                <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
+                  <WhatsAppIcon className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
-
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setChannelSetupDialog({ open: false, channel: null })}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      router.push(
-                        channelSetupDialog.channel === "messenger"
-                          ? "/dashboard/conversations/messenger"
-                          : "/dashboard/conversations/instagram"
-                      )
-                    }
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Go to Setup
-                  </Button>
-                </DialogFooter>
+                <p className="text-sm text-muted-foreground mb-4">
+                  You haven&apos;t connected any WhatsApp Business numbers yet.
+                  Connect your first number to enable this channel.
+                </p>
               </div>
-            </>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsWhatsAppDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => router.push("/dashboard/channels/whatsapp")}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <WhatsAppIcon className="h-4 w-4 mr-2" />
+                  Connect WhatsApp
+                </Button>
+              </DialogFooter>
+            </div>
           )}
         </DialogContent>
       </Dialog>

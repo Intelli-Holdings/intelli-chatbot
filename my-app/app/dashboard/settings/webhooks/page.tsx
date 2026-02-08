@@ -455,7 +455,7 @@ export default function WebhooksSettingsPage() {
                   <div>
                     <h3 className="text-lg font-semibold">Webhook Destinations</h3>
                     <p className="text-sm text-muted-foreground">
-                      Send data to external systems like Zapier, Make, CRMs, and more
+                      Send data to external systems like CRM, Make, Zapier, and more
                     </p>
                   </div>
                   <Dialog open={showCreateDestination} onOpenChange={setShowCreateDestination}>

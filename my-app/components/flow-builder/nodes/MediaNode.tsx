@@ -23,25 +23,25 @@ const MEDIA_CONFIG: Record<MediaType, { icon: typeof Image; title: string; color
   image: {
     icon: Image,
     title: 'Image',
-    color: 'bg-pink-500',
+    color: 'bg-gradient-to-r from-pink-500 to-pink-400',
     borderColor: '#ec4899',
   },
   video: {
     icon: Video,
     title: 'Video',
-    color: 'bg-rose-500',
+    color: 'bg-gradient-to-r from-rose-500 to-rose-400',
     borderColor: '#f43f5e',
   },
   document: {
     icon: FileText,
     title: 'Document',
-    color: 'bg-amber-500',
+    color: 'bg-gradient-to-r from-amber-500 to-amber-400',
     borderColor: '#f59e0b',
   },
   audio: {
     icon: Music,
     title: 'Audio',
-    color: 'bg-cyan-500',
+    color: 'bg-gradient-to-r from-cyan-500 to-cyan-400',
     borderColor: '#06b6d4',
   },
 };
@@ -55,8 +55,8 @@ function MediaNode({ id, data, selected }: MediaNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[180px] max-w-[220px] rounded-lg border bg-card shadow-sm transition-all relative',
-        selected && 'ring-2 ring-primary ring-offset-2',
+        'w-[280px] rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md transition-all relative',
+        selected && 'ring-2 ring-[#007fff] ring-offset-2 shadow-[0_0_20px_rgba(0,127,255,0.3)]',
         !selected && validationClass
       )}
     >
@@ -72,7 +72,7 @@ function MediaNode({ id, data, selected }: MediaNodeProps) {
 
       {/* Header */}
       <div className={cn(
-        'flex items-center justify-center gap-2 rounded-t-lg px-3 py-2 text-white',
+        'flex items-center justify-center gap-2 rounded-t-xl px-3 py-2 text-white',
         config.color
       )}>
         <Icon className="h-4 w-4" />
@@ -80,13 +80,13 @@ function MediaNode({ id, data, selected }: MediaNodeProps) {
       </div>
 
       {/* Content */}
-      <div className="p-3 min-w-0">
+      <div className="p-3 min-h-[48px] min-w-0">
         {fileName ? (
-          <p className="text-xs text-muted-foreground truncate max-w-full" title={fileName}>
+          <p className="text-sm text-muted-foreground truncate max-w-full" title={fileName}>
             {fileName}
           </p>
         ) : (
-          <p className="text-xs text-muted-foreground italic">
+          <p className="text-xs text-muted-foreground/60 italic">
             No file uploaded
           </p>
         )}
