@@ -22,8 +22,8 @@ function UserInputFlowNode({ id, data, selected }: UserInputFlowNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[220px] max-w-[280px] rounded-lg border bg-card shadow-sm transition-all relative',
-        selected && 'ring-2 ring-primary ring-offset-2',
+        'w-[280px] rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md transition-all relative',
+        selected && 'ring-2 ring-[#007fff] ring-offset-2 shadow-[0_0_20px_rgba(0,127,255,0.3)]',
         !selected && validationClass
       )}
     >
@@ -37,17 +37,17 @@ function UserInputFlowNode({ id, data, selected }: UserInputFlowNodeProps) {
       />
 
       {/* Header */}
-      <div className="flex items-center gap-2 rounded-t-lg bg-teal-500 px-3 py-2 text-white">
+      <div className="flex items-center gap-2 rounded-t-xl bg-gradient-to-r from-teal-500 to-teal-400 px-3 py-2 text-white">
         <FileInput className="h-4 w-4" />
         <span className="text-sm font-medium">User Input Flow</span>
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-2">
+      <div className="p-3 min-h-[48px] space-y-2">
         <div>
           <p className="text-xs text-muted-foreground">Flow name</p>
           <p className="text-sm font-medium truncate">
-            {flowName || 'Untitled Flow'}
+            {flowName || <span className="text-xs font-normal text-muted-foreground/60 italic">Untitled Flow</span>}
           </p>
         </div>
         {description && (
