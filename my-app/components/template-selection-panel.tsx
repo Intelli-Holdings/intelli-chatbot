@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Image, Video, FileText } from "lucide-react"
+import { Image as ImageIcon, Video, FileText } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { TemplateListContainer } from "./template-list-container"
@@ -18,8 +18,8 @@ function getMediaHeaderInfo(components: any[]): { type: string; format: string }
 
 // Media type badge component
 function MediaTypeBadge({ format }: { format: string }) {
-  const config: Record<string, { icon: typeof Image; label: string; className: string }> = {
-    IMAGE: { icon: Image, label: 'Image', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  const config: Record<string, { icon: typeof ImageIcon; label: string; className: string }> = {
+    IMAGE: { icon: ImageIcon, label: 'Image', className: 'bg-blue-100 text-blue-700 border-blue-200' },
     VIDEO: { icon: Video, label: 'Video', className: 'bg-purple-100 text-purple-700 border-purple-200' },
     DOCUMENT: { icon: FileText, label: 'Document', className: 'bg-orange-100 text-orange-700 border-orange-200' },
   }
@@ -120,7 +120,7 @@ export function TemplateSelectionPanel({
                   <div className="text-sm">
                     <p className="font-semibold text-muted-foreground mb-2">Header:</p>
                     <div className="bg-blue-50 border border-blue-200 rounded-md p-4 flex items-center justify-center gap-2 text-blue-600">
-                      <Image className="h-5 w-5" />
+                      <ImageIcon className="h-5 w-5" />
                       <span className="text-xs font-medium">Image Header</span>
                     </div>
                   </div>
