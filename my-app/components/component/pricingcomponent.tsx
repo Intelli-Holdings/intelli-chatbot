@@ -2,6 +2,9 @@
 
 import React, { useState } from 'react';
 import PricingCard from './pricingCard';
+import PricingAddons from './pricing-addons';
+import PricingServices from './pricing-services';
+import PricingFaq from './pricing-faq';
 
 const PricingComponent = () => {
   const [isAnnual, setIsAnnual] = useState<boolean>(true);
@@ -18,7 +21,7 @@ const PricingComponent = () => {
         'Live Chat',
         'Basic technical support (Email)',
         'Customizable chat widget appearance',
-        '1000 Message credits (1M Tokens) per month',  
+        '1000 Message credits (1M Tokens) per month',
         '1 team member seat included (additional seats are $5 per month per member)',
       ],
       description: 'Perfect for small businesses looking to automate customer support.',
@@ -33,13 +36,13 @@ const PricingComponent = () => {
       originalAnnualPrice: 420,
       features: [
         'WhatsApp Business API integration',
-        'Live Chat',
-        'Basic technical support (Email)',
-        'Advanced analytics dashboard',
-        '1000 Message credits (1M Tokens) per month',         
-        '1 team member seat included (additional seats are $5 per month per member)',        
+        'Live chat with team inbox',
+        <>WhatsApp Broadcast (<a href="https://business.whatsapp.com/products/platform-pricing?country=Rest%20of%20Africa&currency=Dollars%20(USD)&category=Marketing" target="_blank" rel="noopener noreferrer" className="text-[#007fff] underline hover:text-[#006ad9]">Per Template Message Charges by Meta</a>)</>,
+        'Broadcast campaign analytics & segmentation',
+        '1,000 AI credits (1M tokens) per month',
+        '1 team member seat ($5/mo per additional seat)',
       ],
-      description: 'Ideal for growing businesses needing multi-channel support.',
+      description: 'For growing businesses engaging customers on WhatsApp.',
       buttonText: 'Start Free Trial',
       link: '/auth/sign-up',
       isRecommended: true,
@@ -97,7 +100,7 @@ const PricingComponent = () => {
             >
               Annual
               {isAnnual && (
-                <span className="ml-4 text-xs font-medium text-blue-500">-2months</span>
+                <span className="ml-4 text-xs font-medium text-[#007fff]">-2months</span>
               )}
             </button>
           </div>
@@ -151,6 +154,10 @@ const PricingComponent = () => {
           </div>
         </div>
       </section>
+
+      <PricingAddons />
+      <PricingServices />
+      <PricingFaq />
     </div>
   );
 };
