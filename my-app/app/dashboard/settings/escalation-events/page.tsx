@@ -24,6 +24,10 @@ const settingsNavigation = [
     title: "Escalation Events",
     href: "/dashboard/settings/escalation-events",
   },
+  {
+    title: "Webhooks",
+    href: "/dashboard/settings/webhooks",
+  },
 ]
 
 export default function EscalationEventsPage() {
