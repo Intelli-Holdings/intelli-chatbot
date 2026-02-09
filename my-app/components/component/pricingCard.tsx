@@ -9,7 +9,7 @@ interface PricingCardProps {
   price: string;
   originalPrice: string;
   description: string;
-  features: string[];
+  features: (string | React.ReactNode)[];
   buttonText: string;
   isRecommended?: boolean;
   link: string;
