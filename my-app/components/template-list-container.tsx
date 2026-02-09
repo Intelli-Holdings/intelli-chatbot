@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { ChevronDown, Check, Image, Video, FileText } from "lucide-react"
+import { ChevronDown, Check, Image as ImageIcon, Video, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface TemplateComponent {
@@ -32,7 +32,7 @@ function getTemplateMediaType(template: Template): 'image' | 'video' | 'document
 // Media indicator component
 function MediaIndicator({ mediaType }: { mediaType: 'image' | 'video' | 'document' }) {
   const config = {
-    image: { icon: Image, label: 'Image', color: 'text-blue-500' },
+    image: { icon: ImageIcon, label: 'Image', color: 'text-blue-500' },
     video: { icon: Video, label: 'Video', color: 'text-purple-500' },
     document: { icon: FileText, label: 'Document', color: 'text-orange-500' },
   }

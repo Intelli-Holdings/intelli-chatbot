@@ -296,12 +296,56 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   };
 
   const handleTagToggle = (tagSlug: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedTags: prev.selectedTags.includes(tagSlug)
-        ? prev.selectedTags.filter(slug => slug !== tagSlug)
-        : [...prev.selectedTags, tagSlug]
-    }));
+    setFormData(prev => {
+      const isSelected = prev.selectedTags.includes(tagSlug);
+
+      // Get contacts that have this tag
+      const contactsWithTag = contacts.filter(c =>
+        c.tags?.some((t: any) => t.slug === tagSlug)
+      );
+      const contactIdsWithTag = contactsWithTag.map(c => c.id);
+
+      if (isSelected) {
+        // Removing the tag - also remove contacts that ONLY had this tag selected
+        // Keep contacts that have other selected tags
+        const remainingTags = prev.selectedTags.filter(slug => slug !== tagSlug);
+        const contactsToKeep = new Set<string>();
+
+        // Find contacts that belong to remaining tags
+        remainingTags.forEach(slug => {
+          contacts.forEach(c => {
+            if (c.tags?.some((t: any) => t.slug === slug)) {
+              contactsToKeep.add(c.id);
+            }
+          });
+        });
+
+        // Also keep manually selected contacts (those not from any tag)
+        prev.selectedContacts.forEach(contactId => {
+          const contact = contacts.find(c => c.id === contactId);
+          if (contact && !contact.tags?.some((t: any) => prev.selectedTags.includes(t.slug))) {
+            contactsToKeep.add(contactId);
+          }
+        });
+
+        return {
+          ...prev,
+          selectedTags: remainingTags,
+          selectedContacts: prev.selectedContacts.filter(id => contactsToKeep.has(id))
+        };
+      } else {
+        // Adding the tag - add all contacts with this tag to selectedContacts
+        // Use Array.from for compatibility instead of spread on Set
+        const combined = [...prev.selectedContacts, ...contactIdsWithTag];
+        const newSelectedContacts = Array.from(new Set(combined));
+
+        return {
+          ...prev,
+          selectedTags: [...prev.selectedTags, tagSlug],
+          selectedContacts: newSelectedContacts
+        };
+      }
+    });
   };
 
   const getSelectedTemplate = () => {
@@ -1497,24 +1541,26 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           await loadPreviewMessages();
         }
         } else {
-          // Use legacy format: Add recipients by tag_ids/contact_ids (no parameters)
-          console.log('=== USING LEGACY RECIPIENT FORMAT ===');
+          // Use legacy format for templates without variables
+          console.log('=== USING LEGACY RECIPIENT FORMAT (no template variables) ===');
 
           // Get contact IDs - ensure they are numbers
           const contactIds = formData.selectedContacts.length > 0
             ? formData.selectedContacts.map(id => {
                 const numId = typeof id === 'string' ? parseInt(id) : id;
-                console.log(`Converting contact ID: ${id} -> ${numId} (type: ${typeof numId})`);
                 return numId;
               }).filter(id => !isNaN(id))
             : [];
 
-          console.log('Converted tag IDs:', tagIds);
-          console.log('Converted contact IDs:', contactIds);
+          console.log('Tag IDs:', tagIds);
+          console.log('Contact IDs:', contactIds);
 
           // Only add recipients if at least one type is selected
           if (tagIds.length > 0 || contactIds.length > 0) {
-            const recipientData: { tag_ids?: number[]; contact_ids?: number[] } = {};
+            const recipientData: {
+              tag_ids?: number[];
+              contact_ids?: number[];
+            } = {};
 
             if (tagIds.length > 0) {
               recipientData.tag_ids = tagIds;
@@ -2101,7 +2147,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                             )}
                           </div>
                           <CardDescription className="text-xs">
-                            Selecting tags adds all contacts with those tags to this campaign.
+                            Selecting a tag will add all contacts with that tag to the recipients list below.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-wrap gap-2">
