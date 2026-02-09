@@ -13,6 +13,7 @@ interface PricingCardProps {
   buttonText: string;
   isRecommended?: boolean;
   link: string;
+  tierSelector?: React.ReactNode;
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({
@@ -24,6 +25,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
   buttonText,
   isRecommended = false,
   link,
+  tierSelector,
 }) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const isEnterprise = title === 'Enterprise';
@@ -50,6 +52,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
         </div>
       )}
       <h3 className="text-xl font-bold mb-3">{title}</h3>
+      {tierSelector && <div className="mb-4">{tierSelector}</div>}
       <div className="flex items-baseline mb-2">
         <span className="text-4xl font-bold">{price}</span>
         {originalPrice && (
