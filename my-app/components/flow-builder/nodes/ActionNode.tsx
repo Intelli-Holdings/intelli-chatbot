@@ -19,28 +19,28 @@ function ActionNode({ id, data, selected }: ActionNodeProps) {
         return {
           icon: Send,
           title: 'Text',
-          color: 'bg-purple-500',
+          color: 'bg-gradient-to-r from-purple-500 to-purple-400',
           borderColor: '#a855f7',
         };
       case 'fallback_ai':
         return {
           icon: Bot,
           title: 'AI Assistant',
-          color: 'bg-orange-500',
+          color: 'bg-gradient-to-r from-orange-500 to-amber-400',
           borderColor: '#f97316',
         };
       case 'end':
         return {
           icon: XCircle,
           title: 'End Conversation',
-          color: 'bg-red-500',
+          color: 'bg-gradient-to-r from-red-500 to-rose-400',
           borderColor: '#ef4444',
         };
       default:
         return {
           icon: Send,
           title: 'Action',
-          color: 'bg-gray-500',
+          color: 'bg-gradient-to-r from-gray-500 to-gray-400',
           borderColor: '#6b7280',
         };
     }
@@ -57,8 +57,8 @@ function ActionNode({ id, data, selected }: ActionNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[200px] max-w-[260px] rounded-lg border bg-card shadow-sm transition-all relative',
-        selected && 'ring-2 ring-primary ring-offset-2',
+        'w-[280px] rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md transition-all relative',
+        selected && 'ring-2 ring-[#007fff] ring-offset-2 shadow-[0_0_20px_rgba(0,127,255,0.3)]',
         !selected && validationClass
       )}
     >
@@ -74,7 +74,7 @@ function ActionNode({ id, data, selected }: ActionNodeProps) {
 
       {/* Header */}
       <div className={cn(
-        'flex items-center justify-center gap-2 rounded-t-lg px-3 py-2 text-white',
+        'flex items-center justify-center gap-2 rounded-t-xl px-3 py-2 text-white',
         config.color
       )}>
         <Icon className="h-4 w-4" />
@@ -82,37 +82,33 @@ function ActionNode({ id, data, selected }: ActionNodeProps) {
       </div>
 
       {/* Content */}
-      <div className="p-3">
+      <div className="p-3 min-h-[48px] flex items-start">
         {actionType === 'send_message' && (
-          <div className="space-y-1">
-            {truncatedMessage ? (
-              <p className="text-sm text-muted-foreground leading-snug">
-                {truncatedMessage}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground italic">
-                No message configured
-              </p>
-            )}
-          </div>
+          truncatedMessage ? (
+            <p className="text-sm text-muted-foreground leading-snug">
+              {truncatedMessage}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground/60 italic">
+              No message configured
+            </p>
+          )
         )}
 
         {actionType === 'fallback_ai' && (
-          <div className="space-y-1">
-            {assistantId ? (
-              <p className="text-sm text-muted-foreground">
-                Connected to assistant
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground italic">
-                No assistant selected
-              </p>
-            )}
-          </div>
+          assistantId ? (
+            <p className="text-sm text-muted-foreground">
+              Connected to assistant
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground/60 italic">
+              No assistant selected
+            </p>
+          )
         )}
 
         {actionType === 'end' && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground/60 italic">
             Ends the chatbot conversation
           </p>
         )}

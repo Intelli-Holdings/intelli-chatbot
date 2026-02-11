@@ -20,7 +20,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertTriangle, Bot, Cpu, Loader2, MessageSquare, Pause, Play, Settings2 } from "lucide-react"
+import { AlertTriangle, Bot, Loader2, MessageSquare, Pause, Play, Settings2, Workflow } from "lucide-react"
 import { toast } from "sonner"
 
 const settingsNavigation = [
@@ -39,6 +39,10 @@ const settingsNavigation = [
   {
     title: "Escalation Events",
     href: "/dashboard/settings/escalation-events",
+  },
+  {
+    title: "Webhooks",
+    href: "/dashboard/settings/webhooks",
   },
 ]
 
@@ -296,25 +300,25 @@ export default function AutomationSettingsPage() {
                 <div className="space-y-6">
                   {/* Pause/Resume Toggle */}
                   {settings.automation_paused && (
-                    <Alert className="border-yellow-500/50 bg-yellow-500/10">
-                      <Pause className="size-4 text-yellow-600" />
-                      <AlertDescription className="flex items-center justify-between">
-                        <span className="text-yellow-600">Automation is currently paused</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleTogglePause}
-                          disabled={toggling}
-                        >
-                          {toggling ? (
-                            <Loader2 className="mr-2 size-4 animate-spin" />
-                          ) : (
-                            <Play className="mr-2 size-4" />
-                          )}
-                          Resume
-                        </Button>
-                      </AlertDescription>
-                    </Alert>
+                    <div className="flex items-center justify-between rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4">
+                      <div className="flex items-center gap-3">
+                        <Pause className="size-4 text-yellow-600" />
+                        <span className="text-sm text-yellow-600">Automation is currently paused</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleTogglePause}
+                        disabled={toggling}
+                      >
+                        {toggling ? (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : (
+                          <Play className="mr-2 size-4" />
+                        )}
+                        Resume
+                      </Button>
+                    </div>
                   )}
 
                   {/* Current Status */}
@@ -325,20 +329,22 @@ export default function AutomationSettingsPage() {
                         <span className="font-medium">Current Status</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {settings.automation_mode === "paused" ? (
-                          <Badge variant="secondary">Paused</Badge>
+                        {settings.automation_paused ? (
+                          <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30">Paused</Badge>
+                        ) : settings.automation_mode === "paused" ? (
+                          <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30">Paused</Badge>
                         ) : settings.automation_mode === "manual" ? (
                           <Badge variant="outline">Live Chat</Badge>
                         ) : settings.automation_mode === "ai_only" ? (
-                          <Badge className="bg-blue-500">AI Only</Badge>
+                          <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-950/30">AI Only</Badge>
                         ) : settings.automation_mode === "chatbot_only" ? (
-                          <Badge className="bg-green-500">Chatbot Only</Badge>
+                          <Badge variant="outline" className="border-teal-500 text-teal-600 bg-teal-50 dark:bg-teal-950/30">Chatbot Only</Badge>
                         ) : settings.automation_mode === "chatbot_with_fallback" ? (
-                          <Badge className="bg-purple-500">Chatbot + AI</Badge>
+                          <Badge variant="outline" className="border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950/30">Chatbot + AI</Badge>
                         ) : (
                           <Badge variant="outline">{settings.automation_mode}</Badge>
                         )}
-                        {!settings.automation_paused && settings.automation_mode !== "manual" && (
+                        {!settings.automation_paused && settings.automation_mode !== "manual" && settings.automation_mode !== "paused" && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -368,7 +374,7 @@ export default function AutomationSettingsPage() {
                             <Label htmlFor="ai_only" className="cursor-pointer font-medium">
                               AI Assistant Only
                             </Label>
-                            <Cpu className="size-4 text-blue-500" />
+                            <Bot className="size-4 text-blue-500" />
                           </div>
                           <p className="mt-1 text-sm text-muted-foreground">
                             {getModeDescription("ai_only")}
@@ -383,7 +389,7 @@ export default function AutomationSettingsPage() {
                             <Label htmlFor="chatbot_only" className="cursor-pointer font-medium">
                               Chatbot Flow Only
                             </Label>
-                            <Bot className="size-4 text-green-500" />
+                            <Workflow className="size-4 text-teal-500" />
                           </div>
                           <p className="mt-1 text-sm text-muted-foreground">
                             {getModeDescription("chatbot_only")}
@@ -398,6 +404,7 @@ export default function AutomationSettingsPage() {
                             <Label htmlFor="chatbot_with_fallback" className="cursor-pointer font-medium">
                               Chatbot + AI Fallback
                             </Label>
+                            <Workflow className="size-4 text-purple-500" />
                             <Bot className="size-4 text-purple-500" />
                             <Badge variant="secondary" className="text-xs">Recommended</Badge>
                           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X, Loader2, MessageCircleDashed, MessageSquareText, MailCheck, MessageCircle, MessageCircleMore} from 'lucide-react';
+import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X, Loader2, MessageCircleDashed, MessageSquareText, MailCheck, MessageCircle, MessageCircleMore, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +46,7 @@ export default function CampaignsPage() {
   const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
   const [selectedCampaigns, setSelectedCampaigns] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRetrying, setIsRetrying] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const pageSize = 100;
@@ -115,6 +116,30 @@ export default function CampaignsPage() {
       await refetchStatusCounts();
     } catch (error) {
       toast.error('Failed to resume campaign');
+    }
+  };
+
+  const handleRetryFailedMessages = async (campaign: Campaign) => {
+    if (!organizationId) return;
+    if (!campaign.whatsapp_campaign_id) {
+      toast.error('This campaign does not have a WhatsApp campaign ID');
+      return;
+    }
+
+    setIsRetrying(campaign.id);
+    try {
+      const result = await CampaignService.retryFailedMessages(
+        campaign.whatsapp_campaign_id,
+        organizationId
+      );
+      toast.success(`Retrying ${result.retry_count} failed messages`);
+      await refetch();
+      await refetchStatusCounts();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to retry messages';
+      toast.error(errorMessage);
+    } finally {
+      setIsRetrying(null);
     }
   };
 
@@ -515,6 +540,18 @@ export default function CampaignsPage() {
                               <DropdownMenuItem onClick={() => handleResumeCampaign(campaign.id)}>
                                 <Play className="h-4 w-4 mr-2" />
                                 Resume
+                              </DropdownMenuItem>
+                            )}
+
+                            {(campaign.status === 'failed' || campaign.status === 'completed') &&
+                             campaign.channel === 'whatsapp' &&
+                             campaign.whatsapp_campaign_id && (
+                              <DropdownMenuItem
+                                onClick={() => handleRetryFailedMessages(campaign)}
+                                disabled={isRetrying === campaign.id}
+                              >
+                                <RefreshCcw className={`h-4 w-4 mr-2 ${isRetrying === campaign.id ? 'animate-spin' : ''}`} />
+                                {isRetrying === campaign.id ? 'Retrying...' : 'Retry Failed Messages'}
                               </DropdownMenuItem>
                             )}
 

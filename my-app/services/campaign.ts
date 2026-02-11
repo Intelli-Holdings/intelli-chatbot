@@ -357,9 +357,10 @@ static async updateCampaign(
 
   /**
    * Add recipients to WhatsApp campaign
-   * Supports two formats:
+   * Supports three formats:
    * 1. Legacy format: Add recipients by tag_ids/contact_ids (no parameters)
    * 2. New format: Add recipients with template parameters per recipient
+   * 3. Tag format with global params: Add by tag_ids with template_params that apply to all
    */
   static async addWhatsAppCampaignRecipients(
     campaignId: string,
@@ -377,6 +378,12 @@ static async updateCampaign(
           button_params?: string[];
         };
       }>;
+      // Global template params (applied to all contacts from tags/contact_ids)
+      template_params?: {
+        header_params?: string[];
+        body_params?: string[];
+        button_params?: string[];
+      };
     }
   ): Promise<any> {
     try {
@@ -409,6 +416,11 @@ static async updateCampaign(
       // New format: recipients with template parameters
       if (recipients.recipients && recipients.recipients.length > 0) {
         payload.recipients = recipients.recipients;
+      }
+
+      // Global template params (for tag-based recipients)
+      if (recipients.template_params) {
+        payload.template_params = recipients.template_params;
       }
 
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/add_recipients`, {
@@ -698,6 +710,44 @@ static async updateCampaign(
       return await response.blob();
     } catch (error) {
       console.error('Error exporting params template:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retry failed messages in a WhatsApp campaign
+   * Resets failed message statuses to pending and re-triggers the campaign
+   */
+  static async retryFailedMessages(
+    whatsappCampaignId: string,
+    organizationId: string
+  ): Promise<{
+    message: string;
+    task_id: string;
+    retry_count: number;
+  }> {
+    try {
+      const response = await fetch(
+        `/api/campaigns/whatsapp/${whatsappCampaignId}/retry_messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            organization_id: organizationId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || errorData.detail || 'Failed to retry messages');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error retrying failed messages:', error);
       throw error;
     }
   }

@@ -2,9 +2,41 @@
 
 import React, { useState } from 'react';
 import PricingCard from './pricingCard';
+import PricingAddons from './pricing-addons';
+import PricingServices from './pricing-services';
+import PricingFaq from './pricing-faq';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface WhatsAppTier {
+  id: string;
+  name: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  contacts: string;
+  teamMembers: number;
+  whatsappNumbers: number;
+}
+
+const whatsAppTiers: WhatsAppTier[] = [
+  { id: 'basic', name: 'Basic', monthlyPrice: 35, annualPrice: 350, contacts: '2,000', teamMembers: 1, whatsappNumbers: 1 },
+  { id: 'grow', name: 'Grow', monthlyPrice: 55, annualPrice: 550, contacts: '10,000', teamMembers: 2, whatsappNumbers: 1 },
+  { id: 'pro', name: 'Pro', monthlyPrice: 75, annualPrice: 750, contacts: '100,000', teamMembers: 3, whatsappNumbers: 1 },
+  { id: 'elite', name: 'Elite', monthlyPrice: 86, annualPrice: 860, contacts: 'Unlimited', teamMembers: 10, whatsappNumbers: 2 },
+  { id: 'scale', name: 'Scale', monthlyPrice: 108, annualPrice: 1080, contacts: 'Unlimited', teamMembers: 15, whatsappNumbers: 3 },
+  { id: 'legacy', name: 'Legacy', monthlyPrice: 214, annualPrice: 2140, contacts: 'Unlimited', teamMembers: 20, whatsappNumbers: 5 },
+];
 
 const PricingComponent = () => {
   const [isAnnual, setIsAnnual] = useState<boolean>(true);
+  const [selectedTierId, setSelectedTierId] = useState<string>('basic');
+
+  const selectedTier = whatsAppTiers.find((t) => t.id === selectedTierId) ?? whatsAppTiers[0];
 
   const plans = [
     {
@@ -18,8 +50,8 @@ const PricingComponent = () => {
         'Live Chat',
         'Basic technical support (Email)',
         'Customizable chat widget appearance',
-        '1000 Message credits (1M Tokens) per month',  
-        '1 team member seat included (additional seats are $5 per month per member)',
+        { text: '1000 Message credits per month', info: '1,000 credits = 1M tokens. Credits are used for AI-powered responses.' },
+        { text: '1 team member seat', info: 'Additional seats available at $5/mo per member.' },
       ],
       description: 'Perfect for small businesses looking to automate customer support.',
       buttonText: 'Start Free Trial',
@@ -27,19 +59,18 @@ const PricingComponent = () => {
     },
     {
       name: 'WhatsApp AI Assistant',
-      monthlyPrice: 35,
-      annualPrice: 350,
-      originalMonthlyPrice: 45,
-      originalAnnualPrice: 420,
+      monthlyPrice: selectedTier.monthlyPrice,
+      annualPrice: selectedTier.annualPrice,
       features: [
-        'WhatsApp Business API integration',
-        'Live Chat',
-        'Basic technical support (Email)',
-        'Advanced analytics dashboard',
-        '1000 Message credits (1M Tokens) per month',         
-        '1 team member seat included (additional seats are $5 per month per member)',        
+        { text: `Up to ${selectedTier.contacts} contacts`, info: 'Total contacts you can store and message in your account.' },
+        { text: `${selectedTier.teamMembers} team member${selectedTier.teamMembers > 1 ? 's' : ''}`, info: 'Additional seats available at $5/mo per member.' },
+        { text: `${selectedTier.whatsappNumbers} WhatsApp Business API number${selectedTier.whatsappNumbers > 1 ? 's' : ''}`, info: 'Verified WhatsApp Business API integration.' },
+        'Live chat with team inbox',
+        <>WhatsApp Broadcast (<a href="https://business.whatsapp.com/products/platform-pricing?country=Rest%20of%20Africa&currency=Dollars%20(USD)&category=Marketing" target="_blank" rel="noopener noreferrer" className="text-[#007fff] underline hover:text-[#006ad9]">Meta charges</a>)</>,
+        { text: 'Campaign analytics & tags', info: 'Track engagement per campaign — read status, reach, and segment audiences using tags.' },
+        { text: '1,000 AI credits per month', info: '1,000 credits = 1M tokens. Credits are used for AI-powered responses.' },
       ],
-      description: 'Ideal for growing businesses needing multi-channel support.',
+      description: 'For growing businesses engaging customers on WhatsApp.',
       buttonText: 'Start Free Trial',
       link: '/auth/sign-up',
       isRecommended: true,
@@ -52,11 +83,11 @@ const PricingComponent = () => {
       features: [
         'Custom AI solution development',
         'Dedicated account manager',
-        'Premium support',
-        'Custom API integration',
+        { text: 'Premium support', info: 'Priority response times with a dedicated support channel.' },
+        { text: 'Custom API integration', info: 'Tailored integrations with your existing CRM, ERP, or internal tools.' },
         'Advanced security features',
-        'Custom AI training capabilities',
-        'Multichannel package',
+        { text: 'Custom AI training', info: 'Train AI models on your business data for more accurate responses.' },
+        { text: 'Multichannel package', info: 'WhatsApp, website widget, and more channels in one plan.' },
       ],
       description: 'Tailored solutions for large-scale organizations.',
       buttonText: 'Book a Discovery Call',
@@ -97,7 +128,7 @@ const PricingComponent = () => {
             >
               Annual
               {isAnnual && (
-                <span className="ml-4 text-xs font-medium text-blue-500">-2months</span>
+                <span className="ml-4 text-xs font-medium text-[#007fff]">-2months</span>
               )}
             </button>
           </div>
@@ -108,6 +139,8 @@ const PricingComponent = () => {
             const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
             const originalPrice = isAnnual ? plan.originalAnnualPrice : plan.originalMonthlyPrice;
             const period = isAnnual ? '/year' : '/month';
+
+            const isWhatsApp = plan.name === 'WhatsApp AI Assistant';
 
             return (
               <PricingCard
@@ -120,6 +153,22 @@ const PricingComponent = () => {
                 buttonText={plan.buttonText}
                 isRecommended={plan.isRecommended}
                 link={plan.link}
+                tierSelector={
+                  isWhatsApp ? (
+                    <Select value={selectedTierId} onValueChange={setSelectedTierId}>
+                      <SelectTrigger className="w-full bg-white border-gray-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {whatsAppTiers.map((tier) => (
+                          <SelectItem key={tier.id} value={tier.id}>
+                            {tier.name} — Up to {tier.contacts} contacts
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : undefined
+                }
               />
             );
           })}
@@ -151,6 +200,10 @@ const PricingComponent = () => {
           </div>
         </div>
       </section>
+
+      <PricingAddons />
+      <PricingServices />
+      <PricingFaq />
     </div>
   );
 };

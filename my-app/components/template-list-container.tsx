@@ -1,15 +1,47 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { ChevronDown, Check } from "lucide-react"
+import { ChevronDown, Check, Image as ImageIcon, Video, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+interface TemplateComponent {
+  type: string
+  format?: string
+  text?: string
+  [key: string]: any
+}
 
 interface Template {
   id: string
   name: string
   category: string
   status?: string
+  components?: TemplateComponent[]
   [key: string]: any
+}
+
+// Helper to detect media type in template header
+function getTemplateMediaType(template: Template): 'image' | 'video' | 'document' | null {
+  const headerComponent = template.components?.find(
+    (c) => c.type === 'HEADER' && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(c.format || '')
+  )
+  if (!headerComponent) return null
+  return headerComponent.format?.toLowerCase() as 'image' | 'video' | 'document'
+}
+
+// Media indicator component
+function MediaIndicator({ mediaType }: { mediaType: 'image' | 'video' | 'document' }) {
+  const config = {
+    image: { icon: ImageIcon, label: 'Image', color: 'text-blue-500' },
+    video: { icon: Video, label: 'Video', color: 'text-purple-500' },
+    document: { icon: FileText, label: 'Document', color: 'text-orange-500' },
+  }
+  const { icon: Icon, label, color } = config[mediaType]
+  return (
+    <span className={`inline-flex items-center gap-1 ${color}`} title={`Contains ${label}`}>
+      <Icon className="h-3.5 w-3.5" />
+    </span>
+  )
 }
 
 interface TemplateListContainerProps {
@@ -152,6 +184,9 @@ export function TemplateListContainer({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-foreground text-sm truncate">{template.name}</p>
+                    {getTemplateMediaType(template) && (
+                      <MediaIndicator mediaType={getTemplateMediaType(template)!} />
+                    )}
                     {selectedTemplate === template.name && <Check className="h-4 w-4 text-primary flex-shrink-0" />}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{template.category}</p>
