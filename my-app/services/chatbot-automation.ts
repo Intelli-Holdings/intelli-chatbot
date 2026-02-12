@@ -687,13 +687,12 @@ export class ChatbotAutomationService {
     for (const trigger of chatbot.triggers) {
       if (trigger.type === 'keyword' && trigger.keywords) {
         const matches = trigger.keywords.some((kw) => {
-          const normalizedTrigger = trigger.caseSensitive
-            ? kw.trim()
-            : kw.toLowerCase().trim();
-          const inputToMatch = trigger.caseSensitive
-            ? keyword.trim()
-            : normalizedKeyword;
-          return normalizedTrigger === inputToMatch;
+          if (trigger.caseSensitive) {
+            // Exact match: strict equality (case-sensitive)
+            return keyword.trim() === kw.trim();
+          }
+          // Contains: substring match (case-insensitive)
+          return normalizedKeyword.includes(kw.toLowerCase().trim());
         });
 
         if (matches) {
