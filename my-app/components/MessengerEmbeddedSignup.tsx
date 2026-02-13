@@ -90,6 +90,7 @@ const MessengerEmbeddedSignup = () => {
       // Exchange the code for token - pass the redirect_uri to ensure it matches
       exchangeCodeForToken(messengerCode, redirectUri)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, router])
 
   // Fetch assistants

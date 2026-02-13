@@ -248,6 +248,7 @@ export function OnboardingChecklist() {
         clearTimeout(vanishTimer);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isAllComplete, state.dismiss]);
 
   // Scroll the panel into view when it opens

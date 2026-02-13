@@ -54,6 +54,7 @@ export function FlowAnalyticsModal({
     if (open && flowId) {
       fetchAnalytics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, flowId, periodDays]);
 
   const fetchAnalytics = async () => {

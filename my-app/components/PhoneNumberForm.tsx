@@ -186,7 +186,7 @@ export const PhoneNumberForm: React.FC = () => {
         setIsRefreshing(false)
       }
     },
-    [applyNumbers, getToken, organizationId, transformApiResponse]
+    [applyNumbers, getToken, organizationId]
   )
 
   useEffect(() => {
