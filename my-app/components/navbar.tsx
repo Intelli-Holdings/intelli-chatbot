@@ -155,7 +155,7 @@ const handleGetStartedAction = () => {
   )
 
 	return (
-		<nav className="fixed top-0 left-0 right-0 z-10 bg-white/10 backdrop-blur-md">
+		<nav className="fixed top-0 left-0 right-0 z-50 bg-white/10 backdrop-blur-md">
 			<div className="container mx-auto flex items-center justify-between p-4">
 				<div className="flex items-center">
 					<a className="flex items-center" href="/">
