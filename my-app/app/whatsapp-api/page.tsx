@@ -1,16 +1,8 @@
 "use client";
 import { Navbar } from "@/components/navbar";
-import {
-  Button,} from "@/components/ui/button";
-import {
-  Card,
-    CardTitle,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@/components/ui/card"; 
-import { Badge } from "@/components/ui/badge";
-import { Check, X, AlertTriangle } from "lucide-react";
+import { FooterComponent } from "@/components/home/Footer";
+import Banner from "@/components/signup-banner";
+import { Check, X, AlertTriangle, Smartphone, Server } from "lucide-react";
 import Link from "next/link";
 import {
   Accordion,
@@ -20,374 +12,423 @@ import {
 } from "@/components/ui/accordion";
 import Image from "next/image";
 
+const comparisonRows = [
+  { feature: "Best for", app: "Small businesses", api: "Medium to large businesses" },
+  { feature: "Number of Users", app: "1 phone (single device)", api: "Unlimited" },
+  { feature: "Broadcast Limit", app: "256 contacts per broadcast", api: "Unlimited (tier-based)" },
+  { feature: "Automation Capabilities", app: "Limited", api: "Advanced AI and automation" },
+  {
+    feature: "Third-party Integrations",
+    app: { value: false },
+    api: { value: true },
+  },
+  {
+    feature: "Voice Call Support",
+    app: { value: true },
+    api: { value: true, note: "Coming soon on Intelli" },
+  },
+  {
+    feature: "Blue Tick Verification",
+    app: { value: true, note: "Paid, easy to get" },
+    api: { value: true, note: "Free, requires Meta approval" },
+  },
+  {
+    feature: "Reports/Analytics",
+    app: { value: false },
+    api: { value: true },
+  },
+  { feature: "Lead Management", app: "Basic tags", api: "Manage entire customer lifecycle" },
+];
+
+const faqItems = [
+  {
+    question: "What is the WhatsApp Business API?",
+    answer:
+      "It's a tool made for medium to large businesses to talk to customers on WhatsApp at scale. Unlike the WhatsApp Business App, it has no chat screen — you connect it to a platform like Intelli to manage everything.",
+  },
+  {
+    question: "Do I need a special setup to use it?",
+    answer:
+      "Yes. You need a Meta Business account, a phone number not linked to WhatsApp, and a Meta Tech provider like Intelli to connect and manage it. We'll guide you through the setup.",
+  },
+  {
+    question: "Is WhatsApp API free?",
+    answer:
+      "No, but there are no hidden fees with Intelli. You only pay Meta's messaging charges and Intelli's monthly plan.",
+  },
+  {
+    question: "How many team members can use it?",
+    answer:
+      "With Intelli, you can start small and add more users anytime. No limits, just pay for what you need.",
+  },
+  {
+    question: "Can I automate responses with Intelli?",
+    answer:
+      "Yes. Intelli lets you build smart AI assistants, handle FAQs, collect info, and even assist live agents.",
+  },
+  {
+    question: "Can Intelli connect with my CRM or tools like Google Sheets?",
+    answer:
+      "Absolutely. Intelli integrates with CRMs, Google Sheets, and more — all in a few clicks.",
+  },
+  {
+    question: "Can I move from WhatsApp Business App to the API?",
+    answer:
+      "Yes, but you'll need a new phone number for now. Migration from an existing number will be possible soon.",
+  },
+  {
+    question: "Will my contacts and messages move over too?",
+    answer:
+      "Not yet, but don't worry — you can import contacts into Intelli, and old chats will still be saved on your original device.",
+  },
+];
+
 export default function WhatsAppAPIPage() {
   return (
-   <div className="min-h-screen py-12">
-    <Navbar />
- 
+    <div className="relative">
+      <Navbar />
 
-    <div className="container py-12 mx-auto px-4">
-        {/* Meta Tech Provider Badge */}
-       <div className="flex justify-center mb-8">
-         <Image 
-           src="/meta_techprovider_badge.webp" 
-           alt="Meta Business Tech Provider Badge" 
-           width={200}
-           height={50}
-           className="h-12 w-auto"
-         />
-       </div>
+      <main className="pt-20">
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4 max-w-5xl">
 
-      {/* Hero Section */}
-      <section className="text-center mb-16">
-        <h1 className="text-4xl sm:text-6xl md:text-8xl font-extrabold mb-6">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-blue-500">
-            WhatsApp Business
-          </span>
-          <br />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-green-500">
-            API
-          </span>
-        </h1>
-        <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mx-auto mb-8 max-w-4xl">
-          Which WhatsApp solution is best for your business? Let&apos;s help you decide.
-        </p>
-        <div className="flex gap-4 justify-center">
-          <Link href="https://intelli-app.com/register" target="_blank">
-            <Button 
-              size="lg" 
-              className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-xl shadow-lg 
-              hover:bg-gradient-to-r hover:from-green-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
-              ring-1 ring-green-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out"
-            >
-              Get WhatsApp API
-            </Button>
-          </Link>
-        </div>
-      </section>
+            {/* ═══════════════════════════════════════════════════════ */}
+            {/* HERO                                                    */}
+            {/* ═══════════════════════════════════════════════════════ */}
+            <div className="mb-24 text-center">
+              {/* Meta badge */}
+              <div className="flex justify-center mb-8">
+                <Image
+                  src="/meta_techprovider_badge.webp"
+                  alt="Meta Business Tech Provider Badge"
+                  width={200}
+                  height={50}
+                  className="h-12 w-auto"
+                />
+              </div>
 
-      {/* Overview Section */}
-      <section className="mb-16">
-        <div className="flex justify-center mb-4">
-          <Badge>Overview</Badge>
-        </div>
-        <h2 className="text-center text-5xl font-bold mb-10 text-gray-800">
-          Understanding Your Options
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle className="text-2xl text-green-600">WhatsApp Business App</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 mb-4">
-                A free, simple mobile app best suited for individuals or small businesses handling low message volumes. 
-                You can reply to customers, set quick replies, and manage chats with a handful of users.
+              {/* Tag */}
+              <div className="flex items-center justify-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  WhatsApp API
+                </span>
+              </div>
+
+              {/* Headline */}
+              <h1 className="text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] max-w-[700px] mx-auto mb-6">
+                WhatsApp Business API
+              </h1>
+
+              <p className="text-[15px] text-[#1a1a1a]/60 leading-[1.7] max-w-[520px] mx-auto mb-10">
+                Which WhatsApp solution is best for your business? Let&apos;s
+                help you decide.
               </p>
-              <div className="bg-green-50 p-3 rounded-lg">
-                <p className="text-sm font-semibold text-green-800">Perfect for: Small businesses with basic needs</p>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle className="text-2xl text-blue-600">WhatsApp Business API</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 mb-4">
-                A powerful, scalable solution built for growing businesses that need automation, 
-                team access, and integration with other tools. Perfect for handling large volumes of customer conversations.
-              </p>
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm font-semibold text-blue-800">Perfect for: Growing businesses needing scale</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-            <div>
-              <p className="font-semibold text-yellow-800">Important Note:</p>
-              <p className="text-yellow-700">
-                The WhatsApp API doesn&apos;t come with a built-in chat interface. That&apos;s why you need to connect it
-                to a WhatsApp Tech Provider like Intelli to fully manage your messaging, automation, and analytics. We provide a dashboard to manage messages, campaigns, and performance metrics.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Comparison Table */}
-      <section className="mb-16">
-        <div className="flex justify-center mb-4">
-          <Badge>Comparison</Badge>
-        </div>
-        <h2 className="text-center text-5xl font-bold mb-10 text-gray-800">
-          Quick Comparison
-        </h2>
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-green-50 to-blue-50">
-                <tr>
-                  <th className="text-left p-4 font-bold text-gray-800">Feature</th>
-                  <th className="text-center p-4 font-bold text-green-600">WhatsApp Business App</th>
-                  <th className="text-center p-4 font-bold text-blue-600">WhatsApp Business API</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="p-4 font-semibold">Best for</td>
-                  <td className="p-4 text-center">Small businesses</td>
-                  <td className="p-4 text-center">Medium to large businesses</td>
-                </tr>
-                <tr className="border-b bg-gray-50">
-                  <td className="p-4 font-semibold">Number of Users</td>
-                  <td className="p-4 text-center">1 phone (single device)</td>
-                  <td className="p-4 text-center">Unlimited</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-4 font-semibold">Broadcast Limit</td>
-                  <td className="p-4 text-center">256 contacts per broadcast</td>
-                  <td className="p-4 text-center">Unlimited (tier-based)</td>
-                </tr>
-                <tr className="border-b bg-gray-50">
-                  <td className="p-4 font-semibold">Automation Capabilities</td>
-                  <td className="p-4 text-center">Limited</td>
-                  <td className="p-4 text-center">Advanced AI and automation</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-4 font-semibold">Third-party Integrations</td>
-                  <td className="p-4 text-center"><X className="w-5 h-5 text-red-500 mx-auto" /></td>
-                  <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                </tr>
-                <tr className="border-b bg-gray-50">
-                  <td className="p-4 font-semibold">Voice Call Support</td>
-                  <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                  <td className="p-4 text-center">
-                    <div className="text-center">
-                      <Check className="w-5 h-5 text-green-500 mx-auto" />
-                      <p className="text-xs text-gray-600 mt-1">Coming soon on Intelli</p>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-4 font-semibold">Blue Tick Verification</td>
-                  <td className="p-4 text-center">
-                    <div className="text-center">
-                      <Check className="w-5 h-5 text-green-500 mx-auto" />
-                      <p className="text-xs text-gray-600 mt-1">Paid, easy to get</p>
-                    </div>
-                  </td>
-                  <td className="p-4 text-center">
-                    <div className="text-center">
-                      <Check className="w-5 h-5 text-green-500 mx-auto" />
-                      <p className="text-xs text-gray-600 mt-1">Free, requires Meta approval</p>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="border-b bg-gray-50">
-                  <td className="p-4 font-semibold">Reports/Analytics</td>
-                  <td className="p-4 text-center"><X className="w-5 h-5 text-red-500 mx-auto" /></td>
-                  <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                </tr>
-                <tr>
-                  <td className="p-4 font-semibold">Lead Management</td>
-                  <td className="p-4 text-center">Basic tags</td>
-                  <td className="p-4 text-center">Manage entire customer lifecycle</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="mb-16">
-        <div className="flex justify-center mb-4">
-          <Badge>Pricing</Badge>
-        </div>
-        <h2 className="text-center text-5xl font-bold mb-10 text-gray-800">
-          How much does WhatsApp Business API cost?
-        </h2>
-        <Card className="p-8 bg-gradient-to-r from-green-50 to-blue-50">
-          <CardContent className="space-y-6">
-            <p className="text-xl text-gray-700 text-center leading-relaxed">
-              While all incoming messages and messages sent to customers within a 24-hour window are free, 
-              there are two key costs to consider for outgoing messages.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-lg">
-                <h3 className="text-2xl font-bold text-green-600 mb-4">Meta Fees</h3>
-                <p className="text-gray-700 mb-3">
-                  Based on the recipient&apos;s country, message type, and monthly volume.
-                </p>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>• Marketing messages</p>
-                  <p>• Utility messages</p>
-                  <p>• Authentication messages</p>
-                </div>
-              </div>
-              
-              <div className="bg-white p-6 rounded-lg">
-                <h3 className="text-2xl font-bold text-blue-600 mb-4">Tech Provider Fees</h3>
-                <p className="text-gray-700 mb-3">
-                  Setup fees depending on message tier volume and message credits.
-                </p>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>• One-time setup fees</p>
-                  <p>• Monthly message credit packages</p>
-                  <p>• Platform management tools</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <Link href="/whatsapp-broadcast" className="inline-block">
-                <Button 
-                  size="lg"
-                  className="text-lg font-bold py-4 px-8 bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-xl shadow-lg 
-                  hover:bg-gradient-to-r hover:from-green-500 hover:to-blue-700 transition-all duration-500"
+              {/* CTA */}
+              <div className="flex gap-4 justify-center">
+                <a
+                  href="https://intelli-app.com/register"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-6 py-3 text-sm font-semibold text-white bg-[#007fff] border border-[#007fff] rounded-md hover:bg-[#007fff]/90 transition-colors"
                 >
-                  Calculate Your Costs
-                </Button>
-              </Link>
+                  Get WhatsApp API
+                </a>
+                <Link
+                  href="/whatsapp-broadcast"
+                  className="inline-flex items-center px-6 py-3 text-sm font-semibold text-[#1a1a1a]/60 hover:text-[#1a1a1a] transition-colors"
+                >
+                  See broadcast pricing →
+                </Link>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </section>
 
-      {/* FAQ Section */}
-      <section className="mb-16">
-        <div className="flex justify-center mb-4">
-          <Badge>FAQ</Badge>
-        </div>
-        <h2 className="text-center text-5xl font-bold mb-10 text-gray-800">
-          WhatsApp Business API — Intelli FAQ
-        </h2>
-        <Card className=" mx-auto">
-          <CardContent className="p-8">
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1">
-                <AccordionTrigger className="text-left">
-                  1. What is the WhatsApp Business API?
-                </AccordionTrigger>
-                <AccordionContent>
-                  It&apos;s a tool made for medium to large businesses to talk to customers on WhatsApp at scale. 
-                  Unlike the WhatsApp Business App, it has no chat screen — you connect it to a platform like Intelli to manage everything.
-                </AccordionContent>
-              </AccordionItem>
+            {/* ═══════════════════════════════════════════════════════ */}
+            {/* OVERVIEW                                                */}
+            {/* ═══════════════════════════════════════════════════════ */}
+            <div className="mb-24">
+              <div className="flex items-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  Overview
+                </span>
+              </div>
 
-              <AccordionItem value="item-2">
-                <AccordionTrigger className="text-left">
-                  2. Do I need a special setup to use it?
-                </AccordionTrigger>
-                <AccordionContent>
-                  <p className="mb-3">Yes. You need:</p>
-                  <ul className="space-y-1 ml-4">
-                    <li>• A Meta Business account</li>
-                    <li>• A phone number not linked to WhatsApp</li>
-                    <li>• A Meta Tech provider like Intelli to connect and manage it</li>
+              <h2 className="text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] max-w-[700px] mb-10">
+                Understanding your options
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border-t border-[#1a1a1a]/[0.08]">
+                <div className="py-8 sm:border-r border-b sm:border-b-0 border-[#1a1a1a]/[0.08] sm:pr-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Smartphone className="w-5 h-5 text-green-600" />
+                    <h3 className="text-base font-bold text-[#1a1a1a]">
+                      WhatsApp Business App
+                    </h3>
+                  </div>
+                  <p className="text-[13px] text-[#1a1a1a]/55 leading-[1.65] mb-3">
+                    A free, simple mobile app best suited for individuals or
+                    small businesses handling low message volumes. You can reply
+                    to customers, set quick replies, and manage chats with a
+                    handful of users.
+                  </p>
+                  <p className="text-xs font-semibold text-green-700">
+                    Perfect for: Small businesses with basic needs
+                  </p>
+                </div>
+                <div className="py-8 sm:pl-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Server className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-base font-bold text-[#1a1a1a]">
+                      WhatsApp Business API
+                    </h3>
+                  </div>
+                  <p className="text-[13px] text-[#1a1a1a]/55 leading-[1.65] mb-3">
+                    A powerful, scalable solution built for growing businesses
+                    that need automation, team access, and integration with other
+                    tools. Perfect for handling large volumes of customer
+                    conversations.
+                  </p>
+                  <p className="text-xs font-semibold text-blue-700">
+                    Perfect for: Growing businesses needing scale
+                  </p>
+                </div>
+              </div>
+
+              {/* Note */}
+              <div className="mt-8 flex items-start gap-3 border border-[#1a1a1a]/[0.08] rounded-md p-5">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-[#1a1a1a] mb-1">
+                    Important
+                  </p>
+                  <p className="text-[13px] text-[#1a1a1a]/55 leading-[1.65]">
+                    The WhatsApp API doesn&apos;t come with a built-in chat
+                    interface. That&apos;s why you need to connect it to a
+                    WhatsApp Tech Provider like Intelli to fully manage your
+                    messaging, automation, and analytics. We provide a dashboard
+                    to manage messages, campaigns, and performance metrics.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════ */}
+            {/* COMPARISON TABLE                                        */}
+            {/* ═══════════════════════════════════════════════════════ */}
+            <div className="mb-24">
+              <div className="flex items-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-violet-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  Comparison
+                </span>
+              </div>
+
+              <h2 className="text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] max-w-[700px] mb-10">
+                Quick comparison
+              </h2>
+
+              <div className="overflow-x-auto border border-[#1a1a1a]/[0.08] rounded-md">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#1a1a1a]/[0.08]">
+                      <th className="text-left p-4 font-bold text-[#1a1a1a]">
+                        Feature
+                      </th>
+                      <th className="text-center p-4 font-bold text-[#1a1a1a]">
+                        Business App
+                      </th>
+                      <th className="text-center p-4 font-bold text-[#1a1a1a]">
+                        Business API
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparisonRows.map((row, i) => {
+                      const renderCell = (val: unknown) => {
+                        if (typeof val === "string") return val;
+                        if (
+                          val &&
+                          typeof val === "object" &&
+                          "value" in val
+                        ) {
+                          const obj = val as { value: boolean; note?: string };
+                          return (
+                            <div className="text-center">
+                              {obj.value ? (
+                                <Check className="w-4 h-4 text-green-600 mx-auto" />
+                              ) : (
+                                <X className="w-4 h-4 text-[#1a1a1a]/30 mx-auto" />
+                              )}
+                              {obj.note && (
+                                <p className="text-[11px] text-[#1a1a1a]/40 mt-1">
+                                  {obj.note}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      };
+
+                      return (
+                        <tr
+                          key={row.feature}
+                          className={
+                            i < comparisonRows.length - 1
+                              ? "border-b border-[#1a1a1a]/[0.08]"
+                              : ""
+                          }
+                        >
+                          <td className="p-4 font-medium text-[#1a1a1a]">
+                            {row.feature}
+                          </td>
+                          <td className="p-4 text-center text-[#1a1a1a]/55">
+                            {renderCell(row.app)}
+                          </td>
+                          <td className="p-4 text-center text-[#1a1a1a]/55">
+                            {renderCell(row.api)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════ */}
+            {/* PRICING                                                 */}
+            {/* ═══════════════════════════════════════════════════════ */}
+            <div className="mb-24">
+              <div className="flex items-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  Pricing
+                </span>
+              </div>
+
+              <h2 className="text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] max-w-[700px] mb-10">
+                How much does WhatsApp Business API cost?
+              </h2>
+
+              <div className="flex gap-6 mb-8 max-w-[520px]">
+                <span className="text-sm text-[#1a1a1a]/30 font-medium tabular-nums shrink-0 pt-0.5">
+                  01
+                </span>
+                <p className="text-[15px] text-[#1a1a1a]/70 leading-[1.7]">
+                  While all incoming messages and messages sent to customers
+                  within a 24-hour window are free, there are two key costs to
+                  consider for outgoing messages.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border-t border-[#1a1a1a]/[0.08]">
+                <div className="py-8 sm:border-r border-b sm:border-b-0 border-[#1a1a1a]/[0.08] sm:pr-8">
+                  <h3 className="text-base font-bold text-[#1a1a1a] mb-2">
+                    <span className="text-[#1a1a1a]/30 mr-1">1.</span> Meta Fees
+                  </h3>
+                  <p className="text-[13px] text-[#1a1a1a]/55 leading-[1.65] mb-3">
+                    Based on the recipient&apos;s country, message type, and
+                    monthly volume.
+                  </p>
+                  <ul className="text-[13px] text-[#1a1a1a]/55 leading-[1.65] space-y-1">
+                    <li>Marketing messages</li>
+                    <li>Utility messages</li>
+                    <li>Authentication messages</li>
                   </ul>
-                  <p className="mt-3">We&apos;ll guide you through the setup.</p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-3">
-                <AccordionTrigger className="text-left">
-                  3. Is WhatsApp API free?
-                </AccordionTrigger>
-                <AccordionContent>
-                  <p className="mb-3">No, but there are no hidden fees with Intelli. You only pay:</p>
-                  <ul className="space-y-1 ml-4">
-                    <li>• Meta&apos;s messaging charges</li>
-                    <li>• Intelli&apos;s monthly plan</li>
+                </div>
+                <div className="py-8 sm:pl-8">
+                  <h3 className="text-base font-bold text-[#1a1a1a] mb-2">
+                    <span className="text-[#1a1a1a]/30 mr-1">2.</span> Tech
+                    Provider Fees
+                  </h3>
+                  <p className="text-[13px] text-[#1a1a1a]/55 leading-[1.65] mb-3">
+                    Setup fees depending on message tier volume and message
+                    credits.
+                  </p>
+                  <ul className="text-[13px] text-[#1a1a1a]/55 leading-[1.65] space-y-1">
+                    <li>One-time setup fees</li>
+                    <li>Monthly message credit packages</li>
+                    <li>Platform management tools</li>
                   </ul>
-                </AccordionContent>
-              </AccordionItem>
+                </div>
+              </div>
 
-              <AccordionItem value="item-4">
-                <AccordionTrigger className="text-left">
-                  4. How many team members can use it?
-                </AccordionTrigger>
-                <AccordionContent>
-                  With Intelli, you can start small and add more users anytime. No limits, just pay for what you need.
-                </AccordionContent>
-              </AccordionItem>
+              <div className="flex gap-4 mt-10">
+                <Link
+                  href="/whatsapp-broadcast"
+                  className="inline-block px-6 py-3 text-sm font-semibold text-[#007fff] border border-[#007fff] rounded-md hover:bg-[#007fff] hover:text-white transition-colors"
+                >
+                  Calculate your costs
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center px-6 py-3 text-sm font-semibold text-[#1a1a1a]/60 hover:text-[#1a1a1a] transition-colors"
+                >
+                  See platform pricing →
+                </Link>
+              </div>
+            </div>
 
-              <AccordionItem value="item-5">
-                <AccordionTrigger className="text-left">
-                  5. Can I automate responses with Intelli?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Yes! Intelli lets you build smart AI chatbots, handle FAQs, collect info, and even assist live agents.
-                </AccordionContent>
-              </AccordionItem>
+            {/* ═══════════════════════════════════════════════════════ */}
+            {/* FAQ                                                     */}
+            {/* ═══════════════════════════════════════════════════════ */}
+            <div className="mb-24">
+              <div className="flex items-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-orange-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  FAQ
+                </span>
+              </div>
 
-              <AccordionItem value="item-6">
-                <AccordionTrigger className="text-left">
-                  6. Can Intelli connect with my CRM or tools like Google Sheets?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Absolutely. Intelli integrates with CRMs, Google Sheets, and more — all in a few clicks.
-                </AccordionContent>
-              </AccordionItem>
+              <h2 className="text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] max-w-[700px] mb-14">
+                Frequently asked questions
+              </h2>
 
-              <AccordionItem value="item-7">
-                <AccordionTrigger className="text-left">
-                  7. Can I move from WhatsApp Business App to the API?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Yes, but you&apos;ll need a new phone number for now. Migration from an existing number will be possible soon.
-                </AccordionContent>
-              </AccordionItem>
+              <Accordion type="single" collapsible className="w-full">
+                {faqItems.map((item, i) => (
+                  <AccordionItem key={i} value={`item-${i}`}>
+                    <AccordionTrigger className="text-left text-[15px] font-semibold text-[#1a1a1a] py-5">
+                      <span className="text-[#1a1a1a]/30 mr-2 tabular-nums">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      {item.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-[13px] text-[#1a1a1a]/55 leading-[1.65] pb-5">
+                      {item.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
 
-              <AccordionItem value="item-8">
-                <AccordionTrigger className="text-left">
-                  8. Will my contacts and messages move over too?
-                </AccordionTrigger>
-                <AccordionContent>
-                  Not yet, but don&apos;t worry — you can import contacts into Intelli, and old chats will still be saved on your original device.
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* CTA Section */}
-      <section className="text-center">
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-12">
-          <h2 className="text-4xl font-bold mb-6 text-gray-800">
-            Ready to Scale Your WhatsApp Communication?
-          </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Join businesses already using WhatsApp Business API with Intelli&apos;s multi-channel platform.
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Link href="https://intelli-app.com/register" target="_blank">
-              <Button 
-                size="lg"
-                className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-xl shadow-lg 
-                hover:bg-gradient-to-r hover:from-green-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
-                ring-1 ring-green-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out"
-              >
-                Get Started with API
-              </Button>
-            </Link>
-            <Link href="https://calendly.com/intelli-demo/demo" target="_blank">
-              <Button size="lg" variant="outline" className="text-base sm:text-lg font-bold py-4 sm:py-6 px-6 sm:px-8">
-                Book a Demo
-              </Button>
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* CTA                                                     */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        <section className="container mx-auto px-4 py-16 max-w-5xl">
+          <Banner
+            title="Ready to Scale Your WhatsApp Communication?"
+            subtitle="Join businesses already using WhatsApp Business API with Intelli's multi-channel platform."
+            primaryButton={{
+              text: "Get Started with API",
+              href: "https://intelli-app.com/register",
+              external: true,
+            }}
+            secondaryButton={{
+              text: "Book a Demo",
+              href: "https://cal.com/intelli-demo/",
+              external: true,
+            }}
+          />
+        </section>
+
+        <FooterComponent />
+      </main>
     </div>
-   </div>    
   );
 }

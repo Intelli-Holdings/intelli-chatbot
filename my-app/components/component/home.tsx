@@ -2,7 +2,6 @@ import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-import { Badge } from "@/components/ui/badge";
 import Testimonials from "@/components/testimonial";
 
 // Section and component imports
@@ -15,6 +14,17 @@ import ValueProposition from "@/components/ValueProposition";
 import PlatformCards from "@/components/platform-cards";
 import UsecaseComponent from "@/components/usecaseComponent";
 import Banner from "../signup-banner";
+
+// Grid & animation enhancements
+import { GridOverlay } from "@/components/layout/GridOverlay";
+
+import { FadeInSection } from "@/components/layout/FadeInSection";
+
+// New complementary sections
+import { LogoCloud } from "@/components/sections/LogoCloud";
+import { AnalyticsPreview } from "@/components/sections/AnalyticsPreview";
+import { HomeFAQ } from "@/components/sections/HomeFAQ";
+import { CapabilitiesShowcase } from "@/components/sections/CapabilitiesShowcase";
 
 declare global {
   interface Window {
@@ -42,7 +52,12 @@ export function Home() {
   return (
     <div className="relative">
       <Navbar />
-      <main className="pt-20">
+
+      {/* Faint dotted vertical gridlines at container edges */}
+      <GridOverlay />
+
+      <main className="relative z-[2] pt-20">
+        {/* ── Hero ── */}
         <section className="container mt-20">
           <div className="max-w-4xl mx-auto">
             <h1 className="mt-4 text-center text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-tight">
@@ -93,77 +108,134 @@ export function Home() {
           <PreviewLanding />
         </section>
 
-        <section className="container mt-20">
-          <HowItWorksSection />
-        </section>
 
-        <section className="container mt-20">
-          <ValueProposition />
-        </section>
+        {/* ── Logo cloud ── */}
+        <FadeInSection>
+          <LogoCloud />
+        </FadeInSection>
 
-        <section className="">
-          <div className="flex justify-center mb-4">
-            <Badge>Platforms</Badge>
-          </div>
-          <div className="container mx-auto sm:px-6 lg:px-8">
-            <h2 className="text-center text-5xl font-bold mb-10">
-              Intelli works on these platforms
-            </h2>
-            <PlatformCards />
 
-            <div className="flex justify-center mt-10 mb-10 space-x-4">
-              <a href="/auth/sign-up">
-                <Button
-                  className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg 
-                hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right 
-                ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation"
-                >
-                  Explore Platforms
-                </Button>
-              </a>
+        {/* ── How it works ── */}
+        <FadeInSection>
+          <section className="container mt-20">
+            <HowItWorksSection />
+          </section>
+        </FadeInSection>
+
+
+        {/* ── Capabilities showcase ── */}
+        <FadeInSection>
+          <CapabilitiesShowcase />
+        </FadeInSection>
+
+
+        {/* ── Value proposition ── */}
+        <FadeInSection delay={100}>
+          <section className="container mt-20">
+            <ValueProposition />
+          </section>
+        </FadeInSection>
+
+
+        {/* ── Platforms ── */}
+        <FadeInSection>
+          <section>
+            <div className="container">
+              <div className="flex items-center justify-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  Platforms
+                </span>
+              </div>
+              <h2 className="text-center text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] mb-10">
+                Intelli works on these platforms
+              </h2>
+              <PlatformCards />
+
+              <div className="flex justify-center mt-10 mb-10 space-x-4">
+                <a href="/auth/sign-up">
+                  <Button
+                    className="text-base sm:text-lg md:text-xl font-bold py-4 sm:py-6 md:py-8 px-6 sm:px-8 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-xl shadow-lg
+                  hover:bg-gradient-to-r hover:from-teal-500 hover:to-blue-700 bg-left bg-[length:200%_200%] hover:bg-right
+                  ring-1 ring-teal-400 ring-offset-2 ring-opacity-60 transition-all duration-500 ease-in-out pulse-animation"
+                  >
+                    Explore Platforms
+                  </Button>
+                </a>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </FadeInSection>
 
-        <section className="">
-          <div className="flex justify-center mb-4">
-            <Badge>Benefits</Badge>
-          </div>
-          <div className="container mx-auto sm:px-6 lg:px-8 ">
-            <h2 className="text-center text-5xl font-bold mb-10">
-              Let&lsquo;s talk about what you gain
-            </h2>
-            <div className="mt-10">
-              <BentoSection />
+
+        {/* ── Benefits ── */}
+        <FadeInSection>
+          <section>
+            <div className="container">
+              <div className="flex items-center justify-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  Benefits
+                </span>
+              </div>
+              <h2 className="text-center text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] mb-10">
+                Let&lsquo;s talk about what you gain
+              </h2>
+              <div className="mt-10">
+                <BentoSection />
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </FadeInSection>
 
-        <section className="mt-10">
-          <div className="flex justify-center mb-4">
-            <Badge>Testimonials</Badge>
-          </div>
 
-          <div className="container mx-auto sm:px-6 lg:px-8 p-2">
-            <Testimonials />
-          </div>
-        </section>
+        {/* ── Analytics preview ── */}
+        <FadeInSection>
+          <AnalyticsPreview />
+        </FadeInSection>
 
-        <section className="mb-10 mt-10">
-          <div className="flex justify-center mb-4">
-            <Badge>Industries</Badge>
-          </div>
-          <div className="container mx-auto sm:px-6 lg:px-8">
-            <UsecaseComponent />
-          </div>
-          <div className="container mx-auto sm:px-6 lg:px-8 p-2">
-            <Banner />
-          </div>
-        </section>
 
-        <section className="mb-10 mt-10">
-          <div className=""></div>
-        </section>
+        {/* ── Testimonials ── */}
+        <FadeInSection>
+          <section className="mt-10">
+            <div className="container">
+              <div className="flex items-center justify-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  Testimonials
+                </span>
+              </div>
+              <Testimonials />
+            </div>
+          </section>
+        </FadeInSection>
+
+
+        {/* ── Industries ── */}
+        <FadeInSection>
+          <section className="mb-10 mt-10">
+            <div className="container">
+              <div className="flex items-center justify-center gap-2 mb-10">
+                <span className="w-2 h-2 rounded-full bg-orange-500" />
+                <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+                  Industries
+                </span>
+              </div>
+              <UsecaseComponent />
+            </div>
+            <div className="container mt-4">
+              <Banner />
+            </div>
+          </section>
+        </FadeInSection>
+
+
+        {/* ── FAQ ── */}
+        <FadeInSection>
+          <HomeFAQ />
+        </FadeInSection>
+
+
         <FooterComponent />
       </main>
     </div>
