@@ -9,6 +9,7 @@ import { useUser } from "@clerk/nextjs";
 // Onborda
 // import { useOnborda } from "onborda";
 import { DynamicDashboard } from './dynamic-dashboard';
+import { OnboardingChecklist } from '@/components/onboarding/OnboardingChecklist';
 
 const Dashboard: React.FC = () => {
     // const { startOnborda, closeOnborda } = useOnborda();
@@ -86,6 +87,9 @@ const Dashboard: React.FC = () => {
                     </TooltipProvider>
                 </div>
             </div>
+
+            {/* Onboarding Checklist */}
+            <OnboardingChecklist />
 
             {/* Dynamic Dashboard with Real Metrics */}
             <DynamicDashboard />
