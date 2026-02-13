@@ -1,58 +1,25 @@
 import type { Metadata } from "next";
-import { Inter, Manrope, DM_Sans } from "next/font/google";
+import { Inter, DM_Sans } from "next/font/google";
 import "@/app/globals.css";
-import { Toaster } from 'sonner';
 import { SpeedInsights } from "@vercel/speed-insights/next"
-import OnboardingReminder from "@/components/OnboardingReminder"
-// import { OnboardingProvider } from "@/context/onboarding-context";
-import AttentionBadge from "@/components/AttentionBadge";
 import Script from "next/script";
-
-// Meta Pixel Imports
-import MetaPixel from "@/components/MetaPixel"
-import FBPageView from "@/components/PageView"
-import ConsentGate from "@/components/consent-gate";
-import ConsentBanner from "@/components/consent-card";
-
-
-// Onborda
-import { Onborda } from "onborda";
-// import { steps } from "@/lib/steps";
-
-// Custom Card
-import CustomCard from "@/components/CustomCard";
-
-//Next Step Js
-import TourProviderWrapper from "@/components/tour-provider-wrapper";
-
-// Aptabase Analytics 
-import { AptabaseProvider } from '@aptabase/react';
 
 import { PHProvider } from './providers'
 import dynamic from 'next/dynamic'
-import {
-  ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from '@clerk/nextjs';
-
-// Toast notifications
-import ToastProvider from "@/components/ToastProvider";
-
-// Pointer events fix
-import PointerEventsFix from "@/components/pointer-events-fix";
+import { ClerkProvider } from '@clerk/nextjs';
 
 // AEO: Organization + WebSite JSON-LD structured data (injected globally)
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/JsonLd";
 
-const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
-  ssr: false,
-})
+// Dynamically loaded non-critical components (reduces initial JS bundle)
+const PostHogPageView = dynamic(() => import('./PostHogPageView'), { ssr: false })
+const ConsentGate = dynamic(() => import('@/components/consent-gate'), { ssr: false })
+const AttentionBadge = dynamic(() => import('@/components/AttentionBadge'), { ssr: false })
+const PointerEventsFix = dynamic(() => import('@/components/pointer-events-fix'), { ssr: false })
+const ToastProvider = dynamic(() => import('@/components/ToastProvider'), { ssr: false })
+const TourProviderWrapper = dynamic(() => import('@/components/tour-provider-wrapper'), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] });
-const manrope = Manrope({ subsets: ["latin"] });
 const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-dm-sans',
@@ -134,20 +101,15 @@ export default function RootLayout({
           </Script>
         </head>
         <PHProvider>
-
           <SpeedInsights />
-          <SignedOut></SignedOut>
-          <SignedIn></SignedIn>
           <body className={`${inter.className} ${dmSans.variable}`}>
             <ConsentGate /> {/* renders MetaPixel only after consent */}
             <AttentionBadge />
             <PostHogPageView />
             <PointerEventsFix />
-            <AptabaseProvider appKey="A-US-3705920924">
-              <TourProviderWrapper>
-                {children}
-              </TourProviderWrapper>
-            </AptabaseProvider>
+            <TourProviderWrapper>
+              {children}
+            </TourProviderWrapper>
             <ToastProvider />
           </body>
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />

@@ -1,8 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { GradientButton } from "@/components/ui/gradient-button";
-import EnterpriseBookingModal from '@/components/EnterpriseBooking';
+
+const EnterpriseBookingModal = dynamic(
+  () => import('@/components/EnterpriseBooking'),
+  { ssr: false }
+);
 import {
   Tooltip,
   TooltipContent,

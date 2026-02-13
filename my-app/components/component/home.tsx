@@ -1,30 +1,27 @@
 import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Navbar } from "@/components/navbar";
-import Testimonials from "@/components/testimonial";
 
-// Section and component imports
+// Above-the-fold: static imports for immediate render
 import { PreviewLanding } from "@/components/sections/preview-landing";
-import HowItWorksSection from "@/components/home/howItworks";
-import { BentoSection } from "@/components/home/bentoSection";
-import { FooterComponent } from "@/components/home/Footer";
-
-import ValueProposition from "@/components/ValueProposition";
-import PlatformCards from "@/components/platform-cards";
-import UsecaseComponent from "@/components/usecaseComponent";
-import Banner from "../signup-banner";
-
-// Grid & animation enhancements
 import { GridOverlay } from "@/components/layout/GridOverlay";
-
 import { FadeInSection } from "@/components/layout/FadeInSection";
-
-// New complementary sections
 import { LogoCloud } from "@/components/sections/LogoCloud";
-import { AnalyticsPreview } from "@/components/sections/AnalyticsPreview";
-import { HomeFAQ } from "@/components/sections/HomeFAQ";
-import { CapabilitiesShowcase } from "@/components/sections/CapabilitiesShowcase";
+
+// Below-the-fold: dynamically imported to reduce initial bundle
+const HowItWorksSection = dynamic(() => import("@/components/home/howItworks"));
+const CapabilitiesShowcase = dynamic(() => import("@/components/sections/CapabilitiesShowcase").then(m => ({ default: m.CapabilitiesShowcase })));
+const ValueProposition = dynamic(() => import("@/components/ValueProposition"));
+const PlatformCards = dynamic(() => import("@/components/platform-cards"));
+const BentoSection = dynamic(() => import("@/components/home/bentoSection").then(m => ({ default: m.BentoSection })));
+const AnalyticsPreview = dynamic(() => import("@/components/sections/AnalyticsPreview").then(m => ({ default: m.AnalyticsPreview })));
+const Testimonials = dynamic(() => import("@/components/testimonial"));
+const UsecaseComponent = dynamic(() => import("@/components/usecaseComponent"));
+const Banner = dynamic(() => import("../signup-banner"));
+const HomeFAQ = dynamic(() => import("@/components/sections/HomeFAQ").then(m => ({ default: m.HomeFAQ })));
+const FooterComponent = dynamic(() => import("@/components/home/Footer").then(m => ({ default: m.FooterComponent })));
 
 declare global {
   interface Window {

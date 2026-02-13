@@ -7,8 +7,7 @@ const config = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
-    "*.{js,ts,jsx,tsx,mdx}",
-     './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}',
+    './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}',
     './node_modules/nextstepjs/dist/**/*.{js,ts,jsx,tsx}'
   ],
   prefix: "",

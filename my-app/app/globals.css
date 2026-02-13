@@ -1,7 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
-@import "slick-carousel/slick/slick.css";
-@import "slick-carousel/slick/slick-theme.css";
 @import 'katex/dist/katex.min.css';
 @import "react-phone-number-input/style.css";
 

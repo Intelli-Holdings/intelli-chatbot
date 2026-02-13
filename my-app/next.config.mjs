@@ -3,6 +3,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
+  productionBrowserSourceMaps: false,
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
