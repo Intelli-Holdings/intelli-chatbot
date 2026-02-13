@@ -525,6 +525,22 @@ export default function QuestionNodeEditor({
         )}
       </div>
 
+      {/* List Button Text (for interactive_list only) */}
+      {localMenu.messageType === 'interactive_list' && (
+        <div className="space-y-2 pt-2 border-t">
+          <Label>List Button Text</Label>
+          <Input
+            value={localMenu.buttonText || ''}
+            onChange={(e) => updateLocalMenu({ buttonText: e.target.value })}
+            placeholder="View Options"
+            maxLength={20}
+          />
+          <p className="text-xs text-muted-foreground">
+            Text shown on the button that opens the list (max 20 chars). Defaults to &quot;View Options&quot;.
+          </p>
+        </div>
+      )}
+
       {/* Options */}
       {localMenu.messageType !== 'text' && (
         <div className="space-y-3 pt-2 border-t">
