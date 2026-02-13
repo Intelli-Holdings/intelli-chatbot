@@ -73,6 +73,10 @@ const config = {
   			'color-5': 'hsl(var(--color-5))',
   			'color-6': 'hsl(var(--color-6))',
       },
+      fontFamily: {
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        body: ['var(--font-dm-sans)', 'Segoe UI', 'sans-serif'],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -192,7 +196,15 @@ const config = {
   				'100%': {
   					'background-position': '200%'
   				}
-  			}
+  			},
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(30px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'pulse-glow-blue': {
+          '0%, 100%': { boxShadow: '0 0 20px 0 rgba(0,127,255,0.15)' },
+          '50%': { boxShadow: '0 0 40px 8px rgba(0,127,255,0.3)' },
+        },
       },
 	  animation: {
 		meteor: 'meteor 5s linear infinite',
@@ -210,6 +222,8 @@ const config = {
 			rainbow: 'rainbow var(--speed, 2s) infinite linear',
 		float: "float 6s ease-in-out infinite",
 		"pulse-light": "pulse-light 4s ease-in-out infinite",
+    'fade-in-up': 'fade-in-up 0.8s ease forwards',
+    'pulse-glow-blue': 'pulse-glow-blue 4s ease-in-out infinite',
 	  },
     },
   },
