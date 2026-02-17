@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQueryClient } from 'react-query';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2, Bot, Save } from 'lucide-react';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2, Bot, Save, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -110,6 +110,11 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewUpdatedAt, setPreviewUpdatedAt] = useState<string | null>(null);
 
+  // Carousel state
+  const [carouselMediaFiles, setCarouselMediaFiles] = useState<(File | null)[]>([]);
+  const [carouselMediaIds, setCarouselMediaIds] = useState<string[]>([]);
+  const [isUploadingCarouselMedia, setIsUploadingCarouselMedia] = useState(false);
+
   const [showAllTags, setShowAllTags] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
@@ -121,6 +126,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [loadingFlows, setLoadingFlows] = useState(false);
   const [savingFlowMappings, setSavingFlowMappings] = useState(false);
   const [hasFlowMappingChanges, setHasFlowMappingChanges] = useState(false);
+
+  // Carousel drag-and-drop refs
+  const carouselFileInputRef = useRef<HTMLInputElement>(null);
+  const carouselSameFileInputRef = useRef<HTMLInputElement>(null);
+  const carouselDragRef = useRef<number | null>(null);
+  const [carouselDragOverIndex, setCarouselDragOverIndex] = useState<number | null>(null);
 
   // CSV Import state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -485,6 +496,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setGlobalHeaderMediaHandle('');
       setGlobalHeaderMediaId('');
       setIsUploadingHeaderMedia(false);
+      setCarouselMediaFiles([]);
+      setCarouselMediaIds([]);
+      setIsUploadingCarouselMedia(false);
 
       // Fetch flow mappings if template has quick reply buttons
       const buttonsComp = template.components?.find((c: any) => c.type === 'BUTTONS');
@@ -627,6 +641,123 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     }
   };
 
+  // Carousel: select multiple files — fills empty slots first, then overwrites from the start
+  const handleCarouselFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setCarouselMediaFiles(prev => {
+      const slots = [...prev];
+      // Ensure array is the right size
+      while (slots.length < carouselCardCount) slots.push(null);
+
+      // Collect empty slot indices
+      const emptyIndices = slots.map((f, i) => f ? -1 : i).filter(i => i !== -1);
+
+      if (emptyIndices.length > 0 && files.length <= emptyIndices.length) {
+        // Enough empty slots: fill them
+        files.forEach((file, fi) => { slots[emptyIndices[fi]] = file; });
+      } else if (emptyIndices.length > 0) {
+        // More files than empty slots: fill empties first, then overflow to start
+        let fi = 0;
+        emptyIndices.forEach(idx => { slots[idx] = files[fi++]; });
+        // Remaining files overwrite from slot 0
+        for (let idx = 0; fi < files.length && idx < carouselCardCount; idx++) {
+          if (!emptyIndices.includes(idx)) { slots[idx] = files[fi++]; }
+        }
+      } else {
+        // No empty slots: fresh fill
+        files.slice(0, carouselCardCount).forEach((file, i) => { slots[i] = file; });
+      }
+
+      return slots;
+    });
+
+    // Invalidate uploads for changed slots
+    setCarouselMediaIds(prev => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      // Clear IDs for slots that now have different files
+      // Simplest: clear all since ordering may have changed
+      return updated.map(() => '');
+    });
+
+    if (carouselFileInputRef.current) carouselFileInputRef.current.value = '';
+  };
+
+  // Carousel: use one file for ALL cards
+  const handleCarouselSameForAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCarouselMediaFiles(Array(carouselCardCount).fill(file));
+    setCarouselMediaIds([]);
+    if (e.target) e.target.value = '';
+  };
+
+  // Carousel: drag-and-drop reorder
+  const handleCarouselDrop = (targetIndex: number) => {
+    const src = carouselDragRef.current;
+    setCarouselDragOverIndex(null);
+    if (src === null || src === targetIndex) return;
+
+    setCarouselMediaFiles(prev => {
+      const u = [...prev];
+      const tmp = u[src]; u[src] = u[targetIndex]; u[targetIndex] = tmp;
+      return u;
+    });
+    setCarouselMediaIds(prev => {
+      if (prev.length === 0) return prev;
+      const u = [...prev];
+      const tmp = u[src]; u[src] = u[targetIndex]; u[targetIndex] = tmp;
+      return u;
+    });
+    carouselDragRef.current = null;
+  };
+
+  // Carousel: batch upload all selected files
+  const uploadAllCarouselMedia = async () => {
+    if (!organizationId || !appService?.phone_number) {
+      toast.error('Organization and App Service are required');
+      return;
+    }
+    if (carouselMediaFiles.filter(f => f).length < carouselCardCount) {
+      toast.error(`Please select media for all ${carouselCardCount} cards first`);
+      return;
+    }
+
+    setIsUploadingCarouselMedia(true);
+    const newIds = [...carouselMediaIds];
+
+    try {
+      for (let i = 0; i < carouselMediaFiles.length; i++) {
+        const file = carouselMediaFiles[i];
+        if (!file) continue;
+        if (newIds[i]) continue; // already uploaded
+
+        const fd = new FormData();
+        fd.append('media_file', file);
+        fd.append('upload_type', 'media');
+        fd.append('organization', organizationId);
+        fd.append('appservice_phone_number', appService.phone_number);
+        if (appService?.phone_number_id) fd.append('phone_number_id', appService.phone_number_id);
+        if (appService?.id) fd.append('appservice_id', appService.id);
+
+        const res = await fetch('/api/whatsapp/templates/upload_media', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || `Failed to upload card ${i + 1} media`);
+        if (!data.id && !data.handle) throw new Error(`Card ${i + 1} upload returned no ID`);
+
+        newIds[i] = data.id || data.handle;
+        setCarouselMediaIds([...newIds]); // update progressively
+      }
+      toast.success('All carousel media uploaded!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to upload carousel media');
+    } finally {
+      setIsUploadingCarouselMedia(false);
+    }
+  };
+
   const handleGlobalMediaFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -687,6 +818,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                     url: btn.url,
                     phone_number: btn.phone_number
                   }));
+                } else if (component.type === 'CAROUSEL') {
+                  comp.cards = component.cards;
                 }
 
                 return comp;
@@ -726,6 +859,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           }
 
           templatePayload.button_params = buttonParams;
+
+          // Carousel fields
+          if (isCarouselTemplate && carouselMediaIds.length > 0) {
+            templatePayload.is_carousel = true;
+            templatePayload.carousel_card_media_ids = carouselMediaIds;
+          }
 
           updateData.payload = templatePayload;
         }
@@ -818,6 +957,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                     url: btn.url,
                     phone_number: btn.phone_number
                   }));
+                } else if (component.type === 'CAROUSEL') {
+                  comp.cards = component.cards;
                 }
 
                 return comp;
@@ -884,6 +1025,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
           templatePayload.button_params = buttonParams;
           console.log('Extracted params - Body:', templatePayload.body_params, 'Header:', templatePayload.header_params, 'Button:', templatePayload.button_params);
+
+          // Carousel fields
+          if (isCarouselTemplate && carouselMediaIds.length > 0) {
+            templatePayload.is_carousel = true;
+            templatePayload.carousel_card_media_ids = carouselMediaIds;
+          }
 
           campaignData.payload = templatePayload;
         }
@@ -1342,7 +1489,14 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         return formData.name.trim() !== '' && formData.description.trim() !== '';
       case 2:
         if (campaignType === 'template') {
-          return !!formData.templateName;
+          if (!formData.templateName) return false;
+          // Carousel templates require all card media to be uploaded
+          if (isCarouselTemplate && carouselCardCount > 0) {
+            const allUploaded = carouselMediaIds.length === carouselCardCount &&
+              carouselMediaIds.every(id => id && id.trim() !== '');
+            if (!allUploaded) return false;
+          }
+          return true;
         }
         return formData.messageContent.trim() !== '';
       case 3:
@@ -1618,6 +1772,33 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const hasTemplateVariables = campaignType === 'template' &&
     (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0);
   const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
+
+  const isCarouselTemplate = useMemo(() => {
+    const selectedTemplate = getSelectedTemplate();
+    if (!selectedTemplate) return false;
+    return selectedTemplate.components?.some((c: any) => c.type === 'CAROUSEL') ?? false;
+  }, [formData.templateName, approvedTemplates]);
+
+  const carouselCardCount = useMemo(() => {
+    const selectedTemplate = getSelectedTemplate();
+    if (!selectedTemplate) return 0;
+    const carouselComp = selectedTemplate.components?.find((c: any) => c.type === 'CAROUSEL');
+    return carouselComp?.cards?.length || 0;
+  }, [formData.templateName, approvedTemplates]);
+
+  // Build preview URLs for carousel image files and revoke on change/unmount
+  const carouselPreviews = useMemo(() => {
+    return carouselMediaFiles.map(file =>
+      file && file.type.startsWith('image/') ? URL.createObjectURL(file) : ''
+    );
+  }, [carouselMediaFiles]);
+
+  useEffect(() => {
+    return () => {
+      carouselPreviews.forEach(url => { if (url) URL.revokeObjectURL(url); });
+    };
+  }, [carouselPreviews]);
+
   const getPerRecipientParamCount = () => {
     const mediaHeaderCount = formData.headerParameters.filter(p => ['image', 'video', 'document'].includes(p.type)).length;
     const headerCount = headerMediaMode === 'global' ? formData.headerParameters.length - mediaHeaderCount : formData.headerParameters.length;
@@ -1910,6 +2091,221 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     </Button>
                                   )}
                                 </>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Carousel Card Media Upload */}
+                        {isCarouselTemplate && carouselCardCount > 0 && (
+                          <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 dark:border-purple-900">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-purple-600" />
+                                Carousel Card Media
+                              </CardTitle>
+                              <CardDescription>
+                                Select all {carouselCardCount} media files at once, then drag to reorder them to match each card.
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {/* File pickers + actions */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <input
+                                  ref={carouselFileInputRef}
+                                  type="file"
+                                  className="hidden"
+                                  multiple
+                                  accept="image/jpeg,image/png,video/mp4"
+                                  onChange={handleCarouselFilesSelect}
+                                  disabled={isUploadingCarouselMedia}
+                                />
+                                <input
+                                  ref={carouselSameFileInputRef}
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/jpeg,image/png,video/mp4"
+                                  onChange={handleCarouselSameForAll}
+                                  disabled={isUploadingCarouselMedia}
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                  onClick={() => carouselFileInputRef.current?.click()}
+                                  disabled={isUploadingCarouselMedia}
+                                >
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Select Files
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                  onClick={() => carouselSameFileInputRef.current?.click()}
+                                  disabled={isUploadingCarouselMedia}
+                                >
+                                  Same Image for All
+                                </Button>
+                                <span className="text-sm text-muted-foreground">
+                                  {carouselMediaFiles.filter(f => f).length}/{carouselCardCount} selected
+                                </span>
+                                {carouselMediaFiles.some(f => f) && !isUploadingCarouselMedia && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs text-muted-foreground ml-auto"
+                                    onClick={() => {
+                                      setCarouselMediaFiles(Array(carouselCardCount).fill(null));
+                                      setCarouselMediaIds([]);
+                                    }}
+                                  >
+                                    <X className="h-3 w-3 mr-1" /> Clear All
+                                  </Button>
+                                )}
+                              </div>
+
+                              {/* File list with drag-and-drop reorder */}
+                              {carouselMediaFiles.some(f => f) && (
+                                <div className="space-y-1.5">
+                                  {carouselMediaFiles.map((file, i) => {
+                                    const uploaded = carouselMediaIds[i] && carouselMediaIds[i].trim() !== '';
+                                    const isDragOver = carouselDragOverIndex === i;
+
+                                    return (
+                                      <div
+                                        key={i}
+                                        draggable={!!file && !isUploadingCarouselMedia}
+                                        onDragStart={() => { carouselDragRef.current = i; }}
+                                        onDragOver={(e) => { e.preventDefault(); setCarouselDragOverIndex(i); }}
+                                        onDragLeave={() => { if (carouselDragOverIndex === i) setCarouselDragOverIndex(null); }}
+                                        onDrop={(e) => { e.preventDefault(); handleCarouselDrop(i); }}
+                                        onDragEnd={() => { carouselDragRef.current = null; setCarouselDragOverIndex(null); }}
+                                        className={`
+                                          flex items-center gap-3 p-3 rounded-lg border transition-all
+                                          ${file
+                                            ? 'bg-white dark:bg-gray-900 cursor-grab active:cursor-grabbing'
+                                            : 'bg-muted/50 border-dashed'}
+                                          ${isDragOver ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/40 ring-2 ring-purple-300' : ''}
+                                          ${uploaded ? 'border-green-300' : ''}
+                                        `}
+                                      >
+                                        {/* Drag handle */}
+                                        <div className="flex-shrink-0 text-muted-foreground/50">
+                                          {file ? (
+                                            <GripVertical className="h-5 w-5" />
+                                          ) : (
+                                            <div className="w-5" />
+                                          )}
+                                        </div>
+
+                                        {/* Card number */}
+                                        <div className="flex-shrink-0 w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                                          <span className="text-xs font-bold text-purple-700 dark:text-purple-300">{i + 1}</span>
+                                        </div>
+
+                                        {file ? (
+                                          <>
+                                            {/* Thumbnail */}
+                                            {carouselPreviews[i] ? (
+                                              <img
+                                                src={carouselPreviews[i]}
+                                                alt={`Card ${i + 1}`}
+                                                className="w-11 h-11 object-cover rounded flex-shrink-0"
+                                              />
+                                            ) : file.type.startsWith('video/') ? (
+                                              <div className="w-11 h-11 bg-gray-200 dark:bg-gray-800 rounded flex items-center justify-center flex-shrink-0">
+                                                <span className="text-[10px] font-semibold text-muted-foreground">MP4</span>
+                                              </div>
+                                            ) : null}
+
+                                            {/* File info */}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm font-medium truncate">{file.name}</div>
+                                              <div className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</div>
+                                            </div>
+
+                                            {/* Status */}
+                                            {uploaded ? (
+                                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300 flex-shrink-0">
+                                                <CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded
+                                              </Badge>
+                                            ) : isUploadingCarouselMedia ? (
+                                              <span className="text-xs text-purple-600 flex items-center gap-1 flex-shrink-0">
+                                                <Loader2 className="h-3 w-3 animate-spin" /> Waiting...
+                                              </span>
+                                            ) : (
+                                              <span className="text-xs text-muted-foreground flex-shrink-0">Drag to reorder</span>
+                                            )}
+
+                                            {/* Remove single file */}
+                                            {!isUploadingCarouselMedia && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 w-7 p-0 flex-shrink-0"
+                                                onClick={() => {
+                                                  setCarouselMediaFiles(prev => { const u = [...prev]; u[i] = null; return u; });
+                                                  setCarouselMediaIds(prev => { const u = [...prev]; u[i] = ''; return u; });
+                                                }}
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            )}
+                                          </>
+                                        ) : (
+                                          <div className="flex-1 text-sm text-muted-foreground italic">
+                                            Card {i + 1} — no file assigned
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Upload All button */}
+                              {carouselMediaFiles.filter(f => f).length === carouselCardCount &&
+                                carouselMediaIds.filter(id => id).length < carouselCardCount && (
+                                <Button
+                                  onClick={uploadAllCarouselMedia}
+                                  disabled={isUploadingCarouselMedia}
+                                  className="w-full bg-purple-600 hover:bg-purple-700"
+                                >
+                                  {isUploadingCarouselMedia ? (
+                                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading {carouselMediaIds.filter(id => id).length}/{carouselCardCount}...</>
+                                  ) : (
+                                    <><Upload className="h-4 w-4 mr-2" /> Upload All Media</>
+                                  )}
+                                </Button>
+                              )}
+
+                              {/* Partial upload progress */}
+                              {isUploadingCarouselMedia && carouselMediaIds.filter(id => id).length > 0 && (
+                                <div className="flex items-center gap-2 text-sm text-purple-700">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Uploading... {carouselMediaIds.filter(id => id).length} of {carouselCardCount} done
+                                </div>
+                              )}
+
+                              {/* All uploaded success */}
+                              {carouselMediaIds.filter(id => id).length === carouselCardCount && carouselCardCount > 0 && (
+                                <Alert className="bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-900">
+                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                  <AlertDescription className="text-xs text-green-800 dark:text-green-200">
+                                    All {carouselCardCount} card media uploaded. You can proceed to the next step.
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+
+                              {/* Validation warning */}
+                              {carouselMediaFiles.filter(f => f).length < carouselCardCount && carouselMediaFiles.filter(f => f).length > 0 && (
+                                <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900">
+                                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                                  <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+                                    Select {carouselCardCount - carouselMediaFiles.filter(f => f).length} more file(s). Each carousel card needs media.
+                                  </AlertDescription>
+                                </Alert>
                               )}
                             </CardContent>
                           </Card>
@@ -2942,6 +3338,21 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                       <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                                       <span className="text-sm text-green-800 dark:text-green-200">
                                         {getPerRecipientParamCount()} parameter(s) configured for {formData.selectedContacts.length + importedRecipientsCount} recipient(s)
+                                      </span>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                              {isCarouselTemplate && carouselMediaIds.length > 0 && (
+                                <>
+                                  <div className="border-t border-border/30"></div>
+                                  <div className="space-y-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Carousel Media:</div>
+                                    <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-950/30 rounded border border-purple-200 dark:border-purple-900">
+                                      <CheckCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                      <span className="text-sm text-purple-800 dark:text-purple-200">
+                                        {carouselMediaIds.filter(id => id).length} of {carouselCardCount} card media uploaded
                                       </span>
                                     </div>
                                   </div>
