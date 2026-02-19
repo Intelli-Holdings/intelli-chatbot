@@ -67,6 +67,8 @@ interface CreateCampaignData {
     body_params?: string[];  // Backend format for body parameters
     button_params?: string[];  // Backend format for button parameters
     message_content?: string;
+    is_carousel?: boolean;
+    carousel_card_media_ids?: string[];
   };
   recipient_contacts?: string[];
   recipient_tags?: string[];

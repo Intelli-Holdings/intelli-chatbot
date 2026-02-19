@@ -17,7 +17,18 @@ const useAuth = () => {
     const fetchProfile = async () => {
       try {
         const profile = await getProfile();
-        setUser(profile);
+        if (profile && profile['My profile']) {
+          // Transform UserProfile to User format
+          setUser({
+            photoURL: null,
+            displayName: profile['My profile'].username,
+            email: profile['My profile'].email,
+            firstName: null,
+            companyName: profile['My profile'].company_name,
+          });
+        } else {
+          setUser(null);
+        }
       } catch (error) {
         console.error('Error fetching user profile:', error);
       }

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { login } from "@/lib/auth/authService";
 import { toast } from 'sonner';
-import Image from "next/image"
 import { CardTitle } from "@/components/ui/card"
 import logo from "@/public/Intelli.svg"
 
@@ -79,4 +78,3 @@ export default function Signin() {
     </div>
   )
 }
-

@@ -1092,6 +1092,7 @@ export function TemplateTestModal({
                         {/* Preview if available */}
                         {cardMedia?.previewUrl && (
                           <div className="relative h-20 w-full overflow-hidden rounded-md bg-gray-100">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={cardMedia.previewUrl}
                               alt={`Card ${cardIndex + 1} preview`}

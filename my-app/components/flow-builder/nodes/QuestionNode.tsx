@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { MessageSquare, ChevronRight, Image, Video, FileText } from 'lucide-react';
+import { MessageSquare, ChevronRight, Image as ImageIcon, Video, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { QuestionNodeData } from '@/types/chatbot-automation';
 import { cn } from '@/lib/utils';
@@ -36,7 +36,7 @@ function QuestionNode({ id, data, selected }: QuestionNodeProps) {
     if (!menu.header) return null;
     switch (menu.header.type) {
       case 'image':
-        return <Image className="h-3 w-3" />;
+        return <ImageIcon className="h-3 w-3" />;
       case 'video':
         return <Video className="h-3 w-3" />;
       case 'document':

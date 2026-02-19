@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, GripVertical, Image, Video, FileText, Type, X, Check, Upload, Loader2, Clock } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Image as ImageIcon, Video, FileText, Type, X, Check, Upload, Loader2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,6 +67,7 @@ export default function QuestionNodeEditor({
     setDelaySeconds(data.delaySeconds || 0);
     setHasChanges(false);
     setUploadedFileName('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.menu.id, data.delaySeconds]);
 
   const currentHeaderType: HeaderType = localMenu.header?.type || 'none';
@@ -318,7 +319,7 @@ export default function QuestionNodeEditor({
               <Type className="h-3 w-3" />
             </TabsTrigger>
             <TabsTrigger value="image" className="text-xs px-2">
-              <Image className="h-3 w-3" />
+              <ImageIcon className="h-3 w-3" />
             </TabsTrigger>
             <TabsTrigger value="video" className="text-xs px-2">
               <Video className="h-3 w-3" />
@@ -523,6 +524,22 @@ export default function QuestionNodeEditor({
           </div>
         )}
       </div>
+
+      {/* List Button Text (for interactive_list only) */}
+      {localMenu.messageType === 'interactive_list' && (
+        <div className="space-y-2 pt-2 border-t">
+          <Label>List Button Text</Label>
+          <Input
+            value={localMenu.buttonText || ''}
+            onChange={(e) => updateLocalMenu({ buttonText: e.target.value })}
+            placeholder="View Options"
+            maxLength={20}
+          />
+          <p className="text-xs text-muted-foreground">
+            Text shown on the button that opens the list (max 20 chars). Defaults to &quot;View Options&quot;.
+          </p>
+        </div>
+      )}
 
       {/* Options */}
       {localMenu.messageType !== 'text' && (

@@ -64,8 +64,13 @@ import {
 import { backendNodesToFlow, chatbotToFlow } from "@/components/flow-builder/utils/flow-converters";
 import { cn } from "@/lib/utils";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import FlowBuilder from "@/components/flow-builder/FlowBuilder";
+import dynamic from "next/dynamic";
 import { useAppServices } from "@/hooks/use-app-services";
+
+const FlowBuilder = dynamic(
+  () => import("@/components/flow-builder/FlowBuilder"),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div> }
+);
 
 // Main Page Component
 export default function ChatbotEditorPage() {

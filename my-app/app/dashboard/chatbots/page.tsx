@@ -473,6 +473,7 @@ export default function ChatbotsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }

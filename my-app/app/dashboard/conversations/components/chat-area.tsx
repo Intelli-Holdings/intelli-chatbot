@@ -566,6 +566,7 @@ export default function ChatArea({
       window.removeEventListener("messageStatusUpdate", handleStatusUpdate as unknown as EventListener)
       window.removeEventListener("websocketConnectionChange", handleConnectionChange as unknown as EventListener)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Scroll to bottom when messages update

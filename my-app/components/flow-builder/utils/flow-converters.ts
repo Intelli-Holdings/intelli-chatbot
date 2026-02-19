@@ -357,6 +357,10 @@ export function flowNodesToBackend(
         data.type = 'text';
       } else if (messageType === 'interactive_list') {
         data.type = 'list';
+        // Pass list button text to backend
+        if (questionData.menu?.buttonText) {
+          data.buttonText = questionData.menu.buttonText;
+        }
       } else {
         data.type = 'buttons';
       }
@@ -555,6 +559,7 @@ export function backendNodesToFlow(
             body: (backendData.body as string) || '',
             header,
             footer: backendData.footer as string,
+            buttonText: (backendData.buttonText as string) || undefined,
             options: ((backendData.options as Array<{ id: string; title: string; description?: string }>) || []).map(opt => ({
               id: opt.id,
               title: opt.title,

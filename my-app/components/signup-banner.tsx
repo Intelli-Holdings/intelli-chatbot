@@ -2,12 +2,32 @@
 
 import type React from "react"
 import { useEffect, useRef } from "react"
-import { Award, Coffee, Star, Sparkles } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
 
-const Banner: React.FC = () => {
+interface BannerButton {
+  text: string
+  href: string
+  external?: boolean
+}
+
+interface BannerProps {
+  title?: React.ReactNode
+  subtitle?: string
+  primaryButton?: BannerButton
+  secondaryButton?: BannerButton | null
+  showIllustration?: boolean
+}
+
+const Banner: React.FC<BannerProps> = ({
+  title,
+  subtitle = "Join great businesses that have transformed their customer support with our platform.",
+  primaryButton = { text: "Get started for free", href: "/auth/sign-up" },
+  secondaryButton = { text: "Book a demo", href: "https://cal.com/intelli-demo/", external: true },
+  showIllustration = true,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   // Animated background particles effect
@@ -91,15 +111,19 @@ const Banner: React.FC = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          <h1 className="text-5xl font-bold text-white leading-tight tracking-tight drop-shadow-md">
-            Ready to elevate your <br />
-            <span className="bg-gradient-to-r from-white to-[#e6f3ff] text-transparent bg-clip-text">
-              customer experience?
-            </span>
-          </h1>
+          <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight tracking-tight drop-shadow-md">
+            {title ?? (
+              <>
+                Ready to elevate your <br />
+                <span className="bg-gradient-to-r from-white to-[#e6f3ff] text-transparent bg-clip-text">
+                  customer experience?
+                </span>
+              </>
+            )}
+          </h2>
 
           <p className="mt-4 text-blue-50 text-lg max-w-md">
-            Join great businesses that have transformed their customer support with our platform.
+            {subtitle}
           </p>
         </motion.div>
 
@@ -110,30 +134,56 @@ const Banner: React.FC = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.5 }}
         >
-          <Link href="/auth/sign-up">
-            <button className="group relative bg-white text-[#007fff] font-semibold py-3 px-8 rounded-3xl hover:bg-blue-50 transition-all duration-300 shadow-lg">
-              <span className="flex items-center gap-2">
-                Get started for free
-                <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" />
-              </span>
-              <span className="absolute inset-0 rounded-full bg-white/40 blur-md -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-            </button>
-          </Link>
+          {primaryButton.external ? (
+            <a href={primaryButton.href} target="_blank" rel="noopener noreferrer">
+              <button className="group relative bg-white text-[#007fff] font-semibold py-3 px-8 rounded-3xl hover:bg-blue-50 transition-all duration-300 shadow-lg">
+                <span className="flex items-center gap-2">
+                  {primaryButton.text}
+                  <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" />
+                </span>
+                <span className="absolute inset-0 rounded-full bg-white/40 blur-md -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+              </button>
+            </a>
+          ) : (
+            <Link href={primaryButton.href}>
+              <button className="group relative bg-white text-[#007fff] font-semibold py-3 px-8 rounded-3xl hover:bg-blue-50 transition-all duration-300 shadow-lg">
+                <span className="flex items-center gap-2">
+                  {primaryButton.text}
+                  <Sparkles className="h-4 w-4 transition-transform group-hover:rotate-12" />
+                </span>
+                <span className="absolute inset-0 rounded-full bg-white/40 blur-md -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+              </button>
+            </Link>
+          )}
 
-          <a href="https://cal.com/intelli-demo/" target="_blank" rel="noopener noreferrer">
-            <button className="relative overflow-hidden bg-transparent border-2 border-white text-white font-semibold py-3 px-8 rounded-3xl group transition-all duration-300">
-              <span className="relative z-10 flex items-center gap-2 group-hover:text-[#007fff]">Book a demo</span>
-              <span className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-              <span className="absolute inset-0 opacity-0 group-hover:opacity-100 text-[#007fff] flex items-center justify-center transition-opacity duration-300 font-semibold">
-                Book a demo
-              </span>
-            </button>
-          </a>
+          {secondaryButton && (
+            secondaryButton.external ? (
+              <a href={secondaryButton.href} target="_blank" rel="noopener noreferrer">
+                <button className="relative overflow-hidden bg-transparent border-2 border-white text-white font-semibold py-3 px-8 rounded-3xl group transition-all duration-300">
+                  <span className="relative z-10 flex items-center gap-2 group-hover:text-[#007fff]">{secondaryButton.text}</span>
+                  <span className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+                  <span className="absolute inset-0 opacity-0 group-hover:opacity-100 text-[#007fff] flex items-center justify-center transition-opacity duration-300 font-semibold">
+                    {secondaryButton.text}
+                  </span>
+                </button>
+              </a>
+            ) : (
+              <Link href={secondaryButton.href}>
+                <button className="relative overflow-hidden bg-transparent border-2 border-white text-white font-semibold py-3 px-8 rounded-3xl group transition-all duration-300">
+                  <span className="relative z-10 flex items-center gap-2 group-hover:text-[#007fff]">{secondaryButton.text}</span>
+                  <span className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+                  <span className="absolute inset-0 opacity-0 group-hover:opacity-100 text-[#007fff] flex items-center justify-center transition-opacity duration-300 font-semibold">
+                    {secondaryButton.text}
+                  </span>
+                </button>
+              </Link>
+            )
+          )}
         </motion.div>
       </div>
 
       {/* Right Section: Illustration */}
-      <motion.div
+      {showIllustration && <motion.div
         className="relative z-10 hidden md:block"
         initial={{ x: 100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -176,7 +226,7 @@ const Banner: React.FC = () => {
             
           </div>
         </div>
-      </motion.div>
+      </motion.div>}
 
       {/* Bottom decorative elements */}
       <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-[#007fff]/20 to-transparent pointer-events-none"></div>

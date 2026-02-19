@@ -33,7 +33,9 @@ export default function ActionNodeEditor({ data, onUpdate }: ActionNodeEditorPro
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(data.message || '');
+  const [selectedAssistantId, setSelectedAssistantId] = useState(data.assistantId || '');
   const [hasChanges, setHasChanges] = useState(false);
+  const [hasAssistantChanges, setHasAssistantChanges] = useState(false);
 
   // Fetch assistants only for fallback_ai action type
   useEffect(() => {
@@ -88,11 +90,16 @@ export default function ActionNodeEditor({ data, onUpdate }: ActionNodeEditorPro
     };
   }, [organizationId, data.actionType]);
 
-  // Reset message when switching nodes
+  // Reset local state when switching nodes
   useEffect(() => {
     setMessage(data.message || '');
     setHasChanges(false);
   }, [data.message]);
+
+  useEffect(() => {
+    setSelectedAssistantId(data.assistantId || '');
+    setHasAssistantChanges(false);
+  }, [data.assistantId]);
 
   const handleMessageChange = (value: string) => {
     setMessage(value);
@@ -146,14 +153,27 @@ export default function ActionNodeEditor({ data, onUpdate }: ActionNodeEditorPro
   }
 
   if (data.actionType === 'fallback_ai') {
+    const handleSaveAssistant = () => {
+      if (!selectedAssistantId) {
+        toast.error('Please select an assistant');
+        return;
+      }
+      onUpdate({ assistantId: selectedAssistantId });
+      setHasAssistantChanges(false);
+      toast.success('Assistant saved');
+    };
+
     return (
       <div className="space-y-4">
         {/* Assistant Selection */}
         <div className="space-y-2">
           <Label>Select Assistant</Label>
           <Select
-            value={data.assistantId || ''}
-            onValueChange={(value) => onUpdate({ assistantId: value })}
+            value={selectedAssistantId}
+            onValueChange={(value) => {
+              setSelectedAssistantId(value);
+              setHasAssistantChanges(value !== (data.assistantId || ''));
+            }}
           >
             <SelectTrigger>
               {isLoading ? (
@@ -180,6 +200,14 @@ export default function ActionNodeEditor({ data, onUpdate }: ActionNodeEditorPro
             </SelectContent>
           </Select>
         </div>
+
+        {/* Save Button */}
+        {hasAssistantChanges && (
+          <Button onClick={handleSaveAssistant} size="sm" className="w-full">
+            <Check className="h-4 w-4 mr-2" />
+            Save Assistant
+          </Button>
+        )}
 
         {/* Info */}
         <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg">

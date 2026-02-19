@@ -41,6 +41,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
     if (conversation) {
       setIsAiSupport(!conversation.is_handle_by_human);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation?.id, conversation?.is_handle_by_human]);
 
   const handleToggleAISupport = async () => {

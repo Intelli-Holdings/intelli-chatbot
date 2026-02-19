@@ -400,6 +400,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
       }
       setContextMenu(null);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [contextMenu, nodes, setNodes]
   );
 

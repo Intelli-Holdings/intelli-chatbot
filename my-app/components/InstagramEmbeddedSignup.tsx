@@ -60,6 +60,7 @@ const InstagramEmbeddedSignup = ({ defaultLoginMethod = "facebook" }: InstagramE
       // For Facebook login flow (via /instagram-redirect), use Facebook token exchange
       exchangeFacebookCodeForToken(instagramCode, redirectUri)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, router, authCode])
 
   // Exchange Facebook authorization code for access token

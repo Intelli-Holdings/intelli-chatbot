@@ -1,55 +1,30 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Inter, DM_Sans } from "next/font/google";
 import "@/app/globals.css";
-import { Toaster } from 'sonner';
 import { SpeedInsights } from "@vercel/speed-insights/next"
-import OnboardingReminder from "@/components/OnboardingReminder"
-// import { OnboardingProvider } from "@/context/onboarding-context";
-import AttentionBadge from "@/components/AttentionBadge";
 import Script from "next/script";
-
-// Meta Pixel Imports
-import MetaPixel from "@/components/MetaPixel"
-import FBPageView from "@/components/PageView"
-import ConsentGate from "@/components/consent-gate";
-import ConsentBanner from "@/components/consent-card";
-
-
-// Onborda
-import { Onborda } from "onborda";
-// import { steps } from "@/lib/steps";
-
-// Custom Card
-import CustomCard from "@/components/CustomCard";
-
-//Next Step Js
-import TourProviderWrapper from "@/components/tour-provider-wrapper";
-
-// Aptabase Analytics 
-import { AptabaseProvider } from '@aptabase/react';
 
 import { PHProvider } from './providers'
 import dynamic from 'next/dynamic'
-import {
-  ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from '@clerk/nextjs';
+import { ClerkProvider } from '@clerk/nextjs';
 
-// Toast notifications
-import ToastProvider from "@/components/ToastProvider";
+// AEO: Organization + WebSite JSON-LD structured data (injected globally)
+import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/JsonLd";
 
-// Pointer events fix
-import PointerEventsFix from "@/components/pointer-events-fix";
-
-const PostHogPageView = dynamic(() => import('./PostHogPageView'), {
-  ssr: false,
-})
+// Dynamically loaded non-critical components (reduces initial JS bundle)
+const PostHogPageView = dynamic(() => import('./PostHogPageView'), { ssr: false })
+const ConsentGate = dynamic(() => import('@/components/consent-gate'), { ssr: false })
+const AttentionBadge = dynamic(() => import('@/components/AttentionBadge'), { ssr: false })
+const PointerEventsFix = dynamic(() => import('@/components/pointer-events-fix'), { ssr: false })
+const ToastProvider = dynamic(() => import('@/components/ToastProvider'), { ssr: false })
+const TourProviderWrapper = dynamic(() => import('@/components/tour-provider-wrapper'), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] });
-const manrope = Manrope({ subsets: ["latin"] });
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  weight: ['400', '500', '600', '700'],
+});
 <><link
   rel="icon"
   href="/Intelli.svg"
@@ -57,35 +32,36 @@ const manrope = Manrope({ subsets: ["latin"] });
   sizes="16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024" /><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /><link rel="icon" type="image/svg+xml" href="/icon.svg" /></>
 
 export const metadata = {
-  title: 'Intelli – Engage and support customers',
-  description: 'Intelli is a Customer Support and Engagement Platform that enables businesses to manage customer conversations using AI across WhatsApp, website, and email.',
+  title: 'Intelli – AI Customer Support & Engagement Platform | Intelli Holdings Inc.',
+  description: 'Intelli is an AI-powered customer engagement platform that automates support and sales across WhatsApp, website chat, and email. Trusted by governments, NGOs, universities, and enterprises worldwide.',
+  keywords: ['AI customer support', 'WhatsApp Business API', 'chatbot automation', 'customer engagement platform', 'AI helpdesk', 'WhatsApp AI assistant', 'multi-channel support', 'Intelli', 'Intelli Holdings Inc.'],
   openGraph: {
-    siteName: 'Intelli – Engage and support customers',
+    siteName: 'Intelli – AI Customer Engagement Platform',
     url: 'https://www.intelliconcierge.com',
-    title: 'Intelli',
-    description: 'Streamline customer conversations using AI across WhatsApp, website, and email.',
+    title: 'Intelli – AI-Powered Customer Support & Engagement Platform',
+    description: 'Automate customer support and sales across WhatsApp, website, and email with AI. Trusted by governments, NGOs, universities, and enterprises.',
     type: 'website',
-    author: 'Intelli',
+    author: 'Intelli Holdings Inc.',
     images: [
       {
         url: 'https://www.intelliconcierge.com/api/og',
         width: 1200,
         height: 630,
-        alt: 'An alternative text for the image',
+        alt: 'Intelli AI Customer Engagement Platform by Intelli Holdings Inc.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Intelli',
-    description: 'Streamline customer conversations using AI across WhatsApp, website, and email for your business.',
-    author: 'Intelli',
+    title: 'Intelli – AI Customer Support Platform',
+    description: 'Automate customer support and sales across WhatsApp, website, and email with AI. By Intelli Holdings Inc.',
+    author: 'Intelli Holdings Inc.',
     images: [
       {
         url: 'https://www.intelliconcierge.com/api/og',
         width: 1200,
         height: 630,
-        alt: 'An alternative text for the image',
+        alt: 'Intelli AI Customer Engagement Platform by Intelli Holdings Inc.',
       },
     ],
   },
@@ -109,6 +85,9 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <head>
+          {/* AEO: Global Organization + WebSite structured data for answer engine citation */}
+          <OrganizationJsonLd />
+          <WebSiteJsonLd />
           <Script async src="https://www.googletagmanager.com/gtag/js?id=G-2V9CBMTJHN"></Script>
           <Script id="google-analytics" strategy="lazyOnload">
             {
@@ -122,20 +101,15 @@ export default function RootLayout({
           </Script>
         </head>
         <PHProvider>
-
           <SpeedInsights />
-          <SignedOut></SignedOut>
-          <SignedIn></SignedIn>
-          <body className={inter.className}>
+          <body className={`${inter.className} ${dmSans.variable}`}>
             <ConsentGate /> {/* renders MetaPixel only after consent */}
             <AttentionBadge />
             <PostHogPageView />
             <PointerEventsFix />
-            <AptabaseProvider appKey="A-US-3705920924">
-              <TourProviderWrapper>
-                {children}
-              </TourProviderWrapper>
-            </AptabaseProvider>
+            <TourProviderWrapper>
+              {children}
+            </TourProviderWrapper>
             <ToastProvider />
           </body>
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
