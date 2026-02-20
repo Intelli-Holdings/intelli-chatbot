@@ -87,6 +87,7 @@ const nextConfig = {
   },
   experimental: {
     mdxRs: true,
+    instrumentationHook: true,
   },
   async rewrites() {
     return [
@@ -148,5 +149,9 @@ export default withSentryConfig(nextConfig, {
   // Hide source maps from users
   hideSourceMaps: true,
   // Tree-shake Sentry logger statements in production
-  disableLogger: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
 });
