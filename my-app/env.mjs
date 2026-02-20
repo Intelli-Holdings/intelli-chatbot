@@ -15,14 +15,17 @@ export const env = createEnv({
     RESEND_API_KEY: z.string().optional(),
     STRIPE_API_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    FACEBOOK_APP_SECRET: z.string().optional(),
+    ENCRYPTION_KEY: z.string().length(64).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().min(1),
-    NEXT_PUBLIC_API_BASE_URL: z.string().url().default("https://dev-backend-intelliconcierge-jvap.onrender.com"),
+    NEXT_PUBLIC_API_BASE_URL: z.string().url().default("https://backend.intelliconcierge.com"),
     // Meta/Facebook API
     NEXT_PUBLIC_FACEBOOK_APP_ID: z.string().optional(),
-    NEXT_PUBLIC_FACEBOOK_APP_SECRET: z.string().optional(),
     NEXT_PUBLIC_META_API_VERSION: z.string().optional(),
+    // Sentry
+    NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
     NEXT_PUBLIC_STRIPE_RESTRICTED_KEY: z.string().optional(),
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
     NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PLAN_ID: z.string().optional(),
@@ -42,8 +45,12 @@ export const env = createEnv({
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
     // Meta/Facebook API
     NEXT_PUBLIC_FACEBOOK_APP_ID: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID,
-    NEXT_PUBLIC_FACEBOOK_APP_SECRET: process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET,
+    FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET,
     NEXT_PUBLIC_META_API_VERSION: process.env.NEXT_PUBLIC_META_API_VERSION,
+    // Sentry
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    // Encryption
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
     // Stripe
     STRIPE_API_KEY: process.env.STRIPE_API_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
