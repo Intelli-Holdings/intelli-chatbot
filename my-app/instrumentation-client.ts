@@ -6,6 +6,12 @@ export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 Sentry.init({
   dsn: "https://d33efcdeca1855b4a4c25b53cf63d0f9@o4510918080462848.ingest.us.sentry.io/4510918092521472",
 
+  integrations: [
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+  ],
+
+  enableLogs: true,
+
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
   // Adjust in production to a lower value for cost control.
   tracesSampleRate: 0.1,

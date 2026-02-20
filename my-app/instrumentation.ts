@@ -5,6 +5,12 @@ export async function register() {
     Sentry.init({
       dsn: "https://d33efcdeca1855b4a4c25b53cf63d0f9@o4510918080462848.ingest.us.sentry.io/4510918092521472",
 
+      integrations: [
+        Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+      ],
+
+      enableLogs: true,
+
       tracesSampleRate: 0.1,
 
       debug: false,
@@ -46,6 +52,12 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") {
     Sentry.init({
       dsn: "https://d33efcdeca1855b4a4c25b53cf63d0f9@o4510918080462848.ingest.us.sentry.io/4510918092521472",
+
+      integrations: [
+        Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+      ],
+
+      enableLogs: true,
 
       tracesSampleRate: 0.1,
 
