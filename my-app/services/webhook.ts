@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import {
   WebhookDestination,
   WebhookDestinationListItem,
@@ -37,7 +38,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
         }
       }
     } catch (e) {
-      console.warn('Failed to get Clerk token:', e);
+      logger.warn('Failed to get Clerk token', { error: e instanceof Error ? e.message : String(e) });
     }
   }
 
@@ -60,7 +61,7 @@ function extractResults<T>(data: T[] | PaginatedResponse<T>): T[] {
   } else if (data && Array.isArray((data as PaginatedResponse<T>).results)) {
     return (data as PaginatedResponse<T>).results;
   }
-  console.warn('Unexpected API response format:', data);
+  logger.warn('Unexpected API response format', { data });
   return [];
 }
 

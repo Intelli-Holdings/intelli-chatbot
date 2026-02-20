@@ -33,6 +33,7 @@ import { transformCSVToRecipients, validateMappings, getRequiredFields } from '@
 import MappingPreviewPanel from '@/components/mapping-preview-panel';
 import { ChatbotAutomationService, TemplateButtonFlowMapping } from '@/services/chatbot-automation';
 import { ChatbotAutomation } from '@/types/chatbot-automation';
+import { logger } from "@/lib/logger";
 
 interface Contact {
   id: string;
@@ -288,7 +289,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     try {
       await fetchNextPage();
     } catch (error) {
-      console.error('Error loading more contacts:', error);
+      logger.error("Error loading more contacts", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to load more contacts');
     }
   };
@@ -421,20 +422,20 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
     // Extract button variables (URL buttons with parameters and COPY_CODE buttons)
     const buttonsComponent = template.components?.find((c: any) => c.type === 'BUTTONS');
-    console.log('Looking for BUTTONS component in template:', template.name);
-    console.log('All components:', template.components?.map((c: any) => c.type));
+    logger.debug("Looking for BUTTONS component in template", { templateName: template.name });
+    logger.debug("All components", { data: template.components?.map((c: any) => c.type) });
 
     if (buttonsComponent) {
-      console.log('Button component found:', JSON.stringify(buttonsComponent, null, 2));
+      logger.debug("Button component found", { data: buttonsComponent });
 
       if (buttonsComponent.buttons) {
         buttonsComponent.buttons.forEach((button: any, index: number) => {
-          console.log(`Processing button ${index}:`, JSON.stringify(button, null, 2));
+          logger.debug(`Processing button ${index}`, { data: button });
 
           // URL buttons with variables in the URL
           if (button.type === 'URL' && button.url) {
             const urlMatches = button.url.match(/\{\{(\w+|\d+)\}\}/g) || [];
-            console.log(`Button ${index} URL matches:`, urlMatches);
+            logger.debug(`Button ${index} URL matches`, { data: urlMatches });
             urlMatches.forEach(() => {
               buttonVariables.push({
                 type: 'text',
@@ -446,7 +447,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
           // COPY_CODE buttons always require a parameter (the code to copy)
           if (button.type === 'COPY_CODE') {
-            console.log(`Button ${index} is COPY_CODE, adding parameter`);
+            logger.debug(`Button ${index} is COPY_CODE, adding parameter`);
             buttonVariables.push({
               type: 'text',
               text: '', // User will fill this
@@ -455,10 +456,10 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           }
         });
       } else {
-        console.log('Buttons component found but no buttons array');
+        logger.debug("Buttons component found but no buttons array");
       }
     } else {
-      console.log('No BUTTONS component found in template');
+      logger.debug("No BUTTONS component found in template");
     }
 
     return { bodyVariables, headerVariables, buttonVariables };
@@ -480,9 +481,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const handleTemplateSelect = async (templateName: string) => {
     const template = approvedTemplates.find(t => t.name === templateName);
     if (template) {
-      console.log('Selected template:', template);
+      logger.debug("Selected template", { data: template });
       const { bodyVariables, headerVariables, buttonVariables } = extractTemplateVariables(template);
-      console.log('Extracted variables - Body:', bodyVariables.length, 'Header:', headerVariables.length, 'Button:', buttonVariables.length);
+      logger.debug("Extracted variables", { bodyCount: bodyVariables.length, headerCount: headerVariables.length, buttonCount: buttonVariables.length });
       setFormData(prev => ({
         ...prev,
         templateName,
@@ -533,7 +534,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setFlowMappings(initialMappings);
       setHasFlowMappingChanges(false);
     } catch (error) {
-      console.error('Error fetching flows and mappings:', error);
+      logger.error("Error fetching flows and mappings", { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setLoadingFlows(false);
     }
@@ -574,7 +575,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.success('Flow mappings saved successfully');
       setHasFlowMappingChanges(false);
     } catch (error) {
-      console.error('Error saving flow mappings:', error);
+      logger.error("Error saving flow mappings", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to save flow mappings');
     } finally {
       setSavingFlowMappings(false);
@@ -631,7 +632,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setGlobalHeaderMediaId(data.id || '');
       toast.success('Header media uploaded');
     } catch (error) {
-      console.error('Global header media upload failed:', error);
+      logger.error("Global header media upload failed", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to upload media');
       setGlobalHeaderMediaFile(null);
       setGlobalHeaderMediaHandle('');
@@ -884,7 +885,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.success('Draft updated');
       return true;
     } catch (error) {
-      console.error('Error updating draft campaign:', error);
+      logger.error("Error updating draft campaign", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to update draft');
       return false;
     } finally {
@@ -923,9 +924,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       if (campaignType === 'template') {
         const selectedTemplate = approvedTemplates.find(t => t.name === formData.templateName);
         if (selectedTemplate) {
-          console.log('=== CAMPAIGN CREATION DEBUG ===');
-          console.log('Selected template for campaign:', JSON.stringify(selectedTemplate, null, 2));
-          console.log('Form data button parameters:', formData.buttonParameters);
+          logger.debug("Campaign creation debug", { selectedTemplate, buttonParameters: formData.buttonParameters });
           campaignData.template_id = selectedTemplate.id;
 
           // Build the template object with all required metadata
@@ -997,11 +996,11 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                 }
               }];
 
-              console.log(`✅ Added global ${headerFormat} media to campaign payload:`, mediaId);
+              logger.info(`Added global ${headerFormat} media to campaign payload`, { mediaId });
             } else if (headerMediaMode === 'per-recipient') {
               // Per-recipient mode: Don't include header_parameters in campaign payload
               // Recipients will provide their own media IDs
-              console.log('📋 Per-recipient media mode: Media will be provided per contact');
+              logger.info("Per-recipient media mode: Media will be provided per contact");
             }
           }
 
@@ -1024,7 +1023,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           }
 
           templatePayload.button_params = buttonParams;
-          console.log('Extracted params - Body:', templatePayload.body_params, 'Header:', templatePayload.header_params, 'Button:', templatePayload.button_params);
+          logger.debug("Extracted params", { bodyParams: templatePayload.body_params, headerParams: templatePayload.header_params, buttonParams: templatePayload.button_params });
 
           // Carousel fields
           if (isCarouselTemplate && carouselMediaIds.length > 0) {
@@ -1041,9 +1040,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         };
       }
 
-      console.log('Creating campaign with data:', campaignData);
+      logger.info("Creating campaign", { data: campaignData });
       const campaign = await CampaignService.createCampaign(campaignData);
-      console.log('Campaign created:', campaign);
+      logger.info("Campaign created", { data: campaign });
 
       setCreatedCampaignId(campaign.id);
       if (campaign.whatsapp_campaign_id) {
@@ -1053,7 +1052,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.success('Campaign created successfully!');
       return true;
     } catch (error) {
-      console.error('Error creating campaign:', error);
+      logger.error("Error creating campaign", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to create campaign');
       return false;
     } finally {
@@ -1137,7 +1136,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           }
         },
         error: (error) => {
-          console.error('Error parsing CSV:', error);
+          logger.error("Error parsing CSV", { error: error instanceof Error ? error.message : String(error) });
           toast.error('Failed to parse CSV file');
         },
       });
@@ -1256,7 +1255,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           const statusResponse = await fetch(`/api/contacts/import/${importJobId}`);
 
           if (!statusResponse.ok) {
-            console.warn(`Import status check failed (attempt ${attempts + 1}/${maxAttempts}):`, statusResponse.status);
+            logger.warn(`Import status check failed (attempt ${attempts + 1}/${maxAttempts})`, { status: statusResponse.status });
 
             // If we get a 404, the job might have been cleaned up
             if (statusResponse.status === 404) {
@@ -1306,7 +1305,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
               // Show validation errors if any
               if (transformResult.errors.length > 0) {
-                console.warn('CSV validation errors:', transformResult.errors);
+                logger.warn("CSV validation errors", { errors: transformResult.errors });
                 toast.warning(`${transformResult.errors.length} row(s) with errors were skipped`);
               }
 
@@ -1326,7 +1325,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                 toast.error('No valid recipients found in CSV');
               }
             } catch (error) {
-              console.error('Error adding recipients to campaign:', error);
+              logger.error("Error adding recipients to campaign", { error: error instanceof Error ? error.message : String(error) });
               toast.error('Failed to add recipients to campaign');
             }
 
@@ -1339,7 +1338,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           if (fetchError instanceof Error && fetchError.message.includes('Import job not found')) {
             throw fetchError;
           }
-          console.warn('Error checking import status:', fetchError);
+          logger.warn("Error checking import status", { error: fetchError instanceof Error ? fetchError.message : String(fetchError) });
         }
 
         attempts++;
@@ -1348,7 +1347,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       if (!importComplete) {
         const timeoutMessage = 'Import is taking longer than expected. You can return to this campaign while we finish processing.';
         toast.warning(timeoutMessage, { duration: 10000 });
-        console.warn('Import did not complete within timeout (job ID: ', importJobId, ')');
+        logger.warn("Import did not complete within timeout", { importJobId });
 
         // Clean UI state but allow later retry
         setSelectedFile(null);
@@ -1368,7 +1367,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setColumnMappings({});
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error) {
-      console.error('Error importing CSV:', error);
+      logger.error("Error importing CSV", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to import CSV');
     } finally {
       setUploading(false);
@@ -1409,7 +1408,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       }
       return true;
     } catch (error) {
-      console.error('Error verifying recipients:', error);
+      logger.error("Error verifying recipients", { error: error instanceof Error ? error.message : String(error) });
       return true; // Do not block launch on verification error
     }
   };
@@ -1434,7 +1433,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setPreviewError(null);
       setPreviewUpdatedAt(new Date().toISOString());
     } catch (error) {
-      console.error('Error loading campaign preview:', error);
+      logger.error("Error loading campaign preview", { error: error instanceof Error ? error.message : String(error) });
       const message = error instanceof Error ? error.message : 'Failed to fetch message preview';
       setPreviewError(message);
       toast.error(message);
@@ -1468,7 +1467,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       }
       return true;
     } catch (error) {
-      console.error('Error refreshing campaign ids before execute:', error);
+      logger.error("Error refreshing campaign ids before execute", { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   };
@@ -1585,10 +1584,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
       // Add recipients if campaign is WhatsApp
       if (formData.channel === 'whatsapp') {
-        console.log('=== RECIPIENT SUBMISSION DEBUG ===');
-        console.log('Selected contacts:', formData.selectedContacts);
-        console.log('Selected tags:', formData.selectedTags);
-        console.log('Has template variables:', hasTemplateVariables);
+        logger.debug("Recipient submission debug", { selectedContacts: formData.selectedContacts, selectedTags: formData.selectedTags, hasTemplateVariables });
         const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
         const mediaValue = globalHeaderMediaId || globalHeaderMediaHandle;
         const tagIds = formData.selectedTags.length > 0
@@ -1600,7 +1596,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
         // If template has variables, use new format with per-recipient parameters
         if (hasTemplateVariables && formData.selectedContacts.length > 0) {
-          console.log('=== USING NEW RECIPIENT FORMAT WITH PARAMETERS ===');
+          logger.debug("Using new recipient format with parameters");
 
           if (hasMediaHeader && headerMediaMode === 'global' && !mediaValue) {
             toast.error('Upload header media before sending');
@@ -1612,14 +1608,13 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           const recipientsWithParams = formData.selectedContacts.map(contactId => {
             const contact = contacts.find(c => c.id === contactId);
             if (!contact) {
-              console.warn(`Contact not found for ID: ${contactId}`);
+              logger.warn(`Contact not found for ID: ${contactId}`);
               return null;
             }
 
             // Validate that contact has a phone number
             if (!contact.phone) {
-              console.warn(`Contact ${contactId} (${contact.fullname}) has no phone number`);
-              console.warn('Contact object:', contact);
+              logger.warn(`Contact ${contactId} (${contact.fullname}) has no phone number`, { contact });
               return null;
             }
 
@@ -1631,7 +1626,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               // Global media mode: Leave header_params EMPTY for recipients
               // Campaign payload already has the media ID in header_parameters
               // Recipients will use campaign defaults
-              console.log(`📌 Global media mode: Recipient will use campaign default media`);
+              logger.info("Global media mode: Recipient will use campaign default media");
             } else if (hasMediaHeader && headerMediaMode === 'per-recipient') {
               // Per-recipient mode: Each recipient provides their own media ID
               for (let i = 0; i < formData.headerParameters.length; i++) {
@@ -1667,12 +1662,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               }
             };
 
-            console.log(`Building recipient for ${contact.fullname}:`, recipient);
+            logger.debug(`Building recipient for ${contact.fullname}`, { data: recipient });
 
             return recipient;
           }).filter(r => r !== null);
 
-          console.log('Recipients with parameters:', JSON.stringify(recipientsWithParams, null, 2));
+          logger.debug("Recipients with parameters", { data: recipientsWithParams });
 
           // Add recipients with template parameters
           await CampaignService.addWhatsAppCampaignRecipients(
@@ -1684,7 +1679,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
             }
           );
 
-          console.log('Recipients with parameters added successfully');
+          logger.info("Recipients with parameters added successfully");
 
         const ok = await verifyRecipientsExist();
         if (!ok) {
@@ -1696,7 +1691,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         }
         } else {
           // Use legacy format for templates without variables
-          console.log('=== USING LEGACY RECIPIENT FORMAT (no template variables) ===');
+          logger.debug("Using legacy recipient format (no template variables)");
 
           // Get contact IDs - ensure they are numbers
           const contactIds = formData.selectedContacts.length > 0
@@ -1706,8 +1701,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               }).filter(id => !isNaN(id))
             : [];
 
-          console.log('Tag IDs:', tagIds);
-          console.log('Contact IDs:', contactIds);
+          logger.debug("Recipient IDs", { tagIds, contactIds });
 
           // Only add recipients if at least one type is selected
           if (tagIds.length > 0 || contactIds.length > 0) {
@@ -1724,7 +1718,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               recipientData.contact_ids = contactIds;
             }
 
-            console.log('Recipient data payload:', JSON.stringify(recipientData, null, 2));
+            logger.debug("Recipient data payload", { data: recipientData });
 
             await CampaignService.addWhatsAppCampaignRecipients(
               createdWhatsAppCampaignId,
@@ -1732,7 +1726,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               recipientData
             );
 
-            console.log('Recipients added successfully');
+            logger.info("Recipients added successfully");
 
             const ok = await verifyRecipientsExist();
             if (!ok) {
@@ -1762,7 +1756,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.success('Campaign launched successfully!');
       onSuccess();
     } catch (error) {
-      console.error('Error launching campaign:', error);
+      logger.error("Error launching campaign", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to launch campaign');
     } finally {
       setLoading(false);

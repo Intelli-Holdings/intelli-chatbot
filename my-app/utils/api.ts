@@ -1,5 +1,6 @@
 import { Assistant } from '@/types/assistant';
 
+import { logger } from "@/lib/logger";
 export async function fetchAssistants(organizationId: string): Promise<Assistant[]> {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`);
@@ -8,7 +9,7 @@ export async function fetchAssistants(organizationId: string): Promise<Assistant
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching assistants:', error);
+    logger.error('Error fetching assistants:', { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 }
@@ -27,7 +28,7 @@ export async function createAssistant(data: { name: string; prompt: string; orga
     }
     return await response.json();
   } catch (error) {
-    console.error('Error creating assistant:', error);
+    logger.error('Error creating assistant:', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }

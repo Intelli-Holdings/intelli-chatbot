@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { logger } from "@/lib/logger";
 
 export const dynamic = 'force-dynamic'
 
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error in GET /api/whatsapp/namespace:", error)
+    logger.error("Error in GET /api/whatsapp/namespace", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 },

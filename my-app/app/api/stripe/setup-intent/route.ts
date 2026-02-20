@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { logger } from "@/lib/logger";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not defined');
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating setup intent:', error);
+    logger.error('Error creating setup intent', { error: error instanceof Error ? error.message : String(error) });
     
     return NextResponse.json(
       { 

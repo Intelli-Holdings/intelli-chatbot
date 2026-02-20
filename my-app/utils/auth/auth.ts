@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+import { logger } from "@/lib/logger";
 const BASE_URL = 'https://intelli-python-backend.onrender.com';
 
 interface LoginResponse {
@@ -23,11 +24,11 @@ export const login = async (email: string, password: string): Promise<boolean> =
 
       return true;
     } else {
-      console.error('Login failed:', response.data);
+      logger.error('Login failed:', { data: response.data });
       return false;
     }
   } catch (error) {
-    console.error('Error during login:', error);
+    logger.error('Error during login:', { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 };

@@ -7,6 +7,7 @@ import {
 } from '@/services/metrics';
 import { getContactsCount } from '@/services/contacts';
 import { getRecentEscalations } from '@/services/notifications';
+import { logger } from "@/lib/logger";
 
 export type TimePeriod = 'today' | 'week' | 'month' | 'all';
 
@@ -57,13 +58,13 @@ export const useDashboardMetrics = (
           const allTimeDateRange = getDateRangeForPeriod('all');
           allTimeSummary = await getMetricsSummary(organizationId, allTimeDateRange);
         } catch (allTimeError) {
-          console.warn('[Dashboard Metrics] Failed to fetch all-time data, using period data as fallback:', allTimeError);
+          logger.warn('[Dashboard Metrics] Failed to fetch all-time data, using period data as fallback', { error: allTimeError instanceof Error ? allTimeError.message : String(allTimeError) });
           // Fallback to period data
           allTimeSummary = summary;
         }
       }
 
-      console.log('[Dashboard Metrics] Raw API response:', {
+      logger.debug('[Dashboard Metrics] Raw API response', {
         hasSummary: !!summary,
         hasLatest: !!summary?.latest,
         latestData: summary?.latest,
@@ -117,7 +118,7 @@ export const useDashboardMetrics = (
       const allTimeWebsite = getChannelCount(allTimeLatest.conversations_per_channel?.channels?.website);
       const hasActivity = allTimeLatest.num_conversations > 0 || allTimeWhatsapp > 0 || allTimeWebsite > 0;
 
-      console.log('[Dashboard Metrics] Activity check:', {
+      logger.debug('[Dashboard Metrics] Activity check', {
         period,
         period_conversations: latest.num_conversations,
         period_messages: latest.num_messages,
@@ -260,7 +261,7 @@ export const useDashboardMetrics = (
       setAllTimeStats(null);
       setIsEmpty(true);
       setError(errorMessage);
-      console.error('[Dashboard Metrics] Error fetching dashboard metrics:', err);
+      logger.error('[Dashboard Metrics] Error fetching dashboard metrics', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

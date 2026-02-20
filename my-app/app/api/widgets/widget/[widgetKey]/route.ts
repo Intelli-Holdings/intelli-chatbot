@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -54,7 +55,7 @@ export async function PUT(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[API] Backend error: ${response.status} - ${errorText}`);
+      logger.error("Backend error updating widget", { status: response.status, errorText });
       return NextResponse.json(
         { error: `Failed to update widget: ${response.statusText}` },
         { status: response.status }
@@ -62,11 +63,11 @@ export async function PUT(
     }
 
     const data = await response.json();
-    console.log(`[API] Successfully updated widget`);
+    logger.info("Successfully updated widget");
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[API] Error updating widget:", error);
+    logger.error("Error updating widget", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -111,7 +112,7 @@ export async function DELETE(
       );
     }
 
-    console.log(`[API] Deleting widget`);
+    logger.info("Deleting widget");
 
     // Delete widget from backend with Authorization header
     const response = await fetch(
@@ -127,7 +128,7 @@ export async function DELETE(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[API] Backend error: ${response.status} - ${errorText}`);
+      logger.error("Backend error deleting widget", { status: response.status, errorText });
       return NextResponse.json(
         { error: `Failed to delete widget: ${response.statusText}` },
         { status: response.status }
@@ -143,11 +144,11 @@ export async function DELETE(
       data = { success: true, message: "Widget deleted successfully" };
     }
 
-    console.log(`[API] Successfully deleted widget`);
+    logger.info("Successfully deleted widget");
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[API] Error deleting widget:", error);
+    logger.error("Error deleting widget", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       {
         error: "Internal server error",

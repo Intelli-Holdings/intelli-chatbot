@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Upload, Send, Users } from 'lucide-react';
 import { type WhatsAppTemplate, WhatsAppService } from '@/services/whatsapp';
 
+import { logger } from "@/lib/logger";
 interface TemplateBroadcastProps {
   templates: WhatsAppTemplate[];
   appService: any;
@@ -142,7 +143,7 @@ export default function TemplateBroadcast({ templates, appService }: TemplateBro
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         } catch (error) {
-          console.error(`Failed to send to ${recipient}:`, error);
+          logger.error(`Failed to send to ${recipient}:`, { error: error instanceof Error ? error.message : String(error) });
           failCount++;
         }
       }
@@ -159,7 +160,7 @@ export default function TemplateBroadcast({ templates, appService }: TemplateBro
       setVariables([]);
       setSelectedTemplate(null);
     } catch (error) {
-      console.error('Broadcast error:', error);
+      logger.error('Broadcast error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to send messages");
     } finally {
       setIsSending(false);

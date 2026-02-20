@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import {
   ChatbotAutomation,
   DEFAULT_CHATBOT_SETTINGS,
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(chatbot, { status: 201 });
   } catch (error) {
-    console.error("Error creating chatbot:", error);
+    logger.error("Error creating chatbot", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     const chatbots = Array.from(chatbotsStore.values());
     return NextResponse.json(chatbots);
   } catch (error) {
-    console.error("Error fetching chatbots:", error);
+    logger.error("Error fetching chatbots", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

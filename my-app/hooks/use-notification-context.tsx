@@ -8,6 +8,7 @@ import { useUser, useAuth } from "@clerk/nextjs"
 import { NotificationContextType } from "@/types/notification"
 import { Facebook, MessageSquare, Mail, Globe, Bell } from "lucide-react"
 import Image from "next/image"
+import { logger } from "@/lib/logger"
 
 interface PaginatedResponse {
   count: number
@@ -227,7 +228,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const token = await getToken({ organizationId: activeOrganizationId ?? undefined })
     if (!token) {
-      console.error('Cannot establish WebSocket connection: No authentication token')
+      logger.error('Cannot establish WebSocket connection: No authentication token')
       return
     }
 

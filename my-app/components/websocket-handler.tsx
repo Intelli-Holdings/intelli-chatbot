@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import type { WebSocketMessage } from "@/hooks/use-websocket"
 import { useAuth } from "@clerk/nextjs"
 
+import { logger } from "@/lib/logger";
 interface WebSocketHandlerProps {
   customerNumber?: string
   phoneNumber?: string
@@ -37,7 +38,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
         wsUrl = `${wsUrl}${separator}token=${encodeURIComponent(token)}`
       }
     } catch (error) {
-      console.error("Failed to get auth token for WebSocket:", error)
+      logger.error("Failed to get auth token for WebSocket:", { error: error instanceof Error ? error.message : String(error) })
     }
 
     const ws = new WebSocket(wsUrl)
@@ -127,7 +128,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
     }
 
     ws.onerror = (error) => {
-      console.error("WebSocket error:", error)
+      logger.error("WebSocket error:", { error: error instanceof Error ? error.message : String(error) })
      
     }
   }, [getToken, stopWebSocketConnection])

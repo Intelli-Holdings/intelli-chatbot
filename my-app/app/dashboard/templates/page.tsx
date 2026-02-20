@@ -7,6 +7,7 @@ import {
   type WhatsAppTemplate,
 } from "@/services/whatsapp";
 import { DefaultTemplate, defaultTemplates } from "@/data/default-templates";
+import { logger } from "@/lib/logger";
 import {
   RefreshCw,
   Plus,
@@ -98,7 +99,7 @@ export default function TemplatesPage() {
         setSelectedAppService(defaultService);
       }
     } catch (error: any) {
-      console.error("Error fetching app services:", error);
+      logger.error("Error fetching app services", { error: error instanceof Error ? error.message : String(error) });
       setServicesError(error.message || "Failed to fetch app services");
       toast.error("Failed to load app services");
     } finally {
@@ -120,7 +121,7 @@ export default function TemplatesPage() {
       );
       setTemplates(fetchedTemplates);
     } catch (error: any) {
-      console.error("Error fetching templates:", error);
+      logger.error("Error fetching templates", { error: error instanceof Error ? error.message : String(error) });
       setTemplatesError(error.message || "Failed to fetch templates");
       toast.error("Failed to load templates");
     } finally {
@@ -142,7 +143,7 @@ export default function TemplatesPage() {
       setLastSyncedAt(new Date());
       await fetchTemplates();
     } catch (error: any) {
-      console.error("Error syncing templates:", error);
+      logger.error("Error syncing templates", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to sync templates");
     } finally {
       setSyncingTemplates(false);
@@ -181,7 +182,7 @@ export default function TemplatesPage() {
       toast.success(`Template "${template.name}" created successfully!`);
       await fetchTemplates();
     } catch (error: any) {
-      console.error("Error creating template:", error);
+      logger.error("Error creating template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to create template");
     } finally {
       setCreatingTemplateId(null);
@@ -215,7 +216,7 @@ export default function TemplatesPage() {
       await fetchTemplates();
       return true;
     } catch (error: any) {
-      console.error("Error creating customized template:", error);
+      logger.error("Error creating customized template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to create template");
       return false;
     } finally {
@@ -237,7 +238,7 @@ export default function TemplatesPage() {
       await fetchTemplates();
       return true;
     } catch (error: any) {
-      console.error("Error creating template:", error);
+      logger.error("Error creating template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to create template");
       return false;
     }
@@ -257,7 +258,7 @@ export default function TemplatesPage() {
       setIsEditorDialogOpen(false);
       return true;
     } catch (error: any) {
-      console.error("Error updating template:", error);
+      logger.error("Error updating template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to update template");
       return false;
     }

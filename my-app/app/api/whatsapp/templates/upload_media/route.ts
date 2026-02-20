@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 // NOTE: For large file uploads, ensure nginx/reverse proxy has:
 // client_max_body_size 100m;
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const url = `${BASE_URL}/broadcast/whatsapp/templates/upload_media/`
 
-    console.log('Proxying media upload to backend:', url)
+    logger.debug('Proxying media upload to backend', { url })
 
     const response = await fetch(url, {
       method: "POST",
@@ -49,17 +50,17 @@ export async function POST(request: NextRequest) {
         rawText ||
         "Failed to upload media"
 
-      console.error('Backend upload failed:', message)
+      logger.error('Backend upload failed', { message })
       return NextResponse.json(
         { error: message, raw: data },
         { status: response.status }
       )
     }
 
-    console.log('Backend upload successful:', data)
+    logger.info('Backend upload successful', { data })
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error uploading media:", error)
+    logger.error("Error uploading media", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

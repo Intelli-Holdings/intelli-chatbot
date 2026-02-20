@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { logger } from "@/lib/logger";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not defined. Please add your Stripe secret key to the environment variables.');
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in payment method API:', error);
+    logger.error('Error in payment method API', { error: error instanceof Error ? error.message : String(error) });
     
     return NextResponse.json(
       { 
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error retrieving payment methods:', error);
+    logger.error('Error retrieving payment methods', { error: error instanceof Error ? error.message : String(error) });
     
     return NextResponse.json(
       { 
@@ -106,7 +107,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error removing payment method:', error);
+    logger.error('Error removing payment method', { error: error instanceof Error ? error.message : String(error) });
     
     return NextResponse.json(
       { 

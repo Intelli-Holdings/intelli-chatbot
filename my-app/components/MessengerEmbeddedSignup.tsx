@@ -17,6 +17,7 @@ import {
 } from "@/hooks/use-assistants-cache"
 import Image from 'next/image';
 
+import { logger } from "@/lib/logger";
 type SetupStep = "initial" | "authorizing" | "exchanging" | "creating" | "selectingAssistant" | "creatingAppService" | "complete"
 
 type Assistant = {
@@ -73,7 +74,7 @@ const MessengerEmbeddedSignup = () => {
     }
 
     if (messengerCode && messengerAuth === "success") {
-      console.log("Received messenger code from redirect:", messengerCode.substring(0, 20) + "...")
+      logger.info("Received messenger code from redirect:", { data: messengerCode.substring(0, 20) + "..." })
       setAuthCode(messengerCode)
       setStep("exchanging")
       setStatusMessage("Authorization successful. Exchanging code for access token...")
@@ -82,7 +83,7 @@ const MessengerEmbeddedSignup = () => {
       const redirectUri = process.env.NEXT_PUBLIC_MESSENGER_REDIRECT_URI ||
         `${window.location.origin}/messenger-redirect`
 
-      console.log("Using redirect_uri for token exchange:", redirectUri)
+      logger.info("Using redirect_uri for token exchange:", { data: redirectUri })
 
       // Clear URL params
       router.replace(window.location.pathname)
@@ -111,7 +112,7 @@ const MessengerEmbeddedSignup = () => {
         setStatusMessage("You need to create an assistant before setting up Messenger.")
       }
     } catch (error) {
-      console.error("Error fetching assistants:", error)
+      logger.error("Error fetching assistants:", { error: error instanceof Error ? error.message : String(error) })
       setError(error instanceof Error ? error.message : "Failed to fetch assistants")
       setStatusMessage("Error fetching assistants. Please try again.")
     } finally {
@@ -145,7 +146,7 @@ const MessengerEmbeddedSignup = () => {
         throw new Error("No access token in response")
       }
     } catch (err) {
-      console.error("Token exchange error:", err)
+      logger.error("Token exchange error:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Failed to exchange code for token")
       setStep("initial")
     } finally {
@@ -208,7 +209,7 @@ const MessengerEmbeddedSignup = () => {
       setStep("selectingAssistant")
       fetchAssistants()
     } catch (err) {
-      console.error("Channel creation error:", err)
+      logger.error("Channel creation error:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Failed to create Messenger channel")
       setStep("initial")
     } finally {
@@ -233,7 +234,7 @@ const MessengerEmbeddedSignup = () => {
         page_id: pageInfo.id,
         assistant_id: selectedAssistant.assistant_id,
       }
-      console.log("Creating Messenger AppService with data:", data)
+      logger.info("Creating Messenger AppService with data:", { data: data })
 
       const res = await fetch("/api/appservice/create-messenger", {
         method: "POST",
@@ -244,7 +245,7 @@ const MessengerEmbeddedSignup = () => {
       const appsvc = await res.json()
 
       if (!res.ok) {
-        console.error("AppService creation error:", appsvc)
+        logger.error("AppService creation error:", { data: appsvc })
         throw new Error(appsvc.error || appsvc.detail || "Failed to create AppService")
       }
 
@@ -252,7 +253,7 @@ const MessengerEmbeddedSignup = () => {
       setStep("complete")
       setStatusMessage("Setup complete! Your Messenger channel is ready.")
     } catch (e) {
-      console.error("Error creating AppService:", e)
+      logger.error("Error creating AppService:", { error: e instanceof Error ? e.message : String(e) })
       setAppServiceError(e instanceof Error ? e.message : "Error creating AppService")
       setStatusMessage("Error creating AppService. Please try again.")
     } finally {

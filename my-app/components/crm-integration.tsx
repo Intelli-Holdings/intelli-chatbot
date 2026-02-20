@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from 'sonner'
 
+import { logger } from "@/lib/logger";
 // Define authentication fields for each CRM
 const crmAuthFields = {
   salesforce: [
@@ -85,7 +86,7 @@ export function CRMIntegration() {
         }
       } catch (error) {
         toast.error(`Failed to disconnect from ${provider.name}`)
-        console.error(`Disconnect error:`, error)
+        logger.error(`Disconnect error:`, { error: error instanceof Error ? error.message : String(error) })
       }
     } else {
       // Open auth dialog for connection
@@ -114,7 +115,7 @@ export function CRMIntegration() {
       }
     } catch (error) {
       toast.error(`Failed to connect to ${selectedProvider.name}`)
-      console.error(`Connection error:`, error)
+      logger.error(`Connection error:`, { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setIsConnecting(false)
     }

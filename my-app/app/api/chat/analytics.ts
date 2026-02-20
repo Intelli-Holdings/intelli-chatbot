@@ -2,6 +2,7 @@ import { OpenAIClient, AzureKeyCredential } from '@azure/openai';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 import mongoose from 'mongoose';
 import AnalyticsModel from '@/models/analytics.model';
+import { logger } from "@/lib/logger";
 
 // Note: Edge runtime doesn't support persistent MongoDB connections
 // Using Node.js runtime for proper connection pooling
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error saving analytics:', error);
+    logger.error("Error saving analytics", { error: error instanceof Error ? error.message : String(error) });
     return new Response(JSON.stringify({ error: 'Failed to save analytics' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

@@ -8,6 +8,7 @@ import EmbeddedSignup from './EmbeddedSignup';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 
+import { logger } from "@/lib/logger";
 const WhatsappAssistant = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -121,7 +122,7 @@ const WhatsappAssistant = () => {
       });
 
     } catch (error) {
-      console.error('Error:', error);
+      logger.error('Error:', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setLoading(false);
     }

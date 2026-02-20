@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 // WhatsApp API configuration
 const WHATSAPP_API_VERSION = process.env.WHATSAPP_API_VERSION || "v24.0"
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!appServiceResponse.ok) {
-      console.error("Failed to fetch app service credentials")
+      logger.error("Failed to fetch app service credentials")
       return NextResponse.json(
         { error: "Failed to fetch WhatsApp credentials. Please ensure your WhatsApp account is configured." },
         { status: 500 },
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     const appService = appServiceData[0] || appServiceData.results?.[0]
 
     if (!appService?.access_token || !appService?.phone_number_id) {
-      console.error("WhatsApp credentials not found in database")
+      logger.error("WhatsApp credentials not found in database")
       return NextResponse.json(
         { error: "WhatsApp credentials not found. Please configure your WhatsApp Business Account." },
         { status: 500 },
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Validate messageId format (WhatsApp message IDs typically start with "wamid.")
     if (!messageId.startsWith("wamid.")) {
-      console.warn(`Invalid WhatsApp message ID format: ${messageId}`)
+      logger.warn("Invalid WhatsApp message ID format", { messageId })
       return NextResponse.json(
         { error: "Invalid WhatsApp message ID format. Expected format: wamid.XXX" },
         { status: 400 },
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
     // If emoji is empty, we're removing the reaction
     const reactionPayload = emoji ? { message_id: messageId, emoji } : { message_id: messageId, emoji: "" }
 
-    console.log(`Sending reaction to WhatsApp:`, {
+    logger.info("Sending reaction to WhatsApp", {
       to: recipientNumber,
       messageId,
       emoji: emoji || "(removing)",
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json()
-      console.error("WhatsApp API error:", errorData)
+      logger.error("WhatsApp API error", { data: errorData })
 
       // Handle specific WhatsApp error codes
       if (errorData.error?.code === 131009) {
@@ -109,10 +110,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    console.log("WhatsApp reaction sent successfully:", data)
+    logger.info("WhatsApp reaction sent successfully", { data })
     return NextResponse.json({ success: true, data })
   } catch (error) {
-    console.error("Error sending reaction:", error)
+    logger.error("Error sending reaction", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 },

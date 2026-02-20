@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 interface ProduceMetricsRequest {
   organization_id: string
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error producing metrics snapshot:", error)
+    logger.error("Error producing metrics snapshot", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

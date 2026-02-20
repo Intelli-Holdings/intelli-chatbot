@@ -53,6 +53,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import useActiveOrganizationId from "@/hooks/use-organization-id";
+import { logger } from "@/lib/logger";
 import { ChatbotAutomationService } from "@/services/chatbot-automation";
 import { ChatbotAutomation } from "@/types/chatbot-automation";
 
@@ -85,7 +86,7 @@ export default function ChatbotsPage() {
       const data = await ChatbotAutomationService.getChatbots(organizationId);
       setChatbots(data);
     } catch (error) {
-      console.error("Error fetching chatbots:", error);
+      logger.error("Error fetching chatbots", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to load chatbots");
     } finally {
       setLoading(false);
@@ -116,7 +117,7 @@ export default function ChatbotsPage() {
       // Navigate to flow builder
       router.push(`/dashboard/chatbots/${chatbot.id}/edit`);
     } catch (error) {
-      console.error("Error creating chatbot:", error);
+      logger.error("Error creating chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to create chatbot");
     } finally {
       setIsSubmitting(false);
@@ -130,7 +131,7 @@ export default function ChatbotsPage() {
       toast.success(`Chatbot ${chatbot.isActive ? "paused" : "activated"}`);
       fetchChatbots();
     } catch (error) {
-      console.error("Error toggling chatbot:", error);
+      logger.error("Error toggling chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to update chatbot status");
     }
   };
@@ -148,7 +149,7 @@ export default function ChatbotsPage() {
       setSelectedChatbot(null);
       fetchChatbots();
     } catch (error) {
-      console.error("Error duplicating chatbot:", error);
+      logger.error("Error duplicating chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to duplicate chatbot");
     } finally {
       setIsSubmitting(false);
@@ -167,7 +168,7 @@ export default function ChatbotsPage() {
       setSelectedChatbot(null);
       fetchChatbots();
     } catch (error) {
-      console.error("Error deleting chatbot:", error);
+      logger.error("Error deleting chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to delete chatbot");
     } finally {
       setIsSubmitting(false);

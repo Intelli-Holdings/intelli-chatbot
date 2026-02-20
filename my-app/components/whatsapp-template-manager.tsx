@@ -15,6 +15,7 @@ import CreateTemplateForm from '@/components/create-template-form';
 import EditTemplateForm from '@/components/edit-template-form';
 import TestMessageDialog from '@/components/test-message-dialog';
 
+import { logger } from "@/lib/logger";
 interface WhatsAppTemplateManagerProps {
   appService: AppService | null;
   organizationId?: string | null;
@@ -99,7 +100,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
         toast.error("Failed to delete template");
       }
     } catch (error) {
-      console.error('Delete template error:', error);
+      logger.error('Delete template error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to delete template");
     }
   };
@@ -113,7 +114,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
       }
       return false;
     } catch (error) {
-      console.error('Create template error:', error);
+      logger.error('Create template error:', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   };
@@ -131,7 +132,7 @@ const WhatsAppTemplateManager: React.FC<WhatsAppTemplateManagerProps> = ({ appSe
       }
       return false;
     } catch (error) {
-      console.error('Update template error:', error);
+      logger.error('Update template error:', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   };

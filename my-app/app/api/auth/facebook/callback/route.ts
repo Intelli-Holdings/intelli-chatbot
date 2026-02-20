@@ -72,7 +72,7 @@ const persistMetaCredentials = async ({
 
 export async function GET(request: NextRequest) {
   const appId = process.env.FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
-  const appSecret = process.env.FACEBOOK_APP_SECRET || process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET
+  const appSecret = process.env.FACEBOOK_APP_SECRET
   if (!appId || !appSecret) {
     return NextResponse.json({ error: "Missing Facebook app credentials" }, { status: 500 })
   }

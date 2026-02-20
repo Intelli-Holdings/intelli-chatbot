@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { ExternalLink, Calendar, Clock, ArrowRight, AlertCircle, Search, X } from "lucide-react"
 import { createSlug, formatDate } from "@/lib/blog-utils"
+import { logger } from "@/lib/logger"
 
 // Define the structure of a post
 interface MediumPost {
@@ -84,12 +85,12 @@ const MediumBlogComponent: React.FC = () => {
       if (data.success) {
         setPosts(data.items || [])
         setLastUpdated(new Date())
-        console.log("[v0] Posts updated successfully", { count: data.items?.length, isPolling })
+        logger.info("Posts updated successfully", { count: data.items?.length, isPolling })
       } else {
         throw new Error(data.error || "Failed to fetch posts")
       }
     } catch (err) {
-      console.error("Fetch error:", err)
+      logger.error("Fetch error", { error: err instanceof Error ? err.message : String(err) })
       if (!isPolling) {
         setError(err instanceof Error ? err.message : "Failed to load posts")
         setPosts([
@@ -118,7 +119,7 @@ const MediumBlogComponent: React.FC = () => {
     fetchPosts(false)
 
     pollingIntervalRef.current = setInterval(() => {
-      console.log("[v0] Polling for new posts...")
+      logger.debug("Polling for new posts")
       fetchPosts(true)
     }, 180000)
 
@@ -134,7 +135,7 @@ const MediumBlogComponent: React.FC = () => {
       if (document.visibilityState === "visible" && lastUpdated) {
         const timeSinceUpdate = Date.now() - lastUpdated.getTime()
         if (timeSinceUpdate > 120000) {
-          console.log("[v0] Tab became visible, refreshing posts...")
+          logger.debug("Tab became visible, refreshing posts")
           fetchPosts(true)
         }
       }

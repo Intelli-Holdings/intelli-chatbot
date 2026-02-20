@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from "@/lib/logger";
 
 // GET - List assistants for an organization
 export async function GET(
@@ -8,8 +9,7 @@ export async function GET(
   const { organizationId } = params
   
   try {
-    console.log('=== DEBUG: API route called ===')
-    console.log('Organization ID:', organizationId)
+    logger.debug("API route called", { organizationId })
     
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/get/assistants/${organizationId}/`,
@@ -24,7 +24,7 @@ export async function GET(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error fetching assistants", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to fetch assistants' }, 
         { status: response.status }
@@ -34,7 +34,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching assistants:', error)
+    logger.error("Error fetching assistants", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

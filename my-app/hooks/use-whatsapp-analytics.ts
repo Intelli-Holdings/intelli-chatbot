@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  WhatsAppService, 
-  type AppService, 
+import {
+  WhatsAppService,
+  type AppService,
   type MessagingAnalyticsResponse,
   type ConversationAnalyticsResponse,
-  type PhoneNumberLimit 
+  type PhoneNumberLimit
 } from '@/services/whatsapp';
+import { logger } from "@/lib/logger";
 
 export interface PhoneNumberProfile {
   id: string;
@@ -340,7 +341,7 @@ export const useWhatsAppAnalytics = (
       }
       
       setError(errorMessage);
-      console.error('Error fetching WhatsApp analytics:', err);
+      logger.error('Error fetching WhatsApp analytics', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

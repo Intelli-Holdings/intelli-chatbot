@@ -6,6 +6,7 @@ import { useOrganization, useOrganizationList } from "@clerk/nextjs"
 import type { TeamMember, ClerkMember } from "@/types/notification"
 import Notifications from "@/app/dashboard/notifications/Notifications"
 import { memberUtils } from "@/utils/members"
+import { logger } from "@/lib/logger"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useNotificationContext } from "@/hooks/use-notification-context"
 
@@ -25,7 +26,7 @@ const NotificationPage: React.FC = () => {
           const transformedMembers = membersList.data.map((member: ClerkMember) => memberUtils.transform(member))
           setMembers(transformedMembers)
         } catch (error) {
-          console.error("Failed to fetch members:", error)
+          logger.error("Failed to fetch members", { error: error instanceof Error ? error.message : String(error) })
         } finally {
           setIsLoadingMembers(false)
         }

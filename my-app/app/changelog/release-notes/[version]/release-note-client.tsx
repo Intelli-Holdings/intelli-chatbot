@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import TableOfContents from "./table-of-contents"
 import { generatePDF } from "./generate-pdf"
+import { logger } from "@/lib/logger"
 
 export default function ReleaseNoteClient({ version }: { version: string }) {
   const currentUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -26,8 +27,8 @@ export default function ReleaseNoteClient({ version }: { version: string }) {
             text: customMessage,
             url: currentUrl,
           })
-          .then(() => console.log("Shared successfully"))
-          .catch(error => console.error("Error sharing", error));
+          .then(() => logger.info("Shared successfully"))
+          .catch(error => logger.error("Error sharing", { error: error instanceof Error ? error.message : String(error) }));
         } else {
           navigator.clipboard.writeText(currentUrl);
           alert("URL copied to clipboard");
@@ -46,7 +47,7 @@ export default function ReleaseNoteClient({ version }: { version: string }) {
         );
         break;
       default:
-        console.warn("Unsupported platform:", platform);
+        logger.warn("Unsupported platform", { data: platform });
     }
   }
 

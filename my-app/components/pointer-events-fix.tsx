@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { logger } from "@/lib/logger";
 /**
  * Component to prevent body from getting stuck with pointer-events: none
  * This happens when Radix UI Dialog/Sheet doesn't clean up properly
@@ -21,7 +22,7 @@ export function PointerEventsFix() {
 
         // If no open dialogs/sheets, remove the pointer-events restriction
         if (!hasOpenDialog && !hasOpenSheet) {
-          console.log('[PointerEventsFix] Removing stuck pointer-events: none from body');
+          logger.info('[PointerEventsFix] Removing stuck pointer-events: none from body');
           body.style.pointerEvents = '';
         }
       }

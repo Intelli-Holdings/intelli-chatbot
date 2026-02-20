@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { useAppServices } from '@/hooks/use-app-services';
 import { uploadMediaViaAzure, shouldUseAzureUpload } from '@/lib/azure-media-upload';
 
+import { logger } from "@/lib/logger";
 interface QuestionNodeEditorProps {
   data: QuestionNodeData;
   onUpdate: (data: Partial<QuestionNodeData>) => void;
@@ -53,7 +54,7 @@ export default function QuestionNodeEditor({
 
   // Debug: log app service state
   useEffect(() => {
-    console.log('[FlowBuilder] AppService state:', {
+    logger.info('[FlowBuilder] AppService state:', {
       loading: appServiceLoading,
       error: appServiceError,
       hasService: !!selectedAppService,
@@ -109,7 +110,7 @@ export default function QuestionNodeEditor({
           },
           (progress) => {
             // Could add progress UI here if needed
-            console.log('Upload progress:', progress.message);
+            logger.debug('Upload progress:', { data: progress.message });
           }
         );
 
@@ -169,7 +170,7 @@ export default function QuestionNodeEditor({
       setUploadedFileName(file.name);
       toast.success('File uploaded successfully');
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to upload file');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

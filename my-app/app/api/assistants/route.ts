@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 
+import { logger } from "@/lib/logger";
 // POST - Create a new assistant
 export async function POST(request: NextRequest) {
   // Check authentication and get session token
@@ -38,11 +39,11 @@ export async function POST(request: NextRequest) {
       }
     )
     
-    console.log('Backend response status')
+    logger.info('Backend response status')
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error('Backend error:', { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to create assistant' }, 
         { status: response.status }
@@ -50,10 +51,10 @@ export async function POST(request: NextRequest) {
     }
     
     const data = await response.json()
-    console.log('Assistant created successfully')
+    logger.info('Assistant created successfully')
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error creating assistant:', error)
+    logger.error('Error creating assistant:', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

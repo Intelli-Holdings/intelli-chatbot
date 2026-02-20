@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { useAuthApi, type MyOrganizationsResponse, type Organization } from '@/lib/auth-api-client';
 import { useUser } from '@clerk/nextjs';
 
+import { logger } from "@/lib/logger";
 export function MyOrganizationsList() {
   const { isSignedIn } = useUser();
   const { get } = useAuthApi();
@@ -33,7 +34,7 @@ export function MyOrganizationsList() {
         const data = await get<MyOrganizationsResponse>('/auth/my-organizations/');
         setOrganizations(data.organizations);
       } catch (err) {
-        console.error('Failed to fetch organizations:', err);
+        logger.error('Failed to fetch organizations:', { error: err instanceof Error ? err.message : String(err) });
         setError(err instanceof Error ? err.message : 'Failed to fetch organizations');
       } finally {
         setLoading(false);

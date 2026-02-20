@@ -50,6 +50,7 @@ import {
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { getMetricsSummaryByOrganization, getMetricsByOrganization, type MetricsResponse, type MetricsSnapshot } from "@/lib/metrics-service"
 import Image from "next/image"
+import { logger } from "@/lib/logger";
 
 const CHART_COLORS = {
   primary: "#3b82f6",
@@ -152,7 +153,7 @@ export default function Analytics() {
         const summaryData = await getMetricsSummaryByOrganization(organizationId, { period: timeRange })
         setMetricsData(summaryData)
       } catch (error) {
-        console.error("Error fetching analytics data:", error)
+        logger.error("Error fetching analytics data", { error: error instanceof Error ? error.message : String(error) })
       } finally {
         setIsLoading(false)
       }

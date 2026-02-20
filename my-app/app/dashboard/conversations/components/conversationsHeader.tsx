@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { useCall } from "@/hooks/use-call";
 import { CallUI } from "@/components/call-ui";
 
@@ -54,7 +55,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
 
       if (isAiSupport) {
         const result = await takeoverConversation(formData);
-        console.log("Takeover result:", result);
+        logger.info("Takeover result", { data: result });
         
         // Dispatch WebSocket control event here on client-side
         window.dispatchEvent(
@@ -68,7 +69,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
         );
       } else {
         const result = await handoverConversation(formData);
-        console.log("Handover result:", result);
+        logger.info("Handover result", { data: result });
         
         // Optionally trigger WebSocket disconnect
         window.dispatchEvent(

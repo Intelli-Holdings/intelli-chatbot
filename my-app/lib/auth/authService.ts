@@ -1,6 +1,7 @@
 // authService.ts
 import axios from 'axios';
 import api from '@/lib/api';
+import { logger } from "@/lib/logger";
 
 interface RegisterPayload {
   email: string;
@@ -90,13 +91,13 @@ interface LoginPayload {
       return data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error('Error fetching user profile:', error.message);
+        logger.error('Error fetching user profile', { error: error.message });
         if (error.response && error.response.status === 401) {
-          console.error('Unauthorized. Please check your token.');
+          logger.error('Unauthorized. Please check your token.');
           // Optionally, handle token refresh logic here
         }
       } else {
-        console.error('Unexpected error:', error);
+        logger.error('Unexpected error', { error: error instanceof Error ? error.message : String(error) });
       }
       return null;
     }

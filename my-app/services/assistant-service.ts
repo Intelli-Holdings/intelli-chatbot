@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 export async function fetchAssistantsByOrganization(organizationId: string) {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${organizationId}/`)
@@ -6,7 +8,7 @@ export async function fetchAssistantsByOrganization(organizationId: string) {
       }
       return await response.json()
     } catch (error) {
-      console.error('Error fetching assistants:', error)
+      logger.error('Error fetching assistants', { error: error instanceof Error ? error.message : String(error) })
       return []
     }
   }

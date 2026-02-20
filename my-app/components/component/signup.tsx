@@ -12,6 +12,7 @@ import { CardTitle } from "@/components/ui/card"
 import logo from "@/public/Intelli.svg"
 import { v4 as uuidv4 } from 'uuid';
 
+import { logger } from "@/lib/logger";
 export default function Signup() {
 
   const [firstName, setFirstName] = useState("");
@@ -42,11 +43,11 @@ export default function Signup() {
 
     try {
       const response = await register(payload);
-      console.log('Registration successful:', response);
+      logger.info('Registration successful:', { data: response });
       toast.success('You have created an account successfully.');
       router.push('/dashboard');
     } catch (error) {
-      console.error('Registration failed:', error);
+      logger.error('Registration failed:', { error: error instanceof Error ? error.message : String(error) });
       toast.error('Error creating an account. Please try again.');
     } finally {
       setLoading(false);
