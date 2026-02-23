@@ -9,6 +9,7 @@ import { ConditionNodeData } from '../nodes/ConditionNode';
 import { MediaNodeData } from '../nodes/MediaNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
+import { SequenceNodeData } from '../nodes/SequenceNode';
 
 // Message types in simulation
 export type SimulationMessageType = 'bot' | 'user' | 'system';
@@ -193,6 +194,9 @@ export class FlowSimulator {
         break;
       case 'user_input_flow':
         await this.handleUserInputFlowNode(node);
+        break;
+      case 'sequence':
+        await this.handleSequenceNode(node);
         break;
     }
   }
@@ -431,6 +435,30 @@ export class FlowSimulator {
 
     // Move to first connected node (usually question_input)
     const nextNodeId = this.getNextNodeId(node.id, 'first-question');
+    if (nextNodeId) {
+      await this.processNode(nextNodeId);
+    } else {
+      this.endSimulation();
+    }
+  }
+
+  /**
+   * Handle sequence node - show scheduled steps and continue
+   */
+  private async handleSequenceNode(node: Node) {
+    const data = node.data as SequenceNodeData;
+    const stepCount = data.steps?.length || 0;
+
+    this.addMessage({
+      type: 'system',
+      content: stepCount > 0
+        ? `⏱ Sequence: ${stepCount} follow-up message${stepCount !== 1 ? 's' : ''} scheduled`
+        : '⏱ Sequence: No steps configured',
+      nodeId: node.id,
+    });
+
+    // Move to next node
+    const nextNodeId = this.getNextNodeId(node.id);
     if (nextNodeId) {
       await this.processNode(nextNodeId);
     } else {
