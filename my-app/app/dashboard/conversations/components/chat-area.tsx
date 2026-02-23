@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -12,7 +12,7 @@ import { format, parseISO, isToday, isYesterday } from "date-fns"
 import ConversationHeader from "./conversationsHeader"
 import { ScrollToBottomButton } from "@/app/dashboard/conversations/components/scroll-to-bottom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Download, FolderDown, File, FileImage, Music, Video, FileText } from "lucide-react"
+import { Download, FolderDown, File, FileImage, Music, Video, FileText, AlertTriangle, CornerDownLeft } from "lucide-react"
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from "@/utils/exportUtils"
 import "./message-bubble.css"
 import ResolveReminder from "@/components/resolve-reminder"
@@ -22,6 +22,11 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { ReactionPicker } from "@/components/reaction-picker"
 import { MessageStatus } from "@/app/dashboard/conversations/components/message-status"
+import { parseInteractiveMessage, parseCtaMessage, parseTemplateMessage } from "./parse-interactive-message"
+import { InteractiveFlowMessage, CtaFlowMessage, TemplateMessage } from "./interactive-flow-message"
+import { useWhatsAppAppServices } from "@/hooks/use-whatsapp-appservices"
+import { useWhatsAppTemplates } from "@/hooks/use-whatsapp-templates"
+import type { AppService } from "@/services/whatsapp"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
@@ -96,6 +101,72 @@ export default function ChatArea({
   const conversationId = conversation?.id
   const conversationMessages = conversation?.messages
   const conversationCustomerNumber = conversation?.customer_number || conversation?.recipient_id
+
+  // Template lookup: resolve [Template: name] to actual template content
+  const { appServices } = useWhatsAppAppServices(organizationId)
+  const currentAppService = useMemo(() =>
+    appServices.find(s => s.phone_number === phoneNumber) || null,
+    [appServices, phoneNumber]
+  )
+  const { templates } = useWhatsAppTemplates(currentAppService as AppService | null)
+  const templateMap = useMemo(() => {
+    const map = new Map<string, { body: string; buttons: string[] }>()
+    for (const t of templates) {
+      let body = ''
+      const buttons: string[] = []
+      for (const comp of t.components || []) {
+        if (comp.type === 'BODY') body = (comp as any).text || ''
+        if (comp.type === 'BUTTONS') {
+          for (const btn of (comp as any).buttons || []) {
+            buttons.push(btn.text || '')
+          }
+        }
+      }
+      if (body) map.set(t.name, { body, buttons })
+    }
+    return map
+  }, [templates])
+
+  // Compute last customer message time for 24h window
+  // The window opens when the customer messages the business (any mode) or replies to a template.
+  // Detection layers:
+  //   1. content field set (backend stores customer text here)
+  //   2. incoming_whatsapp_message_id set (incoming WhatsApp message)
+  //   3. sender === 'customer' (WebSocket real-time messages)
+  //   4. Fallback: recent flow message within 24h (flow implies customer triggered it)
+  const lastCustomerMessageTime = useMemo(() => {
+    if (!currentMessages || currentMessages.length === 0) return undefined
+
+    const reversed = [...currentMessages].reverse()
+    const now = new Date()
+
+    // Primary: find last message with explicit customer indicators
+    const customerMsg = reversed.find((msg) =>
+      (msg.content != null && msg.content.trim() !== '') ||
+      msg.incoming_whatsapp_message_id != null ||
+      msg.sender === 'customer'
+    )
+    if (customerMsg) return customerMsg.created_at
+
+    // Fallback: if a RECENT flow message exists (within 24h), customer must have triggered it
+    // Don't use old flow messages from previous expired windows
+    const lastFlowMsg = reversed.find((msg) => msg.sender === 'flow')
+    if (lastFlowMsg) {
+      const flowAge = now.getTime() - new Date(lastFlowMsg.created_at).getTime()
+      if (flowAge <= 24 * 60 * 60 * 1000) {
+        return lastFlowMsg.created_at
+      }
+    }
+
+    return undefined
+  }, [currentMessages])
+
+  const isWindowExpired = useMemo(() => {
+    if (!lastCustomerMessageTime) return false
+    const lastMsg = new Date(lastCustomerMessageTime)
+    const now = new Date()
+    return now.getTime() - lastMsg.getTime() > 24 * 60 * 60 * 1000
+  }, [lastCustomerMessageTime])
 
   // Update refs when props change
   useEffect(() => {
@@ -845,6 +916,39 @@ export default function ChatArea({
     [currentMessages, updateMessagesAndSync],
   )
 
+  // Flat sorted messages for button reply detection
+  const flatSortedMessages = useMemo(() => {
+    return [...(currentMessages ?? [])].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }, [currentMessages])
+
+  /**
+   * Check if a customer message is a button reply to a preceding flow interactive message.
+   * Searches backward to find the nearest flow message with [Options: ...].
+   */
+  const isButtonReply = useCallback((content: string, messageId: number): boolean => {
+    const trimmedContent = content.trim()
+    if (!trimmedContent || trimmedContent.length > 50) return false
+
+    const msgIndex = flatSortedMessages.findIndex(m => m.id === messageId)
+    if (msgIndex < 0) return false
+
+    for (let i = msgIndex - 1; i >= Math.max(0, msgIndex - 5); i--) {
+      const prevMsg = flatSortedMessages[i]
+      if (prevMsg.answer && prevMsg.sender === 'flow') {
+        const parsed = parseInteractiveMessage(prevMsg.answer)
+        if (parsed && parsed.options.some(opt =>
+          opt.toLowerCase() === trimmedContent.toLowerCase()
+        )) {
+          return true
+        }
+        break
+      }
+    }
+    return false
+  }, [flatSortedMessages])
+
   if (!conversation) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 ">
@@ -958,14 +1062,7 @@ export default function ChatArea({
         )}
 
         <ResolveReminder
-          lastCustomerMessageTime={
-            currentMessages && currentMessages.length > 0
-              ? [...currentMessages]
-                  .reverse()
-                  .find((msg) => msg.sender === 'customer')
-                  ?.created_at
-              : undefined
-          }
+          lastCustomerMessageTime={lastCustomerMessageTime}
         />
 
         <DropdownMenu>
@@ -1066,7 +1163,23 @@ export default function ChatArea({
 
                     return (
                       <div key={messageKey} className="flex flex-col mb-4">
-              {message.content && (
+              {message.content && (() => {
+                // Check if this is a button reply to a flow interactive message
+                if (!contentHasMedia && isButtonReply(message.content, message.id)) {
+                  return (
+                    <div className="flex justify-start mb-1">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-700 shadow-sm">
+                        <CornerDownLeft className="h-3 w-3 text-gray-400 shrink-0" />
+                        {message.content}
+                      </div>
+                      <span className="text-[10px] text-[#667781] ml-2 self-end">
+                        {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  )
+                }
+
+                return (
                 <div
                   className={cn(
                     "message-bubble message-customer group",
@@ -1114,9 +1227,63 @@ export default function ChatArea({
                     </div>
                   )}
                 </div>
-              )}
+                )
+              })()}
 
-              {message.answer && (
+              {message.answer && (() => {
+                // Check if this is a flow interactive message with buttons
+                const parsedInteractive = message.sender === 'flow'
+                  ? parseInteractiveMessage(message.answer)
+                  : null
+
+                if (parsedInteractive) {
+                  return (
+                    <InteractiveFlowMessage
+                      parsed={parsedInteractive}
+                      timestamp={message.created_at}
+                    />
+                  )
+                }
+
+                // Check if this message has CTA buttons (template messages)
+                const parsedCta = parseCtaMessage(message.answer)
+                if (parsedCta) {
+                  return (
+                    <CtaFlowMessage
+                      parsed={parsedCta}
+                      timestamp={message.created_at}
+                    />
+                  )
+                }
+
+                // Check if this is a [Template: name] placeholder — resolve to actual content
+                const templateName = parseTemplateMessage(message.answer)
+                if (templateName) {
+                  const templateData = templateMap.get(message.answer.trim().match(/\[Template:\s*(.+)\]/)?.[1] || '')
+                  if (templateData) {
+                    // Render actual template content
+                    return templateData.buttons.length > 0 ? (
+                      <InteractiveFlowMessage
+                        parsed={{ body: templateData.body, options: templateData.buttons }}
+                        timestamp={message.created_at}
+                      />
+                    ) : (
+                      <TemplateMessage
+                        templateName={templateName}
+                        body={templateData.body}
+                        timestamp={message.created_at}
+                      />
+                    )
+                  }
+                  return (
+                    <TemplateMessage
+                      templateName={templateName}
+                      timestamp={message.created_at}
+                    />
+                  )
+                }
+
+                return (
                 <div
                   className={cn(
                     "message-bubble group",
@@ -1138,7 +1305,7 @@ export default function ChatArea({
                       <span>Failed to send</span>
                     </div>
                   )}
-                  {/* Sender badge - AI or Human */}
+                  {/* Sender badge - AI or Human/Flow */}
                   <div className={cn(
                     "text-[9px] font-semibold mb-1",
                     message.sender === "ai" ? "text-purple-600" : "text-green-700"
@@ -1169,7 +1336,6 @@ export default function ChatArea({
                         )}
                       </>
                     )}
-                    {/* AI messages don't need status indicators since they're auto-sent */}
                   </div>
                   {message.reaction?.emoji && (
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
@@ -1184,12 +1350,16 @@ export default function ChatArea({
                     </div>
                   )}
                 </div>
-              )}
-              {message.media && (
+                )
+              })()}
+              {message.media && (() => {
+                // Media messages: determine if customer or outgoing
+                const isCustomerMedia = message.content != null
+                return (
                 <div
                   className={cn(
                     "message-bubble group",
-                    message.sender === "customer"
+                    isCustomerMedia
                       ? "message-customer"
                       : message.sender === "ai"
                         ? "message-assistant"
@@ -1201,7 +1371,7 @@ export default function ChatArea({
                 >
                   <div
                     className={
-                      message.sender === "customer"
+                      isCustomerMedia
                         ? "message-tail message-tail-left"
                         : message.sender === "ai"
                           ? "message-tail message-tail-right-assistant"
@@ -1209,7 +1379,7 @@ export default function ChatArea({
                     }
                   />
                   {/* Sender badge */}
-                  {message.sender === "customer" ? (
+                  {isCustomerMedia ? (
                     <div className="text-[9px] font-semibold text-gray-600 mb-1">
                       Customer
                     </div>
@@ -1253,16 +1423,17 @@ export default function ChatArea({
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
                   )}
                   {/* For media messages, use incoming_whatsapp_message_id for customer media, whatsapp_message_id for our media */}
-                  {(message.sender === "customer" ? message.incoming_whatsapp_message_id : message.whatsapp_message_id) && (
+                  {(isCustomerMedia ? message.incoming_whatsapp_message_id : message.whatsapp_message_id) && (
                     <div className="absolute -top-3 right-2">
                       <ReactionPicker
-                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji, message.sender === "customer")}
+                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji, isCustomerMedia)}
                         currentReaction={message.reaction?.emoji}
                       />
                     </div>
                   )}
                 </div>
-              )}
+                )
+              })()}
             </div>
                     )
                   })}
@@ -1280,6 +1451,14 @@ export default function ChatArea({
           </div>
         )}
       </div>
+      {isWindowExpired && (
+        <div className="px-3 py-2 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-xs text-amber-800">
+            24-hour window expired. Send a template message to reopen the conversation.
+          </span>
+        </div>
+      )}
       <div className="p-2 bg-[#f0f2f5] border-t border-[#e9edef]">
         <MessageInput
           customerNumber={conversation.customer_number || conversation.recipient_id}
