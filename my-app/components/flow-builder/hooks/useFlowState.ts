@@ -31,6 +31,7 @@ import {
   createQuestionInputNode,
   createCTAButtonNode,
   createHttpApiNode,
+  createSequenceNode,
   createNodeFromAction,
   cloneNode,
   ExtendedFlowNode,
@@ -53,7 +54,7 @@ interface UseFlowStateReturn {
   nodes: Node[];
   edges: Edge[];
   selectedNode: Node | null;
-  contextMenu: { position: ContextMenuPosition; nodeId: string | null } | null;
+  contextMenu: { position: ContextMenuPosition; nodeId: string | null; edgeId: string | null } | null;
   connectionMenu: ConnectionMenuPosition | null;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -63,6 +64,7 @@ interface UseFlowStateReturn {
   onPaneClick: () => void;
   onPaneContextMenu: (event: React.MouseEvent) => void;
   onNodeContextMenu: (event: React.MouseEvent, node: Node) => void;
+  onEdgeContextMenu: (event: React.MouseEvent, edge: Edge) => void;
   onDrop: (event: React.DragEvent) => void;
   onDragOver: (event: React.DragEvent) => void;
   onConnectStart: (event: React.MouseEvent | React.TouchEvent, params: { nodeId: string | null; handleId: string | null }) => void;
@@ -72,6 +74,7 @@ interface UseFlowStateReturn {
   closeContextMenu: () => void;
   closeConnectionMenu: () => void;
   deleteNode: (nodeId: string) => void;
+  deleteEdge: (edgeId: string) => void;
   updateNodeData: (nodeId: string, data: Partial<ExtendedFlowNode['data']>) => void;
   autoLayout: () => void;
   syncToChatbot: () => void;
@@ -107,7 +110,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
   const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges as Edge[]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ position: ContextMenuPosition; nodeId: string | null } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ position: ContextMenuPosition; nodeId: string | null; edgeId: string | null } | null>(null);
   const [connectionMenu, setConnectionMenu] = useState<ConnectionMenuPosition | null>(null);
   const [pendingConnection, setPendingConnection] = useState<ConnectionState | null>(null);
 
@@ -234,6 +237,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           flowPosition,
         },
         nodeId: null,
+        edgeId: null,
       });
     },
     [screenToFlowPosition]
@@ -254,8 +258,30 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           flowPosition,
         },
         nodeId: node.id,
+        edgeId: null,
       });
       setSelectedNode(node);
+    },
+    [screenToFlowPosition]
+  );
+
+  // Handle edge right-click for context menu
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      const flowPosition = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      setContextMenu({
+        position: {
+          x: event.clientX,
+          y: event.clientY,
+          flowPosition,
+        },
+        nodeId: null,
+        edgeId: edge.id,
+      });
     },
     [screenToFlowPosition]
   );
@@ -354,6 +380,9 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
         case 'http_api':
           newNode = createHttpApiNode(position);
           break;
+        case 'sequence':
+          newNode = createSequenceNode(position);
+          break;
       }
 
       if (newNode && connectionMenu.sourceNodeId) {
@@ -392,6 +421,8 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
         }
       } else if (action === 'delete' && contextMenu?.nodeId) {
         deleteNode(contextMenu.nodeId);
+      } else if (action === 'delete-edge' && contextMenu?.edgeId) {
+        deleteEdge(contextMenu.edgeId);
       } else if (action.startsWith('add-')) {
         const newNode = createNodeFromAction(action, position.flowPosition);
         if (newNode) {
@@ -459,6 +490,9 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
         case 'http_api':
           newNode = createHttpApiNode(position);
           break;
+        case 'sequence':
+          newNode = createSequenceNode(position);
+          break;
       }
 
       if (newNode) {
@@ -484,6 +518,14 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
       }
     },
     [setNodes, setEdges, selectedNode]
+  );
+
+  // Delete an edge
+  const deleteEdge = useCallback(
+    (edgeId: string) => {
+      setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+    },
+    [setEdges]
   );
 
   // Update node data
@@ -534,6 +576,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     onPaneClick,
     onPaneContextMenu,
     onNodeContextMenu,
+    onEdgeContextMenu,
     onDrop,
     onDragOver,
     onConnectStart,
@@ -543,6 +586,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     closeContextMenu,
     closeConnectionMenu,
     deleteNode,
+    deleteEdge,
     updateNodeData,
     autoLayout,
     syncToChatbot,
