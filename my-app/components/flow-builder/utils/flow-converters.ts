@@ -20,6 +20,7 @@ import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { HttpApiNodeData } from '../nodes/HttpApiNode';
+import { SequenceNodeData } from '../nodes/SequenceNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from './node-factories';
 
 const NODE_WIDTH = 280;
@@ -456,6 +457,22 @@ export function flowNodesToBackend(
       data.auth = httpData.auth;
     }
 
+    // Convert sequence node
+    if (node.type === 'sequence' && node.data.type === 'sequence') {
+      const seqData = node.data as SequenceNodeData;
+      data.steps = seqData.steps?.map(step => ({
+        id: step.id,
+        delay: step.delay,
+        delaySeconds: step.delaySeconds,
+        messageType: step.messageType,
+        textMessage: step.textMessage,
+        templateName: step.templateName,
+        templateId: step.templateId,
+        templateLanguage: step.templateLanguage,
+        templateComponents: step.templateComponents,
+      })) || [];
+    }
+
     return {
       id: node.id,
       type: node.type,
@@ -651,6 +668,35 @@ export function backendNodesToFlow(
           timeout: (backendData.timeout as number) || 30,
           auth: (backendData.auth as HttpApiNodeData['auth']) || { type: 'none' },
         } as HttpApiNodeData;
+        break;
+      }
+      case 'sequence': {
+        const steps = (backendData.steps as Array<{
+          id: string;
+          delay: string;
+          delaySeconds: number;
+          messageType: 'text' | 'template';
+          textMessage?: string;
+          templateName?: string;
+          templateId?: string;
+          templateLanguage?: string;
+          templateComponents?: Record<string, unknown>[];
+        }>) || [];
+        data = {
+          type: 'sequence',
+          label: 'Sequence',
+          steps: steps.map(s => ({
+            id: s.id,
+            delay: s.delay,
+            delaySeconds: s.delaySeconds,
+            messageType: s.messageType,
+            textMessage: s.textMessage,
+            templateName: s.templateName,
+            templateId: s.templateId,
+            templateLanguage: s.templateLanguage,
+            templateComponents: s.templateComponents,
+          })),
+        } as SequenceNodeData;
         break;
       }
       default: {
