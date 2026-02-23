@@ -21,6 +21,7 @@ import {
   ExternalLink,
   BarChart3,
   Globe,
+  Timer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -132,6 +133,13 @@ const nodeItems: DraggableNodeItem[] = [
     description: 'Call external APIs',
     icon: Globe,
     color: 'bg-violet-500/80 hover:bg-violet-500/90',
+  },
+  {
+    type: 'sequence',
+    label: 'Sequence',
+    description: 'Schedule follow-ups',
+    icon: Timer,
+    color: 'bg-emerald-500/80 hover:bg-emerald-500/90',
   },
   {
     type: 'action',
