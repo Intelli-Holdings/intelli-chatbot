@@ -5,18 +5,32 @@ import type { WebSocketMessage } from "@/hooks/use-websocket"
 import { useAuth } from "@clerk/nextjs"
 
 import { logger } from "@/lib/logger";
+
 interface WebSocketHandlerProps {
   customerNumber?: string
   phoneNumber?: string
   websocketUrl?: string
 }
 
+const MAX_RECONNECT_DELAY = 30000 // 30 seconds
+const INITIAL_RECONNECT_DELAY = 1000 // 1 second
+
 export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: WebSocketHandlerProps) {
   const wsRef = useRef<WebSocket | null>(null)
   const [isActive, setIsActive] = useState(false)
   const { getToken } = useAuth()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectAttemptRef = useRef(0)
+  const shouldReconnectRef = useRef(true)
+  // Track current connection params for reconnect
+  const connectionParamsRef = useRef<{ customerNumber: string; phoneNumber: string; url?: string } | null>(null)
 
   const stopWebSocketConnection = useCallback(() => {
+    shouldReconnectRef.current = false
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.close()
       wsRef.current = null
@@ -25,7 +39,17 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
 
   const startWebSocketConnection = useCallback(async (customerNumber: string, phoneNumber: string, url?: string) => {
     // Close existing connection if any
-    stopWebSocketConnection()
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+
+    shouldReconnectRef.current = true
+    connectionParamsRef.current = { customerNumber, phoneNumber, url }
 
     let wsUrl =
       url ||
@@ -44,7 +68,9 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
 
-    ws.onopen = () => {     
+    ws.onopen = () => {
+      // Reset reconnect counter on successful connection
+      reconnectAttemptRef.current = 0
 
       // Dispatch connection status event
       window.dispatchEvent(
@@ -57,6 +83,14 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
     ws.onmessage = (event) => {
       try {
         const message: WebSocketMessage = JSON.parse(event.data)
+
+        // Respond to server heartbeat pings
+        if (message.type === "ping") {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "pong" }))
+          }
+          return
+        }
 
         // Handle status updates separately
         if (message.type === "status_update") {
@@ -113,25 +147,39 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
           }),
         )
       } catch (error) {
-
+        logger.error("Failed to parse WebSocket message:", { error: error instanceof Error ? error.message : String(error) })
       }
     }
 
-    ws.onclose = () => {    
-
+    ws.onclose = (event) => {
       // Dispatch connection status event
       window.dispatchEvent(
         new CustomEvent("websocketConnectionChange", {
           detail: { status: "disconnected" },
         }),
       )
+
+      // Auto-reconnect with exponential backoff (unless intentionally closed)
+      if (shouldReconnectRef.current && connectionParamsRef.current) {
+        const attempt = reconnectAttemptRef.current
+        const delay = Math.min(INITIAL_RECONNECT_DELAY * Math.pow(2, attempt), MAX_RECONNECT_DELAY)
+        reconnectAttemptRef.current = attempt + 1
+
+        logger.info(`WebSocket closed (code=${event.code}). Reconnecting in ${delay}ms (attempt ${attempt + 1})`)
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          const params = connectionParamsRef.current
+          if (params && shouldReconnectRef.current) {
+            void startWebSocketConnection(params.customerNumber, params.phoneNumber, params.url)
+          }
+        }, delay)
+      }
     }
 
     ws.onerror = (error) => {
       logger.error("WebSocket error:", { error: error instanceof Error ? error.message : String(error) })
-     
     }
-  }, [getToken, stopWebSocketConnection])
+  }, [getToken])
 
   useEffect(() => {
     // If props are provided, start connection immediately
@@ -160,7 +208,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
     // Listen for AI support changes
     const handleAiSupportChange = (event: CustomEvent) => {
       const { isAiSupport, customerNumber, phoneNumber } = event.detail
-      
+
       // Always keep connection active, just update the UI state
       if (!isAiSupport && customerNumber && phoneNumber) {
         setIsActive(true)
