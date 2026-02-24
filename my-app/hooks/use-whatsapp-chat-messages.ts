@@ -14,16 +14,29 @@ interface PaginatedResponse {
 const fetchConversationMessages = async (
   phoneNumber: string,
   customerNumber: string,
-  pageUrl?: string
+  pageUrl?: string,
+  _retryCount: number = 0
 ): Promise<PaginatedResponse> => {
   const url =
     pageUrl || `/api/appservice/paginated/conversations/whatsapp/chat_sessions/${phoneNumber}/${customerNumber}/`
 
   const response = await fetch(url)
 
+  // Retry once on 429 (rate limited)
+  if (response.status === 429 && _retryCount < 2) {
+    const retryAfter = response.headers.get("Retry-After")
+    const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : (_retryCount + 1) * 2000
+    await new Promise(resolve => setTimeout(resolve, waitMs))
+    return fetchConversationMessages(phoneNumber, customerNumber, pageUrl, _retryCount + 1)
+  }
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.error || "Failed to fetch conversation messages")
+    throw new Error(
+      response.status === 429
+        ? "Too many requests. Please wait a moment."
+        : errorData.error || "Failed to fetch conversation messages"
+    )
   }
 
   const data = await response.json()
