@@ -97,12 +97,14 @@ export interface MyOrganizationsResponse {
 }
 
 /**
- * Make an authenticated API request to Django backend
+ * Make an authenticated API request to Django backend.
+ * Automatically retries once on 429 (rate limited) responses.
  */
 export async function fetchWithAuth(
   endpoint: string,
   options: RequestInit = {},
-  token?: string | null
+  token?: string | null,
+  _retryCount: number = 0
 ): Promise<any> {
   const headers: Record<string, string> = {
     'Accept': 'application/json',
@@ -125,6 +127,14 @@ export async function fetchWithAuth(
   const contentType = response.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
 
+  // Handle 429 rate limiting with retry
+  if (response.status === 429 && _retryCount < 2) {
+    const retryAfter = response.headers.get('Retry-After');
+    const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : (_retryCount + 1) * 2000;
+    await new Promise(resolve => setTimeout(resolve, waitMs));
+    return fetchWithAuth(endpoint, options, token, _retryCount + 1);
+  }
+
   // Handle non-2xx responses
   if (!response.ok) {
     let error: ApiError;
@@ -134,6 +144,10 @@ export async function fetchWithAuth(
       error = {
         message: `HTTP ${response.status}: ${response.statusText}`,
       };
+    }
+
+    if (response.status === 429) {
+      throw new Error('Too many requests. Please wait a moment and try again.');
     }
 
     const errorMessage = error.detail || error.error || error.message || 'API request failed';
