@@ -189,7 +189,7 @@ export default function WhatsAppBroadcastPage() {
               {/* CTA */}
               <div className="flex gap-4 justify-center">
                 <a
-                  href="https://intelli-app.com/register"
+                  href="https://www.intelliconcierge.com/auth/sign-up"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block px-6 py-3 text-sm font-semibold text-white bg-[#007fff] border border-[#007fff] rounded-md hover:bg-[#007fff]/90 transition-colors"
@@ -526,7 +526,7 @@ export default function WhatsAppBroadcastPage() {
 
                 <div className="flex gap-4 mt-8">
                   <a
-                    href="https://intelli-app.com/register"
+                    href="https://www.intelliconcierge.com/auth/sign-up"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block px-6 py-3 text-sm font-semibold text-white bg-[#007fff] border border-[#007fff] rounded-md hover:bg-[#007fff]/90 transition-colors"
