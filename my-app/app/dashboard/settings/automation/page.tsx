@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertTriangle, Bot, Loader2, MessageSquare, Pause, Play, Settings2, Workflow } from "lucide-react"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 
 const settingsNavigation = [
   {
@@ -110,7 +111,7 @@ export default function AutomationSettingsPage() {
         setSelectedChatbotFlowIds(enabledFlowIds)
         setAutoFallback(data.auto_fallback)
       } catch (error) {
-        console.error("Error fetching automation settings:", error)
+        logger.error("Error fetching automation settings", { error: error instanceof Error ? error.message : String(error) })
         const errorMessage = error instanceof Error ? error.message : "Failed to load automation settings"
         toast.error(errorMessage)
       } finally {
@@ -155,7 +156,7 @@ export default function AutomationSettingsPage() {
       setSettings(prev => prev ? { ...prev, ...data } : null)
       toast.success("Automation settings updated successfully")
     } catch (error) {
-      console.error("Error updating automation settings:", error)
+      logger.error("Error updating automation settings", { error: error instanceof Error ? error.message : String(error) })
       toast.error(error instanceof Error ? error.message : "Failed to update settings")
     } finally {
       setSaving(false)
@@ -180,7 +181,7 @@ export default function AutomationSettingsPage() {
       setSettings(prev => prev ? { ...prev, automation_paused: data.automation_paused } : null)
       toast.success(data.automation_paused ? "Automation paused" : "Automation resumed")
     } catch (error) {
-      console.error("Error toggling pause:", error)
+      logger.error("Error toggling pause", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to toggle automation pause")
     } finally {
       setToggling(false)

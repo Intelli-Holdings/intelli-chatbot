@@ -11,6 +11,7 @@ import {
 } from "@/lib/facebook-sdk"
 import Image from 'next/image';
 
+import { logger } from "@/lib/logger";
 type LoginMethod = "facebook" | "instagram"
 type SetupStep = "initial" | "authorizing" | "exchanging" | "creating" | "complete"
 
@@ -44,7 +45,7 @@ const InstagramEmbeddedSignup = ({ defaultLoginMethod = "facebook" }: InstagramE
     }
 
     if (instagramCode && instagramAuth === "success" && !authCode) {
-      console.log("Received instagram_code from redirect")
+      logger.info("Received instagram_code from redirect")
       setAuthCode(instagramCode)
       setStep("exchanging")
       setStatusMessage("Authorization code received. Exchanging for access token...")
@@ -89,7 +90,7 @@ const InstagramEmbeddedSignup = ({ defaultLoginMethod = "facebook" }: InstagramE
         throw new Error("No access token in response")
       }
     } catch (err) {
-      console.error("Token exchange error:", err)
+      logger.error("Token exchange error:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Failed to exchange code for token")
       setStep("initial")
     } finally {
@@ -123,7 +124,7 @@ const InstagramEmbeddedSignup = ({ defaultLoginMethod = "facebook" }: InstagramE
         throw new Error("No access token in response")
       }
     } catch (err) {
-      console.error("Token exchange error:", err)
+      logger.error("Token exchange error:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Failed to exchange code for token")
       setStep("initial")
     } finally {
@@ -224,7 +225,7 @@ const InstagramEmbeddedSignup = ({ defaultLoginMethod = "facebook" }: InstagramE
       setStep("complete")
       setStatusMessage("Instagram channel created successfully!")
     } catch (err) {
-      console.error("Channel creation error:", err)
+      logger.error("Channel creation error:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Failed to create Instagram channel")
       setStep("initial")
     } finally {

@@ -1,4 +1,5 @@
 import { Widget, CreateWidgetData } from '@/types/widget';
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -18,7 +19,7 @@ export async function createWidget(data: CreateWidgetData): Promise<Widget> {
 
     return await response.json();
   } catch (error) {
-    console.error('Error creating widget:', error);
+    logger.error('Error creating widget', { error: error instanceof Error ? error.message : String(error) });
     throw new Error('Failed to create widget');
   }
 }
@@ -33,7 +34,7 @@ export async function getWidgets(organizationId: string): Promise<Widget[]> {
 
     return await response.json();
   } catch (error) {
-    console.error('Error fetching widgets:', error);
+    logger.error('Error fetching widgets', { error: error instanceof Error ? error.message : String(error) });
     throw new Error('Failed to fetch widgets');
   }
 }

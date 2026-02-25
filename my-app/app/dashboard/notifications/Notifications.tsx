@@ -37,6 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import type { NotificationMessage, TeamMember } from "@/types/notification"
 import { useOrganization, useUser, useAuth } from "@clerk/nextjs"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 import { useRouter } from "next/navigation"
 import { useNotificationContext } from "@/hooks/use-notification-context"
 import Image from "next/image"
@@ -130,7 +131,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       setCurrentPage(page)
     } catch (err) {
       toast.error('Failed to load notifications')
-      console.error('Pagination error:', err)
+      logger.error("Pagination error", { error: err instanceof Error ? err.message : String(err) })
     } finally {
       setIsPaginationLoading(false)
     }
@@ -238,7 +239,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       }
       await fetchPaginatedNotifications(currentPage)
     } catch (error) {
-      console.error('Failed to resolve notifications:', error)
+      logger.error("Failed to resolve notifications", { error: error instanceof Error ? error.message : String(error) })
       toast.error('Failed to resolve notifications')
     } finally {
       setIsLoading(prev => ({ ...prev, 'bulk-resolve': false }))
@@ -349,10 +350,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       if (activeOrganizationId) {
         payload.organization_id = activeOrganizationId
       }
-      console.group("Notification assign payload")
-      console.log("notificationId", notificationId)
-      console.log("payload", payload)
-      console.groupEnd()
+      logger.debug("Notification assign payload", { notificationId, payload })
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assign/notification/`, {
         method: "POST",
         headers,
@@ -360,7 +358,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
       })
       if (!response.ok) {
         const text = await response.text()
-        console.error("assign response error", response.status, text)
+        logger.error("Assign response error", { status: response.status, responseText: text })
         throw new Error(`Failed to assign: ${response.statusText}`)
       }
       const updatedNotification = await response.json()

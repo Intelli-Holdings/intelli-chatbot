@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { generateId } from "@/types/chatbot-automation";
 import { chatbotsStore } from "../../_store";
 
@@ -48,7 +49,7 @@ export async function POST(
 
     return NextResponse.json(duplicated, { status: 201 });
   } catch (error) {
-    console.error("Error duplicating chatbot:", error);
+    logger.error("Error duplicating chatbot", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

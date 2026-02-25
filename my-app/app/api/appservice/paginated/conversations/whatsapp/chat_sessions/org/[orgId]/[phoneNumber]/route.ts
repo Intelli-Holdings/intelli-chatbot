@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
+import { logger } from "@/lib/logger";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET(
@@ -59,7 +60,7 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('Failed to fetch chat sessions:', error);
+    logger.error('Failed to fetch chat sessions:', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to fetch chat sessions' },
       { status: 500 }

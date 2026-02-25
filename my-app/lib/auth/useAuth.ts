@@ -1,6 +1,7 @@
 // useAuth.ts
 import { useState, useEffect } from 'react';
 import { getProfile, logout } from '@/lib/auth/authService';
+import { logger } from "@/lib/logger";
 
 interface User {
   photoURL: string | null;
@@ -30,7 +31,7 @@ const useAuth = () => {
           setUser(null);
         }
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        logger.error('Error fetching user profile', { error: error instanceof Error ? error.message : String(error) });
       }
     };
 
@@ -42,7 +43,7 @@ const useAuth = () => {
       await logout();
       setUser(null);
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('Error signing out', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 

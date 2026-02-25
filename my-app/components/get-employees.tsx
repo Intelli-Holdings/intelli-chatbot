@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import {
   Card,
   CardContent,
@@ -34,7 +35,7 @@ export function EmployeeList() {
         const data = await response.json();
           setEmployees(data);
       } catch (error) {
-        console.error("Error fetching employees", error);
+        logger.error("Error fetching employees", { error: error instanceof Error ? error.message : String(error) });
       }       
     };
 

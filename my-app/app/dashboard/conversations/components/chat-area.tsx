@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Download, FolderDown, File, FileImage, Music, Video, FileText } from "lucide-react"
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from "@/utils/exportUtils"
 import "./message-bubble.css"
+import { logger } from "@/lib/logger"
 import ResolveReminder from "@/components/resolve-reminder"
 import { WebSocketHandler } from "@/components/websocket-handler"
 import { useToast } from "@/components/ui/use-toast"
@@ -232,7 +233,7 @@ export default function ChatArea({
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("WhatsApp API error:", errorData)
+        logger.error("WhatsApp API error", { data: errorData })
         throw new Error(errorData.error || "Failed to send reaction")
       }
 
@@ -241,7 +242,7 @@ export default function ChatArea({
         duration: 2000,
       })
     } catch (error) {
-      console.error("Failed to send reaction:", error)
+      logger.error("Failed to send reaction", { error: error instanceof Error ? error.message : String(error) })
 
       // Revert optimistic update on error
       updateMessagesAndSync((prev) => {
@@ -324,7 +325,7 @@ export default function ChatArea({
           setLastMessageId((messages?.length ?? 0) > 0 ? Math.max(...(messages ?? []).map((msg) => msg.id)) : null)
         } catch (error) {
           if (!isActive) return
-          console.error("Failed to fetch messages for conversation:", error)
+          logger.error("Failed to fetch messages for conversation", { error: error instanceof Error ? error.message : String(error) })
           setMessagesState([])
           setLastMessageId(null)
         } finally {
@@ -405,7 +406,7 @@ export default function ChatArea({
             }),
           )
         } catch (error) {
-          console.error("Failed to reset unread messages:", error)
+          logger.error("Failed to reset unread messages", { error: error instanceof Error ? error.message : String(error) })
         }
       }, 1000) // 1 second delay to ensure user has viewed the chat
 
@@ -417,7 +418,7 @@ export default function ChatArea({
   useEffect(() => {
     const handleAiSupportChange = (event: CustomEvent) => {
       const newIsAiSupport = event.detail.isAiSupport
-      console.log(`AI Support changed to: ${newIsAiSupport}`)
+      logger.debug("AI Support changed", { isAiSupport: newIsAiSupport })
       setIsAiSupport(newIsAiSupport)
 
       // WebSocket connection is now handled by the WebSocketHandler component
@@ -480,7 +481,7 @@ export default function ChatArea({
             pending: false,
             status: newMessage.status || "sent",
           }
-          console.log("Replaced optimistic message with real message")
+          logger.debug("Replaced optimistic message with real message")
           return updated
         }
 
@@ -516,12 +517,12 @@ export default function ChatArea({
       })
 
       if (isDuplicate) {
-        console.log("Duplicate message detected, skipping")
+        logger.debug("Duplicate message detected, skipping")
         return
       }
 
       if (!matchedPending) {
-        console.log("New message received:", newMessage)
+        logger.debug("New message received", { data: newMessage })
       }
 
       setLastMessageId(newMessage.id)
@@ -532,7 +533,7 @@ export default function ChatArea({
     // Listen for message status updates from WebSocketHandler
     const handleStatusUpdate = (event: CustomEvent) => {
       const { message_id, status } = event.detail
-      console.log("Status update received:", { message_id, status })
+      logger.debug("Status update received", { message_id, status })
 
       if (message_id && status) {
         updateMessagesAndSync((prev) => {
@@ -607,7 +608,7 @@ export default function ChatArea({
         })
       }
     } catch (error) {
-      console.error("Failed to load older messages:", error)
+      logger.error("Failed to load older messages", { error: error instanceof Error ? error.message : String(error) })
       toast({
         description: "Failed to load older messages",
         variant: "destructive",
@@ -701,7 +702,7 @@ export default function ChatArea({
                     pending: false,
                     status: newMessage.status || "sent",
                   }
-                  console.log("Replaced pending message with real message from polling")
+                  logger.debug("Replaced pending message with real message from polling")
                 } else {
                   // Add as new message only if it's not a duplicate
                   const isDuplicate = updatedMessages.some(msg =>
@@ -721,7 +722,7 @@ export default function ChatArea({
         }
       }
     } catch (error) {
-      console.error("Error fetching new messages:", error)
+      logger.error("Error fetching new messages", { error: error instanceof Error ? error.message : String(error) })
       toast({
         description: "Failed to fetch new messages",
         variant: "destructive",

@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { logger } from "@/lib/logger";
 
 let socket: Socket | null = null;
 const CALLS_ENABLED = process.env.NEXT_PUBLIC_ENABLE_CALLS === 'true';
@@ -22,15 +23,15 @@ export function getSocket(): Socket | null {
     });
 
     socket.on('connect', () => {
-      console.log('Socket connected:', socket?.id);
+      logger.info('Socket connected', { socketId: socket?.id });
     });
 
     socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      logger.error('Socket connection error', { error: error instanceof Error ? error.message : String(error) });
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      logger.info('Socket disconnected', { reason });
     });
   }
 

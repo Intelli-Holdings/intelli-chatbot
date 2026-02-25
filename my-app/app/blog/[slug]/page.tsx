@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, Calendar, Clock, ExternalLink } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { createSlug, formatDate } from "@/lib/blog-utils"
+import { sanitizeHtml } from "@/lib/sanitize"
+import { logger } from "@/lib/logger"
 
 interface MediumPost {
   title: string
@@ -70,7 +72,7 @@ export default function BlogArticlePage() {
           throw new Error(data.error || "Failed to fetch article")
         }
       } catch (err) {
-        console.error("Fetch error:", err)
+        logger.error("Fetch error", { error: err instanceof Error ? err.message : String(err) })
         setError(err instanceof Error ? err.message : "Failed to load article")
       } finally {
         setLoading(false)
@@ -339,7 +341,7 @@ export default function BlogArticlePage() {
 
             {/* Article Content */}
             <div className="prose prose-gray max-w-none prose-lg">
-              <div className="article-content" dangerouslySetInnerHTML={{ __html: article.content }} />
+              <div className="article-content" dangerouslySetInnerHTML={{ __html: sanitizeHtml(article.content) }} />
             </div>
 
             {/* Original Article Link */}

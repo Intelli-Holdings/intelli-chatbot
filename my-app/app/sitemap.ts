@@ -1,424 +1,80 @@
 import type { MetadataRoute } from "next"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://intelliconcierge.com"
+  const baseUrl = "https://www.intelliconcierge.com"
   const currentDate = new Date()
 
-  // Main pages with high priority
-  const mainPages = [
-    {
-      url: baseUrl,
-      lastModified: currentDate,
-      changeFrequency: "yearly" as const,
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/pricing`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/dashboard`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.9,
-    },
+  // Core pages (highest priority)
+  const corePages: MetadataRoute.Sitemap = [
+    { url: baseUrl, lastModified: currentDate, changeFrequency: "weekly", priority: 1.0 },
+    { url: `${baseUrl}/whatsapp-api`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/whatsapp-assistant`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/pricing`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${baseUrl}/whatsapp-broadcast`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/auth/sign-up`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
   ]
 
-  // Marketing and information pages
-  const marketingPages = [
-    {
-      url: `${baseUrl}/features`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/support`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/blog`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/blog/ai-features-organizations`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/blog/overcome-customer-service-delays`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/blog/ai-support-vs-traditional-helpdesks`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/company`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/products`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/resources`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/usecases`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/medium-blog`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/demo`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/whatsapp-assistant`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/whatsapp-broadcast`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/whatsapp-api`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/llms.txt`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.9,
-    },
+  // Marketing & information pages
+  const marketingPages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/features`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/products`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/about`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/company`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/support`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/demo`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/usecases`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/resources`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/join-waitlist`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.6 },
   ]
 
-  // Legal pages
-  const legalPages = [
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/terms-of-service`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.5,
-    },
+  // Blog pages
+  const blogPages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/blog`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/blog/ai-features-organizations`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/blog/overcome-customer-service-delays`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/blog/ai-support-vs-traditional-helpdesks`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/medium-blog`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${baseUrl}/blog/whatsapp-cloud-api-pricing`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/blog/whatsapp-business-api-multiple-numbers`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/blog/whatsapp-api-provider-africa`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/blog/whatsapp-ai-chatbot-policy-2026`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
   ]
 
-  // Changelog pages
-  const changelogPages = [
-    {
-      url: `${baseUrl}/changelog`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/changelog/release-notes`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/changelog/release-notes/1.01`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/changelog/release-notes/1.00`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.5,
-    },
+  // Comparison pages
+  const comparePages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/compare/intelli-vs-wati`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/compare/intelli-vs-respond-io`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
   ]
 
-  // Dashboard pages
-  const dashboardPages = [
-    {
-      url: `${baseUrl}/dashboard/analytics`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/assistants`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/billing`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/dashboard/channels`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/channels/website-widget`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/channels/whatsapp`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/contacts`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/conversations`,
-      lastModified: currentDate,
-      changeFrequency: "daily" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/dashboard/conversations/website`,
-      lastModified: currentDate,
-      changeFrequency: "daily" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/dashboard/conversations/whatsapp`,
-      lastModified: currentDate,
-      changeFrequency: "daily" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/dashboard/escalation-events`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/dashboard/escalations`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/get-started`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/dashboard/notifications`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/organization`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/playground`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/dashboard/reservations`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/settings`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/dashboard/settings/advanced`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/dashboard/settings/security`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/dashboard/settings/support`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/dashboard/widgets`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
+  // Documentation pages
+  const docsPages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/docs`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${baseUrl}/docs/api-reference`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${baseUrl}/docs/get-started/connect-whatsapp`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${baseUrl}/docs/get-started/assistant`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${baseUrl}/docs/get-started/analytics`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${baseUrl}/docs/get-started/conversations`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${baseUrl}/docs/get-started/website-widget`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${baseUrl}/docs/get-started/notifications`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${baseUrl}/docs/get-started/organization`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${baseUrl}/docs/components`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${baseUrl}/docs/onboarding-flow`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.5 },
   ]
 
-  // Onboarding and auth pages (excluding dynamic parameters)
-  const onboardingPages = [
-    {
-      url: `${baseUrl}/onboarding`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/pre-onboarding`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/join-waitlist`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/chat`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    },
+  // Legal & changelog
+  const otherPages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/privacy`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${baseUrl}/terms-of-service`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${baseUrl}/changelog`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${baseUrl}/changelog/release-notes`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.5 },
   ]
 
-  // Docs pages
-  const docsPages = [
-    {
-      url: `${baseUrl}/docs`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/api-reference`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/components`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/docs/get-started/analytics`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/get-started/assistant`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/get-started/connect-whatsapp`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/get-started/conversations`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/get-started/notifications`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/get-started/organization`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/get-started/website-widget`,
-      lastModified: currentDate,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/docs/onboarding-flow`,
-      lastModified: currentDate,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    },
-  ]
-
-  // Combine all pages
   return [
-    ...mainPages,
+    ...corePages,
     ...marketingPages,
-    ...legalPages,
-    ...changelogPages,
-    ...dashboardPages,
-    ...onboardingPages,
+    ...blogPages,
+    ...comparePages,
     ...docsPages,
+    ...otherPages,
   ]
 }
-

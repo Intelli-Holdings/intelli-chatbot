@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 
+import { logger } from "@/lib/logger";
 // GET - List assistants for an organization
 export async function GET(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function GET(
     const token = await getToken()
     
     if (!token) {
-      console.log('=== RETURNING 401 - No token ===')
+      logger.debug('=== RETURNING 401 - No token ===')
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -36,7 +37,7 @@ export async function GET(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error('Backend error:', { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to fetch assistants' }, 
         { status: response.status }
@@ -46,7 +47,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching assistants:', error)
+    logger.error('Error fetching assistants:', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }
@@ -96,7 +97,7 @@ export async function POST(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error('Backend error:', { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to create assistant' }, 
         { status: response.status }
@@ -104,10 +105,10 @@ export async function POST(
     }
     
     const data = await response.json()
-    console.log('Assistant created successfully')
+    logger.info('Assistant created successfully')
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error creating assistant:', error)
+    logger.error('Error creating assistant:', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }
@@ -164,11 +165,11 @@ export async function PUT(
       }
     )
     
-    console.log('Backend update response status')
+    logger.info('Backend update response status')
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend update error:', errorData)
+      logger.error('Backend update error:', { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to update assistant' }, 
         { status: response.status }
@@ -190,10 +191,10 @@ export async function PUT(
       };
     }
     
-    console.log('Assistant updated successfully')
+    logger.info('Assistant updated successfully')
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error updating assistant:', error)
+    logger.error('Error updating assistant:', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }
@@ -244,11 +245,11 @@ export async function DELETE(
       }
     )
     
-    console.log('Backend delete response status')
+    logger.info('Backend delete response status')
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend delete error:', errorData)
+      logger.error('Backend delete error:', { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to delete assistant' }, 
         { status: response.status }
@@ -270,10 +271,10 @@ export async function DELETE(
       };
     }
     
-    console.log('Assistant deleted successfully')
+    logger.info('Assistant deleted successfully')
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error deleting assistant:', error)
+    logger.error('Error deleting assistant:', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

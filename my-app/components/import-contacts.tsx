@@ -7,6 +7,7 @@ import { importContacts } from '@/app/actions'
 import { UploadIcon as FileUpload } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { logger } from "@/lib/logger";
 export function ImportContacts() {
   const [isUploading, setIsUploading] = useState(false)
 
@@ -24,7 +25,7 @@ export function ImportContacts() {
        toast.success('Contacts imported successfully')
       }
     } catch (error) {
-      console.error('Failed to import contacts:', error)
+      logger.error('Failed to import contacts:', { error: error instanceof Error ? error.message : String(error) })
       toast.error('Failed to import contacts')
     } finally {
       setIsUploading(false)

@@ -5,6 +5,7 @@ import { CallState, CallOptions, CallSignal } from '@/types/call';
 import { WebRTCConnection } from '@/lib/webrtc';
 import { Socket } from 'socket.io-client';
 import { getSocket, disconnectSocket } from '@/lib/socket';
+import { logger } from "@/lib/logger";
 
 export function useCall() {
   const [callState, setCallState] = useState<CallState>({
@@ -73,7 +74,7 @@ export function useCall() {
           break;
       }
     } catch (error) {
-      console.error('Error handling call signal:', error);
+      logger.error('Error handling call signal', { error: error instanceof Error ? error.message : String(error) });
       setCallState((prev) => ({ ...prev, error: 'Call failed' }));
     }
   }, []);
@@ -126,7 +127,7 @@ export function useCall() {
         },
       }));
     } catch (error) {
-      console.error('Error initiating call:', error);
+      logger.error('Error initiating call', { error: error instanceof Error ? error.message : String(error) });
       setCallState((prev) => ({ ...prev, error: 'Failed to start call' }));
     }
   }, []);
@@ -150,7 +151,7 @@ export function useCall() {
       await webrtcRef.current.startCall(callState.callType === 'video');
       setCallState((prev) => ({ ...prev, isCalling: true }));
     } catch (error) {
-      console.error('Error answering call:', error);
+      logger.error('Error answering call', { error: error instanceof Error ? error.message : String(error) });
       setCallState((prev) => ({ ...prev, error: 'Failed to answer call' }));
     }
   }, [callState.isIncoming, callState.remoteUser, callState.callType]);

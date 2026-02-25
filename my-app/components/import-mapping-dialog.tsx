@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCustomFields } from '@/hooks/use-custom-fields';
 import { useImportMappings, type ImportMapping } from '@/hooks/use-import-mappings';
 
+import { logger } from "@/lib/logger";
 interface TemplateParameter {
   index: number;
   name?: string;
@@ -172,7 +173,7 @@ export default function ImportMappingDialog({
       onMappingCreated?.(savedMapping);
       onOpenChange(false);
     } catch (error) {
-      console.error('Error saving import mapping:', error);
+      logger.error('Error saving import mapping:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to save import mapping');
     }
   };

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useOrganization } from '@clerk/nextjs';
 import type { OnboardingStep, OnboardingState, StepStatus } from '@/types/onboarding';
+import { logger } from "@/lib/logger";
 
 const DISMISS_KEY = 'intelli_onboarding_dismissed';
 const CACHE_KEY = 'intelli_onboarding_cache';
@@ -192,7 +193,7 @@ export function useOnboardingStatus(): OnboardingState {
       saveCachedCompletions(newCompletions);
       lastFetchTime.current = Date.now();
     } catch (err) {
-      console.error('[Onboarding] Error fetching status:', err);
+      logger.error('[Onboarding] Error fetching status', { error: err instanceof Error ? err.message : String(err) });
       setError('Unable to load onboarding status');
     } finally {
       setIsLoading(false);

@@ -63,6 +63,7 @@ import {
 } from "@/components/flow-builder/simulation/flow-simulator";
 import { backendNodesToFlow, chatbotToFlow } from "@/components/flow-builder/utils/flow-converters";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import dynamic from "next/dynamic";
 import { useAppServices } from "@/hooks/use-app-services";
@@ -114,7 +115,7 @@ export default function ChatbotEditorPage() {
   const fetchChatbot = useCallback(async () => {
     // Validate chatbot ID before making request
     if (!chatbotId || chatbotId === 'undefined' || chatbotId === 'null') {
-      console.warn("Invalid chatbot ID:", chatbotId);
+      logger.warn("Invalid chatbot ID", { chatbotId });
       toast.error("Invalid chatbot ID");
       router.push("/dashboard/chatbots");
       return;
@@ -125,7 +126,7 @@ export default function ChatbotEditorPage() {
       const data = await ChatbotAutomationService.getChatbot(chatbotId);
       setChatbot(data);
     } catch (error) {
-      console.error("Error fetching chatbot:", error);
+      logger.error("Error fetching chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to load chatbot");
       router.push("/dashboard/chatbots");
     } finally {
@@ -173,7 +174,7 @@ export default function ChatbotEditorPage() {
       toast.success("Chatbot saved successfully");
       setHasChanges(false);
     } catch (error) {
-      console.error("Error saving chatbot:", error);
+      logger.error("Error saving chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to save chatbot");
     } finally {
       setSaving(false);
@@ -189,7 +190,7 @@ export default function ChatbotEditorPage() {
       setChatbot({ ...chatbot, isActive: !chatbot.isActive });
       toast.success(`Chatbot ${chatbot.isActive ? "paused" : "activated"}`);
     } catch (error) {
-      console.error("Error toggling chatbot:", error);
+      logger.error("Error toggling chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to update status");
     }
   };

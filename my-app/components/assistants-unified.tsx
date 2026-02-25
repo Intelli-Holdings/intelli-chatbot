@@ -85,6 +85,7 @@ import {
   assistantsQueryKey,
   fetchAssistantsForOrg,
 } from "@/hooks/use-assistants-cache";
+import { logger } from "@/lib/logger";
 
 interface Assistant {
   id: number;
@@ -171,7 +172,7 @@ export default function AssistantsUnified() {
       );
       setAssistants(data);
     } catch (error) {
-      console.error('Error fetching assistants:', error);
+      logger.error("Error fetching assistants", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to fetch assistants');
     } finally {
       setIsLoading(false);
@@ -185,7 +186,7 @@ export default function AssistantsUnified() {
       // The API returns { results: [...], count: number }
       setFiles((filesData.results || []) as AssistantFile[]);
     } catch (error) {
-      console.error('Error fetching files:', error);
+      logger.error("Error fetching files", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to fetch files');
       setFiles([]);
     }
@@ -197,7 +198,7 @@ export default function AssistantsUnified() {
       const stats = await newFileManagerAPI.getFileStatistics(assistantId);
       setFileStats(stats);
     } catch (error) {
-      console.error('Error fetching file statistics:', error);
+      logger.error("Error fetching file statistics", { error: error instanceof Error ? error.message : String(error) });
     }
   }, []);
 
@@ -208,7 +209,7 @@ export default function AssistantsUnified() {
       // The API returns { files: [...], count: number }
       setPendingFiles((response.files || []) as AssistantFile[]);
     } catch (error) {
-      console.error('Error fetching pending files:', error);
+      logger.error("Error fetching pending files", { error: error instanceof Error ? error.message : String(error) });
       setPendingFiles([]);
     }
   }, []);
@@ -308,7 +309,7 @@ export default function AssistantsUnified() {
       queryClient.invalidateQueries(assistantsQueryKey(organizationId));
       fetchAssistants();
     } catch (error) {
-      console.error('Error creating assistant:', error);
+      logger.error("Error creating assistant", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to create assistant');
     } finally {
       setIsCreating(false);
@@ -356,7 +357,7 @@ export default function AssistantsUnified() {
       }
       fetchAssistants();
     } catch (error) {
-      console.error('Error updating assistant:', error);
+      logger.error("Error updating assistant", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to update assistant');
     } finally {
       setIsUpdating(false);
@@ -394,7 +395,7 @@ export default function AssistantsUnified() {
       }
       fetchAssistants();
     } catch (error) {
-      console.error('Error deleting assistant:', error);
+      logger.error("Error deleting assistant", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to delete assistant');
     } finally {
       setIsDeleting(false);
@@ -433,7 +434,7 @@ export default function AssistantsUnified() {
 
       toast.success(data.message || `Successfully deleted ${data.deleted_count} assistant${data.deleted_count > 1 ? 's' : ''}`);
     } catch (error) {
-      console.error('Error deleting assistants:', error);
+      logger.error("Error deleting assistants", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to delete selected assistants');
     } finally {
       setIsBulkDeleting(false);
@@ -470,7 +471,7 @@ export default function AssistantsUnified() {
           setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
           toast.success(`${file.name} uploaded successfully`);
         } catch (error: any) {
-          console.error(`Error uploading ${file.name}:`, error);
+          logger.error(`Error uploading ${file.name}`, { error: error instanceof Error ? error.message : String(error) });
           toast.error(`${file.name}: ${error.message || 'Upload failed'}`);
         }
       }
@@ -479,7 +480,7 @@ export default function AssistantsUnified() {
       await fetchFiles(selectedAssistant.assistant_id);
       await fetchFileStats(selectedAssistant.assistant_id);
     } catch (error: any) {
-      console.error('Upload error:', error);
+      logger.error("Upload error", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || 'Failed to upload files');
     } finally {
       setIsUploadingFiles(false);
@@ -523,7 +524,7 @@ export default function AssistantsUnified() {
       await fetchFiles(selectedAssistant.assistant_id);
       await fetchFileStats(selectedAssistant.assistant_id);
     } catch (error) {
-      console.error('Error deleting file:', error);
+      logger.error("Error deleting file", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to delete file');
     }
   };
@@ -537,7 +538,7 @@ export default function AssistantsUnified() {
         await fetchPendingFiles(selectedAssistant.assistant_id);
       }
     } catch (error) {
-      console.error('Error retrying file:', error);
+      logger.error("Error retrying file", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to retry file upload');
     }
   };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react'; // Import useAuth hook from Clerk
+import { logger } from "@/lib/logger";
 
 interface Reservation {
     id: number;
@@ -39,7 +40,7 @@ export const useFetchReservations = (): { reservations: Reservation[] | null; is
                 const data = await response.json();
                 setReservations(data.reservations);
             } catch (error) {
-                console.error('Error fetching reservations:', error);
+                logger.error('Error fetching reservations', { error: error instanceof Error ? error.message : String(error) });
             } finally {
                 setIsLoading(false); // Set isLoading state to false regardless of success or failure
             }

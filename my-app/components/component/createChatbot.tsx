@@ -1,116 +1,156 @@
-import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import toast from 'sonner'
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, File, Type, Upload } from 'lucide-react';
-import { useToast } from "@/components/ui/use-toast";
+"use client"
+
+import React, { useState, useRef } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
+import { Globe, File, Type, Upload } from "lucide-react"
+import { toast } from "sonner"
+import { logger } from "@/lib/logger"
+import { createChatbotSchema, type CreateChatbotFormData } from "@/lib/validations/forms"
 
 const CreateChatbot = () => {
-  const [step, setStep] = useState(1);
-  const [websiteUrl, setWebsiteUrl] = useState('');
-  const [manualLink, setManualLink] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [customText, setCustomText] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState(1)
+  const [manualLink, setManualLink] = useState("")
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const form = useForm<CreateChatbotFormData>({
+    resolver: zodResolver(createChatbotSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      websiteUrl: "",
+      customText: "",
+    },
+  })
 
   const handleWebsiteCrawl = () => {
-    // Implement website crawling logic
-    console.log('Crawling website:', websiteUrl);
-  };
+    const websiteUrl = form.getValues("websiteUrl")
+    if (!websiteUrl) {
+      form.setError("websiteUrl", { message: "Enter a URL to crawl" })
+      return
+    }
+    logger.info("Crawling website", { websiteUrl })
+  }
 
   const handleAddLink = () => {
-    // Implement adding manual link logic
-    console.log('Adding manual link:', manualLink);
-    setManualLink('');
-  };
+    logger.info("Adding manual link", { manualLink })
+    setManualLink("")
+  }
 
   const handleFileUpload = (files: FileList) => {
-    const fileArray = Array.from(files);
-    setUploadedFiles([...uploadedFiles, ...fileArray]);
-  };
+    const fileArray = Array.from(files)
+    const maxSize = 5 * 1024 * 1024 // 5MB
+    const validTypes = [".pdf", ".doc", ".docx", ".txt"]
+
+    const validFiles = fileArray.filter((file) => {
+      if (file.size > maxSize) {
+        toast.error(`${file.name} exceeds 5MB limit`)
+        return false
+      }
+      const ext = "." + file.name.split(".").pop()?.toLowerCase()
+      if (!validTypes.includes(ext)) {
+        toast.error(`${file.name} has an unsupported file type`)
+        return false
+      }
+      return true
+    })
+
+    setUploadedFiles((prev) => [...prev, ...validFiles])
+  }
 
   const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault();
+    event.preventDefault()
     if (event.dataTransfer.files) {
-      handleFileUpload(event.dataTransfer.files);
+      handleFileUpload(event.dataTransfer.files)
     }
-  };
+  }
 
   const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
-  };
+    event.preventDefault()
+  }
 
   const handleClickUpload = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
+    fileInputRef.current?.click()
+  }
 
   const handleCreateChatbot = async () => {
+    const isValid = await form.trigger(["name"])
+    if (!isValid) {
+      toast.error("Please fill in the chatbot name")
+      return
+    }
+
+    const values = form.getValues()
+
     try {
-      const formData = new FormData();
-      uploadedFiles.forEach(file => formData.append('files', file));
+      const formData = new FormData()
+      formData.append("name", values.name)
+      if (values.description) formData.append("description", values.description)
+      if (values.websiteUrl) formData.append("websiteUrl", values.websiteUrl)
+      if (values.customText) formData.append("customText", values.customText)
+      uploadedFiles.forEach((file) => formData.append("files", file))
 
-      const response = await fetch('/api/create-chatbot', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        body: JSON.stringify({
-          name,
-          description,
-          websiteUrl,
-          uploadedFiles,
-          customText,
-          organizationId: 'your-org-id', // Replace with actual org ID
-        }),
-      });
+      const response = await fetch("/api/create-chatbot", {
+        method: "POST",
+        body: formData,
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (data.success) {
-        toast({
-          title: "Chatbot created successfully",
-          description: "Here's your embed code:",
-          action: <Button onClick={() => navigator.clipboard.writeText(data.embedCode)}>Copy</Button>,
-        });        
-       
+        toast.success("Chatbot created successfully")
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error)
       }
-    } catch (error: any) {
-      toast({
-        title: "Error creating chatbot",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error creating chatbot")
     }
-  };
+  }
 
   return (
-    <Card className="">
+    <Card>
       <CardHeader>
         <CardTitle>Create your Chatbot - step {step}/3</CardTitle>
         <p className="text-sm text-muted-foreground">
           Here you can add the sources that your AI Chatbot will be trained on.
         </p>
-        <Input
-          placeholder="Chatbot Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Textarea
-          placeholder="Chatbot Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+        <Form {...form}>
+          <div className="space-y-3">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Chatbot Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Chatbot Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Chatbot Description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </Form>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="website" className="w-full">
@@ -130,29 +170,35 @@ const CreateChatbot = () => {
           </TabsList>
           <TabsContent value="website">
             <div className="space-y-4">
+              <Form {...form}>
+                <FormField
+                  control={form.control}
+                  name="websiteUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Your Website</FormLabel>
+                      <div className="flex rounded-md shadow-sm">
+                        <FormControl>
+                          <Input
+                            type="url"
+                            className="flex-1 rounded-none rounded-l-md"
+                            placeholder="https://"
+                            {...field}
+                          />
+                        </FormControl>
+                        <Button type="button" className="rounded-none rounded-r-md" onClick={handleWebsiteCrawl}>
+                          Crawl
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Form>
               <div>
-                <label htmlFor="website" className="block text-sm font-medium text-gray-700">Your Website</label>
-                <div className="mt-1 flex rounded-md shadow-sm">
-                  <Input
-                    type="url"
-                    name="website"
-                    id="website"
-                    className="flex-1 rounded-none rounded-l-md"
-                    placeholder="https://"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    className="rounded-none rounded-r-md"
-                    onClick={handleWebsiteCrawl}
-                  >
-                    Crawl
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <label htmlFor="manual-link" className="block text-sm font-medium text-gray-700">Additional links</label>
+                <label htmlFor="manual-link" className="block text-sm font-medium text-gray-700">
+                  Additional links
+                </label>
                 <div className="mt-1 flex rounded-md shadow-sm">
                   <Input
                     type="url"
@@ -163,11 +209,7 @@ const CreateChatbot = () => {
                     value={manualLink}
                     onChange={(e) => setManualLink(e.target.value)}
                   />
-                  <Button
-                    type="button"
-                    className="rounded-none rounded-r-md"
-                    onClick={handleAddLink}
-                  >
+                  <Button type="button" className="rounded-none rounded-r-md" onClick={handleAddLink}>
                     + Add Link
                   </Button>
                 </div>
@@ -176,8 +218,8 @@ const CreateChatbot = () => {
           </TabsContent>
           <TabsContent value="files">
             <div className="space-y-4">
-              <div 
-                className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center"
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center cursor-pointer hover:border-gray-400 transition-colors"
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onClick={handleClickUpload}
@@ -199,39 +241,40 @@ const CreateChatbot = () => {
                   <h4 className="text-sm font-medium text-gray-700">Uploaded files:</h4>
                   <ul className="mt-2 divide-y divide-gray-200">
                     {uploadedFiles.map((file, index) => (
-                      <li key={index} className="py-2 text-sm text-gray-600">{file.name}</li>
+                      <li key={index} className="py-2 text-sm text-gray-600">
+                        {file.name}
+                      </li>
                     ))}
                   </ul>
                 </div>
               )}
-              <Button
-                type="button"
-                className="w-full"
-                onClick={handleCreateChatbot}
-              >
+              <Button type="button" className="w-full" onClick={handleCreateChatbot}>
                 Initiate Training with Files
               </Button>
             </div>
           </TabsContent>
           <TabsContent value="text">
             <div className="space-y-4">
-              <div>
-                <label htmlFor="custom-text" className="block text-sm font-medium text-gray-700">Write here any extra text that you consider relevant for your audience</label>
-                <Textarea
-                  id="custom-text"
-                  className="mt-1"
-                  rows={6}
-                  placeholder="Write your text here..."
-                  value={customText}
-                  onChange={(e) => setCustomText(e.target.value)}
+              <Form {...form}>
+                <FormField
+                  control={form.control}
+                  name="customText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Write here any extra text that you consider relevant for your audience
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea className="mt-1" rows={6} placeholder="Write your text here..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
+              </Form>
               <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-500">Total Characters: {customText.length}</p>
-                <Button
-                  type="button"
-                  onClick={handleCreateChatbot}
-                >
+                <p className="text-sm text-gray-500">Total Characters: {form.watch("customText")?.length || 0}</p>
+                <Button type="button" onClick={handleCreateChatbot}>
                   Create Chatbot
                 </Button>
               </div>
@@ -247,18 +290,17 @@ const CreateChatbot = () => {
             </div>
             <div className="sm:col-span-1">
               <dt className="text-sm font-medium text-gray-500">Files</dt>
-              <dd className="mt-1 text-sm text-gray-900">0/20</dd>
+              <dd className="mt-1 text-sm text-gray-900">{uploadedFiles.length}/20</dd>
             </div>
             <div className="sm:col-span-1">
               <dt className="text-sm font-medium text-gray-500">Characters</dt>
-              <dd className="mt-1 text-sm text-gray-900">0/100K</dd>
+              <dd className="mt-1 text-sm text-gray-900">{form.watch("customText")?.length || 0}/100K</dd>
             </div>
           </dl>
         </div>
-
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default CreateChatbot;
+export default CreateChatbot

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { CampaignService, type Campaign } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { logger } from "@/lib/logger";
 import { useCampaignRecipients } from '@/hooks/use-campaign-recipients';
 import { formatUTCForDisplay } from '@/lib/timezone-utils';
 
@@ -83,7 +84,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
             });
           }
         } catch (error) {
-        console.error('Error refreshing stats:', error);
+        logger.error("Error refreshing stats", { error: error instanceof Error ? error.message : String(error) });
       }
     };
 

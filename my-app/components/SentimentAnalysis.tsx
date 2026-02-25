@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { Sentiment } from '@/app/dashboard/conversations/components/types'; // Adjust the import path as necessary
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -22,7 +23,7 @@ const RightSidebar: React.FC = () => {
         setLoading(false);
       } catch (err) {
         setError('Failed to load data');
-        console.error(err);
+        logger.error("Error occurred", { error: err instanceof Error ? err.message : String(err) });
         setLoading(false);
       }
     };

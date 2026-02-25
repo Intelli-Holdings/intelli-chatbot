@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 
 interface InviteModalProps {
   isOpen: boolean
@@ -48,7 +49,7 @@ export function InviteModal({ isOpen, onClose, organizationId }: InviteModalProp
       setRole("org:member")
       onClose()
     } catch (error) {
-      console.error("Invite error:", error)
+      logger.error("Invite error", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to send invitation")
     } finally {
       setIsLoading(false)

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { logger } from "@/lib/logger";
 
 export const dynamic = 'force-dynamic'
 
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
     const data: MetricsSummary = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error fetching metrics summary by organization:", error)
+    logger.error("Error fetching metrics summary by organization", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

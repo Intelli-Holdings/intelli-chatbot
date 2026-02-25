@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { addMessage, getMessages } from '@/repositories/messages.repository';
+import { logger } from "@/lib/logger";
 
 interface MessagePayload {
   userId: string;
@@ -26,7 +27,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       res.status(405).end();
     }
   } catch (e) {
-    console.error(e);
+    logger.error("Error handling messages request", { error: e instanceof Error ? e.message : String(e) });
     res.status(500).json({ message: "Internal server error" });
   }
 };

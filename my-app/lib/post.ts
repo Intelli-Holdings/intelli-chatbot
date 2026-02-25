@@ -1,4 +1,6 @@
 'use server';
+import { logger } from "@/lib/logger";
+
 interface ReservationState {
   success: boolean;
   error?: string;
@@ -58,7 +60,7 @@ export async function createReservation(formData: FormData): Promise<Reservation
     };
 
     // Log payload in console
-    console.log('Reservation payload:', JSON.stringify(payload, null, 2));
+    logger.debug('Reservation payload', { data: payload });
 
     // Send data to the backend API
     const response = await fetch('https://intelli-python-backend.onrender.com/reservations/', {
@@ -72,13 +74,13 @@ export async function createReservation(formData: FormData): Promise<Reservation
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Failed to create reservation:', response.status, response.statusText, errorData);
+      logger.error('Failed to create reservation', { status: response.status, statusText: response.statusText, data: errorData });
       return { success: false, error: errorData.message || 'An error occurred while creating the reservation.' };
     }
 
     return { success: true };
   } catch (error) {
-    console.error('Error creating reservation:', error);
+    logger.error('Error creating reservation', { error: error instanceof Error ? error.message : String(error) });
     return { success: false, error: 'An error occurred while creating the reservation.' };
   }
 }

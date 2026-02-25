@@ -58,7 +58,8 @@ export function Home() {
         <section className="container mt-20">
           <div className="max-w-4xl mx-auto">
             <h1 className="mt-4 text-center text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-tight">
-              <div className="relative w-full overflow-visible" style={{ height: '2.2em', minHeight: '1.2em' }}>
+              <span className="sr-only">AI-Powered Customer Engagement Across WhatsApp, Email &amp; More</span>
+              <div className="relative w-full overflow-visible" style={{ height: '2.2em', minHeight: '1.2em' }} aria-hidden="true">
                 {actions.map((action, index) => (
                   <span
                     key={action}
@@ -74,17 +75,17 @@ export function Home() {
                   </span>
                 ))}
               </div>
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-yellow-500" aria-hidden="true">
                 in seconds
               </span>
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-500" aria-hidden="true">
                 with AI
               </span>
             </h1>
 
             <p className="mt-6 text-center text-lg sm:text-xl md:text-2xl text-gray-700 font-medium max-w-3xl mx-auto leading-relaxed">
-              Intelli streamlines customer engagement using AI for your business across WhatsApp, website, and email.
+              Intelli is an AI-powered customer engagement platform that helps businesses manage conversations across <Link href="/whatsapp-api" className="text-blue-600 hover:underline">WhatsApp</Link>, Instagram, Messenger, email, and web chat — all from one place. Deploy an <Link href="/whatsapp-assistant" className="text-blue-600 hover:underline">AI WhatsApp Assistant</Link> and start automating today.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mt-10 mb-16 justify-center">
