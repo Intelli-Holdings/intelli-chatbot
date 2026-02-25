@@ -13,9 +13,15 @@ import { useNotificationContext } from "@/hooks/use-notification-context"
 const NotificationPage: React.FC = () => {
   const { organization } = useOrganization()
   const { userMemberships } = useOrganizationList({ userMemberships: { infinite: true } })
-  const { notifications, isConnected } = useNotificationContext()
+  const { notifications, isConnected, fetchHistoricalNotifications, fetchAssignedNotifications } = useNotificationContext()
   const [members, setMembers] = useState<TeamMember[]>([])
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
+
+  // Fetch notifications when the page mounts (respects cache TTL)
+  useEffect(() => {
+    fetchHistoricalNotifications()
+    fetchAssignedNotifications()
+  }, [fetchHistoricalNotifications, fetchAssignedNotifications])
 
   useEffect(() => {
     const loadMembers = async () => {

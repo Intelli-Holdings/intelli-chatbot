@@ -117,6 +117,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Cache timestamps to avoid refetching within TTL (5 minutes)
+  const CACHE_TTL = 5 * 60 * 1000
+  const historicalFetchedAtRef = useRef<number>(0)
+  const assignedFetchedAtRef = useRef<number>(0)
+
   // Refs for WebSocket and reconnection
   const wsRef = useRef<WebSocket | null>(null)
   const pingIntervalRef = useRef<number | null>(null)
@@ -144,8 +149,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [])
 
   // Fetch all historical notifications with pagination
-  const fetchHistoricalNotifications = useCallback(async () => {
+  const fetchHistoricalNotifications = useCallback(async (force = false) => {
     if (!activeOrganizationId) return
+    // Skip if cache is still fresh (unless forced)
+    if (!force && Date.now() - historicalFetchedAtRef.current < CACHE_TTL) return
     setIsLoading(true)
     setError(null)
 
@@ -157,6 +164,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       })
       if (!response.ok) throw new Error('Failed to fetch historical notifications')
       const data: PaginatedResponse = await response.json()
+
+      historicalFetchedAtRef.current = Date.now()
 
       // Only store the first page to avoid flooding the backend with all pages at once
       setHistoricalNotifications(data.results)
@@ -175,9 +184,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [activeOrganizationId, storageKey])
 
   // Fetch notifications assigned to current user
-  const fetchAssignedNotifications = useCallback(async () => {
+  const fetchAssignedNotifications = useCallback(async (force = false) => {
     const email = user?.primaryEmailAddress?.emailAddress
     if (!email) return
+    // Skip if cache is still fresh (unless forced)
+    if (!force && Date.now() - assignedFetchedAtRef.current < CACHE_TTL) return
     setIsLoading(true)
     setError(null)
 
@@ -188,7 +199,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       const queryString = queryParams.toString()
       const response = await fetch(
-        `/api/notifications/assigned/${encodeURIComponent(email)}${queryString ? `?${queryString}` : ''}`,
+        `/api/notifications/assigned/${email}${queryString ? `?${queryString}` : ''}`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -197,6 +208,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       )
       if (!response.ok) throw new Error('Failed to fetch assigned notifications')
       const data: PaginatedResponse = await response.json()
+      assignedFetchedAtRef.current = Date.now()
       setAssignedNotifications(data.results)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch assigned notifications')
@@ -370,11 +382,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [connect])
 
-  // Initial fetch of historical & assigned
+  // Reset cache timestamps when org changes so next fetch is fresh
   useEffect(() => {
-    if (activeOrganizationId) fetchHistoricalNotifications()
-    if (user?.primaryEmailAddress) fetchAssignedNotifications()
-  }, [activeOrganizationId, user, fetchHistoricalNotifications, fetchAssignedNotifications])
+    historicalFetchedAtRef.current = 0
+    assignedFetchedAtRef.current = 0
+  }, [activeOrganizationId])
 
   // Mark all notifications as read
   const markAllAsRead = () => {

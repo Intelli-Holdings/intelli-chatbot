@@ -36,8 +36,14 @@ export async function GET(
     )
     
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      logger.error('Backend error fetching org notifications', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      })
       return NextResponse.json(
-        { error: 'Failed to fetch org notifications' }, 
+        { error: errorData.detail || 'Failed to fetch org notifications' },
         { status: response.status }
       )
     }
