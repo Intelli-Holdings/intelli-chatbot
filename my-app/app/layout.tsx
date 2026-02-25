@@ -31,37 +31,53 @@ const dmSans = DM_Sans({
   type="image/svg"
   sizes="16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024" /><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /><link rel="icon" type="image/svg+xml" href="/icon.svg" /></>
 
-export const metadata = {
-  title: 'Intelli – AI Customer Support & Engagement Platform | Intelli Holdings Inc.',
-  description: 'Intelli is an AI-powered customer engagement platform that automates support and sales across WhatsApp, website chat, and email. Trusted by governments, NGOs, universities, and enterprises worldwide.',
-  keywords: ['AI customer support', 'WhatsApp Business API', 'chatbot automation', 'customer engagement platform', 'AI helpdesk', 'WhatsApp AI assistant', 'multi-channel support', 'Intelli', 'Intelli Holdings Inc.'],
+export const metadata: Metadata = {
+  title: 'Intelli — AI-Powered WhatsApp & Multi-Channel Customer Engagement Platform',
+  description:
+    'Intelli is an AI-powered platform that helps businesses manage customer conversations across WhatsApp, Instagram, Messenger, email, and web chat. Automate support, run campaigns, and engage customers at scale.',
+  keywords: [
+    'AI customer support',
+    'WhatsApp Business API',
+    'chatbot automation',
+    'customer engagement platform',
+    'AI helpdesk',
+    'WhatsApp AI assistant',
+    'multi-channel support',
+    'Intelli',
+    'Intelli Holdings Inc.',
+    'WhatsApp Cloud API',
+    'AI WhatsApp assistant',
+  ],
+  alternates: {
+    canonical: 'https://www.intelliconcierge.com',
+  },
   openGraph: {
-    siteName: 'Intelli – AI Customer Engagement Platform',
+    siteName: 'Intelli — AI Customer Engagement Platform',
     url: 'https://www.intelliconcierge.com',
-    title: 'Intelli – AI-Powered Customer Support & Engagement Platform',
-    description: 'Automate customer support and sales across WhatsApp, website, and email with AI. Trusted by governments, NGOs, universities, and enterprises.',
+    title: 'Intelli — AI-Powered WhatsApp & Multi-Channel Customer Engagement Platform',
+    description:
+      'Intelli is an AI-powered platform that helps businesses manage customer conversations across WhatsApp, Instagram, Messenger, email, and web chat. Automate support, run campaigns, and engage customers at scale.',
     type: 'website',
-    author: 'Intelli Holdings Inc.',
     images: [
       {
         url: 'https://www.intelliconcierge.com/api/og',
         width: 1200,
         height: 630,
-        alt: 'Intelli AI Customer Engagement Platform by Intelli Holdings Inc.',
+        alt: 'Intelli AI-Powered Customer Engagement Platform by Intelli Holdings Inc.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Intelli – AI Customer Support Platform',
-    description: 'Automate customer support and sales across WhatsApp, website, and email with AI. By Intelli Holdings Inc.',
-    author: 'Intelli Holdings Inc.',
+    title: 'Intelli — AI-Powered WhatsApp & Multi-Channel Customer Engagement Platform',
+    description:
+      'Intelli is an AI-powered platform that helps businesses manage customer conversations across WhatsApp, Instagram, Messenger, email, and web chat. Automate support, run campaigns, and engage customers at scale.',
     images: [
       {
         url: 'https://www.intelliconcierge.com/api/og',
         width: 1200,
         height: 630,
-        alt: 'Intelli AI Customer Engagement Platform by Intelli Holdings Inc.',
+        alt: 'Intelli AI-Powered Customer Engagement Platform by Intelli Holdings Inc.',
       },
     ],
   },

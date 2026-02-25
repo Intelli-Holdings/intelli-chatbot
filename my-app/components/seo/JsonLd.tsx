@@ -22,8 +22,8 @@ export function OrganizationJsonLd() {
     name: "Intelli",
     legalName: "Intelli Holdings Inc.",
     alternateName: ["Intelli", "Intelli Concierge", "IntelliConcierge"],
-    url: "https://intelliconcierge.com",
-    logo: "https://intelliconcierge.com/Intelli.svg",
+    url: "https://www.intelliconcierge.com",
+    logo: "https://www.intelliconcierge.com/Intelli.svg",
     sameAs: [
       "https://www.linkedin.com/company/intelli-concierge",
       "https://x.com/IntelliConcierg",
@@ -64,7 +64,7 @@ export function WebSiteJsonLd() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "Intelli",
-    url: "https://intelliconcierge.com",
+    url: "https://www.intelliconcierge.com",
     publisher: {
       "@type": "Organization",
       name: "Intelli Holdings Inc.",
@@ -180,21 +180,21 @@ export function BlogPostingJsonLd({
     author: {
       "@type": "Organization",
       name: authorName || "Intelli",
-      url: "https://intelliconcierge.com",
+      url: "https://www.intelliconcierge.com",
     },
     publisher: {
       "@type": "Organization",
       name: "Intelli Holdings Inc.",
       logo: {
         "@type": "ImageObject",
-        url: "https://intelliconcierge.com/Intelli.svg",
+        url: "https://www.intelliconcierge.com/Intelli.svg",
       },
     },
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": url,
     },
-    image: image || "https://intelliconcierge.com/api/og",
+    image: image || "https://www.intelliconcierge.com/api/og",
   };
 
   return (

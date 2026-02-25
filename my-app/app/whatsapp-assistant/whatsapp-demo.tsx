@@ -1,54 +1,43 @@
 "use client";
-import { useState } from "react";
+
 import Image from "next/image";
 
-const WhatsAppDemo = () => {
-  const [showQrCode, setShowQrCode] = useState(true);
+const whatsappNumber = "254769758405";
+const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(whatsappUrl)}&size=300x300`;
 
-  const whatsappNumber = "254769758405";
-  const whatsappUrl = `https://wa.me/${whatsappNumber}`; // WhatsApp chat URL
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(whatsappUrl)}&size=300x300`; // Use URL encoding for the QR code API
-
+export default function WhatsAppDemo() {
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96 text-center">
-        <h1 className="text-2xl font-bold text-green-600 mb-4">AI WhatsApp Assistant</h1>
-        <p className="mb-6">
-          Scan the QR code to chat with our AI assistant on WhatsApp.
+    <div className="flex flex-col items-center">
+      <div className="bg-white border border-[#1a1a1a]/[0.08] p-8 rounded-md w-full max-w-sm text-center">
+        <p className="text-sm font-semibold text-[#1a1a1a] mb-1">Try It Live</p>
+        <p className="text-[13px] text-[#1a1a1a]/55 mb-5">
+          Scan the QR code or tap the button to chat with our AI assistant on WhatsApp.
         </p>
-        {showQrCode && (
-          <div>
-            <Image
-              src={qrCodeUrl}
-              alt="WhatsApp QR Code"
-              className="mx-auto mb-4"
-              width={150}
-              height={150}
-            />
 
-            {/* Separator with "OR" */}
-            <div className="flex items-center justify-center my-4">
-              <hr className="w-full border-gray-300" />
-              <span className="px-2 text-gray-500">OR</span>
-              <hr className="w-full border-gray-300" />
-            </div>
-            <p className="mb-6">
-              Click the button below to chat on WhatsApp.     
-            </p>
+        <Image
+          src={qrCodeUrl}
+          alt="Scan this QR code to start a conversation with Intelli's AI WhatsApp Assistant"
+          className="mx-auto mb-4"
+          width={150}
+          height={150}
+        />
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200"
-            >
-              Continue with WhatsApp
-            </a>
-          </div>
-        )}
+        <div className="flex items-center justify-center my-4">
+          <hr className="w-full border-[#1a1a1a]/[0.08]" />
+          <span className="px-3 text-xs text-[#1a1a1a]/30 font-medium">OR</span>
+          <hr className="w-full border-[#1a1a1a]/[0.08]" />
+        </div>
+
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block px-6 py-3 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
+        >
+          Chat on WhatsApp
+        </a>
       </div>
     </div>
   );
-};
-
-export default WhatsAppDemo;
+}
