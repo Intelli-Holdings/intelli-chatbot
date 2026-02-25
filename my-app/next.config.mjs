@@ -89,6 +89,16 @@ const nextConfig = {
     mdxRs: true,
     instrumentationHook: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'intelliconcierge.com' }],
+        destination: 'https://www.intelliconcierge.com/:path*',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
