@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { nodeProfilingIntegration } from "@sentry/profiling-node";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
@@ -7,11 +8,17 @@ export async function register() {
 
       integrations: [
         Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+        nodeProfilingIntegration(),
       ],
 
       enableLogs: true,
 
-      tracesSampleRate: 0.1,
+      // Tracing must be enabled for profiling to work
+      tracesSampleRate: 1.0,
+
+      // Profiling sample rates
+      profileSessionSampleRate: 1.0,
+      profileLifecycle: 'trace',
 
       debug: false,
 

@@ -8,15 +8,17 @@ Sentry.init({
 
   integrations: [
     Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+    Sentry.replayIntegration({
+      blockAllMedia: false,
+    }),
   ],
 
   enableLogs: true,
 
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-  // Adjust in production to a lower value for cost control.
-  tracesSampleRate: 0.1,
+  // Tracing
+  tracesSampleRate: 1.0,
 
-  // Capture Replay for 10% of all sessions, plus 100% of sessions with errors.
+  // Session Replay: 10% of all sessions, 100% of sessions with errors
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
 

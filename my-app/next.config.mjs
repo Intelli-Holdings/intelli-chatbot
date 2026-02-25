@@ -146,6 +146,10 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
           },
+          {
+            key: 'Document-Policy',
+            value: 'js-profiling',
+          },
         ],
       },
     ];
