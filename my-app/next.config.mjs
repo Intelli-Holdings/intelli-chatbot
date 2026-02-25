@@ -121,7 +121,7 @@ const nextConfig = {
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
               "connect-src 'self' https: wss:",
-              "frame-src 'self' https://*.clerk.accounts.dev https://*.stripe.com https://*.facebook.com",
+              "frame-src 'self' https://*.clerk.accounts.dev https://*.stripe.com https://*.facebook.com https://demo.arcade.software",
               "frame-ancestors 'self'",
             ].join('; '),
           },
