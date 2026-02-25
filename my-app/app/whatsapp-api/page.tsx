@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://www.intelliconcierge.com/api/og",
+        url: "https://www.intelliconcierge.com/og-image.png",
         width: 1200,
         height: 630,
         alt: "Intelli WhatsApp Business API Provider",

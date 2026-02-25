@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: 'https://www.intelliconcierge.com/api/og',
+        url: 'https://www.intelliconcierge.com/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Intelli AI-Powered Customer Engagement Platform by Intelli Holdings Inc.',
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
       'Intelli is an AI-powered platform that helps businesses manage customer conversations across WhatsApp, Instagram, Messenger, email, and web chat. Automate support, run campaigns, and engage customers at scale.',
     images: [
       {
-        url: 'https://www.intelliconcierge.com/api/og',
+        url: 'https://www.intelliconcierge.com/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Intelli AI-Powered Customer Engagement Platform by Intelli Holdings Inc.',

@@ -194,7 +194,7 @@ export function BlogPostingJsonLd({
       "@type": "WebPage",
       "@id": url,
     },
-    image: image || "https://www.intelliconcierge.com/api/og",
+    image: image || "https://www.intelliconcierge.com/og-image.png",
   };
 
   return (
