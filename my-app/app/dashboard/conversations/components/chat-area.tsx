@@ -12,7 +12,7 @@ import { format, parseISO, isToday, isYesterday } from "date-fns"
 import ConversationHeader from "./conversationsHeader"
 import { ScrollToBottomButton } from "@/app/dashboard/conversations/components/scroll-to-bottom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Download, FolderDown, File, FileImage, Music, Video, FileText, AlertTriangle, CornerDownLeft } from "lucide-react"
+import { Download, FolderDown, File, FileImage, Music, Video, FileText, AlertTriangle, CornerDownLeft, Send } from "lucide-react"
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from "@/utils/exportUtils"
 import "./message-bubble.css"
 import ResolveReminder from "@/components/resolve-reminder"
@@ -27,6 +27,8 @@ import { InteractiveFlowMessage, CtaFlowMessage, TemplateMessage } from "./inter
 import { useWhatsAppAppServices } from "@/hooks/use-whatsapp-appservices"
 import { useWhatsAppTemplates } from "@/hooks/use-whatsapp-templates"
 import type { AppService } from "@/services/whatsapp"
+import { SendTemplateDialog } from "./send-template-dialog"
+import { CannedResponsesDialog } from "@/components/canned-responses-dialog"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
@@ -126,6 +128,10 @@ export default function ChatArea({
     }
     return map
   }, [templates])
+
+  // Template & canned response dialog state
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [showCannedResponses, setShowCannedResponses] = useState(false)
 
   // Compute last customer message time for 24h window
   // The window opens when the customer messages the business (any mode) or replies to a template.
@@ -238,6 +244,35 @@ export default function ChatArea({
     { align: "right", width: "w-[50%]" },
     { align: "left", width: "w-[55%]" },
   ]
+
+  const handleTemplateSent = useCallback(
+    (templateName: string, templateBody: string) => {
+      if (!conversation) return
+      const tempId = -(Date.now() + Math.random() * 1000)
+      const optimisticMessage = {
+        id: tempId,
+        answer: `[Template: ${templateName}]`,
+        sender: "human",
+        created_at: new Date().toISOString(),
+        read: false,
+        content: null,
+        media: null,
+        type: "text",
+        status: "sent" as const,
+        pending: false,
+      }
+      updateMessagesAndSync((prev) => [...(prev || []), optimisticMessage])
+      setShouldAutoScroll(true)
+    },
+    [conversation, updateMessagesAndSync],
+  )
+
+  const handleCannedResponseInsert = useCallback((content: string) => {
+    window.dispatchEvent(
+      new CustomEvent("setCannedResponse", { detail: { content } }),
+    )
+    setShowCannedResponses(false)
+  }, [])
 
   const handleReactionSelect = async (message: ChatMessage, emoji: string, currentReaction?: string, isCustomerMessage: boolean = false) => {
     if (!conversation) return
@@ -1454,20 +1489,54 @@ export default function ChatArea({
       {isWindowExpired && (
         <div className="px-3 py-2 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-          <span className="text-xs text-amber-800">
+          <span className="text-xs text-amber-800 flex-1">
             24-hour window expired. Send a template message to reopen the conversation.
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs shrink-0"
+            onClick={() => setShowTemplatePicker(true)}
+          >
+            <Send className="mr-1.5 h-3 w-3" />
+            Send Template
+          </Button>
         </div>
       )}
       <div className="p-2 bg-[#f0f2f5] border-t border-[#e9edef]">
         <MessageInput
           customerNumber={conversation.customer_number || conversation.recipient_id}
           phoneNumber={phoneNumber}
+          organizationId={organizationId}
           onMessageSent={handleMessageSent}
           onMessageSendSuccess={handleMessageSendSuccess}
           onMessageSendFailure={handleMessageSendFailure}
+          onOpenTemplatePicker={() => setShowTemplatePicker(true)}
+          onOpenCannedResponses={() => setShowCannedResponses(true)}
         />
       </div>
+
+      {/* Template picker dialog */}
+      {currentAppService && (
+        <SendTemplateDialog
+          open={showTemplatePicker}
+          onOpenChange={setShowTemplatePicker}
+          templates={templates}
+          appService={currentAppService as AppService}
+          customerNumber={conversation.customer_number || conversation.recipient_id}
+          phoneNumber={phoneNumber}
+          organizationId={organizationId}
+          onSend={handleTemplateSent}
+        />
+      )}
+
+      {/* Canned responses dialog */}
+      <CannedResponsesDialog
+        open={showCannedResponses}
+        onOpenChange={setShowCannedResponses}
+        organizationId={organizationId}
+        onInsert={handleCannedResponseInsert}
+      />
     </div>
   )
 }
