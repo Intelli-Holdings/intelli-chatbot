@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQueryClient } from 'react-query';
-import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2, Bot, Save } from 'lucide-react';
+import { Users, FileText, Zap, MessageSquare, Calendar, Send, Search, CheckCircle2, Download, Upload, X, AlertCircle, User, UserPlus, Loader2, Bot, Save, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ import { transformCSVToRecipients, validateMappings, getRequiredFields } from '@
 import MappingPreviewPanel from '@/components/mapping-preview-panel';
 import { ChatbotAutomationService, TemplateButtonFlowMapping } from '@/services/chatbot-automation';
 import { ChatbotAutomation } from '@/types/chatbot-automation';
+import { logger } from "@/lib/logger";
 
 interface Contact {
   id: string;
@@ -110,6 +111,11 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewUpdatedAt, setPreviewUpdatedAt] = useState<string | null>(null);
 
+  // Carousel state
+  const [carouselMediaFiles, setCarouselMediaFiles] = useState<(File | null)[]>([]);
+  const [carouselMediaIds, setCarouselMediaIds] = useState<string[]>([]);
+  const [isUploadingCarouselMedia, setIsUploadingCarouselMedia] = useState(false);
+
   const [showAllTags, setShowAllTags] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [templateSearchTerm, setTemplateSearchTerm] = useState('');
@@ -121,6 +127,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [loadingFlows, setLoadingFlows] = useState(false);
   const [savingFlowMappings, setSavingFlowMappings] = useState(false);
   const [hasFlowMappingChanges, setHasFlowMappingChanges] = useState(false);
+
+  // Carousel drag-and-drop refs
+  const carouselFileInputRef = useRef<HTMLInputElement>(null);
+  const carouselSameFileInputRef = useRef<HTMLInputElement>(null);
+  const carouselDragRef = useRef<number | null>(null);
+  const [carouselDragOverIndex, setCarouselDragOverIndex] = useState<number | null>(null);
 
   // CSV Import state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -277,7 +289,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     try {
       await fetchNextPage();
     } catch (error) {
-      console.error('Error loading more contacts:', error);
+      logger.error("Error loading more contacts", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to load more contacts');
     }
   };
@@ -410,20 +422,20 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
     // Extract button variables (URL buttons with parameters and COPY_CODE buttons)
     const buttonsComponent = template.components?.find((c: any) => c.type === 'BUTTONS');
-    console.log('Looking for BUTTONS component in template:', template.name);
-    console.log('All components:', template.components?.map((c: any) => c.type));
+    logger.debug("Looking for BUTTONS component in template", { templateName: template.name });
+    logger.debug("All components", { data: template.components?.map((c: any) => c.type) });
 
     if (buttonsComponent) {
-      console.log('Button component found:', JSON.stringify(buttonsComponent, null, 2));
+      logger.debug("Button component found", { data: buttonsComponent });
 
       if (buttonsComponent.buttons) {
         buttonsComponent.buttons.forEach((button: any, index: number) => {
-          console.log(`Processing button ${index}:`, JSON.stringify(button, null, 2));
+          logger.debug(`Processing button ${index}`, { data: button });
 
           // URL buttons with variables in the URL
           if (button.type === 'URL' && button.url) {
             const urlMatches = button.url.match(/\{\{(\w+|\d+)\}\}/g) || [];
-            console.log(`Button ${index} URL matches:`, urlMatches);
+            logger.debug(`Button ${index} URL matches`, { data: urlMatches });
             urlMatches.forEach(() => {
               buttonVariables.push({
                 type: 'text',
@@ -435,7 +447,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
           // COPY_CODE buttons always require a parameter (the code to copy)
           if (button.type === 'COPY_CODE') {
-            console.log(`Button ${index} is COPY_CODE, adding parameter`);
+            logger.debug(`Button ${index} is COPY_CODE, adding parameter`);
             buttonVariables.push({
               type: 'text',
               text: '', // User will fill this
@@ -444,10 +456,10 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           }
         });
       } else {
-        console.log('Buttons component found but no buttons array');
+        logger.debug("Buttons component found but no buttons array");
       }
     } else {
-      console.log('No BUTTONS component found in template');
+      logger.debug("No BUTTONS component found in template");
     }
 
     return { bodyVariables, headerVariables, buttonVariables };
@@ -469,9 +481,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const handleTemplateSelect = async (templateName: string) => {
     const template = approvedTemplates.find(t => t.name === templateName);
     if (template) {
-      console.log('Selected template:', template);
+      logger.debug("Selected template", { data: template });
       const { bodyVariables, headerVariables, buttonVariables } = extractTemplateVariables(template);
-      console.log('Extracted variables - Body:', bodyVariables.length, 'Header:', headerVariables.length, 'Button:', buttonVariables.length);
+      logger.debug("Extracted variables", { bodyCount: bodyVariables.length, headerCount: headerVariables.length, buttonCount: buttonVariables.length });
       setFormData(prev => ({
         ...prev,
         templateName,
@@ -485,6 +497,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setGlobalHeaderMediaHandle('');
       setGlobalHeaderMediaId('');
       setIsUploadingHeaderMedia(false);
+      setCarouselMediaFiles([]);
+      setCarouselMediaIds([]);
+      setIsUploadingCarouselMedia(false);
 
       // Fetch flow mappings if template has quick reply buttons
       const buttonsComp = template.components?.find((c: any) => c.type === 'BUTTONS');
@@ -519,7 +534,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setFlowMappings(initialMappings);
       setHasFlowMappingChanges(false);
     } catch (error) {
-      console.error('Error fetching flows and mappings:', error);
+      logger.error("Error fetching flows and mappings", { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setLoadingFlows(false);
     }
@@ -560,7 +575,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.success('Flow mappings saved successfully');
       setHasFlowMappingChanges(false);
     } catch (error) {
-      console.error('Error saving flow mappings:', error);
+      logger.error("Error saving flow mappings", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to save flow mappings');
     } finally {
       setSavingFlowMappings(false);
@@ -617,13 +632,130 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setGlobalHeaderMediaId(data.id || '');
       toast.success('Header media uploaded');
     } catch (error) {
-      console.error('Global header media upload failed:', error);
+      logger.error("Global header media upload failed", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to upload media');
       setGlobalHeaderMediaFile(null);
       setGlobalHeaderMediaHandle('');
       setGlobalHeaderMediaId('');
     } finally {
       setIsUploadingHeaderMedia(false);
+    }
+  };
+
+  // Carousel: select multiple files — fills empty slots first, then overwrites from the start
+  const handleCarouselFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setCarouselMediaFiles(prev => {
+      const slots = [...prev];
+      // Ensure array is the right size
+      while (slots.length < carouselCardCount) slots.push(null);
+
+      // Collect empty slot indices
+      const emptyIndices = slots.map((f, i) => f ? -1 : i).filter(i => i !== -1);
+
+      if (emptyIndices.length > 0 && files.length <= emptyIndices.length) {
+        // Enough empty slots: fill them
+        files.forEach((file, fi) => { slots[emptyIndices[fi]] = file; });
+      } else if (emptyIndices.length > 0) {
+        // More files than empty slots: fill empties first, then overflow to start
+        let fi = 0;
+        emptyIndices.forEach(idx => { slots[idx] = files[fi++]; });
+        // Remaining files overwrite from slot 0
+        for (let idx = 0; fi < files.length && idx < carouselCardCount; idx++) {
+          if (!emptyIndices.includes(idx)) { slots[idx] = files[fi++]; }
+        }
+      } else {
+        // No empty slots: fresh fill
+        files.slice(0, carouselCardCount).forEach((file, i) => { slots[i] = file; });
+      }
+
+      return slots;
+    });
+
+    // Invalidate uploads for changed slots
+    setCarouselMediaIds(prev => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      // Clear IDs for slots that now have different files
+      // Simplest: clear all since ordering may have changed
+      return updated.map(() => '');
+    });
+
+    if (carouselFileInputRef.current) carouselFileInputRef.current.value = '';
+  };
+
+  // Carousel: use one file for ALL cards
+  const handleCarouselSameForAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCarouselMediaFiles(Array(carouselCardCount).fill(file));
+    setCarouselMediaIds([]);
+    if (e.target) e.target.value = '';
+  };
+
+  // Carousel: drag-and-drop reorder
+  const handleCarouselDrop = (targetIndex: number) => {
+    const src = carouselDragRef.current;
+    setCarouselDragOverIndex(null);
+    if (src === null || src === targetIndex) return;
+
+    setCarouselMediaFiles(prev => {
+      const u = [...prev];
+      const tmp = u[src]; u[src] = u[targetIndex]; u[targetIndex] = tmp;
+      return u;
+    });
+    setCarouselMediaIds(prev => {
+      if (prev.length === 0) return prev;
+      const u = [...prev];
+      const tmp = u[src]; u[src] = u[targetIndex]; u[targetIndex] = tmp;
+      return u;
+    });
+    carouselDragRef.current = null;
+  };
+
+  // Carousel: batch upload all selected files
+  const uploadAllCarouselMedia = async () => {
+    if (!organizationId || !appService?.phone_number) {
+      toast.error('Organization and App Service are required');
+      return;
+    }
+    if (carouselMediaFiles.filter(f => f).length < carouselCardCount) {
+      toast.error(`Please select media for all ${carouselCardCount} cards first`);
+      return;
+    }
+
+    setIsUploadingCarouselMedia(true);
+    const newIds = [...carouselMediaIds];
+
+    try {
+      for (let i = 0; i < carouselMediaFiles.length; i++) {
+        const file = carouselMediaFiles[i];
+        if (!file) continue;
+        if (newIds[i]) continue; // already uploaded
+
+        const fd = new FormData();
+        fd.append('media_file', file);
+        fd.append('upload_type', 'media');
+        fd.append('organization', organizationId);
+        fd.append('appservice_phone_number', appService.phone_number);
+        if (appService?.phone_number_id) fd.append('phone_number_id', appService.phone_number_id);
+        if (appService?.id) fd.append('appservice_id', appService.id);
+
+        const res = await fetch('/api/whatsapp/templates/upload_media', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || `Failed to upload card ${i + 1} media`);
+        if (!data.id && !data.handle) throw new Error(`Card ${i + 1} upload returned no ID`);
+
+        newIds[i] = data.id || data.handle;
+        setCarouselMediaIds([...newIds]); // update progressively
+      }
+      toast.success('All carousel media uploaded!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to upload carousel media');
+    } finally {
+      setIsUploadingCarouselMedia(false);
     }
   };
 
@@ -687,6 +819,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                     url: btn.url,
                     phone_number: btn.phone_number
                   }));
+                } else if (component.type === 'CAROUSEL') {
+                  comp.cards = component.cards;
                 }
 
                 return comp;
@@ -727,6 +861,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
           templatePayload.button_params = buttonParams;
 
+          // Carousel fields
+          if (isCarouselTemplate && carouselMediaIds.length > 0) {
+            templatePayload.is_carousel = true;
+            templatePayload.carousel_card_media_ids = carouselMediaIds;
+          }
+
           updateData.payload = templatePayload;
         }
       } else {
@@ -745,7 +885,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.success('Draft updated');
       return true;
     } catch (error) {
-      console.error('Error updating draft campaign:', error);
+      logger.error("Error updating draft campaign", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to update draft');
       return false;
     } finally {
@@ -784,9 +924,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       if (campaignType === 'template') {
         const selectedTemplate = approvedTemplates.find(t => t.name === formData.templateName);
         if (selectedTemplate) {
-          console.log('=== CAMPAIGN CREATION DEBUG ===');
-          console.log('Selected template for campaign:', JSON.stringify(selectedTemplate, null, 2));
-          console.log('Form data button parameters:', formData.buttonParameters);
+          logger.debug("Campaign creation debug", { selectedTemplate, buttonParameters: formData.buttonParameters });
           campaignData.template_id = selectedTemplate.id;
 
           // Build the template object with all required metadata
@@ -818,6 +956,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                     url: btn.url,
                     phone_number: btn.phone_number
                   }));
+                } else if (component.type === 'CAROUSEL') {
+                  comp.cards = component.cards;
                 }
 
                 return comp;
@@ -856,11 +996,11 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                 }
               }];
 
-              console.log(`✅ Added global ${headerFormat} media to campaign payload:`, mediaId);
+              logger.info(`Added global ${headerFormat} media to campaign payload`, { mediaId });
             } else if (headerMediaMode === 'per-recipient') {
               // Per-recipient mode: Don't include header_parameters in campaign payload
               // Recipients will provide their own media IDs
-              console.log('📋 Per-recipient media mode: Media will be provided per contact');
+              logger.info("Per-recipient media mode: Media will be provided per contact");
             }
           }
 
@@ -883,7 +1023,13 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           }
 
           templatePayload.button_params = buttonParams;
-          console.log('Extracted params - Body:', templatePayload.body_params, 'Header:', templatePayload.header_params, 'Button:', templatePayload.button_params);
+          logger.debug("Extracted params", { bodyParams: templatePayload.body_params, headerParams: templatePayload.header_params, buttonParams: templatePayload.button_params });
+
+          // Carousel fields
+          if (isCarouselTemplate && carouselMediaIds.length > 0) {
+            templatePayload.is_carousel = true;
+            templatePayload.carousel_card_media_ids = carouselMediaIds;
+          }
 
           campaignData.payload = templatePayload;
         }
@@ -894,9 +1040,9 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         };
       }
 
-      console.log('Creating campaign with data:', campaignData);
+      logger.info("Creating campaign", { data: campaignData });
       const campaign = await CampaignService.createCampaign(campaignData);
-      console.log('Campaign created:', campaign);
+      logger.info("Campaign created", { data: campaign });
 
       setCreatedCampaignId(campaign.id);
       if (campaign.whatsapp_campaign_id) {
@@ -906,7 +1052,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.success('Campaign created successfully!');
       return true;
     } catch (error) {
-      console.error('Error creating campaign:', error);
+      logger.error("Error creating campaign", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to create campaign');
       return false;
     } finally {
@@ -990,7 +1136,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           }
         },
         error: (error) => {
-          console.error('Error parsing CSV:', error);
+          logger.error("Error parsing CSV", { error: error instanceof Error ? error.message : String(error) });
           toast.error('Failed to parse CSV file');
         },
       });
@@ -1109,7 +1255,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           const statusResponse = await fetch(`/api/contacts/import/${importJobId}`);
 
           if (!statusResponse.ok) {
-            console.warn(`Import status check failed (attempt ${attempts + 1}/${maxAttempts}):`, statusResponse.status);
+            logger.warn(`Import status check failed (attempt ${attempts + 1}/${maxAttempts})`, { status: statusResponse.status });
 
             // If we get a 404, the job might have been cleaned up
             if (statusResponse.status === 404) {
@@ -1159,7 +1305,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
               // Show validation errors if any
               if (transformResult.errors.length > 0) {
-                console.warn('CSV validation errors:', transformResult.errors);
+                logger.warn("CSV validation errors", { errors: transformResult.errors });
                 toast.warning(`${transformResult.errors.length} row(s) with errors were skipped`);
               }
 
@@ -1179,7 +1325,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                 toast.error('No valid recipients found in CSV');
               }
             } catch (error) {
-              console.error('Error adding recipients to campaign:', error);
+              logger.error("Error adding recipients to campaign", { error: error instanceof Error ? error.message : String(error) });
               toast.error('Failed to add recipients to campaign');
             }
 
@@ -1192,7 +1338,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           if (fetchError instanceof Error && fetchError.message.includes('Import job not found')) {
             throw fetchError;
           }
-          console.warn('Error checking import status:', fetchError);
+          logger.warn("Error checking import status", { error: fetchError instanceof Error ? fetchError.message : String(fetchError) });
         }
 
         attempts++;
@@ -1201,7 +1347,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       if (!importComplete) {
         const timeoutMessage = 'Import is taking longer than expected. You can return to this campaign while we finish processing.';
         toast.warning(timeoutMessage, { duration: 10000 });
-        console.warn('Import did not complete within timeout (job ID: ', importJobId, ')');
+        logger.warn("Import did not complete within timeout", { importJobId });
 
         // Clean UI state but allow later retry
         setSelectedFile(null);
@@ -1221,7 +1367,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setColumnMappings({});
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error) {
-      console.error('Error importing CSV:', error);
+      logger.error("Error importing CSV", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to import CSV');
     } finally {
       setUploading(false);
@@ -1262,7 +1408,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       }
       return true;
     } catch (error) {
-      console.error('Error verifying recipients:', error);
+      logger.error("Error verifying recipients", { error: error instanceof Error ? error.message : String(error) });
       return true; // Do not block launch on verification error
     }
   };
@@ -1287,7 +1433,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       setPreviewError(null);
       setPreviewUpdatedAt(new Date().toISOString());
     } catch (error) {
-      console.error('Error loading campaign preview:', error);
+      logger.error("Error loading campaign preview", { error: error instanceof Error ? error.message : String(error) });
       const message = error instanceof Error ? error.message : 'Failed to fetch message preview';
       setPreviewError(message);
       toast.error(message);
@@ -1321,7 +1467,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       }
       return true;
     } catch (error) {
-      console.error('Error refreshing campaign ids before execute:', error);
+      logger.error("Error refreshing campaign ids before execute", { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   };
@@ -1342,7 +1488,14 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         return formData.name.trim() !== '' && formData.description.trim() !== '';
       case 2:
         if (campaignType === 'template') {
-          return !!formData.templateName;
+          if (!formData.templateName) return false;
+          // Carousel templates require all card media to be uploaded
+          if (isCarouselTemplate && carouselCardCount > 0) {
+            const allUploaded = carouselMediaIds.length === carouselCardCount &&
+              carouselMediaIds.every(id => id && id.trim() !== '');
+            if (!allUploaded) return false;
+          }
+          return true;
         }
         return formData.messageContent.trim() !== '';
       case 3:
@@ -1431,10 +1584,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
       // Add recipients if campaign is WhatsApp
       if (formData.channel === 'whatsapp') {
-        console.log('=== RECIPIENT SUBMISSION DEBUG ===');
-        console.log('Selected contacts:', formData.selectedContacts);
-        console.log('Selected tags:', formData.selectedTags);
-        console.log('Has template variables:', hasTemplateVariables);
+        logger.debug("Recipient submission debug", { selectedContacts: formData.selectedContacts, selectedTags: formData.selectedTags, hasTemplateVariables });
         const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
         const mediaValue = globalHeaderMediaId || globalHeaderMediaHandle;
         const tagIds = formData.selectedTags.length > 0
@@ -1446,7 +1596,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
         // If template has variables, use new format with per-recipient parameters
         if (hasTemplateVariables && formData.selectedContacts.length > 0) {
-          console.log('=== USING NEW RECIPIENT FORMAT WITH PARAMETERS ===');
+          logger.debug("Using new recipient format with parameters");
 
           if (hasMediaHeader && headerMediaMode === 'global' && !mediaValue) {
             toast.error('Upload header media before sending');
@@ -1458,14 +1608,13 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
           const recipientsWithParams = formData.selectedContacts.map(contactId => {
             const contact = contacts.find(c => c.id === contactId);
             if (!contact) {
-              console.warn(`Contact not found for ID: ${contactId}`);
+              logger.warn(`Contact not found for ID: ${contactId}`);
               return null;
             }
 
             // Validate that contact has a phone number
             if (!contact.phone) {
-              console.warn(`Contact ${contactId} (${contact.fullname}) has no phone number`);
-              console.warn('Contact object:', contact);
+              logger.warn(`Contact ${contactId} (${contact.fullname}) has no phone number`, { contact });
               return null;
             }
 
@@ -1477,7 +1626,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               // Global media mode: Leave header_params EMPTY for recipients
               // Campaign payload already has the media ID in header_parameters
               // Recipients will use campaign defaults
-              console.log(`📌 Global media mode: Recipient will use campaign default media`);
+              logger.info("Global media mode: Recipient will use campaign default media");
             } else if (hasMediaHeader && headerMediaMode === 'per-recipient') {
               // Per-recipient mode: Each recipient provides their own media ID
               for (let i = 0; i < formData.headerParameters.length; i++) {
@@ -1513,12 +1662,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               }
             };
 
-            console.log(`Building recipient for ${contact.fullname}:`, recipient);
+            logger.debug(`Building recipient for ${contact.fullname}`, { data: recipient });
 
             return recipient;
           }).filter(r => r !== null);
 
-          console.log('Recipients with parameters:', JSON.stringify(recipientsWithParams, null, 2));
+          logger.debug("Recipients with parameters", { data: recipientsWithParams });
 
           // Add recipients with template parameters
           await CampaignService.addWhatsAppCampaignRecipients(
@@ -1530,7 +1679,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
             }
           );
 
-          console.log('Recipients with parameters added successfully');
+          logger.info("Recipients with parameters added successfully");
 
         const ok = await verifyRecipientsExist();
         if (!ok) {
@@ -1542,7 +1691,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         }
         } else {
           // Use legacy format for templates without variables
-          console.log('=== USING LEGACY RECIPIENT FORMAT (no template variables) ===');
+          logger.debug("Using legacy recipient format (no template variables)");
 
           // Get contact IDs - ensure they are numbers
           const contactIds = formData.selectedContacts.length > 0
@@ -1552,8 +1701,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               }).filter(id => !isNaN(id))
             : [];
 
-          console.log('Tag IDs:', tagIds);
-          console.log('Contact IDs:', contactIds);
+          logger.debug("Recipient IDs", { tagIds, contactIds });
 
           // Only add recipients if at least one type is selected
           if (tagIds.length > 0 || contactIds.length > 0) {
@@ -1570,7 +1718,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               recipientData.contact_ids = contactIds;
             }
 
-            console.log('Recipient data payload:', JSON.stringify(recipientData, null, 2));
+            logger.debug("Recipient data payload", { data: recipientData });
 
             await CampaignService.addWhatsAppCampaignRecipients(
               createdWhatsAppCampaignId,
@@ -1578,7 +1726,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
               recipientData
             );
 
-            console.log('Recipients added successfully');
+            logger.info("Recipients added successfully");
 
             const ok = await verifyRecipientsExist();
             if (!ok) {
@@ -1608,7 +1756,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       toast.success('Campaign launched successfully!');
       onSuccess();
     } catch (error) {
-      console.error('Error launching campaign:', error);
+      logger.error("Error launching campaign", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to launch campaign');
     } finally {
       setLoading(false);
@@ -1618,6 +1766,33 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const hasTemplateVariables = campaignType === 'template' &&
     (formData.bodyParameters.length > 0 || formData.headerParameters.length > 0 || formData.buttonParameters.length > 0);
   const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
+
+  const isCarouselTemplate = useMemo(() => {
+    const selectedTemplate = getSelectedTemplate();
+    if (!selectedTemplate) return false;
+    return selectedTemplate.components?.some((c: any) => c.type === 'CAROUSEL') ?? false;
+  }, [formData.templateName, approvedTemplates]);
+
+  const carouselCardCount = useMemo(() => {
+    const selectedTemplate = getSelectedTemplate();
+    if (!selectedTemplate) return 0;
+    const carouselComp = selectedTemplate.components?.find((c: any) => c.type === 'CAROUSEL');
+    return carouselComp?.cards?.length || 0;
+  }, [formData.templateName, approvedTemplates]);
+
+  // Build preview URLs for carousel image files and revoke on change/unmount
+  const carouselPreviews = useMemo(() => {
+    return carouselMediaFiles.map(file =>
+      file && file.type.startsWith('image/') ? URL.createObjectURL(file) : ''
+    );
+  }, [carouselMediaFiles]);
+
+  useEffect(() => {
+    return () => {
+      carouselPreviews.forEach(url => { if (url) URL.revokeObjectURL(url); });
+    };
+  }, [carouselPreviews]);
+
   const getPerRecipientParamCount = () => {
     const mediaHeaderCount = formData.headerParameters.filter(p => ['image', 'video', 'document'].includes(p.type)).length;
     const headerCount = headerMediaMode === 'global' ? formData.headerParameters.length - mediaHeaderCount : formData.headerParameters.length;
@@ -1910,6 +2085,221 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                     </Button>
                                   )}
                                 </>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Carousel Card Media Upload */}
+                        {isCarouselTemplate && carouselCardCount > 0 && (
+                          <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 dark:border-purple-900">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-purple-600" />
+                                Carousel Card Media
+                              </CardTitle>
+                              <CardDescription>
+                                Select all {carouselCardCount} media files at once, then drag to reorder them to match each card.
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {/* File pickers + actions */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <input
+                                  ref={carouselFileInputRef}
+                                  type="file"
+                                  className="hidden"
+                                  multiple
+                                  accept="image/jpeg,image/png,video/mp4"
+                                  onChange={handleCarouselFilesSelect}
+                                  disabled={isUploadingCarouselMedia}
+                                />
+                                <input
+                                  ref={carouselSameFileInputRef}
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/jpeg,image/png,video/mp4"
+                                  onChange={handleCarouselSameForAll}
+                                  disabled={isUploadingCarouselMedia}
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                  onClick={() => carouselFileInputRef.current?.click()}
+                                  disabled={isUploadingCarouselMedia}
+                                >
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Select Files
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                  onClick={() => carouselSameFileInputRef.current?.click()}
+                                  disabled={isUploadingCarouselMedia}
+                                >
+                                  Same Image for All
+                                </Button>
+                                <span className="text-sm text-muted-foreground">
+                                  {carouselMediaFiles.filter(f => f).length}/{carouselCardCount} selected
+                                </span>
+                                {carouselMediaFiles.some(f => f) && !isUploadingCarouselMedia && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs text-muted-foreground ml-auto"
+                                    onClick={() => {
+                                      setCarouselMediaFiles(Array(carouselCardCount).fill(null));
+                                      setCarouselMediaIds([]);
+                                    }}
+                                  >
+                                    <X className="h-3 w-3 mr-1" /> Clear All
+                                  </Button>
+                                )}
+                              </div>
+
+                              {/* File list with drag-and-drop reorder */}
+                              {carouselMediaFiles.some(f => f) && (
+                                <div className="space-y-1.5">
+                                  {carouselMediaFiles.map((file, i) => {
+                                    const uploaded = carouselMediaIds[i] && carouselMediaIds[i].trim() !== '';
+                                    const isDragOver = carouselDragOverIndex === i;
+
+                                    return (
+                                      <div
+                                        key={i}
+                                        draggable={!!file && !isUploadingCarouselMedia}
+                                        onDragStart={() => { carouselDragRef.current = i; }}
+                                        onDragOver={(e) => { e.preventDefault(); setCarouselDragOverIndex(i); }}
+                                        onDragLeave={() => { if (carouselDragOverIndex === i) setCarouselDragOverIndex(null); }}
+                                        onDrop={(e) => { e.preventDefault(); handleCarouselDrop(i); }}
+                                        onDragEnd={() => { carouselDragRef.current = null; setCarouselDragOverIndex(null); }}
+                                        className={`
+                                          flex items-center gap-3 p-3 rounded-lg border transition-all
+                                          ${file
+                                            ? 'bg-white dark:bg-gray-900 cursor-grab active:cursor-grabbing'
+                                            : 'bg-muted/50 border-dashed'}
+                                          ${isDragOver ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/40 ring-2 ring-purple-300' : ''}
+                                          ${uploaded ? 'border-green-300' : ''}
+                                        `}
+                                      >
+                                        {/* Drag handle */}
+                                        <div className="flex-shrink-0 text-muted-foreground/50">
+                                          {file ? (
+                                            <GripVertical className="h-5 w-5" />
+                                          ) : (
+                                            <div className="w-5" />
+                                          )}
+                                        </div>
+
+                                        {/* Card number */}
+                                        <div className="flex-shrink-0 w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                                          <span className="text-xs font-bold text-purple-700 dark:text-purple-300">{i + 1}</span>
+                                        </div>
+
+                                        {file ? (
+                                          <>
+                                            {/* Thumbnail */}
+                                            {carouselPreviews[i] ? (
+                                              <img
+                                                src={carouselPreviews[i]}
+                                                alt={`Card ${i + 1}`}
+                                                className="w-11 h-11 object-cover rounded flex-shrink-0"
+                                              />
+                                            ) : file.type.startsWith('video/') ? (
+                                              <div className="w-11 h-11 bg-gray-200 dark:bg-gray-800 rounded flex items-center justify-center flex-shrink-0">
+                                                <span className="text-[10px] font-semibold text-muted-foreground">MP4</span>
+                                              </div>
+                                            ) : null}
+
+                                            {/* File info */}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm font-medium truncate">{file.name}</div>
+                                              <div className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</div>
+                                            </div>
+
+                                            {/* Status */}
+                                            {uploaded ? (
+                                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300 flex-shrink-0">
+                                                <CheckCircle2 className="h-3 w-3 mr-1" /> Uploaded
+                                              </Badge>
+                                            ) : isUploadingCarouselMedia ? (
+                                              <span className="text-xs text-purple-600 flex items-center gap-1 flex-shrink-0">
+                                                <Loader2 className="h-3 w-3 animate-spin" /> Waiting...
+                                              </span>
+                                            ) : (
+                                              <span className="text-xs text-muted-foreground flex-shrink-0">Drag to reorder</span>
+                                            )}
+
+                                            {/* Remove single file */}
+                                            {!isUploadingCarouselMedia && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 w-7 p-0 flex-shrink-0"
+                                                onClick={() => {
+                                                  setCarouselMediaFiles(prev => { const u = [...prev]; u[i] = null; return u; });
+                                                  setCarouselMediaIds(prev => { const u = [...prev]; u[i] = ''; return u; });
+                                                }}
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </Button>
+                                            )}
+                                          </>
+                                        ) : (
+                                          <div className="flex-1 text-sm text-muted-foreground italic">
+                                            Card {i + 1} — no file assigned
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Upload All button */}
+                              {carouselMediaFiles.filter(f => f).length === carouselCardCount &&
+                                carouselMediaIds.filter(id => id).length < carouselCardCount && (
+                                <Button
+                                  onClick={uploadAllCarouselMedia}
+                                  disabled={isUploadingCarouselMedia}
+                                  className="w-full bg-purple-600 hover:bg-purple-700"
+                                >
+                                  {isUploadingCarouselMedia ? (
+                                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading {carouselMediaIds.filter(id => id).length}/{carouselCardCount}...</>
+                                  ) : (
+                                    <><Upload className="h-4 w-4 mr-2" /> Upload All Media</>
+                                  )}
+                                </Button>
+                              )}
+
+                              {/* Partial upload progress */}
+                              {isUploadingCarouselMedia && carouselMediaIds.filter(id => id).length > 0 && (
+                                <div className="flex items-center gap-2 text-sm text-purple-700">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Uploading... {carouselMediaIds.filter(id => id).length} of {carouselCardCount} done
+                                </div>
+                              )}
+
+                              {/* All uploaded success */}
+                              {carouselMediaIds.filter(id => id).length === carouselCardCount && carouselCardCount > 0 && (
+                                <Alert className="bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-900">
+                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                  <AlertDescription className="text-xs text-green-800 dark:text-green-200">
+                                    All {carouselCardCount} card media uploaded. You can proceed to the next step.
+                                  </AlertDescription>
+                                </Alert>
+                              )}
+
+                              {/* Validation warning */}
+                              {carouselMediaFiles.filter(f => f).length < carouselCardCount && carouselMediaFiles.filter(f => f).length > 0 && (
+                                <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900">
+                                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                                  <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+                                    Select {carouselCardCount - carouselMediaFiles.filter(f => f).length} more file(s). Each carousel card needs media.
+                                  </AlertDescription>
+                                </Alert>
                               )}
                             </CardContent>
                           </Card>
@@ -2942,6 +3332,21 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                       <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                                       <span className="text-sm text-green-800 dark:text-green-200">
                                         {getPerRecipientParamCount()} parameter(s) configured for {formData.selectedContacts.length + importedRecipientsCount} recipient(s)
+                                      </span>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                              {isCarouselTemplate && carouselMediaIds.length > 0 && (
+                                <>
+                                  <div className="border-t border-border/30"></div>
+                                  <div className="space-y-2">
+                                    <div className="text-sm font-medium text-muted-foreground">Carousel Media:</div>
+                                    <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-950/30 rounded border border-purple-200 dark:border-purple-900">
+                                      <CheckCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                      <span className="text-sm text-purple-800 dark:text-purple-200">
+                                        {carouselMediaIds.filter(id => id).length} of {carouselCardCount} card media uploaded
                                       </span>
                                     </div>
                                   </div>

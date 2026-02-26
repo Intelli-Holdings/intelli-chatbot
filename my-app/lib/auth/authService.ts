@@ -1,5 +1,7 @@
 // authService.ts
+import axios from 'axios';
 import api from '@/lib/api';
+import { logger } from "@/lib/logger";
 
 interface RegisterPayload {
   email: string;
@@ -69,13 +71,35 @@ interface LoginPayload {
       throw error;
     }
   };
+ 
+  interface UserProfile {
+    'My profile': {
+      id: number;
+      email: string;
+      role: string | null;
+      is_email_verified: boolean;
+      company_name: string;
+      username: string;
+    };
+    'email verified?': string;
+  }
   
-  const getProfile = async () => {
+  const getProfile = async (): Promise<UserProfile | null> => {
     try {
       const response = await api.get('/auth/profile/');
-      return response.data;
+      const data: UserProfile = response.data;
+      return data;
     } catch (error) {
-      throw error;
+      if (axios.isAxiosError(error)) {
+        logger.error('Error fetching user profile', { error: error.message });
+        if (error.response && error.response.status === 401) {
+          logger.error('Unauthorized. Please check your token.');
+          // Optionally, handle token refresh logic here
+        }
+      } else {
+        logger.error('Unexpected error', { error: error instanceof Error ? error.message : String(error) });
+      }
+      return null;
     }
   };
   

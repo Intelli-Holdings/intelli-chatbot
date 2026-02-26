@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(`${API_BASE_URL}/contacts/custom-fields/`);
     url.searchParams.set('organization', organization);
 
-    console.log('Fetching custom fields from:', url.toString());
+    logger.debug("Fetching custom fields", { url: url.toString() });
 
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -42,14 +43,14 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      console.error('Backend error:', response.status, errorData);
+      logger.error("Backend error fetching custom fields", { status: response.status, error: errorData });
       return NextResponse.json(errorData, { status: response.status });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching custom fields:', error);
+    logger.error("Error fetching custom fields", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to fetch custom fields', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -73,8 +74,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    console.log('Creating custom field:', body);
-    console.log('API_BASE_URL:', API_BASE_URL);
+    logger.debug("Creating custom field", { body, apiBaseUrl: API_BASE_URL });
 
     const response = await fetch(`${API_BASE_URL}/contacts/custom-fields/`, {
       method: 'POST',
@@ -85,11 +85,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    console.log('Backend response status:', response.status);
+    logger.debug("Backend response status", { status: response.status });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Backend error response:', errorText);
+      logger.error("Backend error creating custom field", { error: errorText });
 
       let errorData;
       try {
@@ -102,10 +102,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('Custom field created successfully:', data);
+    logger.info("Custom field created successfully", { data });
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
-    console.error('Error creating custom field:', error);
+    logger.error("Error creating custom field", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to create custom field', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

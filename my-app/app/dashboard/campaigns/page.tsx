@@ -63,6 +63,7 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     refetchStatusCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Combined refresh function for campaigns and stats

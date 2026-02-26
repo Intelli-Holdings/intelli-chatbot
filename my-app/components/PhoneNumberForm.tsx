@@ -22,6 +22,7 @@ import type React from "react"
 import PhoneInput from "react-phone-number-input"
 import "react-phone-number-input/style.css"
 
+import { logger } from "@/lib/logger";
 interface PhoneNumber {
   id: string
   phoneNumber: string
@@ -170,13 +171,13 @@ export const PhoneNumberForm: React.FC = () => {
         if (data && typeof data === "object" && "main_business_phone_number" in data && "others" in data) {
           applyNumbers(transformApiResponse(data))
         } else {
-          console.warn("API returned unexpected format:", data)
+          logger.warn("API returned unexpected format:", { data: data })
           if (!isBackground) {
             setExistingNumbers([])
           }
         }
       } catch (error) {
-        console.error("Failed to fetch phone numbers:", error)
+        logger.error("Failed to fetch phone numbers:", { error: error instanceof Error ? error.message : String(error) })
         if (!isBackground) {
           toast.error("Failed to load existing phone numbers")
           setExistingNumbers([])
@@ -186,7 +187,7 @@ export const PhoneNumberForm: React.FC = () => {
         setIsRefreshing(false)
       }
     },
-    [applyNumbers, getToken, organizationId, transformApiResponse]
+    [applyNumbers, getToken, organizationId]
   )
 
   useEffect(() => {
@@ -240,7 +241,7 @@ export const PhoneNumberForm: React.FC = () => {
       toast.error("Failed to delete phone number", {
         description: error instanceof Error ? error.message : "An unexpected error occurred"
       })
-      console.error("Phone number delete error:", error)
+      logger.error("Phone number delete error:", { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setDeletingId(null)
     }
@@ -269,7 +270,7 @@ export const PhoneNumberForm: React.FC = () => {
       payload.user_email = user?.emailAddresses[0].emailAddress
     }
 
-    console.log('Submitting payload:', payload)
+    logger.info('Submitting payload:', { data: payload })
 
     try {
       const token = await getToken({ organizationId: organizationId ?? undefined })
@@ -301,7 +302,7 @@ export const PhoneNumberForm: React.FC = () => {
       toast.error("Failed to add phone number", {
         description: error instanceof Error ? error.message : "An unexpected error occurred"
       })
-      console.error("Phone number update error:", error)
+      logger.error("Phone number update error:", { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setIsSubmitting(false)
     }

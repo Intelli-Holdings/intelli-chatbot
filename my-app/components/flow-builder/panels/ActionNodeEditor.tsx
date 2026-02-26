@@ -16,6 +16,7 @@ import { ActionNodeData } from '@/types/chatbot-automation';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { toast } from 'sonner';
 
+import { logger } from "@/lib/logger";
 interface Assistant {
   id: number;
   name: string;
@@ -71,7 +72,7 @@ export default function ActionNodeEditor({ data, onUpdate }: ActionNodeEditorPro
         if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
-        console.error('Error fetching assistants:', error);
+        logger.error('Error fetching assistants:', { error: error instanceof Error ? error.message : String(error) });
         if (isMounted) {
           setAssistants([]);
         }

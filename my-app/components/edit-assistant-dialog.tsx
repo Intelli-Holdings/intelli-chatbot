@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 
+import { logger } from "@/lib/logger";
 interface Assistant {
   id: number
   name: string
@@ -69,7 +70,7 @@ export function EditAssistantDialog({
 
     setIsLoading(true)
     try {
-      console.log(`[v0] Editing assistant.`)
+      logger.info(`[v0] Editing assistant.`)
 
       // Get the session token
       const token = await getToken()
@@ -90,7 +91,7 @@ export function EditAssistantDialog({
         }),
       })
 
-      console.log(`[v0] Edit assistant response status`)
+      logger.info(`[v0] Edit assistant response status`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -98,7 +99,7 @@ export function EditAssistantDialog({
       }
 
       const updatedData = await response.json()
-      console.log(`[v0] Successfully updated assistant`)
+      logger.info(`[v0] Successfully updated assistant`)
 
       const updatedAssistants = assistants.map((a) => (a.id === updatedData.id ? updatedData : a))
 
@@ -106,7 +107,7 @@ export function EditAssistantDialog({
       onAssistantUpdated(updatedAssistants)
       onClose()
     } catch (error) {
-      console.error("[v0] Error updating assistant:", error)
+      logger.error("[v0] Error updating assistant:", { error: error instanceof Error ? error.message : String(error) })
       toast.error(`Failed to update assistant: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setIsLoading(false)

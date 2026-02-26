@@ -27,9 +27,15 @@ const HowItWorksSection = () => {
     <section className="py-12">
       <div className="container mx-auto text-center">
       <div className="text-center mb-12">
-        <h2 className="text-5xl font-bold mb-10">Convert leads in 4 steps</h2>
-        <p className="text-gray-600">
-        Enrich your marketing funnel by following these <strong>4 steps </strong> 
+        <div className="flex items-center justify-center gap-2 mb-10">
+          <span className="w-2 h-2 rounded-full bg-teal-500" />
+          <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+            How it works
+          </span>
+        </div>
+        <h2 className="text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] mb-10">Convert leads in 4 steps</h2>
+        <p className="text-[15px] text-[#1a1a1a]/70 leading-[1.7]">
+        Enrich your marketing funnel by following these <strong>4 steps </strong>
         </p>
         </div>
 

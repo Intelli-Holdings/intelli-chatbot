@@ -1,6 +1,7 @@
 // app/api/whatsapp/templates/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching WhatsApp templates:', error);
+    logger.error('Error fetching WhatsApp templates', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -179,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error creating template:', error);
+    logger.error('Error creating template', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -240,7 +241,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error updating template:', error);
+    logger.error('Error updating template', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -299,7 +300,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error deleting template:', error);
+    logger.error('Error deleting template', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

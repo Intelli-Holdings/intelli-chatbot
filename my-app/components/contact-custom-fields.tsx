@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { useCustomFields, useCustomFieldValues, type CustomField } from '@/hooks/use-custom-fields';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { logger } from "@/lib/logger";
 
 interface ContactCustomFieldsProps {
   contactId: string;
@@ -91,7 +92,7 @@ export default function ContactCustomFields({ contactId }: ContactCustomFieldsPr
       toast.success('Custom fields saved successfully');
       setEditMode(false);
     } catch (error) {
-      console.error('Error saving custom fields:', error);
+      logger.error("Error saving custom fields", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to save custom fields');
     }
   };

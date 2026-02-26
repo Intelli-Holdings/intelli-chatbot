@@ -99,10 +99,16 @@ const PricingComponent = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <section className="container mx-auto px-4 py-20">
         <div className="text-center lg:text-center mb-12 lg:mb-16 space-y-4">
-          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent leading-tight py-2">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#1a1a1a]">
+              Pricing
+            </span>
+          </div>
+          <h2 className="text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1]">
             Choose the Perfect Plan for Your Business
           </h2>
-          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-[15px] text-[#1a1a1a]/60 leading-[1.7] max-w-2xl mx-auto">
             Start your 7-day free trial today. No credit card required.
           </p>
 

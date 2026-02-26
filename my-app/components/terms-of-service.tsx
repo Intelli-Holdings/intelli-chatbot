@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export default function TermsOfService() {
   const [showCurrentVersion, setShowCurrentVersion] = useState(true);
@@ -211,7 +212,7 @@ export default function TermsOfService() {
         <section className="container mx-auto mt-4 px-4 lg:w-2/4 xl:w-2/3 sm:w-3/4">
           <div 
             className="terms-of-service text-gray-800 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: formattedTerms }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(formattedTerms) }}
           />
         </section>
       </main>

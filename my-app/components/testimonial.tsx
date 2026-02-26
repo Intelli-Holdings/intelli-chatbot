@@ -83,15 +83,12 @@ const TestimonialCard: FC<TestimonalCardProps> = ({
 const Testimonials = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-5 py-12">
-      <h2 className="text-center text-5xl font-bold mb-10">
-        Join 200+ Businesses on Intelli
+      <h2 className="text-center text-[clamp(28px,4vw,48px)] font-bold text-[#1a1a1a] leading-[1.1] mb-10">
+        We are trusted by industry leaders.
       </h2>
-      <div className="w-full mb-10">
-        <AnimatedLogoCloud />
-      </div>
 
       <p className="max-w-2xl text-center text-sm font-semibold md:text-base ">
-        Founders, Marketers and Sales Teams love us!
+        Managers, Executives, Founders, Marketers and Sales Teams love us!
       </p>
 
         <div className="w-full mb-10">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { verifyMetaSignature } from "@/lib/api/webhook"
 import type { MetaWebhookPayload } from "@/types/messenger"
+import { logger } from "@/lib/logger";
 
 const APP_SECRET_ENV = "FACEBOOK_APP_SECRET"
 
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   const rawBody = await request.text()
   const signatureHeader =
     request.headers.get("x-hub-signature-256") || request.headers.get("x-hub-signature")
-  const appSecret = process.env[APP_SECRET_ENV] || process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET
+  const appSecret = process.env[APP_SECRET_ENV] || process.env.FACEBOOK_APP_SECRET
 
   if (!appSecret) {
     return NextResponse.json({ error: "Missing app secret" }, { status: 500 })
@@ -45,7 +46,8 @@ export async function POST(request: Request) {
   payload.entry?.forEach((entry) => {
     entry.messaging?.forEach((event) => {
       if (event.message) {
-        console.log("[Meta webhook]", channel, "message", {
+        logger.info("[Meta webhook] message received", {
+          channel,
           sender: event.sender?.id,
           text: event.message.text,
           timestamp: event.timestamp,
@@ -53,7 +55,8 @@ export async function POST(request: Request) {
       }
 
       if (event.postback) {
-        console.log("[Meta webhook]", channel, "postback", {
+        logger.info("[Meta webhook] postback received", {
+          channel,
           sender: event.sender?.id,
           payload: event.postback.payload,
           title: event.postback.title,

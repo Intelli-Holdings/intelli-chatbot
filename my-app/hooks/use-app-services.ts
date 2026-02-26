@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { WhatsAppService, type AppService } from '@/services/whatsapp';
 import useActiveOrganizationId from './use-organization-id';
+import { logger } from "@/lib/logger";
 
 export interface UseAppServicesReturn {
   appServices: AppService[];
@@ -53,7 +54,7 @@ export const useAppServices = (): UseAppServicesReturn => {
       }
       
       setError(errorMessage);
-      console.error('Error fetching app services:', err);
+      logger.error('Error fetching app services', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

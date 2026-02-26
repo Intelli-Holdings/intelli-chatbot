@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 
+import { logger } from "@/lib/logger";
 // DELETE - Delete an assistant by ID
 export async function DELETE(
   request: NextRequest,
@@ -36,7 +37,7 @@ export async function DELETE(
       )
     }
 
-    console.log('Deleting assistant ID:', id)
+    logger.info('Deleting assistant ID:', { data: id })
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/${id}/`,
@@ -49,11 +50,11 @@ export async function DELETE(
       }
     )
 
-    console.log('Backend delete response status:', response.status)
+    logger.info('Backend delete response status:', { data: response.status })
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend delete error:', errorData)
+      logger.error('Backend delete error:', { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to delete assistant' },
         { status: response.status }
@@ -76,10 +77,10 @@ export async function DELETE(
       };
     }
 
-    console.log('Assistant deleted successfully:', data)
+    logger.info('Assistant deleted successfully:', { data: data })
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error deleting assistant:', error)
+    logger.error('Error deleting assistant:', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -124,7 +125,7 @@ export async function PUT(
 
     const body = await request.json()
 
-    console.log('Updating assistant ID:', id, 'with data:', body)
+    logger.info('Updating assistant ID:', { id: id, arg1: 'with data:', body: body })
 
     // Remove the id from the body since it's in the URL path
     const { id: bodyId, ...updateData } = body
@@ -142,11 +143,11 @@ export async function PUT(
       }
     )
 
-    console.log('Backend update response status:', response.status)
+    logger.info('Backend update response status:', { data: response.status })
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend update error:', errorData)
+      logger.error('Backend update error:', { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to update assistant' },
         { status: response.status }
@@ -169,10 +170,10 @@ export async function PUT(
       };
     }
 
-    console.log('Assistant updated successfully:', data)
+    logger.info('Assistant updated successfully:', { data: data })
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error updating assistant:', error)
+    logger.error('Error updating assistant:', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -19,12 +19,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface User {
-  photoURL: string | null;
-  displayName: string | null;
-  email: string | null;
+  email: string;
+  role: string | null;
+  is_email_verified: boolean;
+  company_name: string;
+  username: string;
 }
-
-type SignOut = () => void;
 
 export const UserNav = React.memo(() => {
   const { signOut, openUserProfile } = useClerk();

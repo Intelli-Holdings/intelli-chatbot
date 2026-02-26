@@ -67,6 +67,7 @@ import {
   Webhook,
 } from "lucide-react"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 
 const settingsNavigation = [
   { title: "General", href: "/dashboard/settings" },
@@ -136,7 +137,7 @@ export default function WebhooksSettingsPage() {
         const data = await WebhookService.getDestinations(organizationId)
         setDestinations(data)
       } catch (error) {
-        console.error("Error fetching webhook destinations:", error)
+        logger.error("Error fetching webhook destinations", { error: error instanceof Error ? error.message : String(error) })
         toast.error("Failed to load webhook destinations")
       } finally {
         setLoadingDestinations(false)
@@ -154,7 +155,7 @@ export default function WebhooksSettingsPage() {
         const data = await WebhookService.getInboundWebhooks(organizationId)
         setInboundWebhooks(data)
       } catch (error) {
-        console.error("Error fetching inbound webhooks:", error)
+        logger.error("Error fetching inbound webhooks", { error: error instanceof Error ? error.message : String(error) })
         toast.error("Failed to load inbound webhooks")
       } finally {
         setLoadingInbound(false)
@@ -175,7 +176,7 @@ export default function WebhooksSettingsPage() {
           is_active: f.isActive,
         })))
       } catch (error) {
-        console.error("Error fetching flows:", error)
+        logger.error("Error fetching flows", { error: error instanceof Error ? error.message : String(error) })
       }
     }
     fetchFlows()
@@ -217,7 +218,7 @@ export default function WebhooksSettingsPage() {
       setDestSigningSecret("")
       toast.success("Webhook destination created successfully")
     } catch (error) {
-      console.error("Error creating destination:", error)
+      logger.error("Error creating destination", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to create webhook destination")
     } finally {
       setSavingDest(false)
@@ -265,7 +266,7 @@ export default function WebhooksSettingsPage() {
       resetInboundForm()
       toast.success("Inbound webhook created successfully")
     } catch (error) {
-      console.error("Error creating inbound webhook:", error)
+      logger.error("Error creating inbound webhook", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to create inbound webhook")
     } finally {
       setSavingInbound(false)
@@ -291,7 +292,7 @@ export default function WebhooksSettingsPage() {
         toast.error(`Webhook test failed: ${result.error}`)
       }
     } catch (error) {
-      console.error("Error testing destination:", error)
+      logger.error("Error testing destination", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to test webhook")
     } finally {
       setTestingId(null)
@@ -307,7 +308,7 @@ export default function WebhooksSettingsPage() {
       ))
       toast.success(currentStatus ? "Webhook destination disabled" : "Webhook destination enabled")
     } catch (error) {
-      console.error("Error toggling destination:", error)
+      logger.error("Error toggling destination", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to update webhook status")
     }
   }
@@ -321,7 +322,7 @@ export default function WebhooksSettingsPage() {
       setDestinations(destinations.filter(d => d.id !== id))
       toast.success("Webhook destination deleted")
     } catch (error) {
-      console.error("Error deleting destination:", error)
+      logger.error("Error deleting destination", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to delete webhook destination")
     }
   }
@@ -335,7 +336,7 @@ export default function WebhooksSettingsPage() {
       ))
       toast.success(currentStatus ? "Inbound webhook disabled" : "Inbound webhook enabled")
     } catch (error) {
-      console.error("Error toggling inbound webhook:", error)
+      logger.error("Error toggling inbound webhook", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to update webhook status")
     }
   }
@@ -349,7 +350,7 @@ export default function WebhooksSettingsPage() {
       setInboundWebhooks(inboundWebhooks.filter(w => w.id !== id))
       toast.success("Inbound webhook deleted")
     } catch (error) {
-      console.error("Error deleting inbound webhook:", error)
+      logger.error("Error deleting inbound webhook", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to delete inbound webhook")
     }
   }

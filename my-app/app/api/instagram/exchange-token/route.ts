@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { logger } from "@/lib/logger";
 
 /**
  * Exchange Instagram OAuth authorization code for access token
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI
 
     if (!appId || !appSecret || !redirectUri) {
-      console.error("Missing Instagram app configuration")
+      logger.error("Missing Instagram app configuration")
       return NextResponse.json({ error: "Instagram app not configured" }, { status: 500 })
     }
 
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
     const tokenData = await tokenResponse.json()
 
     if (!tokenResponse.ok) {
-      console.error("Instagram token exchange error:", tokenData)
+      logger.error("Instagram token exchange error", { error: tokenData })
       return NextResponse.json(
         { error: tokenData.error_message || tokenData.error || "Failed to exchange code" },
         { status: tokenResponse.status }
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     const longLivedData = await longLivedResponse.json()
 
     if (!longLivedResponse.ok) {
-      console.error("Instagram long-lived token exchange error:", longLivedData)
+      logger.error("Instagram long-lived token exchange error", { error: longLivedData })
       // Return short-lived token if long-lived exchange fails
       return NextResponse.json({
         access_token: shortLivedToken,
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
       expires_in: longLivedData.expires_in || 5184000, // 60 days
     })
   } catch (error) {
-    console.error("Error in Instagram token exchange:", error)
+    logger.error("Error in Instagram token exchange", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }

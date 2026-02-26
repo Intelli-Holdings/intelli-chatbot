@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 
+import { logger } from "@/lib/logger";
 const WhatsAppSignup = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const handleSubmit = (e:any) => {
     e.preventDefault();
     // Here you would typically send the phone number to your backend
-    console.log('Phone number submitted:', phoneNumber);
+    logger.info('Phone number submitted:', { data: phoneNumber });
     // Reset the input field
     setPhoneNumber('');
   };

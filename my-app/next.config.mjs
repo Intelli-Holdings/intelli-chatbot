@@ -1,8 +1,10 @@
 // next.config.mjs
+import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
+  productionBrowserSourceMaps: false,
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -85,6 +87,17 @@ const nextConfig = {
   },
   experimental: {
     mdxRs: true,
+    instrumentationHook: true,
+  },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: '^intelliconcierge\\.com$' }],
+        destination: 'https://www.intelliconcierge.com/:path*',
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     return [
@@ -94,6 +107,66 @@ const nextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.posthog.com https://www.googletagmanager.com https://js.stripe.com https://cdn.jsdelivr.net https://backend.intelliconcierge.com https://vercel.live https://*.sentry.io",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://backend.intelliconcierge.com",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "connect-src 'self' https: wss:",
+              "frame-src 'self' https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.stripe.com https://*.facebook.com https://demo.arcade.software https://vercel.live",
+              "worker-src 'self' blob:",
+              "frame-ancestors 'self'",
+            ].join('; '),
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          {
+            key: 'Document-Policy',
+            value: 'js-profiling',
+          },
+        ],
+      },
+    ];
+  },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Suppress source map upload logs in CI
+  silent: true,
+  // Upload source maps for better error tracking
+  widenClientFileUpload: true,
+  // Hide source maps from users
+  hideSourceMaps: true,
+  // Tree-shake Sentry logger statements in production
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+});

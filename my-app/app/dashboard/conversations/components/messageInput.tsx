@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { sendMessage } from "@/app/actions"
 import { useUser } from "@clerk/nextjs"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 import EmojiPicker from "emoji-picker-react"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -153,7 +154,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       }
 
       const response = await sendMessage(formData)
-      console.log("Message sent successfully:", response)
+      logger.info("Message sent successfully", { data: response })
 
       // Note: The real message will come via WebSocket, which will replace the optimistic one
       // We don't need to manually call onMessageSendSuccess here
@@ -169,7 +170,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     } catch (e) {
       setError((e as Error).message)
       toast.error("Failed to send message")
-      console.error("Error sending message:", e)
+      logger.error("Error sending message", { error: e instanceof Error ? e.message : String(e) })
 
       // Mark optimistic message as failed
       if (tempId && onMessageSendFailure) {
@@ -280,7 +281,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       mediaRecorder.start()
       setIsRecording(true)
     } catch (error) {
-      console.error("Error accessing microphone:", error)
+      logger.error("Error accessing microphone", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to access microphone")
     }
   }

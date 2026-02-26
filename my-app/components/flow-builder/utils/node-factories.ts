@@ -18,6 +18,7 @@ import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { HttpApiNodeData } from '../nodes/HttpApiNode';
 import { SequenceNodeData } from '../nodes/SequenceNode';
 
+import { logger } from "@/lib/logger";
 // Extended node data type
 export type ExtendedFlowNodeData =
   | StartNodeData
@@ -378,14 +379,14 @@ export function cloneNode(
   try {
     clonedData = JSON.parse(JSON.stringify(node.data)) as ExtendedFlowNodeData;
   } catch (error) {
-    console.error('Failed to clone node data:', error);
+    logger.error('Failed to clone node data:', { error: error instanceof Error ? error.message : String(error) });
     // Return a copy with the original data reference as fallback
     clonedData = { ...node.data } as ExtendedFlowNodeData;
   }
 
   // Validate cloned data has required type property
   if (!clonedData || typeof clonedData !== 'object' || !('type' in clonedData)) {
-    console.error('Invalid cloned data structure');
+    logger.error('Invalid cloned data structure');
     clonedData = { ...node.data } as ExtendedFlowNodeData;
   }
 

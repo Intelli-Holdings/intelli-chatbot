@@ -23,6 +23,7 @@ import { HttpApiNodeData } from '../nodes/HttpApiNode';
 import { SequenceNodeData } from '../nodes/SequenceNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from './node-factories';
 
+import { logger } from "@/lib/logger";
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 150;
 
@@ -203,11 +204,11 @@ export function flowToChatbot(
 ): Partial<ChatbotAutomation> {
   // Validate inputs - return existing chatbot if inputs are invalid
   if (!nodes || !Array.isArray(nodes)) {
-    console.warn('flowToChatbot: nodes is not a valid array');
+    logger.warn('flowToChatbot: nodes is not a valid array');
     return existingChatbot;
   }
   if (!edges || !Array.isArray(edges)) {
-    console.warn('flowToChatbot: edges is not a valid array');
+    logger.warn('flowToChatbot: edges is not a valid array');
     return existingChatbot;
   }
 
@@ -387,7 +388,7 @@ export function flowNodesToBackend(
       const textData = node.data as TextNodeData;
       data.text = textData.message || '';
       data.delaySeconds = textData.delaySeconds || 0;
-      console.log('Converting text node to backend:', { text: data.text, delaySeconds: data.delaySeconds });
+      logger.debug('Converting text node to backend:', { text: data.text, delaySeconds: data.delaySeconds });
     }
 
     // Convert media node
@@ -527,14 +528,14 @@ export function backendNodesToFlow(
         break;
       }
       case 'text': {
-        console.log('Converting text node from backend:', backendData);
+        logger.debug('Converting text node from backend:', { data: backendData });
         data = {
           type: 'text',
           label: 'Text Message',
           message: (backendData.text as string) || (backendData.message as string) || '',
           delaySeconds: (backendData.delaySeconds as number) || 0,
         } as TextNodeData;
-        console.log('Converted text node data:', data);
+        logger.debug('Converted text node data:', { data: data });
         break;
       }
       case 'question': {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from "@/lib/logger";
 
 export interface ImportMapping {
   id: string;
@@ -72,7 +73,7 @@ export function useImportMappings(
       const data = await response.json();
       setMappings(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
-      console.error('Error fetching import mappings:', err);
+      logger.error('Error fetching import mappings', { error: err instanceof Error ? err.message : String(err) });
       setError(err instanceof Error ? err.message : 'Failed to fetch import mappings');
       setMappings([]);
     } finally {
@@ -103,7 +104,7 @@ export function useImportMappings(
       setMappings(prev => [...prev, newMapping]);
       return newMapping;
     } catch (err) {
-      console.error('Error creating import mapping:', err);
+      logger.error('Error creating import mapping', { error: err instanceof Error ? err.message : String(err) });
       throw err;
     }
   }, []);
@@ -127,7 +128,7 @@ export function useImportMappings(
       setMappings(prev => prev.map(mapping => mapping.id === id ? updatedMapping : mapping));
       return updatedMapping;
     } catch (err) {
-      console.error('Error updating import mapping:', err);
+      logger.error('Error updating import mapping', { error: err instanceof Error ? err.message : String(err) });
       throw err;
     }
   }, []);
@@ -145,7 +146,7 @@ export function useImportMappings(
 
       setMappings(prev => prev.filter(mapping => mapping.id !== id));
     } catch (err) {
-      console.error('Error deleting import mapping:', err);
+      logger.error('Error deleting import mapping', { error: err instanceof Error ? err.message : String(err) });
       throw err;
     }
   }, []);

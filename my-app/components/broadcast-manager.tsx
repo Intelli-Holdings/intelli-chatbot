@@ -48,6 +48,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { WhatsAppService, type WhatsAppTemplate, type AppService } from "@/services/whatsapp";
+import { logger } from "@/lib/logger";
 
 interface BroadcastManagerProps {
   appService: AppService;
@@ -292,7 +293,7 @@ export default function BroadcastManager({
           setCarouselMediaFiles([]);
         }
       } catch (error) {
-        console.error("Error sending carousel:", error);
+        logger.error("Error sending carousel", { error: error instanceof Error ? error.message : String(error) });
       } finally {
         setIsSending(false);
       }

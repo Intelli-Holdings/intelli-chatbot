@@ -18,6 +18,7 @@ import {
   TimePeriod
 } from '@/types/analytics';
 import { fetchWithAuth } from '@/lib/auth-api-client';
+import { logger } from "@/lib/logger";
 
 // Get base URL from environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -31,7 +32,7 @@ async function fetchAPI<T>(url: string, token: string): Promise<T> {
   try {
     return await fetchWithAuth(url, { method: 'GET', cache: 'no-store' as RequestCache }, token);
   } catch (error) {
-    console.error(`API Error for ${url}:`, error);
+    logger.error(`API Error for ${url}`, { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }

@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, MoreHorizontal, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger";
 
 interface Tag {
   id: number
@@ -101,7 +102,7 @@ export function ContactsTable({ contacts, isLoading, isFetching, searchTerm, tag
       toast.success("Contact deleted successfully")
       onContactsChange()
     } catch (error) {
-      console.error("Failed to delete contact:", error)
+      logger.error("Failed to delete contact", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to delete contact")
     } finally {
       setDeleteDialogOpen(false)

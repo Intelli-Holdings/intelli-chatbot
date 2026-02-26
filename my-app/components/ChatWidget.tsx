@@ -1,6 +1,7 @@
 "use client";
 
 import Script from 'next/script';
+import { logger } from "@/lib/logger";
 
 declare global {
   interface Window {
@@ -20,7 +21,7 @@ export const ChatWidget = () => {
           }
         }}
         onError={(e) => {
-          console.error('Failed to load chat widget script:', e);
+          logger.error("Failed to load chat widget script", { error: e instanceof Error ? e.message : String(e) });
         }}
       />
     </>

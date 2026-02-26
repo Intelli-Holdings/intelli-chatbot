@@ -50,6 +50,7 @@ import {
 } from '@/components/ui/dialog';
 import { DeleteAssistantDialog } from '@/components/delete-dialog-assistant';
 import { Textarea } from './ui/textarea';
+import { logger } from "@/lib/logger";
 
 interface Assistant {
   id: number;
@@ -92,7 +93,7 @@ export default function Assistants() {
         toast.info('This organization does not have any assistants. Please create one.');
       }
     } catch (error) {
-      console.error('Error fetching assistants:', error);
+      logger.error("Error fetching assistants", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to fetch assistants. Please try again.');
     } finally {
       setIsLoading(false);
@@ -103,7 +104,7 @@ export default function Assistants() {
     setIsUpdating(true);
     try {
       // Log assistant data to debug
-      console.log('Assistant being edited:', updatedAssistant);
+      logger.debug("Assistant being edited", { data: updatedAssistant });
       
       // Use assistant_id instead of id for the API endpoint
       const response = await fetch(
@@ -126,7 +127,7 @@ export default function Assistants() {
       setIsEditDialogOpen(false);
       fetchAssistants();
     } catch (error) {
-      console.error('Error editing assistant:', error);
+      logger.error("Error editing assistant", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to edit the assistant. Please try again.');
     } finally {
       setIsUpdating(false);
@@ -148,7 +149,7 @@ export default function Assistants() {
       toast.success('Assistant deleted successfully!');
       fetchAssistants();
     } catch (error) {
-      console.error('Error deleting assistant:', error);
+      logger.error("Error deleting assistant", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to delete assistant. Please try again.');
     } finally {
       setIsDeleting(false);

@@ -32,6 +32,8 @@
  *   - Any component needing large media uploads to WhatsApp
  */
 
+import { logger } from "@/lib/logger";
+
 export interface UploadProgress {
   stage: 'preparing' | 'uploading' | 'processing' | 'complete' | 'error';
   progress: number; // 0-100
@@ -87,7 +89,7 @@ export async function uploadMediaViaAzure(
 
   try {
     // Stage 1: Get upload URL from backend
-    console.log('[Azure Upload] Stage 1: Getting upload URL...');
+    logger.info('[Azure Upload] Stage 1: Getting upload URL...');
     onProgress?.({
       stage: 'preparing',
       progress: 10,
@@ -106,13 +108,13 @@ export async function uploadMediaViaAzure(
         }),
       });
     } catch (fetchError) {
-      console.error('[Azure Upload] Stage 1 fetch error:', fetchError);
+      logger.error('[Azure Upload] Stage 1 fetch error', { error: fetchError instanceof Error ? fetchError.message : String(fetchError) });
       throw new Error(`Failed to connect to server: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`);
     }
 
     if (!uploadUrlResponse.ok) {
       const error = await uploadUrlResponse.text();
-      console.error('[Azure Upload] Stage 1 error response:', error);
+      logger.error('[Azure Upload] Stage 1 error response', { data: error });
       let errorMessage = 'Failed to get upload URL';
       try {
         const parsed = JSON.parse(error);
@@ -124,10 +126,10 @@ export async function uploadMediaViaAzure(
     }
 
     const uploadUrlData: GetUploadUrlResponse = await uploadUrlResponse.json();
-    console.log('[Azure Upload] Stage 1 complete. Blob path:', uploadUrlData.blob_path);
+    logger.info('[Azure Upload] Stage 1 complete', { blobPath: uploadUrlData.blob_path });
 
     // Stage 2: Upload directly to Azure
-    console.log('[Azure Upload] Stage 2: Uploading to Azure...');
+    logger.info('[Azure Upload] Stage 2: Uploading to Azure...');
     onProgress?.({
       stage: 'uploading',
       progress: 30,
@@ -145,16 +147,16 @@ export async function uploadMediaViaAzure(
         body: file,
       });
     } catch (azureError) {
-      console.error('[Azure Upload] Stage 2 fetch error (likely CORS):', azureError);
+      logger.error('[Azure Upload] Stage 2 fetch error (likely CORS)', { error: azureError instanceof Error ? azureError.message : String(azureError) });
       throw new Error(`Azure upload failed: ${azureError instanceof Error ? azureError.message : 'Network error - check CORS configuration'}`);
     }
 
     if (!azureUploadResponse.ok) {
       const errorText = await azureUploadResponse.text();
-      console.error('[Azure Upload] Stage 2 error response:', errorText);
+      logger.error('[Azure Upload] Stage 2 error response', { data: errorText });
       throw new Error(`Azure upload failed: ${errorText || azureUploadResponse.statusText}`);
     }
-    console.log('[Azure Upload] Stage 2 complete.');
+    logger.info('[Azure Upload] Stage 2 complete.');
 
     onProgress?.({
       stage: 'uploading',
@@ -163,7 +165,7 @@ export async function uploadMediaViaAzure(
     });
 
     // Stage 3: Transfer from Azure to Meta
-    console.log('[Azure Upload] Stage 3: Transferring to WhatsApp...');
+    logger.info('[Azure Upload] Stage 3: Transferring to WhatsApp...');
     onProgress?.({
       stage: 'processing',
       progress: 80,
@@ -186,13 +188,13 @@ export async function uploadMediaViaAzure(
         }),
       });
     } catch (metaError) {
-      console.error('[Azure Upload] Stage 3 fetch error:', metaError);
+      logger.error('[Azure Upload] Stage 3 fetch error', { error: metaError instanceof Error ? metaError.message : String(metaError) });
       throw new Error(`Failed to process media: ${metaError instanceof Error ? metaError.message : 'Network error'}`);
     }
 
     if (!metaUploadResponse.ok) {
       const error = await metaUploadResponse.text();
-      console.error('[Azure Upload] Stage 3 error response:', error);
+      logger.error('[Azure Upload] Stage 3 error response', { data: error });
       let errorMessage = 'Failed to process media';
       try {
         const parsed = JSON.parse(error);
@@ -204,7 +206,7 @@ export async function uploadMediaViaAzure(
     }
 
     const result: UploadFromAzureResponse = await metaUploadResponse.json();
-    console.log('[Azure Upload] Stage 3 complete. Media ID:', result.id || result.handle);
+    logger.info('[Azure Upload] Stage 3 complete', { mediaId: result.id || result.handle });
 
     onProgress?.({
       stage: 'complete',

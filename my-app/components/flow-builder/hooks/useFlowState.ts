@@ -40,6 +40,7 @@ import { MediaType } from '../nodes/MediaNode';
 import { ContextMenuPosition } from '../ContextMenu';
 import { ConnectionMenuPosition } from '../ConnectionMenu';
 
+import { logger } from "@/lib/logger";
 interface UseFlowStateProps {
   chatbot: ChatbotAutomation;
   onUpdate: (updates: Partial<ChatbotAutomation>) => void;
@@ -89,21 +90,21 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     const rawNodes = chatbot.flowLayout?.rawNodes;
     const rawEdges = chatbot.flowLayout?.rawEdges;
 
-    console.log('=== useFlowState initialFlow ===');
-    console.log('chatbot.flowLayout:', chatbot.flowLayout);
-    console.log('rawNodes:', rawNodes?.length, rawNodes);
-    console.log('rawEdges:', rawEdges?.length, rawEdges);
+    logger.debug('=== useFlowState initialFlow ===');
+    logger.info('chatbot.flowLayout:', { data: chatbot.flowLayout });
+    logger.debug('rawNodes:', { arg0: rawNodes?.length, rawNodes: rawNodes });
+    logger.debug('rawEdges:', { arg0: rawEdges?.length, rawEdges: rawEdges });
 
     if (rawNodes && rawNodes.length > 0) {
       // Use the direct backend format conversion
-      console.log('Loading flow from raw backend data:', rawNodes.length, 'nodes,', rawEdges?.length || 0, 'edges');
+      logger.debug('Loading flow from raw backend data:', { length: rawNodes.length, arg1: 'nodes,', arg2: rawEdges?.length || 0, arg3: 'edges' });
       const result = backendNodesToFlow(rawNodes, rawEdges || []);
-      console.log('Converted result - nodes:', result.nodes.length, 'edges:', result.edges.length);
+      logger.debug('Converted result', { nodeCount: result.nodes.length, edgeCount: result.edges.length });
       return result;
     }
 
     // Fall back to legacy menu-based format
-    console.log('Loading flow from legacy format (no rawNodes)');
+    logger.debug('Loading flow from legacy format (no rawNodes)');
     return chatbotToFlow(chatbot);
   })();
 
@@ -119,11 +120,11 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     try {
       // Validate nodes and edges before conversion
       if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
-        console.warn('syncToChatbot: Invalid or empty nodes array');
+        logger.warn('syncToChatbot: Invalid or empty nodes array');
         return;
       }
       if (!edges || !Array.isArray(edges)) {
-        console.warn('syncToChatbot: Invalid edges array');
+        logger.warn('syncToChatbot: Invalid edges array');
         return;
       }
 
@@ -147,9 +148,9 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
             edges as ChatbotFlowEdge[]
           );
 
-          console.log('=== Syncing to backend ===');
-          console.log('Backend nodes:', backendNodes);
-          console.log('Backend edges:', backendEdges);
+          logger.debug('=== Syncing to backend ===');
+          logger.debug('Backend nodes:', { data: backendNodes });
+          logger.debug('Backend edges:', { data: backendEdges });
 
           // Update backend
           await ChatbotAutomationService.updateFlowNodes(
@@ -157,14 +158,14 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
             backendNodes,
             backendEdges
           );
-          console.log('Flow synced to backend successfully');
+          logger.info('Flow synced to backend successfully');
         } catch (backendError) {
-          console.warn('Failed to sync to backend (will retry on next save):', backendError);
+          logger.warn('Failed to sync to backend (will retry on next save):', { data: backendError });
           // Don't throw - local state is still updated
         }
       }
     } catch (error) {
-      console.error('syncToChatbot: Error converting flow to chatbot:', error);
+      logger.error('syncToChatbot: Error converting flow to chatbot:', { error: error instanceof Error ? error.message : String(error) });
     }
   }, [nodes, edges, chatbot, onUpdate]);
 
@@ -335,7 +336,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
   const handleConnectionMenuSelect = useCallback(
     (nodeType: string, actionType?: string, mediaType?: string) => {
       if (!connectionMenu || !connectionMenu.flowPosition) {
-        console.warn('handleConnectionMenuSelect: Invalid connection menu state');
+        logger.warn('handleConnectionMenuSelect: Invalid connection menu state');
         closeConnectionMenu();
         return;
       }
@@ -431,6 +432,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
       }
       setContextMenu(null);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [contextMenu, nodes, setNodes]
   );
 

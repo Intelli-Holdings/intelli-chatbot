@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -36,7 +37,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
-    console.error("Error fetching canned responses:", error)
+    logger.error("Error fetching canned responses", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: "Failed to fetch canned responses" },
       { status: 500 }
@@ -74,7 +75,7 @@ export async function POST(
     const data = await response.json()
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
-    console.error("Error creating canned response:", error)
+    logger.error("Error creating canned response", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: "Failed to create canned response" },
       { status: 500 }
