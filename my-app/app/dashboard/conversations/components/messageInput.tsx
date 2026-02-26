@@ -3,14 +3,13 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, useRef, type ChangeEvent, type KeyboardEvent, useEffect } from "react"
-import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile } from "lucide-react"
+import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, FileText, MessageSquareText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { sendMessage } from "@/app/actions"
 import { useUser } from "@clerk/nextjs"
 import { toast } from "sonner"
 import EmojiPicker from "emoji-picker-react"
 import { Textarea } from "@/components/ui/textarea"
-import { CannedResponsesPicker } from "@/components/canned-responses-picker"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -22,6 +21,8 @@ interface MessageInputProps {
   onMessageSent?: (newMessageContent: string, mediaUrl?: string, mediaType?: string) => number | void
   onMessageSendSuccess?: (tempId: number, realMessage: any) => void
   onMessageSendFailure?: (tempId: number) => void
+  onOpenTemplatePicker?: () => void
+  onOpenCannedResponses?: () => void
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -30,7 +31,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   organizationId,
   onMessageSent,
   onMessageSendSuccess,
-  onMessageSendFailure
+  onMessageSendFailure,
+  onOpenTemplatePicker,
+  onOpenCannedResponses,
 }) => {
   const [answer, setAnswer] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -81,8 +84,23 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     window.addEventListener("retryMessage", handleRetry as unknown as EventListener)
+
+    // Listen for canned response insert events
+    const handleCannedResponse = (event: CustomEvent) => {
+      const { content } = event.detail
+      if (content) {
+        setAnswer(content)
+        if (textareaRef.current) {
+          textareaRef.current.focus()
+        }
+      }
+    }
+
+    window.addEventListener("setCannedResponse", handleCannedResponse as unknown as EventListener)
+
     return () => {
       window.removeEventListener("retryMessage", handleRetry as unknown as EventListener)
+      window.removeEventListener("setCannedResponse", handleCannedResponse as unknown as EventListener)
     }
   }, [])
 
@@ -290,13 +308,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }
 
-  const handleCannedResponseSelect = (content: string) => {
-    setAnswer(content)
-    if (textareaRef.current) {
-      textareaRef.current.focus()
-    }
-  }
-
   const isSubmitDisabled = isLoading || (answer.trim() === "" && files.length === 0 && !audioBlob)
 
   const renderFilePreview = (file: File, index: number) => {
@@ -423,12 +434,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
           />
 
           <div className="absolute bottom-0 right-0 p-3 flex items-center gap-2">
-            {organizationId && (
-              <CannedResponsesPicker
-                organizationId={organizationId}
-                onSelect={handleCannedResponseSelect}
-                className="rounded-full"
-              />
+            {onOpenCannedResponses && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8"
+                onClick={onOpenCannedResponses}
+                disabled={isLoading || isRecording}
+                title="Canned responses"
+              >
+                <MessageSquareText className="h-4 w-4 text-gray-500" />
+              </Button>
             )}
             <Button
               type="button"
@@ -450,20 +467,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
             >
               <Paperclip className="h-4 w-4 text-gray-500" />
             </Button>
-            {/** 
-             * <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-8 w-8"
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isLoading}
-            >
-              <Mic className="h-4 w-4 text-gray-500" />
-            </Button>             * 
-             * 
-            */}
-            
+            {onOpenTemplatePicker && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8"
+                onClick={onOpenTemplatePicker}
+                disabled={isLoading || isRecording}
+                title="Send template message"
+              >
+                <FileText className="h-4 w-4 text-gray-500" />
+              </Button>
+            )}
+
             <Button
               className="rounded-xl h-8 w-8"
               type="submit"
