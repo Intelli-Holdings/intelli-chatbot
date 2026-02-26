@@ -117,7 +117,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.posthog.com https://www.googletagmanager.com https://js.stripe.com https://cdn.jsdelivr.net https://backend.intelliconcierge.com https://vercel.live https://*.sentry.io",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://backend.intelliconcierge.com",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https: wss:",
