@@ -11,6 +11,7 @@ import { MediaNodeData } from '../nodes/MediaNode';
 import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
+import { SequenceNodeData } from '../nodes/SequenceNode';
 
 // Validation error severity
 export type ValidationSeverity = 'error' | 'warning';
@@ -125,6 +126,9 @@ export function validateNode(node: Node, allNodes: Node[], edges: Edge[]): Valid
       break;
     case 'cta_button':
       errors.push(...validateCTAButtonNode(node));
+      break;
+    case 'sequence':
+      errors.push(...validateSequenceNode(node));
       break;
   }
 
@@ -505,6 +509,50 @@ function validateCTAButtonNode(node: Node): ValidationError[] {
 }
 
 /**
+ * Validate sequence node
+ */
+function validateSequenceNode(node: Node): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const data = node.data as SequenceNodeData;
+
+  if (!data.steps || data.steps.length === 0) {
+    errors.push({
+      nodeId: node.id,
+      nodeType: 'sequence',
+      field: 'steps',
+      message: 'Sequence node needs at least one step.',
+      severity: 'error',
+    });
+  } else {
+    data.steps.forEach((step, index) => {
+      if (step.messageType === 'text') {
+        if (!step.textMessage || step.textMessage.trim() === '') {
+          errors.push({
+            nodeId: node.id,
+            nodeType: 'sequence',
+            field: `steps[${index}].textMessage`,
+            message: `Step ${index + 1} needs a text message.`,
+            severity: 'error',
+          });
+        }
+      } else if (step.messageType === 'template') {
+        if (!step.templateName || step.templateName.trim() === '') {
+          errors.push({
+            nodeId: node.id,
+            nodeType: 'sequence',
+            field: `steps[${index}].templateName`,
+            message: `Step ${index + 1} needs a template name.`,
+            severity: 'error',
+          });
+        }
+      }
+    });
+  }
+
+  return errors;
+}
+
+/**
  * Find nodes that are not reachable from any start node
  */
 function findOrphanedNodes(nodes: Node[], edges: Edge[]): string[] {
@@ -584,6 +632,7 @@ export function getNodeTypeLabel(nodeType: string): string {
     user_input_flow: 'User Input Flow',
     question_input: 'Question',
     cta_button: 'CTA Button',
+    sequence: 'Sequence',
   };
   return labels[nodeType] || nodeType;
 }
