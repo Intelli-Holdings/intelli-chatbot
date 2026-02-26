@@ -965,11 +965,19 @@ export default function ChatArea({
   }, [currentMessages])
 
   /**
+   * Strip WhatsApp interactive reply payload IDs from button text.
+   * e.g. "Book Demo (1769465424952-wobfkcdv3)" → "Book Demo"
+   */
+  const stripButtonPayload = useCallback((text: string): string => {
+    return text.replace(/\s*\([a-zA-Z0-9_-]{8,}\)$/, '').trim()
+  }, [])
+
+  /**
    * Check if a customer message is a button reply to a preceding flow interactive message.
    * Searches backward to find the nearest flow message with [Options: ...].
    */
   const isButtonReply = useCallback((content: string, messageId: number): boolean => {
-    const trimmedContent = content.trim()
+    const trimmedContent = stripButtonPayload(content.trim())
     if (!trimmedContent || trimmedContent.length > 50) return false
 
     const msgIndex = flatSortedMessages.findIndex(m => m.id === messageId)
@@ -988,7 +996,7 @@ export default function ChatArea({
       }
     }
     return false
-  }, [flatSortedMessages])
+  }, [flatSortedMessages, stripButtonPayload])
 
   if (!conversation) {
     return (
@@ -1211,7 +1219,7 @@ export default function ChatArea({
                     <div className="flex justify-start mb-1">
                       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-700 shadow-sm">
                         <CornerDownLeft className="h-3 w-3 text-gray-400 shrink-0" />
-                        {message.content}
+                        {stripButtonPayload(message.content)}
                       </div>
                       <span className="text-[10px] text-[#667781] ml-2 self-end">
                         {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -1248,7 +1256,7 @@ export default function ChatArea({
                         )}
                       </>
                     ) : (
-                      formatMessage(message.content)
+                      formatMessage(stripButtonPayload(message.content))
                     )}
                   </div>
                   <span className="text-[11px] text-[#667781] mt-1 block">
