@@ -433,6 +433,9 @@ export function flowNodesToBackend(
       const uifData = node.data as UserInputFlowNodeData;
       data.flowName = uifData.flowName;
       data.description = uifData.description;
+      if (uifData.webhook) {
+        data.webhook = uifData.webhook;
+      }
     }
 
     // Convert cta_button node
@@ -641,6 +644,7 @@ export function backendNodesToFlow(
           label: 'User Input Flow',
           flowName: (backendData.flowName as string) || '',
           description: (backendData.description as string) || '',
+          webhook: backendData.webhook as UserInputFlowNodeData['webhook'],
         } as UserInputFlowNodeData;
         break;
       }
