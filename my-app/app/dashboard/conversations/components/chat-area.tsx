@@ -113,11 +113,15 @@ export default function ChatArea({
   )
   const { templates } = useWhatsAppTemplates(currentAppService as AppService | null)
   const templateMap = useMemo(() => {
-    const map = new Map<string, { body: string; buttons: string[] }>()
+    const map = new Map<string, { body: string; buttons: string[]; header?: { format: string; text?: string } }>()
     for (const t of templates) {
       let body = ''
       const buttons: string[] = []
+      let header: { format: string; text?: string } | undefined
       for (const comp of t.components || []) {
+        if (comp.type === 'HEADER' && comp.format) {
+          header = { format: comp.format, text: comp.text }
+        }
         if (comp.type === 'BODY') body = (comp as any).text || ''
         if (comp.type === 'BUTTONS') {
           for (const btn of (comp as any).buttons || []) {
@@ -125,7 +129,7 @@ export default function ChatArea({
           }
         }
       }
-      if (body) map.set(t.name, { body, buttons })
+      if (body) map.set(t.name, { body, buttons, header })
     }
     return map
   }, [templates])
@@ -1226,7 +1230,6 @@ export default function ChatArea({
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div className="message-tail message-tail-left" />
                   {/* Customer badge */}
                   <div className="text-[9px] font-semibold text-gray-600 mb-1">
                     Customer
@@ -1303,12 +1306,14 @@ export default function ChatArea({
                       <InteractiveFlowMessage
                         parsed={{ body: templateData.body, options: templateData.buttons }}
                         timestamp={message.created_at}
+                        header={templateData.header}
                       />
                     ) : (
                       <TemplateMessage
                         templateName={templateName}
                         body={templateData.body}
                         timestamp={message.created_at}
+                        header={templateData.header}
                       />
                     )
                   }
@@ -1331,11 +1336,6 @@ export default function ChatArea({
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div
-                    className={`message-tail ${
-                      message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
-                    }`}
-                  />
                   {message.status === "failed" && (
                     <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
                       <span>⚠</span>
@@ -1406,15 +1406,6 @@ export default function ChatArea({
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div
-                    className={
-                      isCustomerMedia
-                        ? "message-tail message-tail-left"
-                        : message.sender === "ai"
-                          ? "message-tail message-tail-right-assistant"
-                          : "message-tail message-tail-right-human"
-                    }
-                  />
                   {/* Sender badge */}
                   {isCustomerMedia ? (
                     <div className="text-[9px] font-semibold text-gray-600 mb-1">
