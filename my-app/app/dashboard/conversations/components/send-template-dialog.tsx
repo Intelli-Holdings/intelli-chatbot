@@ -92,9 +92,9 @@ function getCategoryColor(category: string, selected?: boolean) {
   if (selected) {
     switch (category) {
       case "MARKETING":
-        return "bg-orange-500 text-white"
-      case "UTILITY":
         return "bg-blue-500 text-white"
+      case "UTILITY":
+        return "bg-slate-500 text-white"
       case "AUTHENTICATION":
         return "bg-purple-500 text-white"
       default:
@@ -103,9 +103,9 @@ function getCategoryColor(category: string, selected?: boolean) {
   }
   switch (category) {
     case "MARKETING":
-      return "bg-orange-100 text-orange-700 border-orange-200"
-    case "UTILITY":
       return "bg-blue-100 text-blue-700 border-blue-200"
+    case "UTILITY":
+      return "bg-slate-100 text-slate-700 border-slate-200"
     case "AUTHENTICATION":
       return "bg-purple-100 text-purple-700 border-purple-200"
     default:
