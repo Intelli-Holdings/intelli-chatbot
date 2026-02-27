@@ -311,23 +311,25 @@ export default function TemplatesPage() {
   const renderTierBadge = (tier?: string) => {
     const normalized = tier?.toUpperCase() || "";
     const label =
-      normalized === "TIER_4"
+      normalized === "TIER_UNLIMITED"
         ? "Unlimited"
-        : normalized === "TIER_3"
+        : normalized === "TIER_100K"
           ? "100K/day"
-          : normalized === "TIER_2"
+          : normalized === "TIER_10K"
             ? "10K/day"
-            : normalized === "TIER_1"
+            : normalized === "TIER_1K"
               ? "1K/day"
-              : "Unknown";
+              : normalized === "STANDARD"
+                ? "250/day"
+                : "Unknown";
     const classes =
-      normalized === "TIER_4"
+      normalized === "TIER_UNLIMITED"
         ? "bg-purple-100 text-purple-800 border-purple-200"
-        : normalized === "TIER_3"
+        : normalized === "TIER_100K"
           ? "bg-blue-100 text-blue-800 border-blue-200"
-          : normalized === "TIER_2"
+          : normalized === "TIER_10K"
             ? "bg-green-100 text-green-800 border-green-200"
-            : normalized === "TIER_1"
+            : normalized === "TIER_1K"
               ? "bg-gray-100 text-gray-800 border-gray-200"
               : "bg-gray-100 text-gray-700 border-gray-200";
     return (
@@ -439,20 +441,20 @@ export default function TemplatesPage() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Messages Sent</p>
+              <p className="text-xl font-semibold">{formatMetric(analytics?.totalSent)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Messages Delivered</p>
+              <p className="text-xl font-semibold">{formatMetric(analytics?.totalDelivered)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Conversations</p>
               <p className="text-xl font-semibold">{formatMetric(analytics?.totalConversations)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Free Tier Conversations</p>
-              <p className="text-xl font-semibold">{formatMetric(analytics?.freeTierConversations)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Business Initiated</p>
-              <p className="text-xl font-semibold">{formatMetric(analytics?.businessInitiatedConversations)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -465,7 +467,7 @@ export default function TemplatesPage() {
 
         <Card>
           <CardContent className="p-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            <div className="grid gap-3 sm:grid-cols-3 text-sm">
               <div className="space-y-1">
                 <p className="text-muted-foreground">Phone Number</p>
                 <p className="font-medium">{!selectedAppService || analyticsLoading ? "—" : displayPhoneNumber || "—"}</p>
@@ -475,16 +477,8 @@ export default function TemplatesPage() {
                 {selectedAppService ? renderQualityBadge(primaryProfile?.quality_rating) : renderQualityBadge()}
               </div>
               <div className="space-y-1">
-                <p className="text-muted-foreground">Messaging Tier</p>
+                <p className="text-muted-foreground">Messaging Limit</p>
                 {selectedAppService ? renderTierBadge(primaryProfile?.messaging_limit?.tier) : renderTierBadge()}
-              </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground">Daily Limit</p>
-                <p className="font-medium">
-                  {!selectedAppService || analyticsLoading
-                    ? "—"
-                    : primaryProfile?.messaging_limit?.max?.toLocaleString() || "—"}
-                </p>
               </div>
             </div>
           </CardContent>
