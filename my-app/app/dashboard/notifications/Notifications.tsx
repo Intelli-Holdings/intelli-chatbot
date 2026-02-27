@@ -110,9 +110,7 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
         if (activeOrganizationId) {
           params.set('organizationId', activeOrganizationId)
         }
-        url = `/api/notifications/assigned/${encodeURIComponent(
-          user?.primaryEmailAddress?.emailAddress ?? ""
-        )}?${params.toString()}`
+        url = `/api/notifications/assigned/${user?.primaryEmailAddress?.emailAddress ?? ""}?${params.toString()}`
       } else {
         url = `/api/notifications/org/${activeOrganizationId}?${params.toString()}`
       }

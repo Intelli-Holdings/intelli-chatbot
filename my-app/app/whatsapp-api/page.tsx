@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://www.intelliconcierge.com/api/og",
+        url: "https://www.intelliconcierge.com/og-image.png",
         width: 1200,
         height: 630,
         alt: "Intelli WhatsApp Business API Provider",
@@ -52,12 +52,12 @@ const faqItems = [
   {
     question: "Is the WhatsApp Cloud API free?",
     answer:
-      "Access to the WhatsApp Cloud API itself is free. However, Meta charges per-message fees for business-initiated template messages across marketing, utility, and authentication categories. Customer-initiated service conversations within the 24-hour window are free. You will also pay a monthly subscription to your Business Solution Provider (like Intelli) for the platform, team inbox, AI features, and support tools.",
+      "Access to the WhatsApp Cloud API itself is free. However, Meta charges per-message fees for business-initiated template messages across marketing, utility, and authentication categories. Customer-initiated service conversations within the 24-hour window are free. You will also pay a monthly subscription to your Meta Tech Provider (like Intelli) for the platform, team inbox, AI features, and support tools.",
   },
   {
     question: "How do I get WhatsApp Business API access?",
     answer:
-      "You need a Meta Business account and a phone number that is not already registered on WhatsApp. Then, sign up with a WhatsApp Business Solution Provider like Intelli. We handle the technical integration, number verification, and Meta approval process — most businesses are live within 24 hours.",
+      "You need a Meta Business account and a phone number that is not already registered on WhatsApp. Then, sign up with a Meta Tech Provider like Intelli. We handle the technical integration, number verification, and Meta approval process — most businesses are live within 24 hours.",
   },
   {
     question: "Can I use multiple phone numbers with WhatsApp API?",
@@ -71,9 +71,9 @@ const faqItems = [
       "The Cloud API is hosted by Meta and is the recommended solution going forward — it requires no server infrastructure and is free to access. The On-Premise API required businesses to host their own servers and was deprecated by Meta in October 2025. All businesses should now migrate to the Cloud API.",
   },
   {
-    question: "Do I need a BSP to use WhatsApp Cloud API?",
+    question: "Do I need a Meta Tech Provider to use WhatsApp Cloud API?",
     answer:
-      "Technically no — you can integrate directly via Meta's API. However, a Business Solution Provider like Intelli gives you a ready-made dashboard, team inbox, AI chatbot builder, broadcast tools, analytics, and customer support — all without writing code. Most businesses choose a BSP because building these tools from scratch is expensive and time-consuming.",
+      "Technically no — you can integrate directly via Meta's API. However, a Meta Tech Provider like Intelli gives you a ready-made dashboard, team inbox, AI chatbot builder, broadcast tools, analytics, and customer support — all without writing code. Most businesses choose a provider because building these tools from scratch is expensive and time-consuming.",
   },
   {
     question: "Can I integrate an AI chatbot with WhatsApp Business API?",
@@ -185,7 +185,7 @@ export default function WhatsAppAPIPage() {
                 <p className="text-[15px] text-[#1a1a1a]/70 leading-[1.7]">
                   Meta deprecated the older On-Premise API in October 2025, making the <strong>WhatsApp Cloud API</strong> the
                   only supported path forward. The Cloud API is hosted entirely by Meta, so there are no servers to manage — you
-                  just need a <strong>WhatsApp Business Solution Provider</strong> (BSP) like Intelli to give you a dashboard,
+                  just need a <strong>Meta Tech Provider</strong> like Intelli to give you a dashboard,
                   inbox, and tools on top of it.
                 </p>
                 <p className="text-[15px] text-[#1a1a1a]/70 leading-[1.7]">
@@ -438,7 +438,7 @@ export default function WhatsAppAPIPage() {
               <p className="text-[15px] text-[#1a1a1a]/60 leading-[1.7] max-w-[640px] mb-10">
                 WhatsApp API pricing has two components: <strong>Meta&apos;s per-message fees</strong> (charged by WhatsApp
                 based on the recipient&apos;s country) and your <strong>platform subscription</strong> (charged by
-                your BSP — that&apos;s us). Here&apos;s the complete breakdown.
+                Intelli — that&apos;s us). Here&apos;s the complete breakdown.
               </p>
 
               {/* Meta Per-Message Costs */}
@@ -447,9 +447,9 @@ export default function WhatsAppAPIPage() {
                   1. Meta Per-Message Fees (WhatsApp Charges)
                 </h3>
                 <p className="text-[14px] text-[#1a1a1a]/55 leading-[1.7] max-w-[600px] mb-6">
-                  Since July 2025, Meta charges a flat per-message fee (no more conversation-based pricing).
-                  Costs depend on the <strong>message category</strong> and the <strong>recipient&apos;s country</strong>.
-                  Service messages within the 24-hour customer-initiated window are free.
+                  Meta charges a small fee for each template message you send. The cost depends on
+                  the <strong>type of message</strong> and the <strong>recipient&apos;s country</strong>.
+                  When a customer messages you first, replying within 24 hours is free.
                 </p>
 
                 <div className="overflow-x-auto border border-[#1a1a1a]/[0.08] rounded-md mb-4">
@@ -465,10 +465,19 @@ export default function WhatsAppAPIPage() {
                     </thead>
                     <tbody>
                       {[
-                        { region: "Rest of Africa", marketing: "$0.032", utility: "$0.007", auth: "$0.007", service: "$0.002" },
-                        { region: "Nigeria", marketing: "$0.072", utility: "$0.012", auth: "$0.012", service: "$0.002" },
-                        { region: "South Africa", marketing: "$0.052", utility: "$0.012", auth: "$0.012", service: "$0.002" },
-                        { region: "Egypt", marketing: "$0.150", utility: "$0.009", auth: "$0.009", service: "$0.002" },
+                        { region: "Rest of Africa", marketing: "$0.0225", utility: "$0.0040", auth: "$0.0040", service: "Free" },
+                        { region: "Nigeria", marketing: "$0.0516", utility: "$0.0067", auth: "$0.0067", service: "Free" },
+                        { region: "South Africa", marketing: "$0.0379", utility: "$0.0076", auth: "$0.0076", service: "Free" },
+                        { region: "Egypt", marketing: "$0.0644", utility: "$0.0036", auth: "$0.0036", service: "Free" },
+                        { region: "North America", marketing: "$0.0250", utility: "$0.0034", auth: "$0.0034", service: "Free" },
+                        { region: "India", marketing: "$0.0118", utility: "$0.0014", auth: "$0.0014", service: "Free" },
+                        { region: "United Kingdom", marketing: "$0.0529", utility: "$0.0220", auth: "$0.0220", service: "Free" },
+                        { region: "Brazil", marketing: "$0.0625", utility: "$0.0068", auth: "$0.0068", service: "Free" },
+                        { region: "Rest of Asia Pacific", marketing: "$0.0732", utility: "$0.0113", auth: "$0.0113", service: "Free" },
+                        { region: "Rest of Latin America", marketing: "$0.0740", utility: "$0.0113", auth: "$0.0113", service: "Free" },
+                        { region: "Rest of Middle East", marketing: "$0.0341", utility: "$0.0091", auth: "$0.0091", service: "Free" },
+                        { region: "Rest of Western Europe", marketing: "$0.0592", utility: "$0.0171", auth: "$0.0171", service: "Free" },
+                        { region: "Other", marketing: "$0.0604", utility: "$0.0077", auth: "$0.0077", service: "Free" },
                       ].map((row, i, arr) => (
                         <tr key={row.region} className={i < arr.length - 1 ? "border-b border-[#1a1a1a]/[0.08]" : ""}>
                           <td className="p-4 font-medium text-[#1a1a1a]">{row.region}</td>
@@ -483,8 +492,9 @@ export default function WhatsAppAPIPage() {
                 </div>
 
                 <p className="text-[13px] text-[#1a1a1a]/40 mb-2">
-                  Prices in USD per message. Rates are set by Meta and may change. Pricing is based on the recipient&apos;s
-                  country code, not the sender&apos;s location.
+                  Prices in USD per message, effective January 1, 2026. Rates are set by Meta and may change.
+                  Pricing is based on the recipient&apos;s country code, not the sender&apos;s location.
+                  Service messages within the 24-hour customer-initiated window are free.
                 </p>
 
                 {/* Message category explanations */}
@@ -538,18 +548,18 @@ export default function WhatsAppAPIPage() {
                   2. Intelli Platform Subscription
                 </h3>
                 <p className="text-[14px] text-[#1a1a1a]/55 leading-[1.7] max-w-[600px] mb-6">
-                  On top of Meta&apos;s messaging fees, you pay Intelli for the platform, tools, and support.
-                  One-time setup fee: <strong>$50 – $150</strong> (depending on complexity).
+                  On top of Meta&apos;s messaging fees, you pay a monthly subscription to Intelli
+                  for the dashboard, inbox, AI tools, and support. All plans include a 7-day free trial.
                 </p>
 
-                {/* Basic Plans */}
-                <h4 className="text-base font-bold text-[#1a1a1a] mb-4">Basic Plans</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {/* Plans */}
+                <h4 className="text-base font-bold text-[#1a1a1a] mb-4">Plans</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                   {[
-                    { name: "Broadcast Only", price: "$20", period: "/month", features: ["WhatsApp broadcast module", "Up to 2,000 contacts", "Template management"] },
-                    { name: "Basic", price: "$35", period: "/month", features: ["AI / Chatbot flow builder", "1 team member", "Up to 2,000 contacts", "Team inbox"] },
-                    { name: "Grow", price: "$55", period: "/month", features: ["AI / Chatbot flow builder", "2 team members", "Up to 10,000 contacts", "Team inbox + analytics"], popular: true },
-                    { name: "Pro", price: "$75", period: "/month", features: ["AI / Chatbot flow builder", "3 team members", "Up to 100,000 contacts", "Full analytics suite"] },
+                    { name: "Broadcast Only", price: "$20", period: "/month", features: ["Up to 2,000 contacts", "WhatsApp broadcast module", "Template management"] },
+                    { name: "Basic", price: "$35", period: "/month", features: ["Up to 2,000 contacts", "1 team member", "AI chatbot + flow builder", "Team inbox"] },
+                    { name: "Grow", price: "$55", period: "/month", features: ["Up to 10,000 contacts", "2 team members", "AI chatbot + flow builder", "Team inbox + analytics"], popular: true },
+                    { name: "Pro", price: "$75", period: "/month", features: ["Up to 100,000 contacts", "3 team members", "AI chatbot + flow builder", "Full analytics"] },
                   ].map((plan) => (
                     <div key={plan.name} className={`border rounded-md p-5 ${plan.popular ? "border-[#007fff] ring-1 ring-[#007fff]/20" : "border-[#1a1a1a]/[0.08]"}`}>
                       {plan.popular && (
@@ -572,12 +582,12 @@ export default function WhatsAppAPIPage() {
                 </div>
 
                 {/* Enterprise Plans */}
-                <h4 className="text-base font-bold text-[#1a1a1a] mb-4">Mid-Enterprise Plans</h4>
+                <h4 className="text-base font-bold text-[#1a1a1a] mb-4">Enterprise Plans</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                   {[
-                    { name: "Elite", price: "$86", period: "/month", features: ["Unlimited contacts", "2 WhatsApp numbers", "5 – 10 team members", "Priority support"] },
-                    { name: "Scale", price: "$108", period: "/month", features: ["Unlimited contacts", "5 WhatsApp numbers", "10 – 15 team members", "Priority support"] },
-                    { name: "Legacy", price: "$214", period: "/month", features: ["Unlimited contacts", "8 WhatsApp numbers", "15 – 20 team members", "Dedicated account manager"] },
+                    { name: "Elite", price: "$86", period: "/month", features: ["Unlimited contacts", "2 WhatsApp numbers", "10 team members", "Priority support"] },
+                    { name: "Scale", price: "$108", period: "/month", features: ["Unlimited contacts", "3 WhatsApp numbers", "15 team members", "Priority support"] },
+                    { name: "Legacy", price: "$214", period: "/month", features: ["Unlimited contacts", "5 WhatsApp numbers", "20 team members", "Dedicated account manager"] },
                   ].map((plan) => (
                     <div key={plan.name} className="border border-[#1a1a1a]/[0.08] rounded-md p-5">
                       <h5 className="text-base font-bold text-[#1a1a1a] mb-1">{plan.name}</h5>
@@ -604,7 +614,7 @@ export default function WhatsAppAPIPage() {
                       {[
                         { addon: "Extra team member seat", price: "$5/month" },
                         { addon: "Website chat channel", price: "$15/month" },
-                        { addon: "1 million AI credits", price: "$9 (one-time)" },
+                        { addon: "1 million AI credits", price: "$9/month" },
                         { addon: "Instagram channel", price: "$20/month" },
                         { addon: "Messenger channel", price: "$20/month" },
                       ].map((row, i, arr) => (

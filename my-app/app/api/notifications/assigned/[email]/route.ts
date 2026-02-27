@@ -27,7 +27,7 @@ export async function GET(
 
     const queryString = searchParams.toString()
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assigned/to/${encodeURIComponent(email)}/${
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/assigned/to/${email}/${
         queryString ? `?${queryString}` : ''
       }`,
       {
@@ -40,8 +40,14 @@ export async function GET(
     )
     
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      logger.error('Backend error fetching assigned notifications', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      })
       return NextResponse.json(
-        { error: 'Failed to fetch notifications' }, 
+        { error: errorData.detail || 'Failed to fetch notifications' },
         { status: response.status }
       )
     }

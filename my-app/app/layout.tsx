@@ -17,7 +17,6 @@ const ConsentGate = dynamic(() => import('@/components/consent-gate'), { ssr: fa
 const AttentionBadge = dynamic(() => import('@/components/AttentionBadge'), { ssr: false })
 const PointerEventsFix = dynamic(() => import('@/components/pointer-events-fix'), { ssr: false })
 const ToastProvider = dynamic(() => import('@/components/ToastProvider'), { ssr: false })
-const TourProviderWrapper = dynamic(() => import('@/components/tour-provider-wrapper'), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] });
 const dmSans = DM_Sans({
@@ -60,7 +59,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: 'https://www.intelliconcierge.com/api/og',
+        url: 'https://www.intelliconcierge.com/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Intelli AI-Powered Customer Engagement Platform by Intelli Holdings Inc.',
@@ -74,7 +73,7 @@ export const metadata: Metadata = {
       'Intelli is an AI-powered platform that helps businesses manage customer conversations across WhatsApp, Instagram, Messenger, email, and web chat. Automate support, run campaigns, and engage customers at scale.',
     images: [
       {
-        url: 'https://www.intelliconcierge.com/api/og',
+        url: 'https://www.intelliconcierge.com/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Intelli AI-Powered Customer Engagement Platform by Intelli Holdings Inc.',
@@ -123,9 +122,7 @@ export default function RootLayout({
             <AttentionBadge />
             <PostHogPageView />
             <PointerEventsFix />
-            <TourProviderWrapper>
-              {children}
-            </TourProviderWrapper>
+            {children}
             <ToastProvider />
           </body>
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />

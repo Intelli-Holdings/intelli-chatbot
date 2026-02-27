@@ -93,7 +93,7 @@ const nextConfig = {
     return [
       {
         source: '/:path*',
-        has: [{ type: 'host', value: 'intelliconcierge.com' }],
+        has: [{ type: 'host', value: '^intelliconcierge\\.com$' }],
         destination: 'https://www.intelliconcierge.com/:path*',
         permanent: true,
       },
@@ -116,12 +116,13 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.clerk.accounts.dev https://*.posthog.com https://www.googletagmanager.com https://js.stripe.com",
-              "style-src 'self' 'unsafe-inline'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.posthog.com https://www.googletagmanager.com https://js.stripe.com https://cdn.jsdelivr.net https://backend.intelliconcierge.com https://vercel.live https://*.sentry.io https://va.vercel-scripts.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://backend.intelliconcierge.com",
               "img-src 'self' data: blob: https:",
-              "font-src 'self' data:",
+              "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https: wss:",
-              "frame-src 'self' https://*.clerk.accounts.dev https://*.stripe.com https://*.facebook.com https://demo.arcade.software",
+              "frame-src 'self' https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.stripe.com https://*.facebook.com https://demo.arcade.software https://vercel.live",
+              "worker-src 'self' blob:",
               "frame-ancestors 'self'",
             ].join('; '),
           },
@@ -144,6 +145,10 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          {
+            key: 'Document-Policy',
+            value: 'js-profiling',
           },
         ],
       },
