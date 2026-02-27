@@ -18,10 +18,68 @@ import {
   TrendingUp,
   Globe,
   AlertTriangle,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
+
+// Meta WhatsApp Business Platform per-message rates (USD), effective January 1, 2026
+// Source: https://developers.facebook.com/docs/whatsapp/pricing
+const META_PRICING: Record<string, { marketing: number; utility: number; authentication: number; authInternational: number | null }> = {
+  "Argentina": { marketing: 0.0618, utility: 0.0260, authentication: 0.0260, authInternational: null },
+  "Brazil": { marketing: 0.0625, utility: 0.0068, authentication: 0.0068, authInternational: null },
+  "Chile": { marketing: 0.0889, utility: 0.0200, authentication: 0.0200, authInternational: null },
+  "Colombia": { marketing: 0.0125, utility: 0.0008, authentication: 0.0008, authInternational: null },
+  "Egypt": { marketing: 0.0644, utility: 0.0036, authentication: 0.0036, authInternational: 0.0650 },
+  "France": { marketing: 0.0859, utility: 0.0300, authentication: 0.0300, authInternational: null },
+  "Germany": { marketing: 0.1365, utility: 0.0550, authentication: 0.0550, authInternational: null },
+  "India": { marketing: 0.0118, utility: 0.0014, authentication: 0.0014, authInternational: 0.0280 },
+  "Indonesia": { marketing: 0.0411, utility: 0.0250, authentication: 0.0250, authInternational: 0.1360 },
+  "Israel": { marketing: 0.0353, utility: 0.0053, authentication: 0.0053, authInternational: null },
+  "Italy": { marketing: 0.0691, utility: 0.0300, authentication: 0.0300, authInternational: null },
+  "Malaysia": { marketing: 0.0860, utility: 0.0140, authentication: 0.0140, authInternational: 0.0418 },
+  "Mexico": { marketing: 0.0305, utility: 0.0085, authentication: 0.0085, authInternational: null },
+  "Netherlands": { marketing: 0.1597, utility: 0.0500, authentication: 0.0500, authInternational: null },
+  "Nigeria": { marketing: 0.0516, utility: 0.0067, authentication: 0.0067, authInternational: 0.0750 },
+  "Pakistan": { marketing: 0.0473, utility: 0.0054, authentication: 0.0054, authInternational: 0.0750 },
+  "Peru": { marketing: 0.0703, utility: 0.0200, authentication: 0.0200, authInternational: null },
+  "Russia": { marketing: 0.0802, utility: 0.0400, authentication: 0.0400, authInternational: null },
+  "Saudi Arabia": { marketing: 0.0455, utility: 0.0107, authentication: 0.0107, authInternational: 0.0598 },
+  "South Africa": { marketing: 0.0379, utility: 0.0076, authentication: 0.0076, authInternational: 0.0200 },
+  "Spain": { marketing: 0.0615, utility: 0.0200, authentication: 0.0200, authInternational: null },
+  "Turkey": { marketing: 0.0109, utility: 0.0053, authentication: 0.0053, authInternational: null },
+  "United Arab Emirates": { marketing: 0.0499, utility: 0.0157, authentication: 0.0157, authInternational: 0.0510 },
+  "United Kingdom": { marketing: 0.0529, utility: 0.0220, authentication: 0.0220, authInternational: null },
+  "North America": { marketing: 0.0250, utility: 0.0034, authentication: 0.0034, authInternational: null },
+  "Rest of Africa": { marketing: 0.0225, utility: 0.0040, authentication: 0.0040, authInternational: null },
+  "Rest of Asia Pacific": { marketing: 0.0732, utility: 0.0113, authentication: 0.0113, authInternational: null },
+  "Rest of Central & Eastern Europe": { marketing: 0.0860, utility: 0.0212, authentication: 0.0212, authInternational: null },
+  "Rest of Latin America": { marketing: 0.0740, utility: 0.0113, authentication: 0.0113, authInternational: null },
+  "Rest of Middle East": { marketing: 0.0341, utility: 0.0091, authentication: 0.0091, authInternational: null },
+  "Rest of Western Europe": { marketing: 0.0592, utility: 0.0171, authentication: 0.0171, authInternational: null },
+  "Other": { marketing: 0.0604, utility: 0.0077, authentication: 0.0077, authInternational: null },
+};
+
+const MARKET_OPTIONS = Object.keys(META_PRICING);
+
+type TemplateType = "marketing" | "utility" | "authentication";
+
+const TEMPLATE_TYPES: { value: TemplateType; label: string; description: string }[] = [
+  { value: "marketing", label: "Marketing", description: "Promotions, offers, updates" },
+  { value: "utility", label: "Utility", description: "Order updates, alerts, confirmations" },
+  { value: "authentication", label: "Authentication", description: "OTP, verification codes" },
+];
+
+const INTELLI_PACKAGES = [
+  { name: "Broadcast Only", monthlyFee: 20, contacts: "2,000" },
+  { name: "WhatsApp Basic", monthlyFee: 35, contacts: "2,000" },
+  { name: "WhatsApp Grow", monthlyFee: 55, contacts: "10,000" },
+  { name: "WhatsApp Pro", monthlyFee: 75, contacts: "100,000" },
+  { name: "WhatsApp Elite", monthlyFee: 86, contacts: "Unlimited" },
+  { name: "WhatsApp Scale", monthlyFee: 108, contacts: "Unlimited" },
+  { name: "WhatsApp Legacy", monthlyFee: 214, contacts: "Unlimited" },
+];
 
 const features = [
   {
@@ -106,43 +164,29 @@ const tiers = [
 ];
 
 export default function WhatsAppBroadcastPage() {
-  const [messages, setMessages] = useState("");
-  const [users, setUsers] = useState("");
+  const [recipients, setRecipients] = useState("");
+  const [market, setMarket] = useState("Rest of Africa");
+  const [templateType, setTemplateType] = useState<TemplateType>("marketing");
+  const [selectedPackageIndex, setSelectedPackageIndex] = useState(0);
 
-  const calculatePrice = () => {
-    const messageCount = parseInt(messages) || 0;
+  const pricing = useMemo(() => {
+    const recipientCount = parseInt(recipients) || 0;
+    if (recipientCount === 0) return null;
 
-    if (messageCount === 0) return null;
+    const rates = META_PRICING[market];
+    const metaRate = rates[templateType];
+    const metaCost = recipientCount * metaRate;
 
-    const metaRate = 0.0225;
-    const metaCost = messageCount * metaRate;
-
-    let creditPackage = "";
-    let monthlyFee = 0;
-
-    if (messageCount <= 100000) {
-      creditPackage = "100K Message Credits";
-      monthlyFee = 30;
-    } else if (messageCount <= 250000) {
-      creditPackage = "250K Message Credits";
-      monthlyFee = 40;
-    } else if (messageCount <= 500000) {
-      creditPackage = "500K Message Credits";
-      monthlyFee = 53;
-    } else {
-      creditPackage = "1M+ Message Credits";
-      monthlyFee = 71;
-    }
+    const pkg = INTELLI_PACKAGES[selectedPackageIndex];
 
     return {
       metaCost: metaCost.toFixed(2),
-      monthlyFee,
-      creditPackage,
-      total: (metaCost + monthlyFee).toFixed(2),
+      metaRate,
+      monthlyFee: pkg.monthlyFee,
+      packageName: pkg.name,
+      total: (metaCost + pkg.monthlyFee).toFixed(2),
     };
-  };
-
-  const pricing = calculatePrice();
+  }, [recipients, market, templateType, selectedPackageIndex]);
 
   return (
     <div className="relative">
@@ -429,60 +473,120 @@ export default function WhatsAppBroadcastPage() {
                   Broadcast Pricing Calculator
                 </h3>
                 <p className="text-[13px] text-[#1a1a1a]/55 leading-[1.65] mb-8">
-                  Enter your monthly message volume and unique recipients to
-                  estimate costs.
+                  Enter your estimated monthly broadcast volume based on unique
+                  recipients. This applies to template messages only — regular
+                  conversation replies are free.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                {/* Row 1: Market, Template Type, Intelli Package */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
                   <div>
                     <Label
-                      htmlFor="messages"
+                      htmlFor="market"
                       className="text-sm font-semibold text-[#1a1a1a] mb-2 block"
                     >
-                      Monthly Messages
+                      Market / Region
                     </Label>
-                    <Input
-                      id="messages"
-                      type="number"
-                      value={messages}
-                      onChange={(e) => setMessages(e.target.value)}
-                      placeholder="Number of messages per month"
-                      className="border-[#1a1a1a]/[0.12]"
-                    />
+                    <div className="relative">
+                      <select
+                        id="market"
+                        value={market}
+                        onChange={(e) => setMarket(e.target.value)}
+                        className="w-full h-10 px-3 pr-8 text-sm border border-[#1a1a1a]/[0.12] rounded-md bg-white appearance-none focus:outline-none focus:ring-1 focus:ring-[#007fff] focus:border-[#007fff]"
+                      >
+                        {MARKET_OPTIONS.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-[#1a1a1a]/40 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
                   </div>
+
                   <div>
-                    <Label
-                      htmlFor="users"
-                      className="text-sm font-semibold text-[#1a1a1a] mb-2 block"
-                    >
-                      Unique Recipients
+                    <Label className="text-sm font-semibold text-[#1a1a1a] mb-2 block">
+                      Template Type
                     </Label>
-                    <Input
-                      id="users"
-                      type="number"
-                      value={users}
-                      onChange={(e) => setUsers(e.target.value)}
-                      placeholder="Number of unique WhatsApp users"
-                      className="border-[#1a1a1a]/[0.12]"
-                    />
+                    <div className="flex gap-0 border border-[#1a1a1a]/[0.12] rounded-md overflow-hidden h-10">
+                      {TEMPLATE_TYPES.map((t) => (
+                        <button
+                          key={t.value}
+                          onClick={() => setTemplateType(t.value)}
+                          className={`flex-1 text-xs font-medium transition-colors ${
+                            templateType === t.value
+                              ? "bg-[#1a1a1a] text-white"
+                              : "bg-white text-[#1a1a1a]/60 hover:text-[#1a1a1a] hover:bg-[#1a1a1a]/[0.03]"
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-[#1a1a1a]/40 mt-1.5">
+                      {TEMPLATE_TYPES.find((t) => t.value === templateType)?.description}
+                    </p>
                   </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold text-[#1a1a1a] mb-2 block">
+                      Intelli Package
+                    </Label>
+                    <div className="relative">
+                      <select
+                        value={selectedPackageIndex}
+                        onChange={(e) =>
+                          setSelectedPackageIndex(Number(e.target.value))
+                        }
+                        className="w-full h-10 px-3 pr-8 text-sm border border-[#1a1a1a]/[0.12] rounded-md bg-white appearance-none focus:outline-none focus:ring-1 focus:ring-[#007fff] focus:border-[#007fff]"
+                      >
+                        {INTELLI_PACKAGES.map((pkg, i) => (
+                          <option key={pkg.name} value={i}>
+                            {pkg.name} — ${pkg.monthlyFee}/mo{pkg.contacts !== "N/A" ? ` · ${pkg.contacts} contacts` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-[#1a1a1a]/40 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 2: Monthly Recipients */}
+                <div className="mb-8">
+                  <Label
+                    htmlFor="recipients"
+                    className="text-sm font-semibold text-[#1a1a1a] mb-2 block"
+                  >
+                    Monthly Unique Recipients
+                  </Label>
+                  <Input
+                    id="recipients"
+                    type="number"
+                    value={recipients}
+                    onChange={(e) => setRecipients(e.target.value)}
+                    placeholder="Number of unique recipients per month"
+                    className="border-[#1a1a1a]/[0.12] max-w-sm"
+                  />
+                  <p className="text-[11px] text-[#1a1a1a]/40 mt-1.5">
+                    Each recipient counts as one template message
+                  </p>
                 </div>
 
                 {pricing && (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border-t border-[#1a1a1a]/[0.08]">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 border-t border-[#1a1a1a]/[0.08]">
                       <div className="py-6 sm:border-r border-b sm:border-b-0 border-[#1a1a1a]/[0.08] sm:pr-6">
                         <p className="text-[13px] text-[#1a1a1a]/55 mb-1">
-                          Meta Conversation Fees
+                          Meta Template Fees
                         </p>
                         <p className="text-2xl font-bold text-[#1a1a1a]">
                           ${pricing.metaCost}
                         </p>
                         <p className="text-[11px] text-[#1a1a1a]/40">
-                          @$0.0225 per conversation
+                          @${pricing.metaRate.toFixed(4)} per message · {market}
                         </p>
                       </div>
-                      <div className="py-6 sm:pl-6">
+                      <div className="py-6 sm:border-r border-b sm:border-b-0 border-[#1a1a1a]/[0.08] sm:px-6">
                         <p className="text-[13px] text-[#1a1a1a]/55 mb-1">
                           Intelli Platform Fee
                         </p>
@@ -490,34 +594,43 @@ export default function WhatsAppBroadcastPage() {
                           ${pricing.monthlyFee}
                         </p>
                         <p className="text-[11px] text-[#1a1a1a]/40">
-                          {pricing.creditPackage}
+                          {pricing.packageName} plan
                         </p>
                       </div>
-                    </div>
-
-                    <div className="border-t border-[#1a1a1a]/[0.08] pt-6 text-center">
-                      <p className="text-[13px] text-[#1a1a1a]/55 mb-1">
-                        Total Monthly Cost
-                      </p>
-                      <p className="text-4xl font-bold text-[#1a1a1a]">
-                        ${pricing.total}
-                      </p>
+                      <div className="py-6 sm:pl-6">
+                        <p className="text-[13px] text-[#1a1a1a]/55 mb-1">
+                          Estimated Total
+                        </p>
+                        <p className="text-2xl font-bold text-[#1a1a1a]">
+                          ${pricing.total}
+                        </p>
+                        <p className="text-[11px] text-[#1a1a1a]/40">
+                          per month
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex items-start gap-3 border border-[#1a1a1a]/[0.08] rounded-md p-4">
                       <AlertTriangle className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" />
                       <ul className="text-[12px] text-[#1a1a1a]/55 leading-[1.65] space-y-1">
-                        <li>One-time setup fee varies by required tier</li>
                         <li>
-                          Intelli provides dedicated support for tier upgrades
+                          Meta fees are charged per template message and vary by
+                          market and template type
+                        </li>
+                        <li>
+                          Regular conversation replies (non-template) are free of
+                          Meta charges
+                        </li>
+                        <li>
+                          Billing for Meta fees handled directly by Meta via your
+                          Business Account
                         </li>
                         <li>
                           All verified accounts start at Tier 1 (1,000
                           messages/day)
                         </li>
                         <li>
-                          Billing for Meta fees handled directly by Meta via
-                          Business Account
+                          Intelli provides dedicated support for tier upgrades
                         </li>
                       </ul>
                     </div>
