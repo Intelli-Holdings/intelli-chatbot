@@ -5,7 +5,7 @@ import type React from "react"
 import { usePathname } from "next/navigation"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 
 // Notifications
@@ -61,6 +61,17 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [queryClient] = useState(() => new QueryClient())
+
+  // Clear stale pointer-events: none left by Radix UI Sheet/Dialog
+  // during page transitions (e.g. sign-in → dashboard).
+  useEffect(() => {
+    const body = document.body
+    if (body.style.pointerEvents === 'none') {
+      body.style.pointerEvents = ''
+    }
+    // Also remove Radix scroll-lock attributes that may persist
+    body.removeAttribute('data-scroll-locked')
+  }, [])
 
   return (
     <div suppressHydrationWarning>
