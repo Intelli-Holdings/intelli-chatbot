@@ -5,12 +5,16 @@ import type React from "react"
 import { usePathname } from "next/navigation"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 
 // Notifications
 import ToastProvider from "@/components/ToastProvider"
 import { NotificationProvider } from "@/hooks/use-notification-context"
 import { NotificationIndicator } from "@/components/notification-indicator"
+
+// Tour — only needed in dashboard
+const TourProviderWrapper = dynamic(() => import('@/components/tour-provider-wrapper'), { ssr: false })
 
 export const viewport = {
   themeColor: [
@@ -58,11 +62,24 @@ export default function DashboardLayout({
 }) {
   const [queryClient] = useState(() => new QueryClient())
 
+  // Clear stale pointer-events: none left by Radix UI Sheet/Dialog
+  // during page transitions (e.g. sign-in → dashboard).
+  useEffect(() => {
+    const body = document.body
+    if (body.style.pointerEvents === 'none') {
+      body.style.pointerEvents = ''
+    }
+    // Also remove Radix scroll-lock attributes that may persist
+    body.removeAttribute('data-scroll-locked')
+  }, [])
+
   return (
     <div suppressHydrationWarning>
       <QueryClientProvider client={queryClient}>
         <NotificationProvider>
-          <DashboardLayoutContent>{children}</DashboardLayoutContent>
+          <TourProviderWrapper>
+            <DashboardLayoutContent>{children}</DashboardLayoutContent>
+          </TourProviderWrapper>
           <ToastProvider />
         </NotificationProvider>
       </QueryClientProvider>
