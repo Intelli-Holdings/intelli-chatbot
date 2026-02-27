@@ -73,7 +73,7 @@ const PaymentMethodForm: React.FC<PaymentMethodFormProps> = ({
   const elements = useElements();
   
   const [fullName, setFullName] = useState('');
-  const [country, setCountry] = useState('UG');
+  const [country, setCountry] = useState('US');
   const [addressLine1, setAddressLine1] = useState('');
   const [activeTab, setActiveTab] = useState('card');
   const [error, setError] = useState<string | null>(null);
@@ -143,7 +143,7 @@ const PaymentMethodForm: React.FC<PaymentMethodFormProps> = ({
         // Initialize Google Pay if Stripe is loaded
         if (stripe) {
           const pr = stripe.paymentRequest({
-            country: 'UG',
+            country: 'US',
             currency: 'usd',
             total: {
               label: 'Setup Payment Method',

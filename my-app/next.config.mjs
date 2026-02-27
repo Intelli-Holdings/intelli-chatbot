@@ -120,7 +120,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https: wss:",
+              "connect-src 'self' http://localhost:8000 https: wss: ws:",
               "frame-src 'self' https://*.clerk.accounts.dev https://*.stripe.com https://*.facebook.com https://demo.arcade.software",
               "frame-ancestors 'self'",
             ].join('; '),
