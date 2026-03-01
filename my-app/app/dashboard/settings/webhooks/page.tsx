@@ -1283,68 +1283,227 @@ export default function WebhooksSettingsPage() {
 
       {/* Logs Viewer Dialog */}
       <Dialog open={!!logsWebhookId} onOpenChange={(open) => !open && setLogsWebhookId(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Webhook Logs: {logsWebhookName}</DialogTitle>
+            <DialogTitle>Webhook Analytics: {logsWebhookName}</DialogTitle>
             <DialogDescription>
-              Recent webhook trigger history and processing results
+              Trigger history, delivery stats, and processing results
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto">
             {loadingLogs ? (
               <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                  ))}
+                </div>
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : logs.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No logs yet. Trigger the webhook to see results here.
+              <div className="py-12 text-center">
+                <Webhook className="mx-auto mb-3 size-10 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">No triggers yet</p>
+                <p className="mt-1 text-xs text-muted-foreground/60">
+                  Send a request to this webhook to see analytics here
+                </p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>IP</TableHead>
-                    <TableHead>Error</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {new Date(log.received_at).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={cn("text-xs", LOG_STATUS_COLORS[log.status] || "")}>
-                          {log.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {log.processing_time_ms}ms
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">
-                        {log.ip_address}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] text-xs text-muted-foreground">
-                        {log.error_message ? (
-                          <span className="line-clamp-2" title={log.error_message}>
-                            {log.error_message}
-                          </span>
-                        ) : (
-                          <span className="text-green-600">OK</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <>
+                {/* Analytics summary cards */}
+                {(() => {
+                  const total = logs.length
+                  const success = logs.filter(l => l.status === "success").length
+                  const failed = logs.filter(l => l.status === "failed").length
+                  const authErrors = logs.filter(l => l.status === "auth_error").length
+                  const contactNotFound = logs.filter(l => l.status === "contact_not_found").length
+                  const validationErrors = logs.filter(l => l.status === "validation_error").length
+                  const flowInactive = logs.filter(l => l.status === "flow_inactive").length
+                  const errorCount = failed + authErrors + validationErrors + flowInactive
+                  const opened = logs.filter(l => l.read_at).length
+                  const openedRate = success > 0 ? Math.round((opened / success) * 100) : 0
+                  const successRate = total > 0 ? Math.round((success / total) * 100) : 0
+
+                  return (
+                    <>
+                      {/* Top row: key metrics */}
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div className="rounded-lg border bg-card p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                              <Webhook className="size-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Total Triggers</p>
+                              <p className="text-lg font-semibold">{total}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="rounded-lg border bg-card p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex size-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                              <CheckCircle className="size-4 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Successful</p>
+                              <p className="text-lg font-semibold">{success}<span className="ml-1 text-xs font-normal text-muted-foreground">({successRate}%)</span></p>
+                            </div>
+                          </div>
+                          <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+                            <div
+                              className="h-1.5 rounded-full bg-green-500 transition-all"
+                              style={{ width: `${successRate}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="rounded-lg border bg-card p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex size-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                              <XCircle className="size-4 text-red-600 dark:text-red-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Errors</p>
+                              <p className="text-lg font-semibold">{errorCount}<span className="ml-1 text-xs font-normal text-muted-foreground">({total > 0 ? Math.round((errorCount / total) * 100) : 0}%)</span></p>
+                            </div>
+                          </div>
+                          <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+                            <div
+                              className="h-1.5 rounded-full bg-red-500 transition-all"
+                              style={{ width: `${total > 0 ? (errorCount / total) * 100 : 0}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="rounded-lg border bg-card p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex size-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
+                              <Eye className="size-4 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Opened</p>
+                              <p className="text-lg font-semibold">{opened}<span className="ml-1 text-xs font-normal text-muted-foreground">({openedRate}%)</span></p>
+                            </div>
+                          </div>
+                          <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+                            <div
+                              className="h-1.5 rounded-full bg-purple-500 transition-all"
+                              style={{ width: `${openedRate}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Error breakdown - only show if there are errors */}
+                      {errorCount > 0 && (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {contactNotFound > 0 && (
+                            <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 p-2.5 dark:border-orange-900/30 dark:bg-orange-900/10">
+                              <span className="text-xs font-medium text-orange-700 dark:text-orange-400">Contact Not Found</span>
+                              <Badge variant="outline" className="ml-auto text-xs">{contactNotFound}</Badge>
+                            </div>
+                          )}
+                          {authErrors > 0 && (
+                            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 dark:border-red-900/30 dark:bg-red-900/10">
+                              <span className="text-xs font-medium text-red-700 dark:text-red-400">Auth Errors</span>
+                              <Badge variant="outline" className="ml-auto text-xs">{authErrors}</Badge>
+                            </div>
+                          )}
+                          {validationErrors > 0 && (
+                            <div className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-2.5 dark:border-yellow-900/30 dark:bg-yellow-900/10">
+                              <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">Validation Errors</span>
+                              <Badge variant="outline" className="ml-auto text-xs">{validationErrors}</Badge>
+                            </div>
+                          )}
+                          {failed > 0 && (
+                            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 dark:border-red-900/30 dark:bg-red-900/10">
+                              <span className="text-xs font-medium text-red-700 dark:text-red-400">Processing Failed</span>
+                              <Badge variant="outline" className="ml-auto text-xs">{failed}</Badge>
+                            </div>
+                          )}
+                          {flowInactive > 0 && (
+                            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-900/10">
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-400">Flow Inactive</span>
+                              <Badge variant="outline" className="ml-auto text-xs">{flowInactive}</Badge>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+
+                {/* Detailed logs table */}
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-8 text-xs">#</TableHead>
+                        <TableHead className="text-xs">Phone Number</TableHead>
+                        <TableHead className="text-xs">Status</TableHead>
+                        <TableHead className="text-xs">Sent at</TableHead>
+                        <TableHead className="text-xs">Opened at</TableHead>
+                        <TableHead className="text-xs">Response</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {logs.map((log, index) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
+                          <TableCell className="text-xs font-mono whitespace-nowrap">
+                            {log.contact_phone || <span className="text-muted-foreground/40">—</span>}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={cn("whitespace-nowrap text-[10px] px-1.5 py-0.5", LOG_STATUS_COLORS[log.status] || "")}>
+                              {log.status === "success" ? "Sent" :
+                               log.status === "contact_not_found" ? "Not Found" :
+                               log.status === "auth_error" ? "Auth Error" :
+                               log.status === "validation_error" ? "Invalid" :
+                               log.status === "flow_inactive" ? "Inactive" : "Failed"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {new Date(log.received_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}{" "}
+                            {new Date(log.received_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {log.read_at ? (
+                              <span className="text-green-600 dark:text-green-400">
+                                {new Date(log.read_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" })}{" "}
+                                {new Date(log.read_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            ) : log.status === "success" ? (
+                              <XCircle className="size-3.5 text-muted-foreground/30" />
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="max-w-[250px] text-xs">
+                            {log.error_message ? (
+                              <span className="line-clamp-1 text-muted-foreground" title={log.error_message}>
+                                {log.error_message}
+                              </span>
+                            ) : (
+                              <span className="text-green-600 dark:text-green-400">OK</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </div>
           <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => logsWebhookId && handleViewLogs(logsWebhookId, logsWebhookName)}
+              disabled={loadingLogs}
+            >
+              {loadingLogs ? <Loader2 className="mr-2 size-3 animate-spin" /> : <RefreshCw className="mr-2 size-3" />}
+              Refresh
+            </Button>
             <Button variant="outline" onClick={() => setLogsWebhookId(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
