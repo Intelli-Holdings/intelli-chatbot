@@ -13,7 +13,7 @@ export type PaymentProvider = "stripe" | "mpesa";
 
 export type BillingInterval = "monthly" | "yearly";
 
-export type PlanCategory = "website_widget" | "whatsapp" | "enterprise";
+export type PlanCategory = "website_widget" | "whatsapp" | "broadcast" | "enterprise";
 
 export type AddOnType =
   | "ai_credits"
