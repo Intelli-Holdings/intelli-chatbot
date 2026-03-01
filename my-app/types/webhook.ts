@@ -12,8 +12,10 @@ export type InboundWebhookActionType = 'start_flow' | 'send_template';
 export type InboundWebhookLogStatus =
   | 'success'
   | 'failed'
+  | 'auth_error'
   | 'validation_error'
-  | 'contact_not_found';
+  | 'contact_not_found'
+  | 'flow_inactive';
 
 // ========================================
 // Outbound Webhook (Webhook Destination)
@@ -128,6 +130,7 @@ export interface InboundWebhookListItem {
   flow_name?: string | null;
   template_name: string;
   is_active: boolean;
+  require_auth: boolean;
   trigger_count: number;
   last_triggered_at: string | null;
 }
@@ -307,13 +310,17 @@ export const CONTACT_MATCH_FIELDS: { value: string; label: string }[] = [
 export const WEBHOOK_LOG_STATUS_LABELS: Record<InboundWebhookLogStatus, string> = {
   success: 'Success',
   failed: 'Failed',
+  auth_error: 'Auth Error',
   validation_error: 'Validation Error',
   contact_not_found: 'Contact Not Found',
+  flow_inactive: 'Flow Inactive',
 };
 
 export const WEBHOOK_LOG_STATUS_COLORS: Record<InboundWebhookLogStatus, string> = {
   success: 'bg-green-100 text-green-800',
   failed: 'bg-red-100 text-red-800',
+  auth_error: 'bg-red-100 text-red-800',
   validation_error: 'bg-yellow-100 text-yellow-800',
   contact_not_found: 'bg-orange-100 text-orange-800',
+  flow_inactive: 'bg-gray-100 text-gray-800',
 };
