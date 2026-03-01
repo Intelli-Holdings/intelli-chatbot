@@ -14,7 +14,10 @@
       "Bash(npm install:*)",
       "mcp__ide__getDiagnostics",
       "Bash(python3 -c \"import ast; ast.parse\\(open\\(''/Users/mac/Documents/Intelli/Product/Backend/intelliholdings-backend/chatbot_automation/views.py''\\).read\\(\\)\\); print\\(''OK''\\)\")",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(source:*)"
     ],
     "deny": [],
     "ask": []
