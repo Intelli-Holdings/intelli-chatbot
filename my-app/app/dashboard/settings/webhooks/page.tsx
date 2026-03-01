@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -12,6 +12,8 @@ import { WebhookService } from "@/services/webhook"
 import {
   WebhookDestinationListItem,
   InboundWebhookListItem,
+  InboundWebhookLogListItem,
+  InboundWebhook,
 } from "@/types/webhook"
 import { ChatbotAutomationService } from "@/services/chatbot-automation"
 
@@ -50,6 +52,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
@@ -58,10 +61,14 @@ import {
   ArrowUpFromLine,
   CheckCircle,
   Copy,
+  Eye,
+  Key,
   Loader2,
   MoreHorizontal,
   Play,
   Plus,
+  RefreshCw,
+  Settings2,
   Trash2,
   XCircle,
   Webhook,
@@ -77,11 +84,36 @@ const settingsNavigation = [
   { title: "Webhooks", href: "/dashboard/settings/webhooks" },
 ]
 
+const LOG_STATUS_COLORS: Record<string, string> = {
+  success: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  auth_error: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  validation_error: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  contact_not_found: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+  flow_inactive: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+}
+
 interface ChatbotFlowOption {
   id: string
   name: string
   is_active: boolean
 }
+
+interface VariableMapping {
+  key: string
+  value: string
+}
+
+const FORMATTERS = [
+  { value: "", label: "None", description: "Use raw value" },
+  { value: "strip_plus", label: "Strip +", description: "Remove leading + from phone" },
+  { value: "add_plus", label: "Add +", description: "Add leading + to phone" },
+  { value: "digits_only", label: "Digits only", description: "Keep only digits" },
+  { value: "lowercase", label: "Lowercase", description: "Convert to lowercase" },
+  { value: "uppercase", label: "Uppercase", description: "Convert to uppercase" },
+  { value: "first_name", label: "First name", description: "Extract first word" },
+  { value: "trim", label: "Trim", description: "Strip whitespace" },
+]
 
 export default function WebhooksSettingsPage() {
   const pathname = usePathname()
@@ -109,6 +141,15 @@ export default function WebhooksSettingsPage() {
   const [showCreateInbound, setShowCreateInbound] = useState(false)
   const [testingId, setTestingId] = useState<string | null>(null)
 
+  // API key display dialog (shown after creation)
+  const [createdWebhook, setCreatedWebhook] = useState<InboundWebhook | null>(null)
+
+  // Logs dialog
+  const [logsWebhookId, setLogsWebhookId] = useState<string | null>(null)
+  const [logsWebhookName, setLogsWebhookName] = useState("")
+  const [logs, setLogs] = useState<InboundWebhookLogListItem[]>([])
+  const [loadingLogs, setLoadingLogs] = useState(false)
+
   // Form states for create destination dialog
   const [destName, setDestName] = useState("")
   const [destUrl, setDestUrl] = useState("")
@@ -123,10 +164,18 @@ export default function WebhooksSettingsPage() {
   const [inboundTemplateId, setInboundTemplateId] = useState("")
   const [inboundTemplateName, setInboundTemplateName] = useState("")
   const [inboundAppServiceId, setInboundAppServiceId] = useState<number | null>(null)
-  const [inboundContactField, setInboundContactField] = useState("phone_number")
-  const [inboundCreateContact, setInboundCreateContact] = useState(true)
-  const [inboundRequireAuth, setInboundRequireAuth] = useState(true)
+  const [inboundRequireAuth, setInboundRequireAuth] = useState(false)
   const [savingInbound, setSavingInbound] = useState(false)
+
+  // Configure mapping dialog
+  const [configWebhook, setConfigWebhook] = useState<InboundWebhook | null>(null)
+  const [configPayloadKeys, setConfigPayloadKeys] = useState<string[]>([])
+  const [configMappings, setConfigMappings] = useState<VariableMapping[]>([])
+  const [configContactField, setConfigContactField] = useState("")
+  const [configContactFormatter, setConfigContactFormatter] = useState("")
+  const [configCreateContact, setConfigCreateContact] = useState(true)
+  const [configLoading, setConfigLoading] = useState(false)
+  const [configSaving, setConfigSaving] = useState(false)
 
   // Fetch destinations
   useEffect(() => {
@@ -189,6 +238,36 @@ export default function WebhooksSettingsPage() {
     }
   }, [appServices, inboundAppServiceId])
 
+  // Full form reset
+  const resetInboundForm = useCallback(() => {
+    setInboundName("")
+    setInboundFlowId("")
+    setInboundTemplateId("")
+    setInboundTemplateName("")
+    setInboundActionType("start_flow")
+    setInboundAppServiceId(appServices.length > 0 ? appServices[0].id : null)
+    setInboundRequireAuth(false)
+  }, [appServices])
+
+  // Reset form when dialog closes
+  const handleInboundDialogChange = (open: boolean) => {
+    setShowCreateInbound(open)
+    if (!open) {
+      resetInboundForm()
+    }
+  }
+
+  // Reset destination form when dialog closes
+  const handleDestDialogChange = (open: boolean) => {
+    setShowCreateDestination(open)
+    if (!open) {
+      setDestName("")
+      setDestUrl("")
+      setDestMethod("POST")
+      setDestSigningSecret("")
+    }
+  }
+
   // Create destination
   const handleCreateDestination = async () => {
     if (!organizationId || !destName || !destUrl) {
@@ -212,14 +291,10 @@ export default function WebhooksSettingsPage() {
       })
       setDestinations([...destinations, newDest])
       setShowCreateDestination(false)
-      setDestName("")
-      setDestUrl("")
-      setDestMethod("POST")
-      setDestSigningSecret("")
       toast.success("Webhook destination created successfully")
     } catch (error) {
       logger.error("Error creating destination", { error: error instanceof Error ? error.message : String(error) })
-      toast.error("Failed to create webhook destination")
+      toast.error(error instanceof Error ? error.message : "Failed to create webhook destination")
     } finally {
       setSavingDest(false)
     }
@@ -257,28 +332,99 @@ export default function WebhooksSettingsPage() {
         template_id: inboundActionType === "send_template" ? inboundTemplateId : undefined,
         template_name: inboundActionType === "send_template" ? inboundTemplateName : undefined,
         app_service: inboundAppServiceId,
-        contact_match_field: inboundContactField,
-        create_contact_if_missing: inboundCreateContact,
         require_auth: inboundRequireAuth,
       })
-      setInboundWebhooks([...inboundWebhooks, newInbound])
+
+      // Add to list (use the returned data which has list-compatible fields)
+      setInboundWebhooks(prev => [...prev, {
+        id: newInbound.id,
+        name: newInbound.name,
+        slug: newInbound.slug,
+        webhook_url: newInbound.webhook_url,
+        action_type: newInbound.action_type,
+        flow: newInbound.flow,
+        flow_name: newInbound.flow_name,
+        template_name: newInbound.template_name,
+        is_active: newInbound.is_active,
+        require_auth: newInbound.require_auth,
+        trigger_count: newInbound.trigger_count,
+        last_triggered_at: newInbound.last_triggered_at,
+      }])
+
       setShowCreateInbound(false)
-      resetInboundForm()
+
+      // Show the API key dialog
+      setCreatedWebhook(newInbound)
+
       toast.success("Inbound webhook created successfully")
     } catch (error) {
       logger.error("Error creating inbound webhook", { error: error instanceof Error ? error.message : String(error) })
-      toast.error("Failed to create inbound webhook")
+      toast.error(error instanceof Error ? error.message : "Failed to create inbound webhook")
     } finally {
       setSavingInbound(false)
     }
   }
 
-  const resetInboundForm = () => {
-    setInboundName("")
-    setInboundFlowId("")
-    setInboundTemplateId("")
-    setInboundTemplateName("")
-    setInboundActionType("start_flow")
+  // Test inbound webhook
+  const handleTestInbound = async (webhook: InboundWebhookListItem) => {
+    setTestingId(webhook.id)
+    try {
+      const samplePayload = WebhookService.generateSamplePayload("phone_number")
+      const result = await WebhookService.testInboundWebhook(webhook.id, {
+        payload: samplePayload,
+      })
+      if (result.success) {
+        toast.success(result.message || "Webhook test successful")
+      } else {
+        toast.error(`Test failed: ${result.error || "Unknown error"}`)
+      }
+    } catch (error) {
+      logger.error("Error testing inbound webhook", { error: error instanceof Error ? error.message : String(error) })
+      toast.error(error instanceof Error ? error.message : "Failed to test webhook")
+    } finally {
+      setTestingId(null)
+    }
+  }
+
+  // View logs
+  const handleViewLogs = async (webhookId: string, webhookName: string) => {
+    setLogsWebhookId(webhookId)
+    setLogsWebhookName(webhookName)
+    setLoadingLogs(true)
+    try {
+      const data = await WebhookService.getInboundWebhookLogs(webhookId, { limit: 50 })
+      setLogs(data)
+    } catch (error) {
+      logger.error("Error fetching logs", { error: error instanceof Error ? error.message : String(error) })
+      toast.error("Failed to load webhook logs")
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
+  // Copy API key from webhook detail
+  const handleCopyApiKey = async (webhookId: string) => {
+    try {
+      const detail = await WebhookService.getInboundWebhook(webhookId)
+      await navigator.clipboard.writeText(detail.api_key)
+      toast.success("API key copied to clipboard")
+    } catch (error) {
+      toast.error("Failed to copy API key")
+    }
+  }
+
+  // Regenerate API key
+  const handleRegenerateApiKey = async (webhookId: string) => {
+    if (!confirm("Are you sure? The old API key will stop working immediately.")) return
+
+    try {
+      const result = await WebhookService.regenerateApiKey(webhookId)
+      await navigator.clipboard.writeText(result.api_key)
+      toast.success("New API key generated and copied to clipboard")
+    } catch (error) {
+      logger.error("Error regenerating API key", { error: error instanceof Error ? error.message : String(error) })
+      toast.error("Failed to regenerate API key")
+    }
   }
 
   // Test destination
@@ -380,6 +526,132 @@ export default function WebhooksSettingsPage() {
     }
   }
 
+  // Flatten nested object keys into dot-notation paths
+  const flattenKeys = (obj: Record<string, unknown>, prefix = ""): string[] => {
+    const keys: string[] = []
+    for (const [key, value] of Object.entries(obj)) {
+      const path = prefix ? `${prefix}.${key}` : key
+      keys.push(path)
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        keys.push(...flattenKeys(value as Record<string, unknown>, path))
+      } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object") {
+        // Flatten first array element: attendees.0.email
+        keys.push(...flattenKeys(value[0] as Record<string, unknown>, `${path}.0`))
+      }
+    }
+    return keys
+  }
+
+  // Open configure mapping dialog
+  const handleConfigureMapping = async (webhookId: string) => {
+    setConfigLoading(true)
+    setConfigPayloadKeys([])
+    setConfigMappings([])
+    setConfigContactField("")
+    setConfigContactFormatter("")
+    setConfigCreateContact(true)
+
+    try {
+      // Fetch full webhook detail (has current mapping)
+      const webhook = await WebhookService.getInboundWebhook(webhookId)
+      setConfigWebhook(webhook)
+
+      // Parse contact_match_field — may contain "|formatter"
+      const matchField = webhook.contact_match_field || ""
+      const [fieldPath, formatter] = matchField.split("|")
+      setConfigContactField(fieldPath.trim())
+      setConfigContactFormatter(formatter?.trim() || "")
+      setConfigCreateContact(webhook.create_contact_if_missing)
+
+      // Load existing mappings
+      const existingMapping = webhook.action_type === "send_template"
+        ? webhook.template_variable_mapping
+        : webhook.flow_variable_mapping
+
+      if (existingMapping && Object.keys(existingMapping).length > 0) {
+        setConfigMappings(
+          Object.entries(existingMapping).map(([key, value]) => ({ key, value }))
+        )
+      }
+
+      // Fetch latest log to get a sample payload (non-critical — don't fail if this errors)
+      try {
+        const logs = await WebhookService.getInboundWebhookLogs(webhookId, { limit: 1 })
+        if (logs.length > 0) {
+          const fullLog = await WebhookService.getInboundWebhookLog(webhookId, logs[0].id)
+          if (fullLog.payload && typeof fullLog.payload === "object") {
+            const keys = flattenKeys(fullLog.payload as Record<string, unknown>)
+            setConfigPayloadKeys(keys)
+          }
+        }
+      } catch (logError) {
+        // Log fetch failed — user can still configure manually
+        logger.warn("Could not fetch payload logs", { error: logError instanceof Error ? logError.message : String(logError) })
+      }
+    } catch (error) {
+      logger.error("Error loading webhook config", { error: error instanceof Error ? error.message : String(error) })
+      toast.error("Failed to load webhook details")
+      setConfigWebhook(null)
+    } finally {
+      setConfigLoading(false)
+    }
+  }
+
+  // Save variable mapping
+  const handleSaveMapping = async () => {
+    if (!configWebhook) return
+
+    if (!configContactField) {
+      toast.error("Please select a contact match field")
+      return
+    }
+
+    const mapping: Record<string, string> = {}
+    configMappings.forEach(m => {
+      if (m.key && m.value) mapping[m.key] = m.value
+    })
+
+    setConfigSaving(true)
+    try {
+      const variableMapping = configWebhook.action_type === "send_template"
+        ? { template_variable_mapping: mapping }
+        : { flow_variable_mapping: mapping }
+
+      // Combine contact field + formatter: "attendees.0.phone|strip_plus"
+      const contactMatchField = configContactFormatter
+        ? `${configContactField}|${configContactFormatter}`
+        : configContactField
+
+      await WebhookService.updateInboundWebhook(configWebhook.id, {
+        ...variableMapping,
+        contact_match_field: contactMatchField,
+        create_contact_if_missing: configCreateContact,
+      })
+      toast.success("Webhook configuration saved")
+      setConfigWebhook(null)
+    } catch (error) {
+      logger.error("Error saving mapping", { error: error instanceof Error ? error.message : String(error) })
+      toast.error("Failed to save variable mapping")
+    } finally {
+      setConfigSaving(false)
+    }
+  }
+
+  const addConfigMapping = () => {
+    setConfigMappings(prev => [...prev, {
+      key: configWebhook?.action_type === "send_template" ? String(prev.length + 1) : "",
+      value: ""
+    }])
+  }
+
+  const updateConfigMapping = (index: number, field: "key" | "value", val: string) => {
+    setConfigMappings(prev => prev.map((m, i) => i === index ? { ...m, [field]: val } : m))
+  }
+
+  const removeConfigMapping = (index: number) => {
+    setConfigMappings(prev => prev.filter((_, i) => i !== index))
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Left Sidebar Navigation */}
@@ -459,7 +731,7 @@ export default function WebhooksSettingsPage() {
                       Send data to external systems like CRM, Make, Zapier, and more
                     </p>
                   </div>
-                  <Dialog open={showCreateDestination} onOpenChange={setShowCreateDestination}>
+                  <Dialog open={showCreateDestination} onOpenChange={handleDestDialogChange}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="mr-2 size-4" />
@@ -494,7 +766,7 @@ export default function WebhooksSettingsPage() {
                         </div>
                         <div>
                           <Label htmlFor="dest-method">HTTP Method</Label>
-                          <Select value={destMethod} onValueChange={(v) => setDestMethod(v as any)}>
+                          <Select value={destMethod} onValueChange={(v) => setDestMethod(v as "POST" | "GET" | "PUT" | "PATCH")}>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
@@ -644,7 +916,9 @@ export default function WebhooksSettingsPage() {
                       Receive triggers from external systems to start flows or send templates
                     </p>
                   </div>
-                  <Dialog open={showCreateInbound} onOpenChange={setShowCreateInbound}>
+
+                  {/* Create Inbound Webhook Dialog */}
+                  <Dialog open={showCreateInbound} onOpenChange={handleInboundDialogChange}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="mr-2 size-4" />
@@ -665,7 +939,7 @@ export default function WebhooksSettingsPage() {
                             id="inbound-name"
                             value={inboundName}
                             onChange={(e) => setInboundName(e.target.value)}
-                            placeholder="e.g., New Lead from Website"
+                            placeholder="e.g., Cal.com Booking, New Lead from Website"
                           />
                         </div>
 
@@ -700,7 +974,7 @@ export default function WebhooksSettingsPage() {
 
                         <div>
                           <Label htmlFor="inbound-action">Action Type</Label>
-                          <Select value={inboundActionType} onValueChange={(v) => setInboundActionType(v as any)}>
+                          <Select value={inboundActionType} onValueChange={(v) => setInboundActionType(v as "start_flow" | "send_template")}>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
@@ -760,7 +1034,7 @@ export default function WebhooksSettingsPage() {
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select a template..." />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="max-h-60">
                                   {templates
                                     .filter(t => t.status === "APPROVED")
                                     .map((template) => (
@@ -776,51 +1050,31 @@ export default function WebhooksSettingsPage() {
                                 </SelectContent>
                               </Select>
                             )}
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              You can map payload fields to template variables after receiving the first webhook.
+                            </p>
                           </div>
                         )}
 
-                        <div>
-                          <Label htmlFor="inbound-contact">Contact Match Field</Label>
-                          <Select value={inboundContactField} onValueChange={setInboundContactField}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="phone_number">phone_number</SelectItem>
-                              <SelectItem value="email">email</SelectItem>
-                              <SelectItem value="customer.phone">customer.phone</SelectItem>
-                              <SelectItem value="contact.phone">contact.phone</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Field in payload to match against contacts
-                          </p>
-                        </div>
-
-                        <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                          <div>
-                            <Label>Create contact if missing</Label>
-                            <p className="text-xs text-muted-foreground">
-                              Automatically create a new contact if not found
-                            </p>
+                        <div className="rounded-lg border border-border p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label>Require API Key</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Require <code className="text-xs">X-API-Key</code> header for authentication
+                              </p>
+                            </div>
+                            <Switch
+                              checked={inboundRequireAuth}
+                              onCheckedChange={setInboundRequireAuth}
+                            />
                           </div>
-                          <Switch
-                            checked={inboundCreateContact}
-                            onCheckedChange={setInboundCreateContact}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                          <div>
-                            <Label>Require API Key</Label>
-                            <p className="text-xs text-muted-foreground">
-                              Require X-API-Key header for authentication
+                          {inboundRequireAuth && (
+                            <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
+                              An API key will be generated after creation. Add it as a custom header
+                              (<code className="text-xs">X-API-Key</code>) in your third-party service (e.g. Cal.com → Custom Headers).
                             </p>
-                          </div>
-                          <Switch
-                            checked={inboundRequireAuth}
-                            onCheckedChange={setInboundRequireAuth}
-                          />
+                          )}
                         </div>
                       </div>
                       <DialogFooter>
@@ -909,6 +1163,39 @@ export default function WebhooksSettingsPage() {
                                   <Copy className="mr-2 size-4" />
                                   Copy URL
                                 </DropdownMenuItem>
+                                {webhook.require_auth && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleCopyApiKey(webhook.id)}>
+                                      <Key className="mr-2 size-4" />
+                                      Copy API Key
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleRegenerateApiKey(webhook.id)}>
+                                      <RefreshCw className="mr-2 size-4" />
+                                      Regenerate API Key
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleConfigureMapping(webhook.id)}>
+                                  <Settings2 className="mr-2 size-4" />
+                                  Configure Webhook
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleTestInbound(webhook)}
+                                  disabled={testingId === webhook.id}
+                                >
+                                  {testingId === webhook.id ? (
+                                    <Loader2 className="mr-2 size-4 animate-spin" />
+                                  ) : (
+                                    <Play className="mr-2 size-4" />
+                                  )}
+                                  Test Webhook
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleViewLogs(webhook.id, webhook.name)}>
+                                  <Eye className="mr-2 size-4" />
+                                  View Logs
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => handleDeleteInbound(webhook.id)}
                                   className="text-red-600"
@@ -929,6 +1216,383 @@ export default function WebhooksSettingsPage() {
           )}
         </div>
       </main>
+
+      {/* API Key Display Dialog (shown after creation) */}
+      <Dialog open={!!createdWebhook} onOpenChange={(open) => !open && setCreatedWebhook(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Webhook Created Successfully</DialogTitle>
+            <DialogDescription>
+              {createdWebhook?.require_auth
+                ? "Save these credentials. The API key will not be shown again."
+                : "Copy the webhook URL and paste it into your third-party service."}
+            </DialogDescription>
+          </DialogHeader>
+          {createdWebhook && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Webhook URL</Label>
+                <div className="mt-1 flex items-center gap-2">
+                  <code className="flex-1 rounded bg-muted px-3 py-2 text-xs break-all">
+                    {createdWebhook.webhook_url}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => handleCopyUrl(createdWebhook.webhook_url)}
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Paste this URL in your third-party service (e.g. Cal.com, Zapier, Make).
+                </p>
+              </div>
+              {createdWebhook.require_auth && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">API Key</Label>
+                  <div className="mt-1 flex items-center gap-2">
+                    <code className="flex-1 rounded bg-muted px-3 py-2 text-xs break-all font-mono">
+                      {createdWebhook.api_key}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(createdWebhook.api_key)
+                        toast.success("API key copied to clipboard")
+                      }}
+                    >
+                      <Copy className="size-4" />
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Add this as a custom header in your third-party service: <code className="text-xs">X-API-Key: {createdWebhook.api_key}</code>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setCreatedWebhook(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Logs Viewer Dialog */}
+      <Dialog open={!!logsWebhookId} onOpenChange={(open) => !open && setLogsWebhookId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Webhook Logs: {logsWebhookName}</DialogTitle>
+            <DialogDescription>
+              Recent webhook trigger history and processing results
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {loadingLogs ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No logs yet. Trigger the webhook to see results here.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>IP</TableHead>
+                    <TableHead>Error</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {new Date(log.received_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={cn("text-xs", LOG_STATUS_COLORS[log.status] || "")}>
+                          {log.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {log.processing_time_ms}ms
+                      </TableCell>
+                      <TableCell className="text-xs font-mono">
+                        {log.ip_address}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] text-xs text-muted-foreground">
+                        {log.error_message ? (
+                          <span className="line-clamp-2" title={log.error_message}>
+                            {log.error_message}
+                          </span>
+                        ) : (
+                          <span className="text-green-600">OK</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogsWebhookId(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Configure Webhook Mapping Dialog */}
+      <Dialog open={!!configWebhook} onOpenChange={(open) => !open && setConfigWebhook(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Configure Webhook</DialogTitle>
+            <DialogDescription>
+              Set up contact matching and variable mapping using data from the received payload.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-2">
+            {configLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : (
+              <>
+                {/* Show detected payload fields */}
+                {configPayloadKeys.length > 0 ? (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Detected payload fields (from last received data)</Label>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {configPayloadKeys.map((key) => (
+                        <Badge
+                          key={key}
+                          variant="outline"
+                          className="cursor-pointer text-xs font-mono hover:bg-accent"
+                          onClick={() => {
+                            // Auto-add to mapping when clicked
+                            const newKey = configWebhook?.action_type === "send_template"
+                              ? String(configMappings.length + 1)
+                              : key
+                            const newValue = configWebhook?.action_type === "send_template"
+                              ? key
+                              : ""
+                            setConfigMappings(prev => [...prev, { key: newKey, value: newValue }])
+                          }}
+                        >
+                          {key}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">Click a field to add it to the mapping below.</p>
+                  </div>
+                ) : (
+                  <Alert>
+                    <AlertDescription className="text-xs">
+                      No payload data detected yet. Send a test request from your external service first, then come back here to map the fields.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Contact match field */}
+                <div className="space-y-2">
+                  <Label>Contact Match Field</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Which payload field identifies the contact? (phone number or email)
+                  </p>
+                  {configPayloadKeys.length > 0 ? (
+                    <Select
+                      value={configPayloadKeys.includes(configContactField) ? configContactField : "_custom"}
+                      onValueChange={(v) => {
+                        if (v !== "_custom") setConfigContactField(v)
+                      }}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select a payload field..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-48">
+                        {configPayloadKeys.map((k) => (
+                          <SelectItem key={k} value={k}>
+                            <code className="text-xs">{k}</code>
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="_custom">Type custom path...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                  {(configPayloadKeys.length === 0 || !configPayloadKeys.includes(configContactField)) && (
+                    <Input
+                      value={configContactField}
+                      onChange={(e) => setConfigContactField(e.target.value)}
+                      placeholder="e.g., attendees.0.email or phone_number"
+                      className="h-9 text-sm"
+                    />
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Formatter (optional)</Label>
+                    <Select
+                      value={configContactFormatter || "_none"}
+                      onValueChange={(v) => setConfigContactFormatter(v === "_none" ? "" : v)}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FORMATTERS.map((f) => (
+                          <SelectItem key={f.value || "_none"} value={f.value || "_none"}>
+                            <span className="flex items-center gap-2">
+                              <span className="text-xs">{f.label}</span>
+                              <span className="text-xs text-muted-foreground">{f.description}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div>
+                      <Label className="text-sm">Create contact if not found</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Auto-create a new contact from the payload data
+                      </p>
+                    </div>
+                    <Switch
+                      checked={configCreateContact}
+                      onCheckedChange={setConfigCreateContact}
+                    />
+                  </div>
+                </div>
+
+                {/* Variable mapping rows */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      {configWebhook?.action_type === "send_template"
+                        ? "Template Variable Mappings"
+                        : "Flow Variable Mappings"}
+                    </Label>
+                    <Button variant="ghost" size="sm" onClick={addConfigMapping} className="h-7 text-xs">
+                      <Plus className="mr-1 size-3" /> Add Row
+                    </Button>
+                  </div>
+                  {configWebhook?.action_type === "send_template" ? (
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      Variable # (1, 2, 3...) &larr; Payload field path
+                    </p>
+                  ) : (
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      Payload field path &rarr; Flow variable name
+                    </p>
+                  )}
+
+                  {configMappings.length === 0 && (
+                    <p className="py-4 text-center text-xs text-muted-foreground italic">
+                      No mappings configured. Click &quot;Add Row&quot; or click a payload field above.
+                    </p>
+                  )}
+
+                  {configMappings.map((m, i) => (
+                    <div key={i} className="mb-2 flex items-center gap-2">
+                      {configWebhook?.action_type === "send_template" ? (
+                        <>
+                          <Input
+                            value={m.key}
+                            onChange={(e) => updateConfigMapping(i, "key", e.target.value)}
+                            placeholder="Var #"
+                            className="h-8 w-16 text-xs"
+                          />
+                          <span className="text-xs text-muted-foreground">&larr;</span>
+                          <Select
+                            value={configPayloadKeys.includes(m.value) ? m.value : "_custom"}
+                            onValueChange={(v) => {
+                              if (v !== "_custom") updateConfigMapping(i, "value", v)
+                            }}
+                          >
+                            <SelectTrigger className="h-8 flex-1 text-xs">
+                              <SelectValue placeholder="Select field..." />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-48">
+                              {configPayloadKeys.map((k) => (
+                                <SelectItem key={k} value={k}>
+                                  <code className="text-xs">{k}</code>
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="_custom">Type custom...</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {(!configPayloadKeys.includes(m.value)) && (
+                            <Input
+                              value={m.value}
+                              onChange={(e) => updateConfigMapping(i, "value", e.target.value)}
+                              placeholder="field.path"
+                              className="h-8 flex-1 text-xs"
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Select
+                            value={configPayloadKeys.includes(m.key) ? m.key : "_custom"}
+                            onValueChange={(v) => {
+                              if (v !== "_custom") updateConfigMapping(i, "key", v)
+                            }}
+                          >
+                            <SelectTrigger className="h-8 flex-1 text-xs">
+                              <SelectValue placeholder="Payload field..." />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-48">
+                              {configPayloadKeys.map((k) => (
+                                <SelectItem key={k} value={k}>
+                                  <code className="text-xs">{k}</code>
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="_custom">Type custom...</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {(!configPayloadKeys.includes(m.key)) && (
+                            <Input
+                              value={m.key}
+                              onChange={(e) => updateConfigMapping(i, "key", e.target.value)}
+                              placeholder="field.path"
+                              className="h-8 flex-1 text-xs"
+                            />
+                          )}
+                          <span className="text-xs text-muted-foreground">&rarr;</span>
+                          <Input
+                            value={m.value}
+                            onChange={(e) => updateConfigMapping(i, "value", e.target.value)}
+                            placeholder="variable_name"
+                            className="h-8 flex-1 text-xs"
+                          />
+                        </>
+                      )}
+                      <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={() => removeConfigMapping(i)}>
+                        <XCircle className="size-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigWebhook(null)}>Cancel</Button>
+            <Button onClick={handleSaveMapping} disabled={configSaving}>
+              {configSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Save Configuration
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
