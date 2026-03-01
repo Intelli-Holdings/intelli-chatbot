@@ -145,7 +145,8 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {plan.max_contacts.toLocaleString()} contacts, {plan.monthly_ai_credits.toLocaleString()} AI credits/mo
+                    {plan.max_contacts > 0 ? `${plan.max_contacts.toLocaleString()} contacts` : "Unlimited chats"}
+                    {plan.monthly_ai_credits > 0 ? `, ${plan.monthly_ai_credits.toLocaleString()} AI credits/mo` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
