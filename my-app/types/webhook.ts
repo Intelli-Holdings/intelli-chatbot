@@ -204,6 +204,10 @@ export interface InboundWebhookLogListItem {
   error_message: string;
   processing_time_ms: number;
   ip_address: string;
+  contact_phone: string | null;
+  contact_name: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
 }
 
 // ========================================
