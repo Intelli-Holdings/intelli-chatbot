@@ -1,4 +1,8 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
@@ -7,13 +11,15 @@
       "Bash(dir:*)",
       "Bash(nul)",
       "Bash(findstr:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\(''/Users/mac/Documents/Intelli/Product/Backend/intelliholdings-backend/chatbot_automation/views.py''\\).read\\(\\)\\); print\\(''OK''\\)\")",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(source:*)"
     ],
     "deny": [],
     "ask": []
-  },
-  "attribution": {
-    "commit": "",
-    "pr": ""
   }
 }
