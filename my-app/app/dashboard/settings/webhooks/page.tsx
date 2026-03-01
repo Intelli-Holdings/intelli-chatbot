@@ -1329,101 +1329,75 @@ export default function WebhooksSettingsPage() {
                     <>
                       {/* Top row: key metrics */}
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <div className="rounded-lg border bg-card p-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                              <Webhook className="size-4 text-blue-600 dark:text-blue-400" />
-                            </div>
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/30 dark:bg-blue-950/20">
+                          <div className="flex items-start justify-between">
                             <div>
+                              <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{total}</p>
                               <p className="text-xs text-muted-foreground">Total Triggers</p>
-                              <p className="text-lg font-semibold">{total}</p>
                             </div>
+                            <Webhook className="size-5 text-blue-400 dark:text-blue-500" />
                           </div>
                         </div>
-                        <div className="rounded-lg border bg-card p-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex size-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                              <CheckCircle className="size-4 text-green-600 dark:text-green-400" />
-                            </div>
+                        <div className="rounded-xl border border-green-100 bg-green-50/50 p-4 dark:border-green-900/30 dark:bg-green-950/20">
+                          <div className="flex items-start justify-between">
                             <div>
+                              <p className="text-2xl font-bold text-green-700 dark:text-green-400">{success}<span className="ml-1 text-xs font-normal text-muted-foreground">({successRate}%)</span></p>
                               <p className="text-xs text-muted-foreground">Successful</p>
-                              <p className="text-lg font-semibold">{success}<span className="ml-1 text-xs font-normal text-muted-foreground">({successRate}%)</span></p>
                             </div>
-                          </div>
-                          <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-                            <div
-                              className="h-1.5 rounded-full bg-green-500 transition-all"
-                              style={{ width: `${successRate}%` }}
-                            />
+                            <CheckCircle className="size-5 text-green-400 dark:text-green-500" />
                           </div>
                         </div>
-                        <div className="rounded-lg border bg-card p-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex size-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-                              <XCircle className="size-4 text-red-600 dark:text-red-400" />
-                            </div>
+                        <div className="rounded-xl border border-red-100 bg-red-50/50 p-4 dark:border-red-900/30 dark:bg-red-950/20">
+                          <div className="flex items-start justify-between">
                             <div>
+                              <p className="text-2xl font-bold text-red-700 dark:text-red-400">{errorCount}<span className="ml-1 text-xs font-normal text-muted-foreground">({total > 0 ? Math.round((errorCount / total) * 100) : 0}%)</span></p>
                               <p className="text-xs text-muted-foreground">Errors</p>
-                              <p className="text-lg font-semibold">{errorCount}<span className="ml-1 text-xs font-normal text-muted-foreground">({total > 0 ? Math.round((errorCount / total) * 100) : 0}%)</span></p>
                             </div>
-                          </div>
-                          <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-                            <div
-                              className="h-1.5 rounded-full bg-red-500 transition-all"
-                              style={{ width: `${total > 0 ? (errorCount / total) * 100 : 0}%` }}
-                            />
+                            <XCircle className="size-5 text-red-400 dark:text-red-500" />
                           </div>
                         </div>
-                        <div className="rounded-lg border bg-card p-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex size-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
-                              <Eye className="size-4 text-purple-600 dark:text-purple-400" />
-                            </div>
+                        <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-4 dark:border-purple-900/30 dark:bg-purple-950/20">
+                          <div className="flex items-start justify-between">
                             <div>
+                              <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{opened}<span className="ml-1 text-xs font-normal text-muted-foreground">({openedRate}%)</span></p>
                               <p className="text-xs text-muted-foreground">Opened</p>
-                              <p className="text-lg font-semibold">{opened}<span className="ml-1 text-xs font-normal text-muted-foreground">({openedRate}%)</span></p>
                             </div>
-                          </div>
-                          <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
-                            <div
-                              className="h-1.5 rounded-full bg-purple-500 transition-all"
-                              style={{ width: `${openedRate}%` }}
-                            />
+                            <Eye className="size-5 text-purple-400 dark:text-purple-500" />
                           </div>
                         </div>
                       </div>
 
                       {/* Error breakdown - only show if there are errors */}
                       {errorCount > 0 && (
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div className="flex flex-wrap gap-2">
                           {contactNotFound > 0 && (
-                            <div className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 p-2.5 dark:border-orange-900/30 dark:bg-orange-900/10">
+                            <div className="flex items-center gap-2 rounded-lg border border-orange-200/60 bg-orange-50/50 px-3 py-2 dark:border-orange-900/30 dark:bg-orange-950/20">
                               <span className="text-xs font-medium text-orange-700 dark:text-orange-400">Contact Not Found</span>
-                              <Badge variant="outline" className="ml-auto text-xs">{contactNotFound}</Badge>
+                              <span className="flex size-5 items-center justify-center rounded-full bg-orange-200/60 text-[10px] font-semibold text-orange-800 dark:bg-orange-900/40 dark:text-orange-300">{contactNotFound}</span>
                             </div>
                           )}
                           {authErrors > 0 && (
-                            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 dark:border-red-900/30 dark:bg-red-900/10">
+                            <div className="flex items-center gap-2 rounded-lg border border-red-200/60 bg-red-50/50 px-3 py-2 dark:border-red-900/30 dark:bg-red-950/20">
                               <span className="text-xs font-medium text-red-700 dark:text-red-400">Auth Errors</span>
-                              <Badge variant="outline" className="ml-auto text-xs">{authErrors}</Badge>
+                              <span className="flex size-5 items-center justify-center rounded-full bg-red-200/60 text-[10px] font-semibold text-red-800 dark:bg-red-900/40 dark:text-red-300">{authErrors}</span>
                             </div>
                           )}
                           {validationErrors > 0 && (
-                            <div className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-2.5 dark:border-yellow-900/30 dark:bg-yellow-900/10">
+                            <div className="flex items-center gap-2 rounded-lg border border-yellow-200/60 bg-yellow-50/50 px-3 py-2 dark:border-yellow-900/30 dark:bg-yellow-950/20">
                               <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">Validation Errors</span>
-                              <Badge variant="outline" className="ml-auto text-xs">{validationErrors}</Badge>
+                              <span className="flex size-5 items-center justify-center rounded-full bg-yellow-200/60 text-[10px] font-semibold text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">{validationErrors}</span>
                             </div>
                           )}
                           {failed > 0 && (
-                            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 dark:border-red-900/30 dark:bg-red-900/10">
+                            <div className="flex items-center gap-2 rounded-lg border border-red-200/60 bg-red-50/50 px-3 py-2 dark:border-red-900/30 dark:bg-red-950/20">
                               <span className="text-xs font-medium text-red-700 dark:text-red-400">Processing Failed</span>
-                              <Badge variant="outline" className="ml-auto text-xs">{failed}</Badge>
+                              <span className="flex size-5 items-center justify-center rounded-full bg-red-200/60 text-[10px] font-semibold text-red-800 dark:bg-red-900/40 dark:text-red-300">{failed}</span>
                             </div>
                           )}
                           {flowInactive > 0 && (
-                            <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-900/10">
+                            <div className="flex items-center gap-2 rounded-lg border border-gray-200/60 bg-gray-50/50 px-3 py-2 dark:border-gray-700/30 dark:bg-gray-950/20">
                               <span className="text-xs font-medium text-gray-700 dark:text-gray-400">Flow Inactive</span>
-                              <Badge variant="outline" className="ml-auto text-xs">{flowInactive}</Badge>
+                              <span className="flex size-5 items-center justify-center rounded-full bg-gray-200/60 text-[10px] font-semibold text-gray-800 dark:bg-gray-900/40 dark:text-gray-300">{flowInactive}</span>
                             </div>
                           )}
                         </div>
