@@ -81,6 +81,7 @@ export interface SubscriptionAddOn {
   addon: AddOn;
   quantity: number;
   is_active: boolean;
+  cancel_at_period_end: boolean;
 }
 
 export interface CreditBalance {
