@@ -8,7 +8,7 @@ import { MpesaPayment } from "@/components/billing/MpesaPayment";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Plan, BillingInterval } from "@/types/billing";
+import type { Plan, AddOn, BillingInterval } from "@/types/billing";
 import { ArrowLeft, CreditCard, Smartphone } from "lucide-react";
 
 type PaymentMethod = "stripe" | "mpesa";
@@ -20,44 +20,71 @@ export function CheckoutPage() {
 
   const planSlug = searchParams.get("plan") || "";
   const interval = (searchParams.get("interval") || "monthly") as BillingInterval;
+  const addonIds = searchParams.getAll("addon");
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<AddOn[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
-    async function loadPlans() {
+    async function loadData() {
       try {
-        const data = await BillingService.getPlans();
-        setPlans(data);
-        const match = data.find((p) => p.slug === planSlug);
-        if (match) setSelectedPlan(match);
+        const [planData, addonData] = await Promise.allSettled([
+          BillingService.getPlans(),
+          addonIds.length > 0 ? BillingService.getAddOns() : Promise.resolve([]),
+        ]);
+
+        if (planData.status === "fulfilled") {
+          setPlans(planData.value);
+          const match = planData.value.find((p) => p.slug === planSlug);
+          if (match) setSelectedPlan(match);
+        }
+
+        if (addonData.status === "fulfilled" && addonIds.length > 0) {
+          const matched = addonData.value.filter((a) => addonIds.includes(a.id));
+          setSelectedAddOns(matched);
+        }
       } catch {
-        // Plans will show as empty
+        // Data will show as empty
       } finally {
         setLoading(false);
       }
     }
-    loadPlans();
+    loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planSlug]);
 
-  const price = selectedPlan
+  const planPrice = selectedPlan
     ? interval === "yearly"
       ? selectedPlan.yearly_price
       : selectedPlan.monthly_price
     : "0";
 
+  const addOnTotal = selectedAddOns.reduce(
+    (sum, a) => sum + parseFloat(a.unit_price),
+    0
+  );
+  const total = (parseFloat(planPrice) + addOnTotal).toFixed(2);
+
   const handleStripeCheckout = async () => {
     if (!organizationId || !selectedPlan) return;
     setCheckoutLoading(true);
     try {
+      const cancelParams = new URLSearchParams({
+        plan: planSlug,
+        interval,
+      });
+      selectedAddOns.forEach((a) => cancelParams.append("addon", a.id));
+
       const result = await BillingService.createStripeCheckout(organizationId, {
         plan_id: selectedPlan.id,
         billing_interval: interval,
         success_url: `${window.location.origin}/dashboard/billing?checkout=success`,
-        cancel_url: `${window.location.origin}/checkout?plan=${planSlug}&interval=${interval}`,
+        cancel_url: `${window.location.origin}/checkout?${cancelParams.toString()}`,
+        addon_ids: selectedAddOns.length > 0 ? selectedAddOns.map((a) => a.id) : undefined,
       });
       window.location.href = result.checkout_url;
     } catch (err) {
@@ -108,7 +135,10 @@ export function CheckoutPage() {
         <div className="mb-8">
           <h1 className="text-xl font-semibold">Subscribe to {selectedPlan.name}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            ${price}/{interval === "yearly" ? "year" : "month"}
+            ${planPrice}/{interval === "yearly" ? "year" : "month"}
+            {selectedAddOns.length > 0 && (
+              <> + {selectedAddOns.length} add-on{selectedAddOns.length > 1 ? "s" : ""}</>
+            )}
           </p>
         </div>
 
@@ -151,15 +181,21 @@ export function CheckoutPage() {
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">{selectedPlan.name}</span>
-                  <span>${price}</span>
+                  <span>${planPrice}</span>
                 </div>
+                {selectedAddOns.map((addon) => (
+                  <div key={addon.id} className="flex justify-between">
+                    <span className="text-muted-foreground">{addon.name}</span>
+                    <span>${addon.unit_price}</span>
+                  </div>
+                ))}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Billing</span>
                   <span className="capitalize">{interval}</span>
                 </div>
                 <div className="border-t pt-2 flex justify-between font-medium">
                   <span>Total</span>
-                  <span>${price}/{interval === "yearly" ? "yr" : "mo"}</span>
+                  <span>${total}/{interval === "yearly" ? "yr" : "mo"}</span>
                 </div>
               </CardContent>
             </Card>
