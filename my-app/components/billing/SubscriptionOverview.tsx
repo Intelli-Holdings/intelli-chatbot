@@ -12,6 +12,7 @@ interface SubscriptionOverviewProps {
   onChangePlan: () => void;
   onCancel: () => void;
   onReactivate: () => void;
+  highlighted?: boolean;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -28,6 +29,7 @@ export function SubscriptionOverview({
   onChangePlan,
   onCancel,
   onReactivate,
+  highlighted,
 }: SubscriptionOverviewProps) {
   if (loading) {
     return (
@@ -62,10 +64,38 @@ export function SubscriptionOverview({
     );
   }
 
-  const { plan, status, billing_interval, current_period_end, cancel_at_period_end, is_complimentary, complimentary_reason, days_until_renewal } = subscription;
+  const { plan, status, billing_interval, current_period_end, cancel_at_period_end, is_complimentary, complimentary_reason, days_until_renewal, addons } = subscription;
+
+  const activeAddOns = addons?.filter((a) => a.is_active) || [];
+  const renewingAddOns = activeAddOns.filter((a) => !a.cancel_at_period_end);
+  const cancellingAddOns = activeAddOns.filter((a) => a.cancel_at_period_end);
+  const planPrice = parseFloat(
+    billing_interval === "yearly" ? plan.yearly_price : plan.monthly_price
+  );
+  const addOnTotal = activeAddOns.reduce(
+    (sum, a) => sum + parseFloat(a.addon.unit_price) * a.quantity,
+    0
+  );
+  const renewingTotal = planPrice + renewingAddOns.reduce(
+    (sum, a) => sum + parseFloat(a.addon.unit_price) * a.quantity,
+    0
+  );
+  const totalPrice = planPrice + addOnTotal;
+  const intervalLabel = billing_interval === "yearly" ? "year" : "month";
 
   return (
-    <Card>
+    <Card
+      className={
+        highlighted
+          ? "animate-[highlight-pulse_1.5s_ease-in-out] ring-2 ring-primary/40"
+          : ""
+      }
+      style={
+        highlighted
+          ? { animation: "highlight-pulse 1.5s ease-in-out forwards" }
+          : undefined
+      }
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold">Subscription</CardTitle>
@@ -75,18 +105,57 @@ export function SubscriptionOverview({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-1">
-          <p className="text-sm font-medium">{plan.name}</p>
-          {is_complimentary ? (
+        {/* Billing breakdown */}
+        {!is_complimentary ? (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="font-medium">{plan.name}</span>
+              <span>${planPrice.toFixed(2)}/{intervalLabel}</span>
+            </div>
+            {activeAddOns.map((sub_addon) => (
+              <div
+                key={sub_addon.id}
+                className={`flex justify-between text-xs ${
+                  sub_addon.cancel_at_period_end
+                    ? "text-muted-foreground/50 line-through"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  {sub_addon.addon.name}
+                  {sub_addon.quantity > 1 && ` x${sub_addon.quantity}`}
+                  {sub_addon.cancel_at_period_end && (
+                    <span className="no-underline text-[10px] font-medium text-amber-600 bg-amber-50 px-1 py-0.5 rounded">
+                      Cancels {current_period_end ? new Date(current_period_end).toLocaleDateString() : "at period end"}
+                    </span>
+                  )}
+                </span>
+                <span>
+                  ${(parseFloat(sub_addon.addon.unit_price) * sub_addon.quantity).toFixed(2)}/{intervalLabel}
+                </span>
+              </div>
+            ))}
+            {activeAddOns.length > 0 && (
+              <div className="flex justify-between text-sm font-medium border-t pt-2">
+                <span>Total</span>
+                <span>${totalPrice.toFixed(2)}/{intervalLabel}</span>
+              </div>
+            )}
+            {cancellingAddOns.length > 0 && renewingTotal !== totalPrice && (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>After removals</span>
+                <span>${renewingTotal.toFixed(2)}/{intervalLabel}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <p className="text-sm font-medium">{plan.name}</p>
             <p className="text-xs text-muted-foreground">
               {complimentary_reason || "Complimentary access"}
             </p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              ${billing_interval === "yearly" ? plan.yearly_price : plan.monthly_price}/{billing_interval === "yearly" ? "year" : "month"}
-            </p>
-          )}
-        </div>
+          </div>
+        )}
 
         {!is_complimentary && current_period_end && (
           <div className="text-xs text-muted-foreground">
