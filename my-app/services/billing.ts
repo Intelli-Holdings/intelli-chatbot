@@ -150,7 +150,7 @@ export class BillingService {
   static async manageAddOns(
     orgId: string,
     addonId: string,
-    action: "add" | "remove",
+    action: "add" | "remove" | "reactivate",
     quantity?: number
   ): Promise<{ message: string }> {
     return apiFetch(`/subscriptions/org/${orgId}/addons/`, {
