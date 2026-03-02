@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
 import { BillingService } from "@/services/billing";
@@ -27,6 +27,15 @@ export function BillingPage() {
 
   const [isPlanSelectorOpen, setIsPlanSelectorOpen] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [highlightOverview, setHighlightOverview] = useState(false);
+  const overviewRef = useRef<HTMLDivElement>(null);
+
+  const handleAddOnChange = useCallback(async () => {
+    await refetch();
+    overviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setHighlightOverview(true);
+    setTimeout(() => setHighlightOverview(false), 1800);
+  }, [refetch]);
 
   const handleCancel = async () => {
     if (!organizationId) return;
@@ -76,13 +85,16 @@ export function BillingPage() {
 
         <div className="space-y-6 max-w-3xl">
           {/* Subscription overview */}
-          <SubscriptionOverview
-            subscription={subscription}
-            loading={subLoading}
-            onChangePlan={() => setIsPlanSelectorOpen(true)}
-            onCancel={handleCancel}
-            onReactivate={handleReactivate}
-          />
+          <div ref={overviewRef}>
+            <SubscriptionOverview
+              subscription={subscription}
+              loading={subLoading}
+              onChangePlan={() => setIsPlanSelectorOpen(true)}
+              onCancel={handleCancel}
+              onReactivate={handleReactivate}
+              highlighted={highlightOverview}
+            />
+          </div>
 
           {subscription?.credits && (
             <CreditUsage credits={subscription.credits} loading={subLoading} />
@@ -107,7 +119,20 @@ export function BillingPage() {
                     <AddOnManager
                       organizationId={organizationId}
                       currentAddOns={subscription?.addons || []}
-                      onUpdate={refetch}
+                      onUpdate={handleAddOnChange}
+                      subscriptionStatus={subscription?.status}
+                      paymentProvider={subscription?.payment_provider}
+                      checkoutUrl={
+                        subscription?.plan
+                          ? `/checkout?plan=${subscription.plan.slug}&interval=${subscription.billing_interval}${
+                              subscription.addons
+                                ?.filter((a) => a.is_active)
+                                .map((a) => `&addon=${a.addon.id}`)
+                                .join("") || ""
+                            }`
+                          : undefined
+                      }
+                      periodEnd={subscription?.current_period_end}
                     />
                   )}
                 </CardContent>
