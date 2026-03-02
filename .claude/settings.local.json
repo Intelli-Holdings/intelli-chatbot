@@ -1,4 +1,8 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
@@ -7,13 +11,11 @@
       "Bash(dir:*)",
       "Bash(nul)",
       "Bash(findstr:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(stripe version:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
-  },
-  "attribution": {
-    "commit": "",
-    "pr": ""
   }
 }
