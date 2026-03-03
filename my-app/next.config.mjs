@@ -120,7 +120,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://backend.intelliconcierge.com",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https: wss:",
+              "connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:*",
               "frame-src 'self' https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.stripe.com https://*.facebook.com https://demo.arcade.software https://vercel.live",
               "worker-src 'self' blob:",
               "frame-ancestors 'self'",
