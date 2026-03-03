@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
@@ -38,7 +39,7 @@ export async function GET(
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error fetching WhatsApp app services:', error);
+    logger.error("Error fetching WhatsApp app services", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to fetch app services' },
       { status: 500 }

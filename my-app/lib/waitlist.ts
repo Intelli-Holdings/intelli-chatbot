@@ -1,4 +1,6 @@
 'use server';
+import { logger } from "@/lib/logger";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function joinWaitlist(formData: FormData) {
@@ -31,13 +33,13 @@ export async function joinWaitlist(formData: FormData) {
 
     if (!response.ok) {
       const responseText = await response.text();
-      console.error('Failed to join waitlist:', response.status, response.statusText, responseText);
+      logger.error('Failed to join waitlist', { status: response.status, statusText: response.statusText, data: responseText });
       throw new Error(`Failed to join waitlist: ${response.status} ${response.statusText}`);
     }
 
     return { success: true };
   } catch (error) {
-    console.error('Error joining waitlist:', error);
+    logger.error('Error joining waitlist', { error: error instanceof Error ? error.message : String(error) });
     return { success: false };
   }
 }

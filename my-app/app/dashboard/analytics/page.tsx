@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Analytics from "@/components/Analytics"
 import { Button } from "@/components/ui/button"
 import { produceMetricsSnapshot } from "@/lib/metrics-service"
+import { logger } from "@/lib/logger"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 
 // Import new advanced analytics components
@@ -43,7 +44,7 @@ export default function AnalyticsPage() {
       setTimeout(() => setRefreshSuccess(false), 3000)
       window.location.reload()
     } catch (error) {
-      console.error("Error producing snapshot:", error)
+      logger.error("Error producing snapshot", { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setIsRefreshing(false)
     }

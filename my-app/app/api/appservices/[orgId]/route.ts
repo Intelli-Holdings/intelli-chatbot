@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
+import { logger } from "@/lib/logger";
 export async function GET(
   request: NextRequest,
   { params }: { params: { orgId: string } }
@@ -48,7 +49,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error in app services proxy:', error);
+    logger.error('Error in app services proxy:', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

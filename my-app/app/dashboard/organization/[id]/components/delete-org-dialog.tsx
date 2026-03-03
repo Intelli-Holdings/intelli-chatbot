@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useOrganization, OrganizationList } from "@clerk/nextjs"
+import { logger } from "@/lib/logger"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +29,7 @@ export function DeleteOrgDialog({ open, onOpenChange }: DeleteOrgDialogProps) {
       await organization?.destroy()
       router.push("/dashboard/organization")
     } catch (error) {
-      console.error("Failed to delete organization:", error)
+      logger.error("Failed to delete organization", { error: error instanceof Error ? error.message : String(error) })
     }
   }
 

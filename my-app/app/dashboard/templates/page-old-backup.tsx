@@ -7,6 +7,7 @@ import {
   type WhatsAppTemplate,
 } from "@/services/whatsapp";
 import { DefaultTemplate, defaultTemplates } from "@/data/default-templates";
+import { logger } from "@/lib/logger";
 import {
   Search,
   Settings,
@@ -149,7 +150,7 @@ export default function TemplatesPage() {
       }
 
       setServicesError(errorMessage);
-      console.error("Error fetching app services:", err);
+      logger.error("Error fetching app services", { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setServicesLoading(false);
     }
@@ -182,7 +183,7 @@ export default function TemplatesPage() {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to fetch templates";
       setTemplatesError(errorMessage);
-      console.error("Error fetching templates:", err);
+      logger.error("Error fetching templates", { error: err instanceof Error ? err.message : String(err) });
       return false;
     } finally {
       setTemplatesLoading(false);
@@ -245,7 +246,7 @@ export default function TemplatesPage() {
           err instanceof Error ? err.message : "Failed to create template";
         setTemplatesError(errorMessage);
         toast.error(errorMessage);
-        console.error("Error creating template:", err);
+        logger.error("Error creating template", { error: err instanceof Error ? err.message : String(err) });
         return false;
       } finally {
         setCreatingTemplateId(null);
@@ -316,7 +317,7 @@ export default function TemplatesPage() {
           err instanceof Error ? err.message : "Failed to create template";
         setTemplatesError(errorMessage);
         toast.error(errorMessage);
-        console.error("Error creating template:", err);
+        logger.error("Error creating customized template", { error: err instanceof Error ? err.message : String(err) });
         return false;
       } finally {
         setCreatingTemplateId(null);
@@ -352,7 +353,7 @@ export default function TemplatesPage() {
           err instanceof Error ? err.message : "Failed to create template";
         setTemplatesError(errorMessage);
         toast.error(errorMessage);
-        console.error("Error creating template:", err);
+        logger.error("Error creating template from form", { error: err instanceof Error ? err.message : String(err) });
         return false;
       } finally {
         setTemplatesLoading(false);
@@ -388,7 +389,7 @@ export default function TemplatesPage() {
           err instanceof Error ? err.message : "Failed to delete template";
         setTemplatesError(errorMessage);
         toast.error(errorMessage);
-        console.error("Error deleting template:", err);
+        logger.error("Error deleting template", { error: err instanceof Error ? err.message : String(err) });
         return false;
       } finally {
         setTemplatesLoading(false);
@@ -535,7 +536,7 @@ const sendTestTemplate = useCallback(
 
       return true;
     } catch (err) {
-      console.error("Error sending test template:", err);
+      logger.error("Error sending test template", { error: err instanceof Error ? err.message : String(err) });
       const errorMessage =
         err instanceof Error ? err.message : "Failed to send test message";
       toast.error(errorMessage);
@@ -692,7 +693,7 @@ const sendTestTemplate = useCallback(
 
         return true;
       } catch (err) {
-        console.error("Error sending carousel template:", err);
+        logger.error("Error sending carousel template", { error: err instanceof Error ? err.message : String(err) });
         const errorMessage =
           err instanceof Error ? err.message : "Failed to send carousel message";
         toast.error(errorMessage);
@@ -784,7 +785,7 @@ const sendTestTemplate = useCallback(
         err instanceof Error ? err.message : "Failed to update template";
       setTemplatesError(errorMessage);
       toast.error(errorMessage);
-      console.error("Error updating template:", err);
+      logger.error("Error updating template", { error: err instanceof Error ? err.message : String(err) });
       return false;
     } finally {
       setTemplatesLoading(false);

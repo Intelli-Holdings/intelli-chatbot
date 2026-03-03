@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching custom field values:', error);
+    logger.error("Error fetching custom field values", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to fetch custom field values' },
       { status: 500 }
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
-    console.error('Error creating custom field value:', error);
+    logger.error("Error creating custom field value", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to create custom field value' },
       { status: 500 }

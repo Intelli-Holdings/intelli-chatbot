@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { WhatsAppService, type WhatsAppTemplate, type AppService } from '@/services/whatsapp';
+import { logger } from "@/lib/logger";
 
 export interface UseWhatsAppTemplatesReturn {
   templates: WhatsAppTemplate[];
@@ -72,7 +73,7 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
       await createMutation.mutateAsync(templateData);
       return true;
     } catch (err) {
-      console.error('Error creating template:', err);
+      logger.error('Error creating template', { error: err instanceof Error ? err.message : String(err) });
       return false;
     }
   };
@@ -86,7 +87,7 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
       await updateMutation.mutateAsync({ templateId, templateData });
       return true;
     } catch (err) {
-      console.error('Error updating template:', err);
+      logger.error('Error updating template', { error: err instanceof Error ? err.message : String(err) });
       return false;
     }
   };
@@ -100,7 +101,7 @@ export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsApp
       await deleteMutation.mutateAsync(templateId);
       return true;
     } catch (err) {
-      console.error('Error deleting template:', err);
+      logger.error('Error deleting template', { error: err instanceof Error ? err.message : String(err) });
       return false;
     }
   };

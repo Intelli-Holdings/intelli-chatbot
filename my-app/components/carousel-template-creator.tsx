@@ -15,6 +15,7 @@ import {
   Info, Image as ImageIcon, Video, Trash2, AlertCircle, Loader2 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from "@/lib/logger";
 
 interface CarouselCard {
   id: string;
@@ -163,7 +164,7 @@ export default function CarouselTemplateCreator({
       }
       return data.handle;
     } catch (error) {
-      console.error('Backend upload error:', error);
+      logger.error("Backend upload error", { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       setIsUploadingMedia(false);

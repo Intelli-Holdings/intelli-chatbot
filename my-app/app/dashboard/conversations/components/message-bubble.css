@@ -32,21 +32,18 @@
   background-color: white;
   color: #111b21;
   align-self: flex-start;
-  border-top-left-radius: 0;
 }
 
 .message-assistant {
   background-color: #e3d7ff; /* Light purple for AI */
   color: #111b21;
   align-self: flex-end;
-  border-top-right-radius: 0;
 }
 
 .message-human {
   background-color: #d9fdd3; /* Light green for Business/Human */
   color: #111b21;
   align-self: flex-end;
-  border-top-right-radius: 0;
 }
 
 /* Message tails - WhatsApp style */

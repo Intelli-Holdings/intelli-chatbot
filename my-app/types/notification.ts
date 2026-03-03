@@ -100,7 +100,7 @@ export interface NotificationContextType {
   markAllAsRead: () => void
   isLoading: boolean
   error: string | null
-  fetchHistoricalNotifications: () => Promise<void>
-  fetchAssignedNotifications: () => Promise<void>
+  fetchHistoricalNotifications: (force?: boolean) => Promise<void>
+  fetchAssignedNotifications: (force?: boolean) => Promise<void>
   updateNotification: (notification: NotificationMessage) => void
 }

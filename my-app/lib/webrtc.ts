@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 const ICE_SERVERS = [
     {
       urls: [
@@ -59,7 +61,7 @@ const ICE_SERVERS = [
           }
         });
       } catch (error) {
-        console.error('Error accessing media devices:', error);
+        logger.error('Error accessing media devices', { error: error instanceof Error ? error.message : String(error) });
         throw error;
       }
     }

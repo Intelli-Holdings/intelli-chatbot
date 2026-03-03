@@ -1,5 +1,5 @@
-@import "slick-carousel/slick/slick.css";
-@import "slick-carousel/slick/slick-theme.css";
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+
 @import 'katex/dist/katex.min.css';
 @import "react-phone-number-input/style.css";
 
@@ -40,6 +40,17 @@
     --ring: 210 100% 50%;
 
     --radius: 0.75rem;
+
+    /* Marketing page tokens */
+    --hero-bg: 222 47% 5%;
+    --hero-bg-radial: 245 50% 20%;
+    --dream-blue: 210 100% 50%;
+    --dream-blue-dark: 210 100% 40%;
+    --surface-alt: 210 40% 98%;
+
+    /* Typography */
+    --font-display: 'Instrument Serif', Georgia, serif;
+    --font-body: var(--font-dm-sans), 'Segoe UI', sans-serif;
   }
 
   .dark {

@@ -15,6 +15,7 @@ import {
 import { ChatbotAutomationService, TemplateButtonFlowMapping } from "@/services/chatbot-automation"
 import { ChatbotAutomation } from "@/types/chatbot-automation"
 
+import { logger } from "@/lib/logger";
 interface WhatsAppTemplate {
   id: string;
   name: string;
@@ -77,7 +78,7 @@ export function TemplateDetailsDialog({
       setFlowMappings(initialMappings)
       setHasChanges(false)
     } catch (error) {
-      console.error("Error fetching flows and mappings:", error)
+      logger.error("Error fetching flows and mappings:", { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setLoadingFlows(false)
     }
@@ -121,7 +122,7 @@ export function TemplateDetailsDialog({
       setHasChanges(false)
       fetchFlowsAndMappings()
     } catch (error) {
-      console.error("Error saving flow mappings:", error)
+      logger.error("Error saving flow mappings:", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to save flow mappings")
     } finally {
       setSavingMappings(false)

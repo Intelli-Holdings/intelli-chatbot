@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { logger } from "@/lib/logger";
 
 interface Assistant {
   id: number;
@@ -28,7 +29,7 @@ const useAssistants = () => {
       const data = await response.json();
       setAssistants(data);
     } catch (error) {
-      console.error('Error fetching assistants:', error);
+      logger.error('Error fetching assistants', { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to fetch assistants. Please try again.');
     } finally {
       setIsLoading(false);
@@ -62,7 +63,7 @@ const useAssistants = () => {
       setIsEditDialogOpen(false);
       fetchAssistants();
     } catch (error) {
-      console.error('Error editing assistant:', error);
+      logger.error('Error editing assistant', { error: error instanceof Error ? error.message : String(error) });
       toast.error('There was a problem editing the assistant. Please try again.');
     }
   };
@@ -90,7 +91,7 @@ const useAssistants = () => {
       setIsDeleteDialogOpen(false);
       fetchAssistants();
     } catch (error) {
-      console.error('Error deleting assistant:', error);
+      logger.error('Error deleting assistant', { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to delete assistant. Please try again.');
     }
   };

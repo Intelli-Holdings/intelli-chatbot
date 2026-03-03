@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 
+import { logger } from "@/lib/logger";
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // GET /api/campaigns/[id] - Get campaign by ID
@@ -42,7 +43,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error fetching campaign:", error)
+    logger.error("Error fetching campaign:", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -81,11 +82,10 @@ export async function PATCH(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error("Backend error updating campaign:", {
+      logger.error("Backend error updating campaign:", {
         status: response.status,
         error: errorData,
         url,
-        body,
       })
       return NextResponse.json(
         { error: errorData.detail || errorData.message || "Failed to update campaign" },
@@ -96,7 +96,7 @@ export async function PATCH(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error updating campaign:", error)
+    logger.error("Error updating campaign:", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -140,7 +140,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error) {
-    console.error("Error deleting campaign:", error)
+    logger.error("Error deleting campaign:", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

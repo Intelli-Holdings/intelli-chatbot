@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/table";
 
 import React, { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 
@@ -86,7 +87,7 @@ export default function Page () {
         const data = await response.json();
         setReservations(data);
       } catch (error) {
-        console.error("Error fetching reservations:", error);
+        logger.error("Error fetching reservations", { error: error instanceof Error ? error.message : String(error) });
       }
     };
 
@@ -117,10 +118,10 @@ export default function Page () {
         );
         setReservations(updatedReservations);
       } else {
-        console.error('Error updating reservation status:', response.status);
+        logger.error("Error updating reservation status", { status: response.status });
       }
     } catch (error) {
-      console.error('Error updating reservation status:', error);
+      logger.error("Error updating reservation status", { error: error instanceof Error ? error.message : String(error) });
     }
   };
 

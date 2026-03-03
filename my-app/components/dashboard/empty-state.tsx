@@ -4,6 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import {
   Sparkles,
   MessageSquare,
@@ -38,7 +39,7 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
   const router = useRouter();
 
   // Debug: Log the stats being passed
-  console.log('[EmptyState] Received stats:', stats);
+  logger.info('[EmptyState] Received stats:', { data: stats });
 
   return (
     <div className="space-y-6">

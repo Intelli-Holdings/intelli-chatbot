@@ -4,6 +4,7 @@ import { Toggle } from '@/components/ui/toggle';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 type Country = 'Ghana' | 'Kenya' | 'USA' | 'EU';
 
@@ -122,7 +123,7 @@ export default function PrivacyPolicyClient({ initialPolicies }: PrivacyPolicyCl
               `}</style>
               <div 
                 className="policy-content"
-                dangerouslySetInnerHTML={{ __html: initialPolicies[selectedCountry] }} 
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(initialPolicies[selectedCountry]) }} 
               />
             </CardContent>
           </Card>

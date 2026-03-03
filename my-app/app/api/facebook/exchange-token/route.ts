@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
@@ -9,13 +10,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Code is required" }, { status: 400 })
     }
 
-    console.log("Exchanging code for token...")
+    logger.info("Exchanging code for token")
 
     const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
-    const appSecret = process.env.FACEBOOK_APP_SECRET || process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET
+    const appSecret = process.env.FACEBOOK_APP_SECRET
 
     if (!appId || !appSecret) {
-      console.error("Missing Facebook app credentials")
+      logger.error("Missing Facebook app credentials")
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       params.set('redirect_uri', redirect_uri)
     }
 
-    console.log("Calling Facebook token exchange with params:", {
+    logger.info("Calling Facebook token exchange", {
       client_id: appId,
       code: code.substring(0, 20) + '...',
       redirect_uri: redirect_uri || '(not provided)',
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     })
 
     const data = await response.json()
-    console.log("Token exchange response:", {
+    logger.info("Token exchange response", {
       status: response.status,
       statusText: response.statusText,
       hasAccessToken: !!data.access_token,
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     })
 
     if (!response.ok || data.error) {
-      console.error("Facebook API error:", JSON.stringify(data, null, 2))
+      logger.error("Facebook API error", { data: JSON.stringify(data, null, 2) })
       return NextResponse.json({
         error: data.error?.message || data.error_description || "Failed to exchange code",
         details: data
@@ -62,25 +63,25 @@ export async function POST(request: Request) {
     // If we got a token, let's verify it and get its details
     if (data.access_token) {
       try {
-        const debugAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET
+        const debugAppSecret = process.env.FACEBOOK_APP_SECRET
         const debugResponse = await fetch(
           `https://graph.facebook.com/debug_token?input_token=${data.access_token}&access_token=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID}|${debugAppSecret}`,
         )
         const debugData = await debugResponse.json()
-        console.log("Token debug info:", {
+        logger.info("Token debug info", {
           isValid: debugData.data?.is_valid,
           scopes: debugData.data?.scopes,
           appId: debugData.data?.app_id,
           expiresAt: debugData.data?.expires_at,
         })
       } catch (debugError) {
-        console.error("Error debugging token:", debugError)
+        logger.error("Error debugging token", { error: debugError instanceof Error ? debugError.message : String(debugError) })
       }
     }
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Server error:", error)
+    logger.error("Server error", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

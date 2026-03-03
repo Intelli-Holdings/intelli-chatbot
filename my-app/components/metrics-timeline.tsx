@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select"
 import { useIsMobile } from "@/hooks/use-mobile"
 
+import { logger } from "@/lib/logger";
 interface MetricsTimelineProps {
   organizationId: string
   timePeriod: "7d" | "30d" | "90d" | "year"
@@ -39,7 +40,7 @@ export function MetricsTimeline({ organizationId, timePeriod, onTimePeriodChange
         const data = await getMetricsByOrganization(organizationId, params)
         setSnapshots(data)
       } catch (err) {
-        console.error("Error fetching metrics timeline:", err)
+        logger.error("Error fetching metrics timeline:", { error: err instanceof Error ? err.message : String(err) })
         setError("Failed to load metrics timeline")
       } finally {
         setIsLoading(false)

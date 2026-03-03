@@ -18,6 +18,7 @@ import {
 } from "@/hooks/use-assistants-cache"
 import type { FacebookAuthResponse } from "@/lib/facebook-sdk"
 
+import { logger } from "@/lib/logger";
 // Define type for WhatsApp embedded signup message
 interface WhatsAppSignupMessage {
   type: string
@@ -184,7 +185,7 @@ const EmbeddedSignup = () => {
         throw new Error(data.error || "Failed to exchange code")
       }
 
-      console.log("Token response:", data)
+      logger.info("Token response:", { data: data })
 
       if (data.access_token) {
         setAccessToken(data.access_token)
@@ -194,7 +195,7 @@ const EmbeddedSignup = () => {
         throw new Error("No access token in response")
       }
     } catch (err) {
-      console.error("Error exchanging code:", err)
+      logger.error("Error exchanging code:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Error exchanging code")
       setStatusMessage("Error exchanging code. Please try again.")
     } finally {
@@ -228,7 +229,7 @@ const EmbeddedSignup = () => {
       })
 
       const data = await response.json()
-      console.log("History sync response:", data)
+      logger.info("History sync response:", { data: data })
       
       if (!response.ok) {
         throw new Error(data.error?.message || "Failed to initiate history synchronization")
@@ -244,7 +245,7 @@ const EmbeddedSignup = () => {
       }, 2000)
 
     } catch (err) {
-      console.error("Error initiating history sync:", err)
+      logger.error("Error initiating history sync:", { error: err instanceof Error ? err.message : String(err) })
       setSyncError(err instanceof Error ? err.message : "Error initiating history sync")
       setStatusMessage("Error synchronizing history. Please try again.")
     } finally {
@@ -278,7 +279,7 @@ const EmbeddedSignup = () => {
       })
 
       const data = await response.json()
-      console.log("Contacts sync response:", data)
+      logger.info("Contacts sync response:", { data: data })
       
       if (!response.ok) {
         throw new Error(data.error?.message || "Failed to initiate contacts synchronization")
@@ -293,7 +294,7 @@ const EmbeddedSignup = () => {
       }, 1000)
 
     } catch (err) {
-      console.error("Error initiating contacts sync:", err)
+      logger.error("Error initiating contacts sync:", { error: err instanceof Error ? err.message : String(err) })
       setSyncError(err instanceof Error ? err.message : "Error initiating contacts sync")
       setStatusMessage("Error synchronizing contacts. Please try again.")
     } finally {
@@ -315,7 +316,7 @@ const EmbeddedSignup = () => {
     try {
       const url = `https://graph.facebook.com/v22.0/${sessionInfo.waba_id}/phone_numbers?fields=id,cc,country_dial_code,display_phone_number,verified_name,status,quality_rating,search_visibility,platform_type,code_verification_status&access_token=${accessToken}`
       
-      console.log("Fetching phone numbers from:", url)
+      logger.info("Fetching phone numbers from:", { data: url })
       
       const response = await fetch(url, {
         method: "GET",
@@ -323,7 +324,7 @@ const EmbeddedSignup = () => {
       })
 
       const data = await response.json()
-      console.log("Phone numbers response:", data)
+      logger.info("Phone numbers response:", { data: data })
       
       if (!response.ok) {
         throw new Error(data.error?.message || "Failed to fetch phone numbers")
@@ -337,7 +338,7 @@ const EmbeddedSignup = () => {
       setStep("confirmingPhone")
       setStatusMessage("Please confirm your phone number")
     } catch (err) {
-      console.error("Error fetching phone numbers:", err)
+      logger.error("Error fetching phone numbers:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Error fetching phone numbers")
       setStatusMessage("Error fetching phone numbers. Please try again.")
     } finally {
@@ -362,7 +363,7 @@ const EmbeddedSignup = () => {
         throw new Error("No assistants found. Please create an assistant first.")
       }
     } catch (error) {
-      console.error("Error fetching assistants:", error)
+      logger.error("Error fetching assistants:", { error: error instanceof Error ? error.message : String(error) })
       setError(error instanceof Error ? error.message : "Failed to fetch assistants")
       setStatusMessage("Error fetching assistants. Please try again.")
     } finally {
@@ -389,7 +390,7 @@ const EmbeddedSignup = () => {
       })
 
       const phoneData = await phoneResponse.json()
-      console.log("Phone details response:", phoneData)
+      logger.info("Phone details response:", { data: phoneData })
       
       if (!phoneResponse.ok) {
         throw new Error(phoneData.error?.message || "Failed to fetch phone number details")
@@ -416,7 +417,7 @@ const EmbeddedSignup = () => {
         organization_id: organizationId,
       };
   
-      console.log("WhatsApp Business App package payload:", { 
+      logger.info("WhatsApp Business App package payload:", { 
         ...payload, 
         data: { ...payload.data, access_token: "[REDACTED]" } 
       });
@@ -430,11 +431,11 @@ const EmbeddedSignup = () => {
   
       const pkg = await res.json();
       
-      console.log("Package creation response status:", res.status);
-      console.log("Package creation response:", pkg);
+      logger.info("Package creation response status:", { data: res.status });
+      logger.info("Package creation response:", { data: pkg });
   
       if (!res.ok) {
-        console.error("WhatsApp Business App package creation error:", pkg);
+        logger.error("WhatsApp Business App package creation error:", { data: pkg });
         // Provide more detailed error information
         if (pkg.phone_number && Array.isArray(pkg.phone_number)) {
           throw new Error(`Phone number error: ${pkg.phone_number.join(', ')}`);
@@ -450,7 +451,7 @@ const EmbeddedSignup = () => {
       setStep("selectingAssistant");
       fetchAssistants();
     } catch (e) {
-      console.error("Error creating Business App package:", e);
+      logger.error("Error creating Business App package:", { error: e instanceof Error ? e.message : String(e) });
       setPackageError(e instanceof Error ? e.message : "Error creating package");
       setStatusMessage("Error creating package. Please try again.");
     } finally {
@@ -498,7 +499,7 @@ const EmbeddedSignup = () => {
         throw new Error("Failed to subscribe app")
       }
     } catch (err) {
-      console.error("Error subscribing app:", err)
+      logger.error("Error subscribing app:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Error subscribing app")
       setStatusMessage("Error subscribing app. Please try again.")
     } finally {
@@ -521,7 +522,7 @@ const EmbeddedSignup = () => {
         phone_number: sanitizedPhoneNumber,
         assistant_id: selectedAssistant.assistant_id,
       };
-      console.log("Creating AppService with data:", data);
+      logger.info("Creating AppService with data:", { data: data });
 
       const res = await fetch("/api/appservice/create", {
         method: "POST",
@@ -532,7 +533,7 @@ const EmbeddedSignup = () => {
       const appsvc = await res.json();
   
       if (!res.ok) {
-        console.error("AppService creation error:", appsvc);
+        logger.error("AppService creation error:", { data: appsvc });
         throw new Error(appsvc.error || appsvc.detail || "Failed to create AppService");
       }
   
@@ -551,7 +552,7 @@ const EmbeddedSignup = () => {
         setStatusMessage("Setup complete! Your WhatsApp business account is ready.");
       }
     } catch (e) {
-      console.error("Error creating AppService:", e);
+      logger.error("Error creating AppService:", { error: e instanceof Error ? e.message : String(e) });
       setAppServiceError(e instanceof Error ? e.message : "Error creating AppService");
       setStatusMessage("Error creating AppService. Please try again.");
     } finally {
@@ -582,7 +583,7 @@ const EmbeddedSignup = () => {
       };
   
       // Log payload for debugging
-      console.log("WhatsApp package payload:", { ...payload, data: { ...payload.data, access_token: "[REDACTED]" } });
+      logger.info("WhatsApp package payload:", { ...payload, data: { ...payload.data, access_token: "[REDACTED]" } });
 
       const res = await fetch("/api/channels/create", {
         method: "POST",
@@ -593,7 +594,7 @@ const EmbeddedSignup = () => {
       const pkg = await res.json();
   
       if (!res.ok) {
-        console.error("WhatsApp package creation error:", pkg);
+        logger.error("WhatsApp package creation error:", { data: pkg });
         throw new Error(pkg.error || pkg.detail || "Failed to create WhatsApp package");
       }
   
@@ -602,7 +603,7 @@ const EmbeddedSignup = () => {
       setStep("selectingAssistant");
       fetchAssistants();
     } catch (e) {
-      console.error("Error creating package:", e);
+      logger.error("Error creating package:", { error: e instanceof Error ? e.message : String(e) });
       setPackageError(e instanceof Error ? e.message : "Error creating package");
       setStatusMessage("Error creating package. Please try again.");
     } finally {
@@ -647,7 +648,7 @@ const EmbeddedSignup = () => {
 
       const data = await response.json()
       setDirectRegisterResponse(data)
-      console.log("Direct registration response:", data)
+      logger.info("Direct registration response:", { data: data })
 
       if (data.success) {
         setRegisterResponse(data)
@@ -659,7 +660,7 @@ const EmbeddedSignup = () => {
         throw new Error("Registration failed with unknown error")
       }
     } catch (err) {
-      console.error("Error in direct registration:", err)
+      logger.error("Error in direct registration:", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Error registering phone")
       setStatusMessage("Error registering phone. Please try again.")
     } finally {

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { ArrowUp, XIcon } from "lucide-react";
 import { Toast, ToastAction, ToastDescription, ToastProvider, ToastTitle, ToastActionElement, ToastClose } from "@/components/ui/toast";
+import { logger } from "@/lib/logger";
 
 export function ChatWindow() {
   const [isAlertVisible, setIsAlertVisible] = useState(true);
@@ -63,7 +64,7 @@ export function ChatWindow() {
         content: data.response
       }]);
     } catch (error) {
-      console.error('Error:', error);
+      logger.error("Chat error", { error: error instanceof Error ? error.message : String(error) });
       setMessages(prev => [...prev, {
         id: prev.length + 2,
         role: "assistant",

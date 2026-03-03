@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { logger } from "@/lib/logger";
 import { type AppService } from '@/services/whatsapp';
 
 interface AppServiceCredentialsProps {
@@ -36,7 +37,7 @@ const AppServiceCredentials: React.FC<AppServiceCredentialsProps> = ({
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
-      console.error('Failed to copy text:', err);
+      logger.error("Failed to copy text", { error: err instanceof Error ? err.message : String(err) });
     }
   };
 

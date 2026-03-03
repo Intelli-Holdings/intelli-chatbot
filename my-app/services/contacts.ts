@@ -3,6 +3,8 @@
  * Uses Next.js API routes that proxy to Django backend
  */
 
+import { logger } from "@/lib/logger";
+
 export interface Contact {
   id: number;
   organization: number;
@@ -42,7 +44,7 @@ export async function getContactsCount(organizationId: string): Promise<number> 
     const data: ContactsListResponse = await response.json();
     return data.count || 0;
   } catch (error) {
-    console.error('Error fetching contacts count:', error);
+    logger.error('Error fetching contacts count', { error: error instanceof Error ? error.message : String(error) });
     return 0;
   }
 }

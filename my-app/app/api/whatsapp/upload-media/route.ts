@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
     const phoneNumberId = formData.get('phoneNumberId') as string; // For Media API
     const uploadType = formData.get('uploadType') as string || 'resumable'; // 'resumable' or 'media'
 
-    console.log('Upload Media Request:', {
+    logger.debug('Upload Media Request', {
       hasFile: !!file,
       fileName: file?.name,
       fileSize: file?.size,
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     // Get APP_ID from environment variable
     const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
-    console.log('Facebook APP_ID configured:', !!appId);
+    logger.debug('Facebook APP_ID configured', { configured: !!appId });
 
     // 🔒 Validate parameters
     if (!file || !accessToken) {
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
 
       if (!mediaResponse.ok) {
         const mediaError = await mediaResponse.json();
-        console.error('Media API Error:', mediaError);
+        logger.error('Media API Error', { data: mediaError });
         return NextResponse.json(
           { error: mediaError.error?.message || 'Failed to upload via Media API' },
           { status: mediaResponse.status }
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
       }
 
       const mediaResult = await mediaResponse.json();
-      console.log('Media API Success:', mediaResult);
+      logger.info('Media API Success', { data: mediaResult });
 
       return NextResponse.json({
         success: true,
@@ -132,12 +133,12 @@ export async function POST(request: NextRequest) {
       access_token: accessToken
     });
 
-    console.log('Starting upload session...', { sessionUrl, fileName: file.name });
+    logger.debug('Starting upload session', { sessionUrl, fileName: file.name });
     const sessionResponse = await fetch(`${sessionUrl}?${sessionParams}`, {
       method: 'POST'
     });
 
-    console.log('Session response:', {
+    logger.debug('Session response', {
       ok: sessionResponse.ok,
       status: sessionResponse.status,
       statusText: sessionResponse.statusText
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     if (!sessionResponse.ok) {
       const sessionError = await sessionResponse.json();
-      console.error('Session creation failed:', sessionError);
+      logger.error('Session creation failed', { data: sessionError });
       return NextResponse.json(
         { error: sessionError.error?.message || 'Failed to create upload session' },
         { status: sessionResponse.status }
@@ -154,13 +155,13 @@ export async function POST(request: NextRequest) {
 
     const sessionData = await sessionResponse.json();
     const uploadSessionId = sessionData.id;
-    console.log('Upload session created:', { uploadSessionId });
+    logger.info('Upload session created', { uploadSessionId });
 
     //Step 2: Upload file data using the upload session ID
     const buffer = Buffer.from(await file.arrayBuffer());
     const uploadUrl = `https://graph.facebook.com/v23.0/${uploadSessionId}`;
 
-    console.log('Uploading file data...', {
+    logger.debug('Uploading file data', {
       uploadUrl,
       bufferSize: buffer.length
     });
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
       body: buffer,
     });
 
-    console.log('Upload response:', {
+    logger.debug('Upload response', {
       ok: uploadResponse.ok,
       status: uploadResponse.status,
       statusText: uploadResponse.statusText
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
 
     if (!uploadResponse.ok) {
       const uploadError = await uploadResponse.json();
-      console.error('File upload failed:', uploadError);
+      logger.error('File upload failed', { data: uploadError });
       return NextResponse.json(
         { error: uploadError.error?.message || 'Failed to upload file data' },
         { status: uploadResponse.status }
@@ -191,17 +192,17 @@ export async function POST(request: NextRequest) {
 
     const uploadResult = await uploadResponse.json();
     const mediaHandle = uploadResult.h;
-    console.log('Upload result:', { uploadResult, mediaHandle });
+    logger.debug('Upload result', { uploadResult, mediaHandle });
 
     if (!mediaHandle) {
-      console.error('No media handle in response');
+      logger.error('No media handle in response');
       return NextResponse.json(
         { error: 'No media handle returned from upload' },
         { status: 500 }
       );
     }
 
-    console.log('✅ Upload successful!', { mediaHandle });
+    logger.info('Upload successful', { mediaHandle });
 
     // Return the handle
     return NextResponse.json({
@@ -213,8 +214,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Upload Media Error:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    logger.error('Upload Media Error', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined });
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Unknown error occurred',

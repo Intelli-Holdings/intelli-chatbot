@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 
+import { logger } from "@/lib/logger";
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // POST /api/appservice/create-instagram - Create a new Instagram AppService
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
 
     if (!response.ok) {
-      console.error("Instagram AppService creation error:", data)
+      logger.error("Instagram AppService creation error:", { data: data })
       return NextResponse.json(
         data,
         { status: response.status }
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data, { status: 201 })
   } catch (error) {
-    console.error("Error creating Instagram AppService:", error)
+    logger.error("Error creating Instagram AppService:", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

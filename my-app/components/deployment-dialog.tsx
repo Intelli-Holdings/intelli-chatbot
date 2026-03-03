@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { logger } from "@/lib/logger";
 interface DeploymentDialogProps {
   onClose: () => void;
   widgetKey: string;
@@ -42,13 +43,10 @@ export function DeploymentDialog({
         }
 
         const data = await response.json();
-        console.log("[DeploymentDialog] Successfully fetched embedding code");
+        logger.info("[DeploymentDialog] Successfully fetched embedding code");
         setEmbeddingCode(data.embedding_code);
       } catch (error) {
-        console.error(
-          "[DeploymentDialog] Error fetching embedding code:",
-          error
-        );
+        logger.error("[DeploymentDialog] Error fetching embedding code:", { error: error instanceof Error ? error.message : String(error) });
         toast.error(
           `Failed to fetch embedding code: ${error instanceof Error ? error.message : "Unknown error"}`
         );

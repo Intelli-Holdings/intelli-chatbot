@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
+import { logger } from "@/lib/logger";
 
 // GET - Get file detail
 export async function GET(
@@ -33,7 +34,7 @@ export async function GET(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to fetch file detail' }, 
         { status: response.status }
@@ -43,7 +44,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching file detail:', error)
+    logger.error("Error fetching file detail", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }
@@ -86,7 +87,7 @@ export async function PATCH(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to update file' },
         { status: response.status }
@@ -96,7 +97,7 @@ export async function PATCH(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error updating file:', error)
+    logger.error("Error updating file", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -136,7 +137,7 @@ export async function DELETE(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to delete file' },
         { status: response.status }
@@ -151,7 +152,7 @@ export async function DELETE(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error deleting file:', error)
+    logger.error("Error deleting file", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

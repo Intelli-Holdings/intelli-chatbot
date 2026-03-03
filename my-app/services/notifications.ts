@@ -6,6 +6,7 @@
  */
 
 import { fetchWithAuth } from '@/lib/auth-api-client';
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -167,7 +168,7 @@ export async function getNotificationsByOrganization(
 
     return response.json();
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    logger.error('Error fetching notifications', { error: error instanceof Error ? error.message : String(error) });
     return {
       count: 0,
       next: null,
@@ -243,7 +244,7 @@ export async function getRecentEscalations(
       };
     });
   } catch (error) {
-    console.error('Error fetching recent escalations:', error);
+    logger.error('Error fetching recent escalations', { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 
+import { logger } from "@/lib/logger";
 // POST - Bulk delete assistants
 export async function POST(request: NextRequest) {
   // Check authentication and get session token
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Bulk deleting assistants:', ids)
+    logger.info('Bulk deleting assistants:', { data: ids })
 
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/assistants/bulk-delete/`,
@@ -49,11 +50,11 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log('Backend bulk delete response status:', response.status)
+    logger.info('Backend bulk delete response status:', { data: response.status })
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend bulk delete error:', errorData)
+      logger.error('Backend bulk delete error:', { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.error || errorData.detail || 'Failed to bulk delete assistants' },
         { status: response.status }
@@ -61,10 +62,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    console.log('Assistants bulk deleted successfully:', data)
+    logger.info('Assistants bulk deleted successfully:', { data: data })
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error bulk deleting assistants:', error)
+    logger.error('Error bulk deleting assistants:', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

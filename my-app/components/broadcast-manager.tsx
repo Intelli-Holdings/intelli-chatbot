@@ -48,6 +48,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { WhatsAppService, type WhatsAppTemplate, type AppService } from "@/services/whatsapp";
+import { logger } from "@/lib/logger";
 
 interface BroadcastManagerProps {
   appService: AppService;
@@ -292,7 +293,7 @@ export default function BroadcastManager({
           setCarouselMediaFiles([]);
         }
       } catch (error) {
-        console.error("Error sending carousel:", error);
+        logger.error("Error sending carousel", { error: error instanceof Error ? error.message : String(error) });
       } finally {
         setIsSending(false);
       }
@@ -818,13 +819,13 @@ export default function BroadcastManager({
   const getCategoryBadge = (category: string) => {
     switch (category) {
       case "MARKETING":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-700";
       case "UTILITY":
-        return "bg-purple-100 text-purple-800";
+        return "bg-slate-100 text-slate-700";
       case "AUTHENTICATION":
-        return "bg-orange-100 text-orange-800";
+        return "bg-purple-100 text-purple-700";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-700";
     }
   };
 

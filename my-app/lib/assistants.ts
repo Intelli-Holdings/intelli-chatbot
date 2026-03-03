@@ -1,4 +1,5 @@
 import { Assistant, CreateAssistantData } from '@/types/assistant';
+import { logger } from "@/lib/logger";
 
 export async function createAssistant(data: CreateAssistantData): Promise<Assistant> {
   try {
@@ -16,7 +17,7 @@ export async function createAssistant(data: CreateAssistantData): Promise<Assist
 
     return await response.json();
   } catch (error) {
-    console.error('Error creating assistant:', error);
+    logger.error('Error creating assistant', { error: error instanceof Error ? error.message : String(error) });
     throw new Error('Failed to create assistant');
   }
 }
@@ -31,7 +32,7 @@ export async function getAssistants(organizationId: string): Promise<Assistant[]
 
     return await response.json();
   } catch (error) {
-    console.error('Error fetching assistants:', error);
+    logger.error('Error fetching assistants', { error: error instanceof Error ? error.message : String(error) });
     throw new Error('Failed to fetch assistants');
   }
 }

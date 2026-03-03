@@ -1,6 +1,7 @@
 // lib/employeeService.ts
 
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 export interface Employee {
   id: string;
@@ -23,19 +24,19 @@ export async function sendInvites(emails: string[]) {
       );
   
       if (response.ok) {
-        console.log("Invites sent successfully");
+        logger.info("Invites sent successfully");
         toast.success("Invites sent successfully");
         
       } else {
-        console.error("Failed to send invites");
+        logger.error("Failed to send invites");
         toast.error("Failed to send invites");
       }
     } catch (error) {
-      console.error("An error occurred:", error);
-      
+      logger.error("An error occurred while sending invites", { error: error instanceof Error ? error.message : String(error) });
+
     }
   }
-  
+
   export async function getEmployees() {
     try {
       const response = await fetch(
@@ -46,10 +47,10 @@ export async function sendInvites(emails: string[]) {
         const employees: Employee[] = await response.json();
         return employees;
       } else {
-        console.error("Failed to fetch employees");
+        logger.error("Failed to fetch employees");
         toast.error("Failed to fetch employees");
       }
     } catch (error) {
-      console.error("An error occurred:", error);
+      logger.error("An error occurred while fetching employees", { error: error instanceof Error ? error.message : String(error) });
     }
   }

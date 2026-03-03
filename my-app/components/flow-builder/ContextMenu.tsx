@@ -11,6 +11,7 @@ import {
   XCircle,
   Copy,
   Trash2,
+  Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +34,7 @@ const addNodeItems: ContextMenuItem[] = [
   { label: 'Interactive Message', icon: MessageSquare, action: 'add-question', color: 'text-blue-500' },
   { label: 'Text Message', icon: Type, action: 'add-text', color: 'text-indigo-500' },
   { label: 'Condition', icon: GitBranch, action: 'add-condition', color: 'text-yellow-500' },
+  { label: 'Sequence', icon: Timer, action: 'add-sequence', color: 'text-emerald-500' },
   { label: 'Send Message', icon: Send, action: 'add-action-message', color: 'text-purple-500', separator: true },
   { label: 'AI Handoff', icon: Bot, action: 'add-action-ai', color: 'text-orange-500' },
   { label: 'End Chat', icon: XCircle, action: 'add-action-end', color: 'text-red-500' },
@@ -43,9 +45,14 @@ const nodeActionItems: ContextMenuItem[] = [
   { label: 'Delete', icon: Trash2, action: 'delete', color: 'text-red-500' },
 ];
 
+const edgeActionItems: ContextMenuItem[] = [
+  { label: 'Delete Connection', icon: Trash2, action: 'delete-edge', color: 'text-red-500' },
+];
+
 interface ContextMenuProps {
   position: ContextMenuPosition | null;
   nodeId?: string | null;
+  edgeId?: string | null;
   onAction: (action: string, position: ContextMenuPosition) => void;
   onClose: () => void;
 }
@@ -53,6 +60,7 @@ interface ContextMenuProps {
 export default function ContextMenu({
   position,
   nodeId,
+  edgeId,
   onAction,
   onClose,
 }: ContextMenuProps) {
@@ -83,7 +91,7 @@ export default function ContextMenu({
 
   if (!position) return null;
 
-  const items = nodeId ? nodeActionItems : addNodeItems;
+  const items = edgeId ? edgeActionItems : nodeId ? nodeActionItems : addNodeItems;
 
   return (
     <div
@@ -94,7 +102,7 @@ export default function ContextMenu({
         top: position.y,
       }}
     >
-      {!nodeId && (
+      {!nodeId && !edgeId && (
         <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground border-b mb-1">
           Add Component
         </div>

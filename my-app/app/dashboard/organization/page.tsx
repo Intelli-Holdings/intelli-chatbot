@@ -36,6 +36,7 @@ import {
 import { InviteModal } from "./components/invite-modal";
 import { useIsOrgAdmin } from "./utils/roles";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -78,7 +79,7 @@ export default function ManageOrganizations() {
       setDeleteDialogOpen(false);
     } catch (error) {
       toast.error("Failed to delete organization");
-      console.error(error);
+      logger.error("Failed to delete organization", { error: error instanceof Error ? error.message : String(error) });
     }
   };
 

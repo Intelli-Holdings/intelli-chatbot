@@ -1,5 +1,6 @@
 // app/api/medium/route.ts
 import Parser from "rss-parser"
+import { logger } from "@/lib/logger";
 import { extractImageFromContent, calculateReadTime, createContentSnippet } from "@/lib/blog-utils"
 
 interface MediumItem {
@@ -97,7 +98,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error("Error fetching Medium feed:", error)
+    logger.error("Error fetching Medium feed", { error: error instanceof Error ? error.message : String(error) })
 
     return new Response(
       JSON.stringify({

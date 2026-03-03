@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
+import { logger } from "@/lib/logger";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET(
@@ -21,7 +22,7 @@ export async function GET(
     // Get query parameters for pagination
     const searchParams = request.nextUrl.searchParams;
     const page = searchParams.get('page') || '1';
-    const pageSize = searchParams.get('page_size') || '50';
+    const pageSize = searchParams.get('page_size') || '100';
 
     // Add timing for progress calculation
     const startTime = Date.now();
@@ -56,7 +57,7 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('Failed to fetch messages for customer:', error);
+    logger.error('Failed to fetch messages for customer:', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to fetch messages for customer' },
       { status: 500 }

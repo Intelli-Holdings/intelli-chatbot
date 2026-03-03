@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { logger } from "@/lib/logger"
 
 export interface AutomationStatus {
   automation_mode: string
@@ -41,7 +42,7 @@ export function useAutomationStatus(appServiceId: number | undefined): UseAutoma
       const data: AutomationStatus = await response.json()
       setStatus(data)
     } catch (err) {
-      console.error("Error fetching automation status:", err)
+      logger.error("Error fetching automation status", { error: err instanceof Error ? err.message : String(err) })
       setError(err instanceof Error ? err.message : "Failed to fetch automation status")
     } finally {
       setLoading(false)
@@ -64,7 +65,7 @@ export function useAutomationStatus(appServiceId: number | undefined): UseAutoma
       const data = await response.json()
       setStatus(prev => prev ? { ...prev, automation_paused: data.automation_paused } : null)
     } catch (err) {
-      console.error("Error toggling automation pause:", err)
+      logger.error("Error toggling automation pause", { error: err instanceof Error ? err.message : String(err) })
       throw err
     } finally {
       setToggling(false)

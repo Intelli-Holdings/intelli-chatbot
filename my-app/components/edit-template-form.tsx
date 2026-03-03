@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, X } from "lucide-react"
 import { type WhatsAppTemplate } from "@/services/whatsapp"
 
+import { logger } from "@/lib/logger";
 interface EditTemplateFormProps {
   template: WhatsAppTemplate
   onClose: () => void
@@ -125,7 +126,7 @@ export default function EditTemplateForm({ template, onClose, onSubmit, loading 
         onClose()
       }
     } catch (error) {
-      console.error('Template update error:', error)
+      logger.error('Template update error:', { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to update template")
     } finally {
       setIsSubmitting(false)

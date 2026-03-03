@@ -14,6 +14,7 @@ import BlockCopyButton from "@/components/copy-button"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import KeywordsInput from "@/components/blocks/tag-input"
 
+import { logger } from "@/lib/logger";
 export function InviteEmployee() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -37,12 +38,12 @@ export function InviteEmployee() {
       )
 
       if (response.ok) {
-        console.log("Invite sent successfully")
+        logger.info("Invite sent successfully")
       } else {
-        console.error("Failed to send invite")
+        logger.error("Failed to send invite")
       }
     } catch (error) {
-      console.error("Error sending invite:", error)
+      logger.error("Error sending invite:", { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setIsLoading(false)
     }

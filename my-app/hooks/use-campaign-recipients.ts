@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CampaignService } from '@/services/campaign';
+import { logger } from "@/lib/logger";
 
 interface Recipient {
   id: string;
@@ -52,7 +53,7 @@ export function useCampaignRecipients(
       );
       setRecipients(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
-      console.error('Error fetching recipients:', err);
+      logger.error('Error fetching recipients', { error: err instanceof Error ? err.message : String(err) });
       setError(err instanceof Error ? err.message : 'Failed to fetch recipients');
       setRecipients([]);
     } finally {
@@ -76,7 +77,7 @@ export function useCampaignRecipients(
       );
       await fetchRecipients(); // Refresh the list
     } catch (err) {
-      console.error('Error adding recipients:', err);
+      logger.error('Error adding recipients', { error: err instanceof Error ? err.message : String(err) });
       setError(err instanceof Error ? err.message : 'Failed to add recipients');
       throw err;
     } finally {
@@ -99,7 +100,7 @@ export function useCampaignRecipients(
         executeNow
       );
     } catch (err) {
-      console.error('Error executing campaign:', err);
+      logger.error('Error executing campaign', { error: err instanceof Error ? err.message : String(err) });
       setError(err instanceof Error ? err.message : 'Failed to execute campaign');
       throw err;
     } finally {

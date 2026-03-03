@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { CannedResponse, CannedResponseCreateInput, CannedResponseUpdateInput } from "@/types/canned-responses"
+import { logger } from "@/lib/logger"
 
 export function useCannedResponses(organizationId: string | undefined) {
   const [cannedResponses, setCannedResponses] = useState<CannedResponse[]>([])
@@ -141,7 +142,7 @@ export function useCannedResponses(organizationId: string | undefined) {
         )
       )
     } catch (err) {
-      console.error("Failed to record usage:", err)
+      logger.error("Failed to record usage", { error: err instanceof Error ? err.message : String(err) })
     }
   }, [organizationId])
 

@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 /**
  * WhatsApp Template Creator Utility - Updated with Carousel and Flows support
  * Follows Meta's official documentation for template creation
@@ -527,7 +528,7 @@ export class TemplateCreationHandler {
         }
 
       default:
-        console.warn(`Unknown button type: ${button.type}`)
+        logger.warn(`Unknown button type: ${button.type}`)
         return null
     }
   }
@@ -548,7 +549,7 @@ export class TemplateCreationHandler {
         )
         
         if (!hasOptOut) {
-          console.warn('Marketing templates should include an opt-out button for best practices')
+          logger.warn('Marketing templates should include an opt-out button for best practices')
         }
         break
 

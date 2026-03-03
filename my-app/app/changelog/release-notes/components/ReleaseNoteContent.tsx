@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import TableOfContents from "@/app/changelog/release-notes/[version]/table-of-contents"
 import { generatePDF } from "@/app/changelog/release-notes/[version]/generate-pdf"
 import type { ReleaseNote } from '@/types/release-notes'
+import { logger } from "@/lib/logger"
 
 interface ReleaseNoteContentProps {
   releaseNote: ReleaseNote;
@@ -59,8 +60,8 @@ export function ReleaseNoteContent({ releaseNote, version }: ReleaseNoteContentP
             text: customMessage,
             url: currentUrl,
           })
-          .then(() => console.log("Shared successfully"))
-          .catch(error => console.error("Error sharing", error));
+          .then(() => logger.info("Shared successfully"))
+          .catch(error => logger.error("Error sharing", { error: error instanceof Error ? error.message : String(error) }));
         } else {
           navigator.clipboard.writeText(currentUrl);
           alert("URL copied to clipboard");
@@ -79,7 +80,7 @@ export function ReleaseNoteContent({ releaseNote, version }: ReleaseNoteContentP
         );
         break;
       default:
-        console.warn("Unsupported platform:", platform);
+        logger.warn("Unsupported platform", { data: platform });
     }
   }
   

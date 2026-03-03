@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+import { logger } from "@/lib/logger";
 export default function OnboardingInfoForm({ onComplete }: { onComplete: () => void }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -24,7 +25,7 @@ export default function OnboardingInfoForm({ onComplete }: { onComplete: () => v
   };
 
   const handleSubmit = () => {
-    console.log("Onboarding Info:", formData);
+    logger.info("Onboarding Info:", { data: formData });
     onComplete();
   };
 

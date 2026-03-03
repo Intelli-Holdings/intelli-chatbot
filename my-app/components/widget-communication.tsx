@@ -5,6 +5,7 @@ import Image from "next/image"
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { logger } from "@/lib/logger";
 const WEBSOCKET_BASE_URL = (process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://backend.intelliconcierge.com/ws").replace(/\/$/, "");
 
 interface WidgetCommunicationProps {
@@ -75,17 +76,17 @@ export function WidgetCommunication({
 
     const connectWebSocket = () => {
       try {
-        console.log("[WidgetCommunication] Connecting to WebSocket...");
+        logger.info("[WidgetCommunication] Connecting to WebSocket...");
         const ws = new WebSocket(`${WEBSOCKET_BASE_URL}/chat/${widgetKey}/${visitorIdRef.current}/`);
 
         ws.onopen = () => {
-          console.log("[WidgetCommunication] WebSocket connected");
+          logger.info("[WidgetCommunication] WebSocket connected");
           setIsConnected(true);
           connectionAttempts.current = 0;
         };
 
         ws.onmessage = (event) => {
-          console.log("[WidgetCommunication] Message received:", event.data);
+          logger.info("[WidgetCommunication] Message received:", { data: event.data });
           try {
             const data = JSON.parse(event.data);
             const rawMessage = data.answer ?? data.message;
@@ -111,17 +112,17 @@ export function WidgetCommunication({
               }
             }
           } catch (error) {
-            console.error("[WidgetCommunication] Error parsing message:", error);
+            logger.error("[WidgetCommunication] Error parsing message:", { error: error instanceof Error ? error.message : String(error) });
           }
         };
 
         ws.onerror = (error) => {
-          console.error("[WidgetCommunication] WebSocket error:", error);
+          logger.error("[WidgetCommunication] WebSocket error:", { error: error instanceof Error ? error.message : String(error) });
           connectionAttempts.current++;
 
           // Switch to demo mode after 2 failed attempts
           if (connectionAttempts.current >= 2) {
-            console.log("[WidgetCommunication] Switching to demo mode");
+            logger.info("[WidgetCommunication] Switching to demo mode");
             setDemoMode(true);
             setIsConnected(true);
             pendingResponsesRef.current = 0;
@@ -130,13 +131,13 @@ export function WidgetCommunication({
         };
 
         ws.onclose = () => {
-          console.log("[WidgetCommunication] WebSocket disconnected");
+          logger.info("[WidgetCommunication] WebSocket disconnected");
           setIsConnected(false);
 
           // Don't reconnect if in demo mode
           if (!demoMode && connectionAttempts.current < 2) {
             reconnectTimeoutRef.current = setTimeout(() => {
-              console.log("[WidgetCommunication] Attempting to reconnect...");
+              logger.info("[WidgetCommunication] Attempting to reconnect...");
               connectWebSocket();
             }, 2000);
           }
@@ -144,7 +145,7 @@ export function WidgetCommunication({
 
         wsRef.current = ws;
       } catch (error) {
-        console.error("[WidgetCommunication] Error creating WebSocket:", error);
+        logger.error("[WidgetCommunication] Error creating WebSocket:", { error: error instanceof Error ? error.message : String(error) });
         setDemoMode(true);
         setIsConnected(true);
       }
@@ -206,9 +207,9 @@ export function WidgetCommunication({
           widget_key: widgetKey,
           visitor_id: visitorIdRef.current,
         }));
-        console.log("[WidgetCommunication] Message sent:", text);
+        logger.info("[WidgetCommunication] Message sent:", { data: text });
       } catch (error) {
-        console.error("[WidgetCommunication] Error sending message:", error);
+        logger.error("[WidgetCommunication] Error sending message:", { error: error instanceof Error ? error.message : String(error) });
         updateTyping(-1);
       }
     }

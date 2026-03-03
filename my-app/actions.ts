@@ -3,12 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { toast } from 'sonner'
 
+import { logger } from "@/lib/logger";
 export async function takeoverConversation(formData: FormData) {
   const phoneNumber = formData.get('phoneNumber')
   const customerNumber = formData.get('customerNumber')
 
   // TODO: Implement the actual takeover logic here
-  console.log(`Takeover conversation: ${phoneNumber} -> ${customerNumber}`)
+  logger.info(`Takeover conversation: ${phoneNumber} -> ${customerNumber}`)
 
   // Revalidate the conversations page
   revalidatePath('/dashboard/conversations')
@@ -22,7 +23,7 @@ export async function handoverConversation(formData: FormData) {
   const customerNumber = formData.get('customerNumber')
 
   // TODO: Implement the actual handover logic here
-  console.log(`Handover conversation: ${phoneNumber} -> ${customerNumber}`)
+  logger.info(`Handover conversation: ${phoneNumber} -> ${customerNumber}`)
 
   // Revalidate the conversations page
   revalidatePath('/dashboard/conversations')

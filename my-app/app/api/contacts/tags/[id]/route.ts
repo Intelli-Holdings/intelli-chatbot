@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -59,7 +60,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error updating tag:", error)
+    logger.error("Error updating tag", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -88,7 +89,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting tag:", error)
+    logger.error("Error deleting tag", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

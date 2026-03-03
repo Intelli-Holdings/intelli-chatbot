@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { type WhatsAppTemplate } from '@/services/whatsapp';
 
+import { logger } from "@/lib/logger";
 interface DeleteTemplateDialogProps {
   template: WhatsAppTemplate | null;
   isOpen: boolean;
@@ -82,7 +83,7 @@ export function DeleteTemplateDialog({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Delete error:', error);
+      logger.error('Delete error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to delete template');
     } finally {
       setIsDeleting(false);

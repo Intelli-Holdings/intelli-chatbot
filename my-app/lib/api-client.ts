@@ -1,4 +1,5 @@
 // Client-side API functions for the WhatsApp Template Manager
+import { logger } from "@/lib/logger";
 
 export type TemplateCategory = "UTILITY" | "MARKETING" | "AUTHENTICATION"
 export type HeaderFormat = "TEXT" | "IMAGE" | "VIDEO" | "DOCUMENT" | "LOCATION" | "NONE"
@@ -136,7 +137,7 @@ export async function getTemplateById(templateId: string, accessToken: string) {
 
     return (await response.json()) as TemplateResponse
   } catch (error) {
-    console.error("Error fetching template by ID:", error)
+    logger.error("Error fetching template by ID", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }
@@ -157,7 +158,7 @@ export async function getTemplateByName(wabaId: string, templateName: string, ac
 
     return (await response.json()) as TemplateListResponse
   } catch (error) {
-    console.error("Error fetching template by name:", error)
+    logger.error("Error fetching template by name", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }
@@ -188,7 +189,7 @@ export async function getAllTemplates(
 
     return (await response.json()) as TemplateListResponse
   } catch (error) {
-    console.error("Error fetching all templates:", error)
+    logger.error("Error fetching all templates", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }
@@ -209,7 +210,7 @@ export async function getTemplateNamespace(wabaId: string, accessToken: string) 
 
     return (await response.json()) as NamespaceResponse
   } catch (error) {
-    console.error("Error fetching namespace:", error)
+    logger.error("Error fetching namespace", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }
@@ -232,7 +233,7 @@ export async function createTemplate(wabaId: string, templateData: CreateTemplat
 
     return (await response.json()) as TemplateResponse
   } catch (error) {
-    console.error("Error creating template:", error)
+    logger.error("Error creating template", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }
@@ -259,7 +260,7 @@ export async function editTemplate(
 
     return await response.json()
   } catch (error) {
-    console.error("Error editing template:", error)
+    logger.error("Error editing template", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }
@@ -281,7 +282,7 @@ export async function deleteTemplateByName(wabaId: string, templateName: string,
 
     return await response.json()
   } catch (error) {
-    console.error("Error deleting template by name:", error)
+    logger.error("Error deleting template by name", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }
@@ -308,7 +309,7 @@ export async function deleteTemplateById(
 
     return await response.json()
   } catch (error) {
-    console.error("Error deleting template by ID:", error)
+    logger.error("Error deleting template by ID", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }
@@ -347,7 +348,7 @@ export async function sendTestMessage(
 
     return await response.json()
   } catch (error) {
-    console.error("Error sending test message:", error)
+    logger.error("Error sending test message", { error: error instanceof Error ? error.message : String(error) })
     throw error
   }
 }

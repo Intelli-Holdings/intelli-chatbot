@@ -1,15 +1,18 @@
 "use client"
 
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { Spinner } from "@/components/ui/spinner"
 import { TagInput } from "@/components/contacts-tag-input"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { toast } from "sonner"
 import { Plus } from "lucide-react"
+import { addContactSchema, type AddContactFormData } from "@/lib/validations/forms"
 
 interface Tag {
   id: number
@@ -26,14 +29,18 @@ interface AddContactDialogProps {
 export function AddContactDialog({ tags, onSuccess, onTagsChange }: AddContactDialogProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    fullname: "",
-    email: "",
-    phone: "",
-    information_source: "manual",
-  })
   const [selectedTags, setSelectedTags] = useState<Tag[]>([])
   const organizationId = useActiveOrganizationId()
+
+  const form = useForm<AddContactFormData>({
+    resolver: zodResolver(addContactSchema),
+    defaultValues: {
+      fullname: "",
+      email: "",
+      phone: "",
+      information_source: "manual",
+    },
+  })
 
   const handleCreateTag = async (tagName: string): Promise<Tag> => {
     const response = await fetch("/api/contacts/tags", {
@@ -52,21 +59,14 @@ export function AddContactDialog({ tags, onSuccess, onTagsChange }: AddContactDi
     return newTag
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmit = async (data: AddContactFormData) => {
     if (!organizationId) return
-
-    // Validate required fields
-    if (!formData.phone) {
-      toast.error("Phone number is required")
-      return
-    }
 
     try {
       setIsLoading(true)
 
       const payload = {
-        ...formData,
+        ...data,
         organization: organizationId,
         tag_slugs: selectedTags.map((tag) => tag.slug),
       }
@@ -84,13 +84,7 @@ export function AddContactDialog({ tags, onSuccess, onTagsChange }: AddContactDi
 
       toast.success("Contact created successfully")
 
-      // Reset form
-      setFormData({
-        fullname: "",
-        email: "",
-        phone: "",
-        information_source: "manual",
-      })
+      form.reset()
       setSelectedTags([])
       setOpen(false)
       onSuccess()
@@ -114,76 +108,88 @@ export function AddContactDialog({ tags, onSuccess, onTagsChange }: AddContactDi
           <DialogTitle>Add New Contact</DialogTitle>
           <DialogDescription>Create a new contact manually. Phone number is required.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="fullname">Full Name</Label>
-            <Input
-              id="fullname"
-              value={formData.fullname}
-              onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
-              placeholder="John Doe"
-              disabled={isLoading}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="fullname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" disabled={isLoading} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">
-              Phone Number <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="234XXXXXXXX"
-              disabled={isLoading}
-              required
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Phone Number <span className="text-destructive">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="+234XXXXXXXXXX" disabled={isLoading} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="john.doe@example.com"
-              disabled={isLoading}
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="john.doe@example.com" disabled={isLoading} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="source">Information Source</Label>
-            <Input
-              id="source"
-              value={formData.information_source}
-              onChange={(e) => setFormData({ ...formData, information_source: e.target.value })}
-              placeholder="e.g., website, referral, event"
-              disabled={isLoading}
+            <FormField
+              control={form.control}
+              name="information_source"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Information Source</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., website, referral, event" disabled={isLoading} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="tags">Tags (Optional)</Label>
-            <TagInput
-              selectedTags={selectedTags}
-              availableTags={tags}
-              onTagsChange={setSelectedTags}
-              onCreateTag={handleCreateTag}
-              placeholder="Type to search or create tags..."
-            />
-          </div>
+            <div className="space-y-2">
+              <FormLabel>Tags (Optional)</FormLabel>
+              <TagInput
+                selectedTags={selectedTags}
+                availableTags={tags}
+                onTagsChange={setSelectedTags}
+                onCreateTag={handleCreateTag}
+                placeholder="Type to search or create tags..."
+              />
+            </div>
 
-          <div className="flex gap-2 justify-end pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-2">
-              {isLoading && <Spinner className="w-4 h-4" />}
-              Create Contact
-            </Button>
-          </div>
-        </form>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading} className="gap-2">
+                {isLoading && <Spinner className="w-4 h-4" />}
+                Create Contact
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

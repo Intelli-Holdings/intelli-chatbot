@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 
+import { logger } from "@/lib/logger";
 export async function PUT(
   request: NextRequest,
   { params }: { params: { organizationId: string; assistantId: string } },
@@ -42,7 +43,7 @@ export async function PUT(
 
     if (!response.ok) {
       const errorData: any = await response.json().catch(() => ({}))
-      console.error(`[intelli] Backend edit error:`, errorData)
+      logger.error(`[intelli] Backend edit error:`, { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || `Backend error: ${response.status} ${response.statusText}` },
         { status: response.status },
@@ -53,7 +54,7 @@ export async function PUT(
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error("[intelli] Edit assistant proxy error:", error)
+    logger.error("[intelli] Edit assistant proxy error:", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Failed to edit assistant" }, { status: 500 })
   }
 }
@@ -101,9 +102,9 @@ export async function DELETE(
       try {
         errorData = await response.json()
       } catch (e) {
-        console.log(`[intelli] Could not parse error response as JSON`)
+        logger.info(`[intelli] Could not parse error response as JSON`)
       }
-      console.error(`[intelli] Backend delete error:`, errorData)
+      logger.error(`[intelli] Backend delete error:`, { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || `Backend error: ${response.status} ${response.statusText}` },
         { status: response.status },
@@ -114,22 +115,22 @@ export async function DELETE(
     if (response.status !== 204) {
       try {
         const responseText = await response.text()
-        console.log(`[intelli] Backend delete response text:`, responseText)
+        logger.info(`[intelli] Backend delete response text:`, { data: responseText })
         if (responseText) {
           data = JSON.parse(responseText)
         }
       } catch (e) {
-        console.log(`[intelli] Could not parse delete response as JSON, using default success response`)
+        logger.info(`[intelli] Could not parse delete response as JSON, using default success response`)
       }
     }
 
-    console.log(`[intelli] Successfully deleted assistant`)
+    logger.info(`[intelli] Successfully deleted assistant`)
     return NextResponse.json(data)
   } catch (error) {
-    console.error("[intelli] Delete assistant proxy error:", error)
+    logger.error("[intelli] Delete assistant proxy error:", { error: error instanceof Error ? error.message : String(error) })
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     const errorStack = error instanceof Error ? error.stack : undefined
-    console.error("[intelli] Delete error details:", { message: errorMessage, stack: errorStack })
+    logger.error("[intelli] Delete error details:", { error: { message: errorMessage, stack: errorStack } instanceof Error ? { message: errorMessage, stack: errorStack }.message : String({ message: errorMessage, stack: errorStack }) })
 
     return NextResponse.json({ error: "Failed to delete assistant", details: errorMessage }, { status: 500 })
   }

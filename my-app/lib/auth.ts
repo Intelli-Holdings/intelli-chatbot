@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { logger } from "@/lib/logger";
 
 // Import the base URL from the environment variable
 const baseUrl = process.env.NEXT_BASE_URL || 'https://intelli-python-backend.onrender.com';
@@ -17,7 +18,7 @@ export async function login(email: string, password: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Login failed:', error);
+    logger.error('Login failed', { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }

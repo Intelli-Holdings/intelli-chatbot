@@ -9,14 +9,15 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  fetchPhoneNumberDetails, 
+import {
+  fetchPhoneNumberDetails,
   type PhoneNumberDetails,
   extractMessagingLimit,
   formatQualityRating,
   formatMessagingTier
 } from '@/services/meta-graph-api';
 import type { AppService } from '@/services/whatsapp';
+import { logger } from "@/lib/logger";
 
 
 export interface UseWhatsAppPhoneNumbersReturn {
@@ -69,7 +70,7 @@ export function useWhatsAppPhoneNumbers(
     setError(null);
 
     try {
-      console.log('🔄 Fetching phone number details for ID:', phoneNumberId);
+      logger.debug('Fetching phone number details', { phoneNumberId });
 
       // Fetch detailed information for the specific phone number
       const data = await fetchPhoneNumberDetails(phoneNumberId, accessToken);
@@ -83,11 +84,11 @@ export function useWhatsAppPhoneNumbers(
       setPhoneNumbers([data]);
       setError(null);
 
-      console.log('✅ Successfully fetched phone number details');
+      logger.info('Successfully fetched phone number details');
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch phone numbers';
-      console.error('❌ Error fetching WhatsApp phone numbers:', err);
+      logger.error('Error fetching WhatsApp phone numbers', { error: err instanceof Error ? err.message : String(err) });
       setError(errorMessage);
       setPhoneNumbers(null);
       setPhoneNumber(null);

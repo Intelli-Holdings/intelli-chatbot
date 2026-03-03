@@ -4,6 +4,7 @@ import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import './style.css';
 import { ChatMessage } from './types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface MessageHistoryProps {
   messages: ChatMessage[];
@@ -60,7 +61,7 @@ const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => {
                 {/* User Message Bubble */}
                 {message.content && (
                   <div className={clsx('max-w-[70%] px-4 py-3 rounded-lg bg-blue-100 self-start')}>
-                    <p className="mb-2" dangerouslySetInnerHTML={{ __html: urlify(message.content) }}></p>
+                    <p className="mb-2" dangerouslySetInnerHTML={{ __html: sanitizeHtml(urlify(message.content)) }}></p>
                     <small className="text-xs text-gray-500">{format(parseISO(message.created_at), 'h:mm a')}</small>
                   </div>
                 )}
@@ -72,7 +73,7 @@ const MessageHistory: React.FC<MessageHistoryProps> = ({ messages }) => {
                       'bg-green-100': message.sender === 'human'
                     })}
                   >
-                    <p className="mb-2" dangerouslySetInnerHTML={{ __html: urlify(message.answer) }}></p>
+                    <p className="mb-2" dangerouslySetInnerHTML={{ __html: sanitizeHtml(urlify(message.answer)) }}></p>
                     <small className="text-xs text-gray-500">
                       {format(parseISO(message.created_at), 'h:mm a')} - {message.sender === 'ai' ? 'AI' : 'Human'}
                     </small>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { verifyMetaSignature } from "@/lib/api/webhook"
 import type { MetaWebhookPayload } from "@/types/messenger"
+import { logger } from "@/lib/logger";
 
 const APP_SECRET_ENV = "INSTAGRAM_APP_SECRET"
 
@@ -20,18 +21,18 @@ export async function GET(request: Request) {
   const challenge = searchParams.get("hub.challenge")
   const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN
 
-  console.log("[Instagram webhook] Verification attempt:", {
+  logger.info("Instagram webhook verification attempt", {
     mode,
     tokenMatch: token === verifyToken,
     hasChallenge: !!challenge,
   })
 
   if (mode === "subscribe" && token && verifyToken && token === verifyToken) {
-    console.log("[Instagram webhook] Verification successful")
+    logger.info("Instagram webhook verification successful")
     return new Response(challenge ?? "", { status: 200 })
   }
 
-  console.error("[Instagram webhook] Verification failed")
+  logger.error("Instagram webhook verification failed")
   return new Response("Webhook verification failed", { status: 403 })
 }
 
@@ -42,14 +43,14 @@ export async function POST(request: Request) {
   const appSecret = process.env[APP_SECRET_ENV] || process.env.NEXT_PUBLIC_INSTAGRAM_APP_SECRET
 
   if (!appSecret) {
-    console.error("[Instagram webhook] Missing app secret")
+    logger.error("Instagram webhook missing app secret")
     return NextResponse.json({ error: "Missing app secret" }, { status: 500 })
   }
 
   // Verify webhook signature
   const { isValid } = verifyMetaSignature(rawBody, signatureHeader, appSecret)
   if (!isValid) {
-    console.error("[Instagram webhook] Invalid signature")
+    logger.error("Instagram webhook invalid signature")
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
   }
 
@@ -57,11 +58,11 @@ export async function POST(request: Request) {
   try {
     payload = JSON.parse(rawBody) as MetaWebhookPayload
   } catch (error) {
-    console.error("[Instagram webhook] Invalid payload:", error)
+    logger.error("Instagram webhook invalid payload", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 })
   }
 
-  console.log("[Instagram webhook] Received event:", {
+  logger.info("Instagram webhook received event", {
     object: payload.object,
     entries: payload.entry?.length,
   })
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
     // Handle messaging events
     entry.messaging?.forEach((event) => {
       if (event.message) {
-        console.log("[Instagram webhook] Incoming message:", {
+        logger.info("Instagram webhook incoming message", {
           sender: event.sender?.id,
           recipient: event.recipient?.id,
           text: event.message.text,
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
       }
 
       if (event.postback) {
-        console.log("[Instagram webhook] Postback:", {
+        logger.info("Instagram webhook postback", {
           sender: event.sender?.id,
           payload: event.postback.payload,
           title: event.postback.title,
@@ -91,14 +92,14 @@ export async function POST(request: Request) {
       }
 
       if (event.read) {
-        console.log("[Instagram webhook] Message read:", {
+        logger.debug("Instagram webhook message read", {
           sender: event.sender?.id,
           timestamp: event.timestamp,
         })
       }
 
       if (event.delivery) {
-        console.log("[Instagram webhook] Message delivered:", {
+        logger.debug("Instagram webhook message delivered", {
           recipient: event.recipient?.id,
           timestamp: event.timestamp,
         })
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
 
     // Handle changes (like story mentions, comments, etc.)
     entry.changes?.forEach((change) => {
-      console.log("[Instagram webhook] Change event:", {
+      logger.info("Instagram webhook change event", {
         field: change.field,
         value: change.value,
       })

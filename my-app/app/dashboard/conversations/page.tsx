@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
+import { logger } from "@/lib/logger";
 import WebsiteWidgetCard from "@/components/conversations-website";
 import { useWhatsAppAppServices } from "@/hooks/use-whatsapp-appservices";
 import { useWhatsAppChatSessions } from "@/hooks/use-whatsapp-chat-sessions";
@@ -34,11 +35,11 @@ function StatsCards() {
   const isLoading = appServicesLoading || sessionsLoading;
 
   if (appServicesError) {
-    console.error("Failed to fetch app services:", appServicesError);
+    logger.error("Failed to fetch app services", { error: appServicesError });
   }
 
   if (sessionsError) {
-    console.error("Failed to fetch WhatsApp chat sessions:", sessionsError);
+    logger.error("Failed to fetch WhatsApp chat sessions", { error: sessionsError });
   }
 
   if (isLoading) {

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
+import { logger } from "@/lib/logger";
 interface Tag {
   id: number
   name: string
@@ -85,7 +86,7 @@ export function TagInput({
       const newTag = await onCreateTag(inputValue)
       handleAddTag(newTag)
     } catch (error) {
-      console.error("Failed to create tag:", error)
+      logger.error("Failed to create tag:", { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setIsCreating(false)
     }

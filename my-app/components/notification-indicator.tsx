@@ -23,9 +23,19 @@ export function NotificationIndicator() {
     historicalNotifications,
     unreadCount,
     isConnected,
-    markAllAsRead
+    markAllAsRead,
+    fetchHistoricalNotifications,
+    fetchAssignedNotifications,
   } = useNotificationContext()
   const router = useRouter()
+
+  // Fetch notifications when dropdown opens (respects cache TTL)
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      fetchHistoricalNotifications()
+      fetchAssignedNotifications()
+    }
+  }
 
   // Combine live and historical notifications, remove duplicates
   const allNotifications = [...notifications]
@@ -110,7 +120,7 @@ export function NotificationIndicator() {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />

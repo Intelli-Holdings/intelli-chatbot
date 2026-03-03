@@ -1,6 +1,7 @@
 import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import axios from "axios";
+import { logger } from "@/lib/logger";
 
 
 const authOptions = {
@@ -22,7 +23,7 @@ const authOptions = {
                     const data = response.data;
                     if (data) return data;
                 } catch (error) {
-                    console.log(error);
+                    logger.error("Auth login error", { error: error instanceof Error ? error.message : String(error) });
                 }
                 return null;
             },

@@ -3,6 +3,8 @@
  * Initializes the Facebook JavaScript SDK for Embedded Signup
  */
 
+import { logger } from "@/lib/logger";
+
 export interface FacebookAuthResponse {
   status: 'connected' | 'not_authorized' | 'unknown'
   authResponse?: {
@@ -133,7 +135,7 @@ export const checkLoginStatus = (
   callback: (response: FacebookAuthResponse) => void
 ): void => {
   if (!window.FB) {
-    console.error('Facebook SDK not initialized')
+    logger.error('Facebook SDK not initialized')
     return
   }
 

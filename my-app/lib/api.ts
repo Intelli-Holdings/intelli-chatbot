@@ -16,4 +16,20 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Response interceptor: retry once on 429 (rate limited)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 429 && !originalRequest._retried) {
+      originalRequest._retried = true;
+      const retryAfter = error.response.headers['retry-after'];
+      const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 2000;
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+      return api(originalRequest);
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

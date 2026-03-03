@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useAppServices } from '@/hooks/use-app-services';
 import { uploadMediaViaAzure, shouldUseAzureUpload } from '@/lib/azure-media-upload';
 
+import { logger } from "@/lib/logger";
 interface MediaNodeEditorProps {
   data: MediaNodeData;
   onUpdate: (data: Partial<MediaNodeData>) => void;
@@ -81,7 +82,7 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
             uploadType: 'media',
           },
           (progress) => {
-            console.log('Upload progress:', progress.message);
+            logger.debug('Upload progress:', { data: progress.message });
           }
         );
 
@@ -135,7 +136,7 @@ export default function MediaNodeEditor({ data, onUpdate }: MediaNodeEditorProps
       });
       toast.success('File uploaded successfully');
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to upload file');
     } finally {
       setIsUploading(false);

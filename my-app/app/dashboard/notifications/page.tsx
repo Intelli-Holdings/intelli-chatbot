@@ -6,15 +6,22 @@ import { useOrganization, useOrganizationList } from "@clerk/nextjs"
 import type { TeamMember, ClerkMember } from "@/types/notification"
 import Notifications from "@/app/dashboard/notifications/Notifications"
 import { memberUtils } from "@/utils/members"
+import { logger } from "@/lib/logger"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useNotificationContext } from "@/hooks/use-notification-context"
 
 const NotificationPage: React.FC = () => {
   const { organization } = useOrganization()
   const { userMemberships } = useOrganizationList({ userMemberships: { infinite: true } })
-  const { notifications, isConnected } = useNotificationContext()
+  const { notifications, isConnected, fetchHistoricalNotifications, fetchAssignedNotifications } = useNotificationContext()
   const [members, setMembers] = useState<TeamMember[]>([])
   const [isLoadingMembers, setIsLoadingMembers] = useState(true)
+
+  // Fetch notifications when the page mounts (respects cache TTL)
+  useEffect(() => {
+    fetchHistoricalNotifications()
+    fetchAssignedNotifications()
+  }, [fetchHistoricalNotifications, fetchAssignedNotifications])
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -25,7 +32,7 @@ const NotificationPage: React.FC = () => {
           const transformedMembers = membersList.data.map((member: ClerkMember) => memberUtils.transform(member))
           setMembers(transformedMembers)
         } catch (error) {
-          console.error("Failed to fetch members:", error)
+          logger.error("Failed to fetch members", { error: error instanceof Error ? error.message : String(error) })
         } finally {
           setIsLoadingMembers(false)
         }

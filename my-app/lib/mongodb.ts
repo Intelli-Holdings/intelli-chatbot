@@ -1,4 +1,5 @@
 import mongoose, { ConnectOptions } from 'mongoose';
+import { logger } from "@/lib/logger";
 
 const connectionUrl = process.env.MONGO_URI;
 
@@ -15,7 +16,7 @@ export const clientPromise = mongoose.connect(connectionUrl, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 } as MongooseConnectOptions).then(() => {
-  console.log('Connected to MongoDB');
+  logger.info('Connected to MongoDB');
 }).catch((err) => {
-  console.error('Could not connect to MongoDB', err);
+  logger.error('Could not connect to MongoDB', { error: err instanceof Error ? err.message : String(err) });
 });

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from 'sonner';
 import useActiveOrganizationId from "@/hooks/use-organization-id";
 import { set } from "mongoose";
+import { logger } from "@/lib/logger";
 
 
   export interface Visitor {
@@ -87,7 +88,7 @@ export function useTakeoverToggle({ onMessage, selectedWidgetKey }: HandleTakeov
                     setReplyMessage('');
                     toast.success('Message sent successfully');
                 } catch (error) {
-                    console.error('Error sending message:', error);
+                    logger.error('Error sending message', { error: error instanceof Error ? error.message : String(error) });
                     toast.error('Failed to send message. Please try again.');
                 }
         };
@@ -99,7 +100,7 @@ export function useTakeoverToggle({ onMessage, selectedWidgetKey }: HandleTakeov
                 const ws = new WebSocket(socketUrl);
 
                 ws.onopen = () => {
-                        console.log('WebSocket Connected');
+                        logger.info('WebSocket Connected');
                         toast.success('WebSocket is connected');
                 };
 
@@ -111,12 +112,12 @@ export function useTakeoverToggle({ onMessage, selectedWidgetKey }: HandleTakeov
                 };
 
                 ws.onerror = (error) => {
-                        console.error('WebSocket error:', error);
+                        logger.error('WebSocket error', { error: error instanceof Error ? error.message : String(error) });
                         toast.info('WebSocket is not connected');
                 };
 
                 ws.onclose = () => {
-                        console.log('WebSocket Disconnected');
+                        logger.info('WebSocket Disconnected');
                         toast.info('WebSocket is disconnected');
                 };
 

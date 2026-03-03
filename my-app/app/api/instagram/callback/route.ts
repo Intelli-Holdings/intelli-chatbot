@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { logger } from "@/lib/logger";
 
 /**
  * Instagram OAuth callback handler
@@ -13,10 +14,10 @@ export async function GET(request: NextRequest) {
 
   // Handle OAuth errors
   if (error) {
-    console.error("Instagram OAuth error:", {
+    logger.error("Instagram OAuth error", {
       error,
-      errorReason,
-      errorDescription,
+      errorReason: errorReason || undefined,
+      errorDescription: errorDescription || undefined,
     })
 
     const redirectUrl = new URL("/dashboard/channels", request.nextUrl.origin)

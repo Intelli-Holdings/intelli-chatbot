@@ -71,6 +71,7 @@ import {
   validateFileUpload,
   isAllowedFileType
 } from "@/lib/file-manager";
+import { logger } from "@/lib/logger";
 
 interface Assistant {
   id: number;
@@ -166,7 +167,7 @@ export function AssistantFiles() {
         setSelectedAssistant(data[0].assistant_id);
       }
     } catch (error) {
-      console.error("Error fetching assistants:", error);
+      logger.error("Error fetching assistants", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch assistants. Please try again.");
     } finally {
       setIsFetchingAssistants(false);
@@ -189,7 +190,7 @@ export function AssistantFiles() {
       const response = await fileManagerAPI.getFiles(selectedAssistant);
       setFileList(response.results);
     } catch (error) {
-      console.error("Error fetching files:", error);
+      logger.error("Error fetching files", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch files. Please try again.");
     } finally {
       setIsLoadingFiles(false);
@@ -205,7 +206,7 @@ export function AssistantFiles() {
       const stats = await fileManagerAPI.getFileStatistics(selectedAssistant);
       setFileStats(stats);
     } catch (error) {
-      console.error("Error fetching file statistics:", error);
+      logger.error("Error fetching file statistics", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch file statistics. Please try again.");
     } finally {
       setIsLoadingStats(false);
@@ -219,7 +220,7 @@ export function AssistantFiles() {
       const versions = await fileManagerAPI.getFileVersions(fileId);
       setFileVersions(versions);
     } catch (error) {
-      console.error("Error fetching file versions:", error);
+      logger.error("Error fetching file versions", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch file versions. Please try again.");
     } finally {
       setIsLoadingVersions(false);
@@ -247,7 +248,7 @@ export function AssistantFiles() {
       fetchFiles(); // Refresh file list
       fetchFileStats(); // Refresh stats
     } catch (error) {
-      console.error("Error deleting file:", error);
+      logger.error("Error deleting file", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to delete file. Please try again.");
     }
   };
@@ -292,7 +293,7 @@ export function AssistantFiles() {
       fetchFileStats();
       
     } catch (error) {
-      console.error("Error uploading files:", error);
+      logger.error("Error uploading files", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to upload files. Please try again.");
     } finally {
       setIsLoading(false);
@@ -329,7 +330,7 @@ export function AssistantFiles() {
       fetchFileStats();
       
     } catch (error) {
-      console.error("Error bulk uploading files:", error);
+      logger.error("Error bulk uploading files", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to upload files. Please try again.");
     } finally {
       setIsLoading(false);

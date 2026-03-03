@@ -63,6 +63,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useParams } from "next/navigation";
+import { logger } from "@/lib/logger";
 import {
   newFileManagerAPI,
   type FileUploadResponse,
@@ -207,7 +208,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
         setSelectedAssistant(data[0].assistant_id);
       }
     } catch (error) {
-      console.error("Error fetching assistants:", error);
+      logger.error("Error fetching assistants:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch assistants. Please try again.");
     } finally {
       setIsFetchingAssistants(false);
@@ -223,7 +224,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       const data = await newFileManagerAPI.getFiles(selectedAssistant);
       setFileList(data.results);
     } catch (error) {
-      console.error("Error fetching files:", error);
+      logger.error("Error fetching files:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch files. Please try again.");
     } finally {
       setIsLoadingFiles(false);
@@ -239,7 +240,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       const data = await newFileManagerAPI.getFileStatistics(selectedAssistant);
       setFileStats(data);
     } catch (error) {
-      console.error("Error fetching file stats:", error);
+      logger.error("Error fetching file stats:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch file statistics. Please try again.");
     } finally {
       setIsLoadingStats(false);
@@ -253,7 +254,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       const data = await newFileManagerAPI.getFileVersions(fileId);
       setFileVersions(data);
     } catch (error) {
-      console.error("Error fetching file versions:", error);
+      logger.error("Error fetching file versions:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch file versions. Please try again.");
     } finally {
       setIsLoadingVersions(false);
@@ -270,7 +271,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       setPendingFiles(data.files);
       setPendingFilesCount(data.count);
     } catch (error) {
-      console.error("Error fetching pending files:", error);
+      logger.error("Error fetching pending files:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to fetch pending files. Please try again.");
     } finally {
       setIsLoadingPendingFiles(false);
@@ -307,9 +308,9 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
           if (file.azure_file_status === 'pending' || file.azure_file_status === 'failed') {
             try {
               await newFileManagerAPI.retryFileUpload(file.id);
-              console.log(`Retrying upload for file: ${file.file_name}`);
+              logger.info(`Retrying upload for file: ${file.file_name}`);
             } catch (error) {
-              console.error(`Failed to retry upload for file ${file.file_name}:`, error);
+              logger.error(`Failed to retry upload for file ${file.file_name}:`, { error: error instanceof Error ? error.message : String(error) });
             }
           }
         }
@@ -321,7 +322,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
           fetchPendingFiles();
         }
       } catch (error) {
-        console.error("Error checking for pending files:", error);
+        logger.error("Error checking for pending files:", { error: error instanceof Error ? error.message : String(error) });
       }
     }, 60000); // Check every 60 seconds
 
@@ -371,7 +372,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       fetchFiles(); // Refresh file list
       fetchFileStats(); // Refresh statistics
     } catch (error) {
-      console.error("Upload error:", error);
+      logger.error("Upload error:", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Failed to upload files. Please try again.");
     } finally {
       setIsLoading(false);
@@ -397,7 +398,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       setDeleteModalOpen(false);
       setFileToDelete(null);
     } catch (error) {
-      console.error("Delete error:", error);
+      logger.error("Delete error:", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Failed to delete file.");
     } finally {
       setIsDeletingFile(false);
@@ -418,7 +419,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       fetchFiles(); // Refresh file list
       fetchFileStats(); // Refresh statistics
     } catch (error) {
-      console.error("Retry error:", error);
+      logger.error("Retry error:", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Failed to retry upload.");
     }
   };
@@ -463,7 +464,7 @@ export function NewAssistantFiles({ organizationId }: { organizationId?: string 
       setFileForNewVersion(null);
       setNewVersionFile(null);
     } catch (error) {
-      console.error("Upload version error:", error);
+      logger.error("Upload version error:", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Failed to upload new version.");
     } finally {
       setIsUploadingVersion(false);

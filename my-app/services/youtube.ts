@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 interface YouTubeVideo {
   id: string;
   title: string;
@@ -77,7 +79,7 @@ export class YouTubeService {
   constructor() {
     this.apiKey = process.env.YOUTUBE_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('YouTube API key not found. Please add YOUTUBE_API_KEY to your environment variables.');
+      logger.warn('YouTube API key not found. Please add YOUTUBE_API_KEY to your environment variables.');
     }
   }
 
@@ -152,7 +154,7 @@ export class YouTubeService {
 
       return videos;
     } catch (error) {
-      console.error('Error fetching YouTube videos:', error);
+      logger.error('Error fetching YouTube videos', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -192,7 +194,7 @@ export class YouTubeService {
         videoUrl: `https://www.youtube.com/watch?v=${video.id}`
       };
     } catch (error) {
-      console.error('Error fetching video details:', error);
+      logger.error('Error fetching video details', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

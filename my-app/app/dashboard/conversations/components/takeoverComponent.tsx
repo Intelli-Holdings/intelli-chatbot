@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Conversation } from './types';
 import { takeoverConversation, handoverConversation } from '@/app/actions';
 import { useUser } from '@clerk/nextjs';
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -48,7 +49,7 @@ const TakeOverComponent: React.FC<TakeOverComponentProps> = ({ conversation, onT
       formData.append('customerNumber', conversation.customer_number || conversation.recipient_id);
 
       const result = await takeoverConversation(formData);
-      console.log('Takeover result:', result);
+      logger.info("Takeover result", { data: result });
 
       onTakeOver();
     } catch (e) {

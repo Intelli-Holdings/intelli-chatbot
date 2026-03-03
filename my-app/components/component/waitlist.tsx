@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { joinWaitlist } from "@/lib/waitlist"
 import { ArrowRight, ArrowLeft, Check } from "lucide-react"
 
+import { logger } from "@/lib/logger";
 const Waitlist: React.FC = () => {
   const [email, setEmail] = useState("")
   const [companyName, setCompanyName] = useState("")
@@ -111,7 +112,7 @@ const Waitlist: React.FC = () => {
           toast.error("Failed to join waitlist")
         }
       } catch (error) {
-        console.error("Error joining waitlist:", error)
+        logger.error("Error joining waitlist:", { error: error instanceof Error ? error.message : String(error) })
         toast.error("Something went wrong, please try submitting again.")
       } finally {
         setIsLoading(false)

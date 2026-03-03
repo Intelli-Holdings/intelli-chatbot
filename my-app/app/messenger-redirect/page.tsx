@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle, ArrowRight, CheckCircle, Loader, RefreshCcw } from "lucide-react"
 import { useOrganization } from "@clerk/nextjs"
 import Image from 'next/image'
+import { logger } from "@/lib/logger"
 
 type SetupStep = "processing" | "exchanging" | "creating" | "selectingAssistant" | "creatingAppService" | "complete" | "error"
 
@@ -83,7 +84,7 @@ export default function MessengerRedirectPage() {
         throw new Error("No access token in response")
       }
     } catch (err) {
-      console.error("Token exchange error:", err)
+      logger.error("Token exchange error", { error: err instanceof Error ? err.message : String(err) })
       throw err
     }
   }, [])
@@ -134,7 +135,7 @@ export default function MessengerRedirectPage() {
       setPackageResponse(data)
       return { package: data, page }
     } catch (err) {
-      console.error("Channel creation error:", err)
+      logger.error("Channel creation error", { error: err instanceof Error ? err.message : String(err) })
       throw err
     }
   }, [])
@@ -158,7 +159,7 @@ export default function MessengerRedirectPage() {
       }
       return data
     } catch (error) {
-      console.error("Error fetching assistants:", error)
+      logger.error("Error fetching assistants", { error: error instanceof Error ? error.message : String(error) })
       throw error
     } finally {
       setIsFetchingAssistants(false)
@@ -182,7 +183,7 @@ export default function MessengerRedirectPage() {
         page_id: pageInfo.id,
         assistant_id: selectedAssistant.assistant_id,
       }
-      console.log("Creating Messenger AppService with data:", data)
+      logger.info("Creating Messenger AppService", { data })
 
       const res = await fetch("/api/appservice/create-messenger", {
         method: "POST",
@@ -193,7 +194,7 @@ export default function MessengerRedirectPage() {
       const appsvc = await res.json()
 
       if (!res.ok) {
-        console.error("AppService creation error:", appsvc)
+        logger.error("AppService creation error", { data: appsvc })
         throw new Error(appsvc.error || appsvc.detail || "Failed to create AppService")
       }
 
@@ -205,7 +206,7 @@ export default function MessengerRedirectPage() {
         router.push("/dashboard/conversations/messenger")
       }, 2000)
     } catch (e) {
-      console.error("Error creating AppService:", e)
+      logger.error("Error creating AppService", { error: e instanceof Error ? e.message : String(e) })
       setAppServiceError(e instanceof Error ? e.message : "Error creating AppService")
       setStatusMessage("Error creating AppService. Please try again.")
     }

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 interface MetricsSnapshot {
   id: number
@@ -115,7 +116,7 @@ export async function GET(
 
     return NextResponse.json(responseData)
   } catch (error) {
-    console.error("Error fetching metrics summary by organization:", error)
+    logger.error("Error fetching metrics summary by organization", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

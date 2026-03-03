@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Copy, Check, Plus, X } from 'lucide-react';
 
+import { logger } from "@/lib/logger";
 interface OnboardingStep {
   id: number;
   title: string;
@@ -72,7 +73,7 @@ const OnboardingComponent = () => {
     try {
       await navigator.clipboard.writeText(apiKey);
     } catch (err) {
-      console.error('Failed to copy API key:', err);
+      logger.error('Failed to copy API key:', { error: err instanceof Error ? err.message : String(err) });
     }
   };
 

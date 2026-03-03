@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import {
   ChatbotAutomation,
   ChatbotMenu,
@@ -46,7 +47,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
         }
       }
     } catch (e) {
-      console.warn('Failed to get Clerk token:', e);
+      logger.warn('Failed to get Clerk token', { error: e instanceof Error ? e.message : String(e) });
     }
   }
 
@@ -85,9 +86,7 @@ function toBackendFormat(chatbot: Partial<ChatbotAutomation>, organizationId: st
 
 // Convert backend ChatbotFlowBackend to frontend ChatbotAutomation format
 function toFrontendFormat(flow: ChatbotFlowBackend): ChatbotAutomation {
-  console.log('=== toFrontendFormat ===');
-  console.log('Backend flow.nodes:', flow.nodes?.length, flow.nodes);
-  console.log('Backend flow.edges:', flow.edges?.length, flow.edges);
+  logger.debug('toFrontendFormat', { nodeCount: flow.nodes?.length, nodes: flow.nodes, edgeCount: flow.edges?.length, edges: flow.edges });
 
   // Ensure arrays are initialized (backend may return null/undefined)
   const nodes = flow.nodes || [];
@@ -156,7 +155,7 @@ export class ChatbotAutomationService {
   static async getChatbots(organizationId: string): Promise<ChatbotAutomation[]> {
     try {
       if (!organizationId) {
-        console.warn('getChatbots: organizationId is required');
+        logger.warn('getChatbots: organizationId is required');
         return [];
       }
 
@@ -183,13 +182,13 @@ export class ChatbotAutomationService {
       } else if (data && Array.isArray(data.results)) {
         flows = data.results;
       } else {
-        console.warn('Unexpected API response format:', data);
+        logger.warn('Unexpected API response format', { data });
         flows = [];
       }
 
       return flows.map(toFrontendFormat);
     } catch (error) {
-      console.error('Error fetching chatbots:', error);
+      logger.error('Error fetching chatbots', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -219,7 +218,7 @@ export class ChatbotAutomationService {
       const flow: ChatbotFlowBackend = await response.json();
       return toFrontendFormat(flow);
     } catch (error) {
-      console.error('Error fetching chatbot:', error);
+      logger.error('Error fetching chatbot', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -270,21 +269,21 @@ export class ChatbotAutomationService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Create chatbot error response:', errorData);
+        logger.error('Create chatbot error response', { data: errorData });
         throw new Error(errorData.message || errorData.detail || 'Failed to create chatbot');
       }
 
       const flow: ChatbotFlowBackend = await response.json();
-      console.log('Created chatbot response:', flow);
+      logger.info('Created chatbot response', { data: flow });
 
       if (!flow.id) {
-        console.error('Backend did not return an ID for the created chatbot');
+        logger.error('Backend did not return an ID for the created chatbot');
         throw new Error('Failed to create chatbot: No ID returned');
       }
 
       return toFrontendFormat(flow);
     } catch (error) {
-      console.error('Error creating chatbot:', error);
+      logger.error('Error creating chatbot', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -329,7 +328,7 @@ export class ChatbotAutomationService {
       const flow: ChatbotFlowBackend = await response.json();
       return toFrontendFormat(flow);
     } catch (error) {
-      console.error('Error updating chatbot:', error);
+      logger.error('Error updating chatbot', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -367,7 +366,7 @@ export class ChatbotAutomationService {
       const flow: ChatbotFlowBackend = await response.json();
       return toFrontendFormat(flow);
     } catch (error) {
-      console.error('Error updating flow nodes:', error);
+      logger.error('Error updating flow nodes', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -390,7 +389,7 @@ export class ChatbotAutomationService {
         throw new Error('Failed to delete chatbot');
       }
     } catch (error) {
-      console.error('Error deleting chatbot:', error);
+      logger.error('Error deleting chatbot', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -419,7 +418,7 @@ export class ChatbotAutomationService {
       const flow: ChatbotFlowBackend = await response.json();
       return toFrontendFormat(flow);
     } catch (error) {
-      console.error('Error toggling chatbot:', error);
+      logger.error('Error toggling chatbot', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -449,7 +448,7 @@ export class ChatbotAutomationService {
       const flow: ChatbotFlowBackend = await response.json();
       return toFrontendFormat(flow);
     } catch (error) {
-      console.error('Error duplicating chatbot:', error);
+      logger.error('Error duplicating chatbot', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -474,7 +473,7 @@ export class ChatbotAutomationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error validating flow:', error);
+      logger.error('Error validating flow', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -499,7 +498,7 @@ export class ChatbotAutomationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error getting flow stats:', error);
+      logger.error('Error getting flow stats', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -531,11 +530,11 @@ export class ChatbotAutomationService {
       } else if (data && Array.isArray(data.results)) {
         return data.results;
       } else {
-        console.warn('Unexpected executions API response format:', data);
+        logger.warn('Unexpected executions API response format', { data });
         return [];
       }
     } catch (error) {
-      console.error('Error getting flow executions:', error);
+      logger.error('Error getting flow executions', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -569,7 +568,7 @@ export class ChatbotAutomationService {
         fallbackTriggered: true,
       };
     } catch (error) {
-      console.error('Error testing chatbot:', error);
+      logger.error('Error testing chatbot', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -847,7 +846,7 @@ export class ChatbotAutomationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching flow analytics:', error);
+      logger.error('Error fetching flow analytics', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -879,7 +878,7 @@ export class ChatbotAutomationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching template button mappings:', error);
+      logger.error('Error fetching template button mappings', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -920,7 +919,7 @@ export class ChatbotAutomationService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error updating template button mappings:', error);
+      logger.error('Error updating template button mappings', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

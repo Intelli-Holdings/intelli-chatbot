@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 
+import { logger } from "@/lib/logger";
 export const metadata: Metadata = {
   title: "Components | Minimal Docs Site",
   description: "Explore the components available in our library",
@@ -21,7 +22,7 @@ export default function Components() {
       <pre className="bg-muted p-4 rounded-md mb-4">
         <code>{`import { Button } from '@our-company/package';
 
-<Button variant="primary" onClick={() => console.log('Clicked!')}>
+<Button variant="primary" onClick={() => logger.info('Clicked!')}>
   Click me
 </Button>`}</code>
       </pre>
@@ -40,7 +41,7 @@ export default function Components() {
       <pre className="bg-muted p-4 rounded-md mb-4">
         <code>{`import { Input } from '@our-company/package';
 
-<Input placeholder="Enter your name" onChange={(e) => console.log(e.target.value)} />`}</code>
+<Input placeholder="Enter your name" onChange={(e) => logger.info("Data", { data: e.target.value })} />`}</code>
       </pre>
       <p className="mt-4">
         For a complete list of components and their props, please refer to our API Reference section.
