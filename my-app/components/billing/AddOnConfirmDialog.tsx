@@ -78,7 +78,7 @@ export function AddOnAddDialog({
           <DialogDescription>{addon.description}</DialogDescription>
         </DialogHeader>
 
-        {addon.addon_type !== "webhook" ? (
+        {addon.is_metered ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Quantity</span>
@@ -95,10 +95,10 @@ export function AddOnAddDialog({
                 <Input
                   type="number"
                   min={1}
-                  max={100}
+                  max={50}
                   value={quantity}
                   onChange={(e) =>
-                    setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                    setQuantity(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))
                   }
                   className="w-16 h-8 text-center [&::-webkit-inner-spin-button]:appearance-none"
                   disabled={isSubmitting}
@@ -107,8 +107,8 @@ export function AddOnAddDialog({
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setQuantity((q) => Math.min(100, q + 1))}
-                  disabled={quantity >= 100 || isSubmitting}
+                  onClick={() => setQuantity((q) => Math.min(50, q + 1))}
+                  disabled={quantity >= 50 || isSubmitting}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
