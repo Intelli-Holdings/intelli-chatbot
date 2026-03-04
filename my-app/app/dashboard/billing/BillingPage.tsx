@@ -193,6 +193,7 @@ export function BillingPage() {
             currentPlanId={subscription?.plan?.id}
             organizationId={organizationId}
             hasActiveStripeSubscription={!!hasActiveStripe}
+            onPlanChanged={refetch}
           />
         )}
       </main>
