@@ -15,6 +15,7 @@ import {
   Files,
   ChevronRight,
   RadioTower,
+  CreditCard,
   SettingsIcon,
   CogIcon,
   Workflow,
@@ -126,6 +127,11 @@ const data = {
       title: "Organization",
       url: "/dashboard/organization",
       icon: Building2,
+    },
+    {
+      title: "Billing",
+      url: "/dashboard/billing",
+      icon: CreditCard,
     },
     {
       title: "Settings",

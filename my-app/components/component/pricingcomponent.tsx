@@ -55,7 +55,7 @@ const PricingComponent = () => {
       ],
       description: 'Perfect for small businesses looking to automate customer support.',
       buttonText: 'Start Free Trial',
-      link: '/auth/sign-up',
+      link: `/checkout?plan=website-widget&interval=${isAnnual ? 'yearly' : 'monthly'}`,
     },
     {
       name: 'WhatsApp AI Assistant',
@@ -72,7 +72,7 @@ const PricingComponent = () => {
       ],
       description: 'For growing businesses engaging customers on WhatsApp.',
       buttonText: 'Start Free Trial',
-      link: '/auth/sign-up',
+      link: `/checkout?plan=whatsapp-${selectedTierId}&interval=${isAnnual ? 'yearly' : 'monthly'}`,
       isRecommended: true,
     },
     {

@@ -155,3 +155,16 @@
   animation: shine 1.5s ease-in-out;
 }
 
+/* Highlight pulse for billing card updates */
+@keyframes highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+  }
+  40% {
+    box-shadow: 0 0 0 6px hsl(var(--primary) / 0.15);
+  }
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+  }
+}
+

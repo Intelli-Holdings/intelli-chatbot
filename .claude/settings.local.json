@@ -17,7 +17,9 @@
       "Bash(python3:*)",
       "Bash(python:*)",
       "Bash(.venv/bin/python:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(stripe version:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
