@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { RefreshCw } from "lucide-react";
 import type { Plan, BillingInterval } from "@/types/billing";
 
 interface PlanSelectorProps {
@@ -22,9 +23,11 @@ interface PlanSelectorProps {
   organizationId: string;
   /** True if the org has an active Stripe subscription that can be modified */
   hasActiveStripeSubscription?: boolean;
+  /** Called after a plan change or trial start so the parent can refetch */
+  onPlanChanged?: () => void | Promise<void>;
 }
 
-export function PlanSelector({ open, onClose, currentPlanId, organizationId, hasActiveStripeSubscription }: PlanSelectorProps) {
+export function PlanSelector({ open, onClose, currentPlanId, organizationId, hasActiveStripeSubscription, onPlanChanged }: PlanSelectorProps) {
   const router = useRouter();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [interval, setInterval] = useState<BillingInterval>("monthly");
@@ -36,16 +39,11 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
     setLoading(true);
     setError(null);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://backend.intelliconcierge.com";
-    console.log("[PlanSelector] Fetching plans from:", `${API_BASE}/subscriptions/plans/`);
-
     BillingService.getPlans()
       .then((data) => {
-        console.log("[PlanSelector] Loaded plans:", data.length, data);
         setPlans(data);
       })
       .catch((err) => {
-        console.error("[PlanSelector] Failed to load plans:", err);
         setError(err.message || "Failed to load plans");
       })
       .finally(() => setLoading(false));
@@ -60,7 +58,8 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
       await BillingService.startTrial(organizationId, plan.id, interval);
       toast.success(`7-day free trial started on ${plan.name}`);
       onClose();
-      window.location.reload();
+      await onPlanChanged?.();
+      router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to start trial";
       if (msg.includes("already used")) {
@@ -79,8 +78,10 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
     if (!organizationId) return;
     try {
       await BillingService.changePlan(organizationId, plan.id, interval);
+      toast.success("Plan updated successfully");
       onClose();
-      window.location.reload();
+      await onPlanChanged?.();
+      router.refresh();
     } catch {
       // Error handled by service
     }
@@ -118,7 +119,24 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
             <p className="text-sm text-muted-foreground py-4 text-center">Loading plans...</p>
           )}
           {!loading && error && (
-            <p className="text-sm text-red-500 py-4 text-center">{error}</p>
+            <div className="flex flex-col items-center gap-3 py-4">
+              <p className="text-sm text-red-500">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setLoading(true);
+                  setError(null);
+                  BillingService.getPlans()
+                    .then(setPlans)
+                    .catch((err) => setError(err.message || "Failed to load plans"))
+                    .finally(() => setLoading(false));
+                }}
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Retry
+              </Button>
+            </div>
           )}
           {!loading && !error && plans.length === 0 && (
             <p className="text-sm text-muted-foreground py-4 text-center">No plans available.</p>
