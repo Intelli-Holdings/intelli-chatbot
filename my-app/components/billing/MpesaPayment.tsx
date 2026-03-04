@@ -40,12 +40,14 @@ export function MpesaPayment({ plan, billingInterval, organizationId }: MpesaPay
   const [error, setError] = useState("");
   const [checkoutRequestId, setCheckoutRequestId] = useState("");
   const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const price = billingInterval === "yearly" ? plan.yearly_price : plan.monthly_price;
 
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      abortRef.current?.abort();
     };
   }, []);
 
@@ -79,7 +81,16 @@ export function MpesaPayment({ plan, billingInterval, organizationId }: MpesaPay
     let attempts = 0;
     const maxAttempts = 30; // 5 minutes at 10s intervals
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     pollRef.current = setInterval(async () => {
+      if (controller.signal.aborted) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        return;
+      }
+
       attempts++;
       if (attempts >= maxAttempts) {
         if (pollRef.current) clearInterval(pollRef.current);
@@ -90,6 +101,8 @@ export function MpesaPayment({ plan, billingInterval, organizationId }: MpesaPay
 
       try {
         const status = await BillingService.pollMpesaStatus(organizationId, requestId);
+        if (controller.signal.aborted) return;
+
         if (status.status === "completed") {
           if (pollRef.current) clearInterval(pollRef.current);
           setStep("success");
