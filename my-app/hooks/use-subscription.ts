@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { useAtom } from "jotai";
 import { BillingService } from "@/services/billing";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
+import { subscriptionAtom } from "@/lib/billing-atoms";
 import type { SubscriptionState } from "@/types/billing";
 
 export interface UseSubscriptionReturn {
@@ -14,33 +16,36 @@ export interface UseSubscriptionReturn {
 
 export function useSubscription(): UseSubscriptionReturn {
   const organizationId = useActiveOrganizationId();
-  const [subscription, setSubscription] = useState<SubscriptionState | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useAtom(subscriptionAtom);
 
   const fetchSubscription = useCallback(async () => {
     if (!organizationId) {
-      setLoading(false);
+      setState((prev) => ({ ...prev, loading: false }));
       return;
     }
 
     try {
-      setLoading(true);
-      setError(null);
+      setState((prev) => ({ ...prev, loading: true, error: null }));
       const data = await BillingService.getSubscriptionStatus(organizationId);
-      setSubscription(data);
+      setState({ data, loading: false, error: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load subscription";
-      setError(message);
+      setState((prev) => ({ ...prev, loading: false, error: message }));
       console.error("useSubscription error:", err);
-    } finally {
-      setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, setState]);
 
   useEffect(() => {
-    fetchSubscription();
-  }, [fetchSubscription]);
+    // Only fetch if we haven't loaded yet or org changed
+    if (state.data === null && state.error === null) {
+      fetchSubscription();
+    }
+  }, [fetchSubscription, state.data, state.error]);
 
-  return { subscription, loading, error, refetch: fetchSubscription };
+  return {
+    subscription: state.data,
+    loading: state.loading,
+    error: state.error,
+    refetch: fetchSubscription,
+  };
 }
