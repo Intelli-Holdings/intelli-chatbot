@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BillingService } from "@/services/billing";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Minus, ArrowRight, RotateCcw } from "lucide-react";
+import { Plus, Minus, ArrowRight, RotateCcw, RefreshCw } from "lucide-react";
 import type { AddOn, SubscriptionAddOn, SubscriptionStatus, PaymentProvider } from "@/types/billing";
+import { useAddOnCatalog } from "@/hooks/use-addon-catalog";
 import {
   AddOnAddDialog,
   AddOnRemoveDialog,
@@ -23,20 +24,12 @@ interface AddOnManagerProps {
 }
 
 export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscriptionStatus, paymentProvider, checkoutUrl, periodEnd }: AddOnManagerProps) {
-  const [addons, setAddons] = useState<AddOn[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { addons, loading, error: addonsError, refetch: refetchAddOns } = useAddOnCatalog();
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [selectedAddon, setSelectedAddon] = useState<AddOn | null>(null);
-
-  useEffect(() => {
-    BillingService.getAddOns()
-      .then(setAddons)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   const getSubscriptionAddon = (addonId: string) =>
     currentAddOns.find((a) => a.addon.id === addonId && a.is_active);
@@ -108,6 +101,18 @@ export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscrip
     );
   }
 
+  if (addonsError) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-6 text-center">
+        <p className="text-sm text-muted-foreground">{addonsError}</p>
+        <Button variant="outline" size="sm" onClick={refetchAddOns}>
+          <RefreshCw className="h-3 w-3 mr-1" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {addons.map((addon) => {
@@ -143,7 +148,7 @@ export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscrip
               </div>
               <p className="text-xs text-muted-foreground">
                 ${addon.unit_price} {addon.unit_label}
-                {attached && addon.addon_type !== "webhook" && qty > 0 && (
+                {attached && addon.is_metered && qty > 0 && (
                   <> &middot; Qty: {qty}</>
                 )}
               </p>
