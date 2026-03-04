@@ -22,7 +22,7 @@ export async function GET(
     // Get query parameters for pagination
     const searchParams = request.nextUrl.searchParams;
     const page = searchParams.get('page') || '1';
-    const pageSize = searchParams.get('page_size') || '50';
+    const pageSize = searchParams.get('page_size') || '100';
 
     // Add timing for progress calculation
     const startTime = Date.now();

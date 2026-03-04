@@ -110,10 +110,11 @@ export const useWhatsAppAnalytics = (
 
   // Helper function to determine messaging tier based on limit
   const determineMessagingTier = useCallback((limit: number): string => {
-    if (limit >= 100000) return 'TIER_4';
-    if (limit >= 10000) return 'TIER_3';
-    if (limit >= 1000) return 'TIER_2';
-    return 'TIER_1';
+    if (limit >= 1000000) return 'TIER_UNLIMITED';
+    if (limit >= 100000) return 'TIER_100K';
+    if (limit >= 10000) return 'TIER_10K';
+    if (limit >= 1000) return 'TIER_1K';
+    return 'STANDARD';
   }, []);
 
   const fetchAnalytics = useCallback(async () => {
@@ -136,20 +137,20 @@ export const useWhatsAppAnalytics = (
     setError(null);
 
     try {
-      const graphApiVersion = 'v18.0';
+      const graphApiVersion = 'v21.0';
       const wabaId = appService.whatsapp_business_account_id;
       const accessToken = appService.access_token;
 
-      // Fetch conversation analytics
+      // Use timestamps for API calls
+      const endTime = Math.floor(Date.now() / 1000);
+      const startTime = endTime - (timeRangeInDays * 24 * 60 * 60);
+
+      // Fetch conversation analytics using timestamps
       const conversationsUrl = `https://graph.facebook.com/${graphApiVersion}/${wabaId}`;
       const conversationsParams = new URLSearchParams({
         access_token: accessToken,
-        fields: `conversation_analytics.start(${timeRangeInDays}).end(0).granularity(DAILY).phone_numbers(ALL).dimensions(CONVERSATION_CATEGORY,CONVERSATION_TYPE,COUNTRY,PHONE)`,
+        fields: `conversation_analytics.start(${startTime}).end(${endTime}).granularity(DAILY).dimensions(CONVERSATION_CATEGORY,CONVERSATION_TYPE)`,
       });
-
-      // Fetch messaging analytics
-      const endTime = Math.floor(Date.now() / 1000);
-      const startTime = endTime - (timeRangeInDays * 24 * 60 * 60);
 
       // Fetch all data in parallel using Promise.allSettled
       const [conversationsResponse, phoneNumbersResponse, messagingResponse] = await Promise.allSettled([
@@ -274,6 +275,15 @@ export const useWhatsAppAnalytics = (
         phoneNumberProfiles = phoneNumbersData.map((phone: any) => {
           const phoneNumber = phone.display_phone_number || phone.phone_number;
 
+          logger.debug('📱 Raw phone number data from Meta API', {
+            id: phone.id,
+            phoneNumber,
+            messaging_limit_tier: phone.messaging_limit_tier,
+            current_limit: phone.current_limit,
+            max_daily_conversation_per_phone: phone.max_daily_conversation_per_phone,
+            quality_rating: phone.quality_rating,
+          });
+
           // Extract messaging limit from various possible fields
           let limit = 250; // Default
           if (phone.current_limit) {
@@ -292,6 +302,9 @@ export const useWhatsAppAnalytics = (
             limit = tierLimits[phone.messaging_limit_tier] || 250;
           }
 
+          // Use the raw messaging_limit_tier from Meta API if available, otherwise derive from limit
+          const tier = phone.messaging_limit_tier || determineMessagingTier(limit);
+
           return {
             id: phone.id,
             display_phone_number: phoneNumber,
@@ -300,7 +313,7 @@ export const useWhatsAppAnalytics = (
             quality_rating: phone.quality_rating || 'UNKNOWN',
             messaging_limit: {
               max: limit,
-              tier: determineMessagingTier(limit)
+              tier
             },
             code_verification_status: phone.code_verification_status || phone.verification_status,
             status: 'ACTIVE', // Phone numbers returned are active

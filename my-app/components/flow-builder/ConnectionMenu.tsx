@@ -16,6 +16,7 @@ import {
   HelpCircle,
   ExternalLink,
   Globe,
+  Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -141,6 +142,14 @@ const menuItems: NodeMenuItem[] = [
     description: 'Call external APIs',
     icon: Globe,
     color: 'bg-violet-500',
+    category: 'logic',
+  },
+  {
+    type: 'sequence',
+    label: 'Sequence',
+    description: 'Schedule follow-up messages',
+    icon: Timer,
+    color: 'bg-emerald-500',
     category: 'logic',
   },
   // Actions

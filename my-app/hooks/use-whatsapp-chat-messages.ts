@@ -48,6 +48,7 @@ const fetchConversationMessages = async (
     sender: msg.sender || "ai",
     reaction: msg.reaction,
     whatsapp_message_id: msg.whatsapp_message_id,
+    incoming_whatsapp_message_id: msg.incoming_whatsapp_message_id,
     status: msg.status,
   }))
 

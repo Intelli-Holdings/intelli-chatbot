@@ -17,7 +17,6 @@ const ConsentGate = dynamic(() => import('@/components/consent-gate'), { ssr: fa
 const AttentionBadge = dynamic(() => import('@/components/AttentionBadge'), { ssr: false })
 const PointerEventsFix = dynamic(() => import('@/components/pointer-events-fix'), { ssr: false })
 const ToastProvider = dynamic(() => import('@/components/ToastProvider'), { ssr: false })
-const TourProviderWrapper = dynamic(() => import('@/components/tour-provider-wrapper'), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] });
 const dmSans = DM_Sans({
@@ -123,9 +122,7 @@ export default function RootLayout({
             <AttentionBadge />
             <PostHogPageView />
             <PointerEventsFix />
-            <TourProviderWrapper>
-              {children}
-            </TourProviderWrapper>
+            {children}
             <ToastProvider />
           </body>
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />

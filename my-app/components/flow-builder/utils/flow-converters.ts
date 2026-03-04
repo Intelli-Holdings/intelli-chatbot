@@ -20,6 +20,7 @@ import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { HttpApiNodeData } from '../nodes/HttpApiNode';
+import { SequenceNodeData } from '../nodes/SequenceNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from './node-factories';
 
 import { logger } from "@/lib/logger";
@@ -432,6 +433,9 @@ export function flowNodesToBackend(
       const uifData = node.data as UserInputFlowNodeData;
       data.flowName = uifData.flowName;
       data.description = uifData.description;
+      if (uifData.webhook) {
+        data.webhook = uifData.webhook;
+      }
     }
 
     // Convert cta_button node
@@ -455,6 +459,22 @@ export function flowNodesToBackend(
       data.responseVariable = httpData.responseVariable;
       data.timeout = httpData.timeout;
       data.auth = httpData.auth;
+    }
+
+    // Convert sequence node
+    if (node.type === 'sequence' && node.data.type === 'sequence') {
+      const seqData = node.data as SequenceNodeData;
+      data.steps = seqData.steps?.map(step => ({
+        id: step.id,
+        delay: step.delay,
+        delaySeconds: step.delaySeconds,
+        messageType: step.messageType,
+        textMessage: step.textMessage,
+        templateName: step.templateName,
+        templateId: step.templateId,
+        templateLanguage: step.templateLanguage,
+        templateComponents: step.templateComponents,
+      })) || [];
     }
 
     return {
@@ -624,6 +644,7 @@ export function backendNodesToFlow(
           label: 'User Input Flow',
           flowName: (backendData.flowName as string) || '',
           description: (backendData.description as string) || '',
+          webhook: backendData.webhook as UserInputFlowNodeData['webhook'],
         } as UserInputFlowNodeData;
         break;
       }
@@ -652,6 +673,35 @@ export function backendNodesToFlow(
           timeout: (backendData.timeout as number) || 30,
           auth: (backendData.auth as HttpApiNodeData['auth']) || { type: 'none' },
         } as HttpApiNodeData;
+        break;
+      }
+      case 'sequence': {
+        const steps = (backendData.steps as Array<{
+          id: string;
+          delay: string;
+          delaySeconds: number;
+          messageType: 'text' | 'template';
+          textMessage?: string;
+          templateName?: string;
+          templateId?: string;
+          templateLanguage?: string;
+          templateComponents?: Record<string, unknown>[];
+        }>) || [];
+        data = {
+          type: 'sequence',
+          label: 'Sequence',
+          steps: steps.map(s => ({
+            id: s.id,
+            delay: s.delay,
+            delaySeconds: s.delaySeconds,
+            messageType: s.messageType,
+            textMessage: s.textMessage,
+            templateName: s.templateName,
+            templateId: s.templateId,
+            templateLanguage: s.templateLanguage,
+            templateComponents: s.templateComponents,
+          })),
+        } as SequenceNodeData;
         break;
       }
       default: {

@@ -277,12 +277,12 @@ export class WebhookService {
   }
 
   /**
-   * Get a single inbound webhook log
+   * Get a single inbound webhook log (full detail with payload)
    */
   static async getInboundWebhookLog(webhookId: string, logId: string): Promise<InboundWebhookLog> {
     const headers = await getAuthHeaders();
     const response = await fetch(
-      `${API_BASE_URL}/chatbot_automation/inbound-webhooks/${webhookId}/logs/${logId}/`,
+      `${API_BASE_URL}/chatbot_automation/inbound-webhooks/${webhookId}/logs/?log_id=${logId}`,
       { method: 'GET', headers }
     );
     return handleResponse<InboundWebhookLog>(response);

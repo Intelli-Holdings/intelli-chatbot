@@ -135,6 +135,29 @@ export async function sendMessage(formData: FormData) {
   }
 }
 
+export async function sendTemplateMessage(payload: {
+  phone_number: string
+  customer_number: string
+  template_name: string
+  language?: string
+  components?: any[]
+}) {
+  const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/send_template/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to send template: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function humanSupportMessages(customerNumber: string, phoneNumber: string) {
   const WEBSOCKET_URL = `${WEBSOCKET_BASE_URL}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`;
   logger.info('Connecting to WebSocket for human support');

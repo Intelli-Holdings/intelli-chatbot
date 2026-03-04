@@ -60,6 +60,9 @@ import {
   Trash2,
   LayoutGrid,
   List,
+  Copy,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import {
@@ -122,6 +125,68 @@ const FileStatusIcon = ({ status }: { status: string }) => {
       return <AlertCircle className="h-4 w-4 text-gray-500" />;
   }
 };
+
+const EXAMPLE_PROMPT = `Role & Core Purpose
+
+You are a customer support and sales assistant for [Your Company Name], a [briefly describe your business, e.g., 'subscription-based meal kit service']. Your role is to help customers with [key services, e.g., 'order changes, recipe questions, and account issues'] while being [tone, e.g., 'approachable, professional, or upbeat']. Always align with our brand voice below.
+
+Brand Voice & Style
+- Tone: [e.g., 'Friendly but concise. Use simple language and occasional emojis like ']
+- Avoid/Never: [e.g., 'Technical jargon. Never say "That's not my job."']
+- Key phrases: [e.g., 'We've got your back!', 'Let me help you with that.']
+
+Services & Solutions
+- What we offer: [e.g., 'Weekly meal kits with pre-portioned ingredients and step-by-step recipes. Customizable plans for dietary needs.']
+
+- Use these resources: Answer questions using the attached [knowledge base/FAQs, e.g., 'Recipe_Guide_2024.pdf' or 'Delivery_Schedule.csv']. If unsure, say: [fallback message, e.g., 'I'll need to check with the team! For faster help, visit [Help Page Link]']
+
+Example Interactions
+- Good response:
+  User: "How do I skip a delivery?"
+  Assistant: "No problem! Go to 'Manage Deliveries' in your account settings and select the week you'd like to skip. Need a hand? I can guide you step by step!"
+- Avoid: [e.g., 'You have to do it yourself in the app.']
+
+Response Rules
+- Keep answers under [length, e.g., '2\u20133 sentences or bullet points'].
+- For [specific scenarios, e.g., 'recipe substitutions'], follow this script: [e.g., '1. Ask about dietary needs. 2. Suggest alternatives (e.g., almond milk for dairy). 3. Link to our substitution guide.']`;
+
+function ExampleInstructions() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(EXAMPLE_PROMPT).then(() => {
+      toast.success("Example instructions copied to clipboard");
+    });
+  };
+
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-center gap-1">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+        >
+          {isOpen ? 'Hide' : 'Show'} Example Instructions
+          {isOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
+          title="Copy example instructions"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {isOpen && (
+        <pre className="mt-2 text-xs text-muted-foreground whitespace-pre-wrap p-3 border rounded-md bg-muted/50 max-h-[200px] overflow-y-auto">
+          {EXAMPLE_PROMPT}
+        </pre>
+      )}
+    </div>
+  );
+}
 
 export default function AssistantsUnified() {
   const { organization } = useOrganization();
@@ -831,7 +896,7 @@ export default function AssistantsUnified() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">System Prompt</label>
+              <label className="text-sm font-medium">Assistant Instructions</label>
               <Textarea
                 value={formData.prompt}
                 onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
@@ -840,20 +905,23 @@ export default function AssistantsUnified() {
                 required
               />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isCreating}>
-                {isCreating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Assistant'
-                )}
-              </Button>
+            <DialogFooter className="flex-col gap-3 sm:flex-col">
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isCreating}>
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Assistant'
+                  )}
+                </Button>
+              </div>
+              <ExampleInstructions />
             </DialogFooter>
           </form>
         </DialogContent>
@@ -875,7 +943,7 @@ export default function AssistantsUnified() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">System Prompt</label>
+              <label className="text-sm font-medium">Assistant Instructions</label>
               <Textarea
                 value={formData.prompt}
                 onChange={(e) => setFormData({ ...formData, prompt: e.target.value })}
