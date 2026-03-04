@@ -54,18 +54,35 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     })
 
+    // Handle non-JSON responses (e.g. HTML error pages, timeouts)
+    const contentType = response.headers.get("content-type") || ""
+    if (!contentType.includes("application/json")) {
+      const text = await response.text()
+      logger.error("WhatsApp connect: non-JSON response", {
+        status: response.status,
+        contentType,
+        body: text.slice(0, 500),
+      })
+      return NextResponse.json(
+        { error: `Backend returned HTTP ${response.status}`, code: "backend_error" },
+        { status: response.status || 502 },
+      )
+    }
+
     const data = await response.json()
 
     if (!response.ok) {
-      logger.error("WhatsApp connect error", { data })
+      logger.error("WhatsApp connect error", { status: response.status, data })
       return NextResponse.json(data, { status: response.status })
     }
 
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
-    logger.error("Error connecting WhatsApp", {
-      error: error instanceof Error ? error.message : String(error),
-    })
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    const message = error instanceof Error ? error.message : String(error)
+    logger.error("Error connecting WhatsApp", { error: message })
+    return NextResponse.json(
+      { error: `Connection failed: ${message}`, code: "proxy_error" },
+      { status: 502 },
+    )
   }
 }

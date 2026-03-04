@@ -441,39 +441,39 @@ const EmbeddedSignup = () => {
       case "selectingAssistant":
         return (
           <div className="flex flex-col space-y-4">
-            <div className="p-4 bg-gray-50 rounded-md">
-              <p className="font-medium">Select Your Assistant</p>
-              <p className="text-sm text-gray-500 mb-4">Choose an assistant for your WhatsApp integration</p>
-              {isBusinessAppOnboarding && (
-                <div className="mb-4 p-2 bg-blue-50 rounded-md">
-                  <p className="text-sm text-blue-600">
-                    This will be connected to your existing WhatsApp Business app (coexistence mode)
-                  </p>
-                </div>
-              )}
-              <div className="mt-2 space-y-2">
+            {isBusinessAppOnboarding && (
+              <div className="p-2 bg-blue-50 rounded-md">
+                <p className="text-sm text-blue-600">
+                  This will be connected to your existing WhatsApp Business app (coexistence mode)
+                </p>
+              </div>
+            )}
+            <div>
+              <p className="font-medium text-sm mb-1">Select an assistant</p>
+              <p className="text-xs text-gray-500 mb-3">This assistant will handle conversations on your WhatsApp number.</p>
+              <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
                 {assistants.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">
+                  <div className="p-4 text-center text-gray-500 text-sm">
                     No assistants found. Please create an assistant first.
                   </div>
                 ) : (
                   assistants.map((assistant) => (
                     <div
                       key={assistant.id}
-                      className={`p-3 border rounded-md cursor-pointer ${
+                      className={`px-3 py-2 border rounded-md cursor-pointer transition-colors text-sm ${
                         selectedAssistant?.id === assistant.id
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-blue-300"
+                          ? "border-blue-500 bg-blue-50 font-medium"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
                       }`}
                       onClick={() => setSelectedAssistant(assistant)}
                     >
-                      <p className="font-medium">{assistant.name}</p>
+                      {assistant.name}
                     </div>
                   ))
                 )}
               </div>
             </div>
-            <CardFooter className="flex justify-end pt-0">
+            <CardFooter className="flex justify-end pt-0 px-0">
               <Button
                 onClick={connectWhatsApp}
                 disabled={isLoading || !selectedAssistant}
