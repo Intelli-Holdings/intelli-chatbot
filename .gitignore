@@ -3,3 +3,5 @@ my-app/.env.*
 my-app/.env
 my-app/.env.*
 nul
+package-lock.json
+!my-app/package-lock.json
