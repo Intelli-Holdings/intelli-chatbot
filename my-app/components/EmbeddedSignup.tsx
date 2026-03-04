@@ -174,13 +174,6 @@ const EmbeddedSignup = () => {
     return () => window.removeEventListener("message", handleMessage)
   }, [initializeFacebookSDK])
 
-  // Auto-advance: once we have both sdkCode + sessionInfo, fetch assistants
-  useEffect(() => {
-    if (step === "sdkComplete" && sdkCode && sessionInfo) {
-      fetchAssistants()
-    }
-  }, [step, sdkCode, sessionInfo])
-
   // -------------------------------------------------------------------------
   // 5) Fetch assistants for selection
   // -------------------------------------------------------------------------
@@ -208,79 +201,15 @@ const EmbeddedSignup = () => {
     }
   }, [organizationId, queryClient])
 
-  // -------------------------------------------------------------------------
-  // 6) Connect WhatsApp -- single backend call handles everything
-  //    (code exchange, long-lived token, WABA discovery, phone registration,
-  //     package creation, AppService creation)
-  // -------------------------------------------------------------------------
-  const connectWhatsApp = useCallback(async () => {
-    if (!sdkCode || !organizationId || !selectedAssistant) return
-
-    setIsLoading(true)
-    setError(null)
-    setStep("connecting")
-    setStatusMessage("Setting up your WhatsApp Business account...")
-
-    try {
-      const payload: Record<string, any> = {
-        organization_id: organizationId,
-        code: sdkCode,
-        is_coexistence: isBusinessAppOnboarding,
-        assistant_id: selectedAssistant.assistant_id,
-      }
-
-      // Pass SDK session hints if available
-      if (sessionInfo?.waba_id) {
-        payload.waba_id = sessionInfo.waba_id
-      }
-      if (sessionInfo?.phone_number_id) {
-        payload.phone_number_id = sessionInfo.phone_number_id
-      }
-
-      logger.info("Connecting WhatsApp via backend:", {
-        organization_id: organizationId,
-        is_coexistence: isBusinessAppOnboarding,
-        has_waba_hint: !!sessionInfo?.waba_id,
-        has_phone_hint: !!sessionInfo?.phone_number_id,
-      })
-
-      const response = await fetch("/api/appservice/connect/whatsapp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        const errorMsg = data.error || data.detail || "Failed to connect WhatsApp"
-        throw new Error(errorMsg)
-      }
-
-      setAppServiceResponse(data)
-      logger.info("WhatsApp connected successfully:", { appServiceId: data.id, isCoexistence: data.is_coexistence })
-
-      // For coexistence mode, start data synchronization
-      if (isBusinessAppOnboarding && sessionInfo) {
-        setStep("syncingContacts")
-        setStatusMessage("WhatsApp connected. Starting data synchronization...")
-        setTimeout(() => initiateContactsSync(), 1000)
-      } else {
-        setStep("complete")
-        setStatusMessage("Setup complete! Your WhatsApp business account is ready.")
-      }
-    } catch (err) {
-      logger.error("Error connecting WhatsApp:", { error: err instanceof Error ? err.message : String(err) })
-      setError(err instanceof Error ? err.message : "Error connecting WhatsApp")
-      setStatusMessage("Error connecting WhatsApp. Please try again.")
-      setStep("selectingAssistant")
-    } finally {
-      setIsLoading(false)
+  // Auto-advance: once we have both sdkCode + sessionInfo, fetch assistants
+  useEffect(() => {
+    if (step === "sdkComplete" && sdkCode && sessionInfo) {
+      fetchAssistants()
     }
-  }, [sdkCode, organizationId, selectedAssistant, isBusinessAppOnboarding, sessionInfo])
+  }, [step, sdkCode, sessionInfo, fetchAssistants])
 
   // -------------------------------------------------------------------------
-  // 7) Coexistence sync: contacts then history
+  // 6) Coexistence sync: history then contacts (defined first for dependency order)
   // -------------------------------------------------------------------------
   const initiateHistorySync = useCallback(async () => {
     if (!sessionInfo?.phone_number_id || !appServiceResponse) return
@@ -291,7 +220,6 @@ const EmbeddedSignup = () => {
     setStatusMessage("Synchronizing message history...")
 
     try {
-      // Use the access token from the created AppService
       const accessToken = appServiceResponse.access_token
       if (!accessToken) {
         logger.warn("No access token on AppService response, skipping history sync")
@@ -329,7 +257,6 @@ const EmbeddedSignup = () => {
     } catch (err) {
       logger.error("Error initiating history sync:", { error: err instanceof Error ? err.message : String(err) })
       setSyncError(err instanceof Error ? err.message : "Error initiating history sync")
-      // Non-fatal: proceed to complete
       setTimeout(() => {
         setStep("complete")
         setStatusMessage("Setup complete! History sync could not be initiated but your account is ready.")
@@ -381,12 +308,80 @@ const EmbeddedSignup = () => {
     } catch (err) {
       logger.error("Error initiating contacts sync:", { error: err instanceof Error ? err.message : String(err) })
       setSyncError(err instanceof Error ? err.message : "Error initiating contacts sync")
-      // Non-fatal: still try history sync
       setTimeout(() => initiateHistorySync(), 1000)
     } finally {
       setIsSyncingContacts(false)
     }
   }, [sessionInfo, appServiceResponse, initiateHistorySync])
+
+  // -------------------------------------------------------------------------
+  // 7) Connect WhatsApp -- single backend call handles everything
+  //    (code exchange, long-lived token, WABA discovery, phone registration,
+  //     package creation, AppService creation)
+  // -------------------------------------------------------------------------
+  const connectWhatsApp = useCallback(async () => {
+    if (!sdkCode || !organizationId || !selectedAssistant) return
+
+    setIsLoading(true)
+    setError(null)
+    setStep("connecting")
+    setStatusMessage("Setting up your WhatsApp Business account...")
+
+    try {
+      const payload: Record<string, any> = {
+        organization_id: organizationId,
+        code: sdkCode,
+        is_coexistence: isBusinessAppOnboarding,
+        assistant_id: selectedAssistant.assistant_id,
+      }
+
+      if (sessionInfo?.waba_id) {
+        payload.waba_id = sessionInfo.waba_id
+      }
+      if (sessionInfo?.phone_number_id) {
+        payload.phone_number_id = sessionInfo.phone_number_id
+      }
+
+      logger.info("Connecting WhatsApp via backend:", {
+        organization_id: organizationId,
+        is_coexistence: isBusinessAppOnboarding,
+        has_waba_hint: !!sessionInfo?.waba_id,
+        has_phone_hint: !!sessionInfo?.phone_number_id,
+      })
+
+      const response = await fetch("/api/appservice/connect/whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        const errorMsg = data.error || data.detail || "Failed to connect WhatsApp"
+        throw new Error(errorMsg)
+      }
+
+      setAppServiceResponse(data)
+      logger.info("WhatsApp connected successfully:", { appServiceId: data.id, isCoexistence: data.is_coexistence })
+
+      if (isBusinessAppOnboarding && sessionInfo) {
+        setStep("syncingContacts")
+        setStatusMessage("WhatsApp connected. Starting data synchronization...")
+        setTimeout(() => initiateContactsSync(), 1000)
+      } else {
+        setStep("complete")
+        setStatusMessage("Setup complete! Your WhatsApp business account is ready.")
+      }
+    } catch (err) {
+      logger.error("Error connecting WhatsApp:", { error: err instanceof Error ? err.message : String(err) })
+      setError(err instanceof Error ? err.message : "Error connecting WhatsApp")
+      setStatusMessage("Error connecting WhatsApp. Please try again.")
+      setStep("selectingAssistant")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [sdkCode, organizationId, selectedAssistant, isBusinessAppOnboarding, sessionInfo, initiateContactsSync])
 
   // -------------------------------------------------------------------------
   // Reset
