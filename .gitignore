@@ -2,4 +2,10 @@ my-app/.env
 my-app/.env.*
 my-app/.env
 my-app/.env.*
+<<<<<<< HEAD
 nul
+package-lock.json
+!my-app/package-lock.json
+=======
+.claude/settings.local.json
+>>>>>>> b32da880a18dcf0b40767aeb7529cbd83ac1906f
