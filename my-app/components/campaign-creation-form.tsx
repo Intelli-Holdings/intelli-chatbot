@@ -1768,15 +1768,15 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
 
   const isCarouselTemplate = useMemo(() => {
-    const selectedTemplate = getSelectedTemplate();
-    if (!selectedTemplate) return false;
-    return selectedTemplate.components?.some((c: any) => c.type === 'CAROUSEL') ?? false;
+    const tpl = approvedTemplates.find(t => t.name === formData.templateName);
+    if (!tpl) return false;
+    return tpl.components?.some((c: any) => c.type === 'CAROUSEL') ?? false;
   }, [formData.templateName, approvedTemplates]);
 
   const carouselCardCount = useMemo(() => {
-    const selectedTemplate = getSelectedTemplate();
-    if (!selectedTemplate) return 0;
-    const carouselComp = selectedTemplate.components?.find((c: any) => c.type === 'CAROUSEL');
+    const tpl = approvedTemplates.find(t => t.name === formData.templateName);
+    if (!tpl) return 0;
+    const carouselComp = tpl.components?.find((c: any) => c.type === 'CAROUSEL');
     return carouselComp?.cards?.length || 0;
   }, [formData.templateName, approvedTemplates]);
 
@@ -2202,6 +2202,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                           <>
                                             {/* Thumbnail */}
                                             {carouselPreviews[i] ? (
+                                              /* eslint-disable-next-line @next/next/no-img-element */
                                               <img
                                                 src={carouselPreviews[i]}
                                                 alt={`Card ${i + 1}`}
