@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useCallback, useState } from "react"
 import { useQueryClient } from "react-query"
-import { CardDescription, CardTitle, Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Loader, RefreshCcw, AlertCircle, CheckCircle } from "lucide-react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
@@ -637,75 +637,68 @@ const EmbeddedSignup = () => {
   }
 
   return (
-    <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-lg shadow-sm w-full h-full flex items-center justify-center">
-      <Card className="w-full max-w-2xl mx-auto">
-        <div className="p-6">
-          <CardTitle>WhatsApp Business Setup</CardTitle>
-          <CardDescription className="mt-1">
-            Connect your WhatsApp Business account
-            {isBusinessAppOnboarding && (
-              <span className="block mt-1 text-blue-600 font-medium">
-                Business App Integration Mode (Coexistence)
-              </span>
+    <Card className="w-full shadow-sm flex flex-col h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-semibold">WhatsApp Business Setup</CardTitle>
+        <CardDescription className="text-xs">
+          Connect your WhatsApp Business account
+          {isBusinessAppOnboarding && (
+            <span className="block mt-1 text-blue-600 font-medium">
+              Business App Integration Mode (Coexistence)
+            </span>
+          )}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex-1">
+        {renderStepContent()}
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-start">
+              <AlertCircle size={16} className="text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+            {!isLoading && (
+              <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={() => setError(null)}>
+                <RefreshCcw size={12} className="mr-1" /> Dismiss
+              </Button>
             )}
-          </CardDescription>
-        </div>
+          </div>
+        )}
 
-        <CardContent>
-          {renderStepContent()}
+        {statusMessage && (
+          <p className="text-xs italic text-muted-foreground mt-3">{statusMessage}</p>
+        )}
 
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <div className="flex items-start">
-                <AlertCircle size={16} className="text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
-              </div>
-              {!isLoading && (
-                <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={() => setError(null)}>
-                  <RefreshCcw size={12} className="mr-1" /> Dismiss
-                </Button>
+        {debugMode && (
+          <div className="mt-3">
+            <pre className="text-[10px] p-2 bg-gray-50 border rounded overflow-auto max-h-32">
+              {JSON.stringify(
+                {
+                  step,
+                  isBusinessAppOnboarding,
+                  sessionInfo,
+                  hasSdkCode: !!sdkCode,
+                  selectedAssistant: selectedAssistant?.name || null,
+                  appServiceResponseId: appServiceResponse?.id || null,
+                  contactsSynced: !!contactsSyncResponse,
+                  historySynced: !!historySyncResponse,
+                },
+                null,
+                2,
               )}
-            </div>
-          )}
+            </pre>
+          </div>
+        )}
+      </CardContent>
 
-          {statusMessage && (
-            <p className="text-sm italic text-gray-500 mt-4">{statusMessage}</p>
-          )}
-
-          {debugMode && (
-            <div className="mt-4 space-y-2">
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <p className="text-xs font-medium mb-1">Debug: Flow Info</p>
-                <pre className="text-xs overflow-auto max-h-40">
-                  {JSON.stringify(
-                    {
-                      step,
-                      isBusinessAppOnboarding,
-                      sessionInfo,
-                      hasSdkCode: !!sdkCode,
-                      selectedAssistant: selectedAssistant?.name || null,
-                      appServiceResponseId: appServiceResponse?.id || null,
-                      contactsSynced: !!contactsSyncResponse,
-                      historySynced: !!historySyncResponse,
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
-              </div>
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="justify-end">
-          <Button variant="ghost" size="sm" onClick={() => setDebugMode(!debugMode)} className="text-xs text-gray-400">
-            {debugMode ? "Hide Debug" : "Debug"}
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+      <CardFooter className="justify-end pt-0">
+        <Button variant="ghost" size="sm" onClick={() => setDebugMode(!debugMode)} className="text-xs text-gray-400">
+          {debugMode ? "Hide Debug" : "Debug"}
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }
 

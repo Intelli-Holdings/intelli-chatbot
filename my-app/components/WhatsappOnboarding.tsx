@@ -139,19 +139,18 @@ const WhatsappAssistant = () => {
   ];
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 p-6">
-    
-      <Card className="md:w-1/2 shadow-md p-6 rounded-lg">
+    <div className="flex flex-col md:flex-row gap-4">
+      <div className="md:w-3/5 flex">
         <EmbeddedSignup />
-      </Card>
+      </div>
 
-      <div className="md:w-1/2 flex flex-col gap-4">
+      <div className="md:w-2/5 flex flex-col gap-4">
         {/* Prerequisites Card */}
-        <Card className="bg-white shadow-md p-6 rounded-lg">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gray-800">Onboarding Requirements</CardTitle>
-            <CardDescription className="text-gray-600">
-              Essential prerequisites before connecting WhatsApp Business API
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">Onboarding Requirements</CardTitle>
+            <CardDescription className="text-xs">
+              Prerequisites before connecting WhatsApp Business API
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
