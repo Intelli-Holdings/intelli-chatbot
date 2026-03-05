@@ -154,42 +154,56 @@ const WhatsappAssistant = () => {
               Essential prerequisites before connecting WhatsApp Business API
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start gap-3">
-              <span className="text-green-600 font-bold">✅</span>
-              <p className="text-sm text-gray-700">
-                <strong>Active Facebook Business Page</strong> - Your business must have an active Facebook page
-              </p>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Required for both flows</p>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <Check size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-gray-700">
+                  <strong>Active Facebook Business Page</strong> - Your business must have an active Facebook page
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-gray-700">
+                  <strong>Full Administrative Access</strong> - Admin access to Facebook Business Page and Business Manager
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-gray-700">
+                  <strong>Business Website</strong> with functional contact information
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Check size={16} className="text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-gray-700">
+                  <strong>Privacy Policy and Terms of Service</strong> published on your website
+                </p>
+              </div>
             </div>
-            <div className="flex items-start gap-3">
-              <span className="text-green-600 font-bold">✅</span>
-              <p className="text-sm text-gray-700">
-                <strong>Full Administrative Access</strong> - Must have full admin access to Facebook Business Page and business.facebook.com Business Portfolio/Business Manager
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="text-green-600 font-bold">✅</span>
-              <p className="text-sm text-gray-700">
-                <strong>Dedicated Phone Number</strong> - Must NOT be currently used on WhatsApp (ready to receive OTP via SMS or Call)
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="text-green-600 font-bold">✅</span>
-              <p className="text-sm text-gray-700">
-                <strong>Business Website</strong> with functional contact information
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="text-green-600 font-bold">✅</span>
-              <p className="text-sm text-gray-700">
-                <strong>Privacy Policy and Terms of Service</strong> published on your website
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="text-green-600 font-bold">✅</span>
-              <p className="text-sm text-gray-700">
-                <strong>Business Knowledge Base</strong> (FAQs, documentation) for customer support
-              </p>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-3 border rounded-lg bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-800 mb-2 uppercase tracking-wide">New Number</p>
+                  <div className="flex items-start gap-2">
+                    <Check size={14} className="text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-600">
+                      <strong>Dedicated phone number</strong> not currently registered on WhatsApp, ready to receive OTP via SMS or call
+                    </p>
+                  </div>
+                </div>
+                <div className="p-3 border rounded-lg bg-blue-50">
+                  <p className="text-xs font-semibold text-blue-800 mb-2 uppercase tracking-wide">Coexistence</p>
+                  <div className="flex items-start gap-2">
+                    <Check size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-600">
+                      <strong>Existing WhatsApp Business App</strong> number -- your WA Business app keeps working alongside our platform
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>     

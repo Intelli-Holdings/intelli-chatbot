@@ -442,42 +442,45 @@ const EmbeddedSignup = () => {
         return (
           <div className="flex flex-col space-y-4">
             {isBusinessAppOnboarding && (
-              <div className="p-2 bg-blue-50 rounded-md">
+              <div className="p-2.5 bg-blue-50 rounded-md text-center">
                 <p className="text-sm text-blue-600">
-                  This will be connected to your existing WhatsApp Business app (coexistence mode)
+                  Coexistence mode — your existing WhatsApp Business app will keep working alongside our platform.
                 </p>
               </div>
             )}
-            <div>
-              <p className="font-medium text-sm mb-1">Select an assistant</p>
-              <p className="text-xs text-gray-500 mb-3">This assistant will handle conversations on your WhatsApp number.</p>
-              <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
-                {assistants.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500 text-sm">
-                    No assistants found. Please create an assistant first.
-                  </div>
-                ) : (
-                  assistants.map((assistant) => (
+            <div className="text-center">
+              <p className="font-medium mb-1">Select an assistant</p>
+              <p className="text-xs text-muted-foreground">This assistant will handle conversations on your WhatsApp number.</p>
+            </div>
+            <div className="max-h-64 overflow-y-auto px-1">
+              {assistants.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground text-sm">
+                  No assistants found. Please create an assistant first.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {assistants.map((assistant) => (
                     <div
                       key={assistant.id}
-                      className={`px-3 py-2 border rounded-md cursor-pointer transition-colors text-sm ${
+                      className={`px-3 py-2.5 border rounded-lg cursor-pointer transition-all text-sm text-center truncate ${
                         selectedAssistant?.id === assistant.id
-                          ? "border-blue-500 bg-blue-50 font-medium"
+                          ? "border-blue-500 bg-blue-50 font-medium ring-1 ring-blue-500"
                           : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
                       }`}
                       onClick={() => setSelectedAssistant(assistant)}
+                      title={assistant.name}
                     >
                       {assistant.name}
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <CardFooter className="flex justify-end pt-0 px-0">
+            <div className="flex justify-center pt-2">
               <Button
                 onClick={connectWhatsApp}
                 disabled={isLoading || !selectedAssistant}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 px-6"
               >
                 {isLoading ? (
                   <>
@@ -489,7 +492,7 @@ const EmbeddedSignup = () => {
                   </>
                 )}
               </Button>
-            </CardFooter>
+            </div>
           </div>
         )
 
@@ -635,7 +638,7 @@ const EmbeddedSignup = () => {
 
   return (
     <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-lg shadow-sm w-full h-full flex items-center justify-center">
-      <Card className="w-full max-w-lg mx-auto">
+      <Card className="w-full max-w-2xl mx-auto">
         <div className="p-6">
           <CardTitle>WhatsApp Business Setup</CardTitle>
           <CardDescription className="mt-1">
