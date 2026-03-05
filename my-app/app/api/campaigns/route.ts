@@ -93,8 +93,9 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      logger.error("Backend error response", { data: errorData })
       return NextResponse.json(
-        { error: errorData.detail || errorData.message || "Failed to create campaign" },
+        { error: errorData.error || errorData.detail || errorData.message || "Failed to create campaign" },
         { status: response.status }
       )
     }
