@@ -409,7 +409,7 @@ const EmbeddedSignup = () => {
     switch (step) {
       case "initial":
         return (
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center justify-center space-y-4 min-h-[200px]">
             <Button onClick={launchWhatsAppSignup} className="bg-[#1877f2] hover:bg-[#166fe5]">
               Login with Facebook
             </Button>
