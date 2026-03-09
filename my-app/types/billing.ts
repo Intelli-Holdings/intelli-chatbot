@@ -101,6 +101,7 @@ export interface SubscriptionState {
   status: SubscriptionStatus;
   billing_interval: BillingInterval;
   payment_provider: PaymentProvider | "";
+  stripe_customer_id: string | null;
   current_period_start: string | null;
   current_period_end: string | null;
   trial_start: string | null;
@@ -147,6 +148,81 @@ export interface InvoiceLineItem {
   quantity: number;
   unit_price: string;
   total: string;
+}
+
+// ---------------------------------------------------------------------------
+// Payment method (aligned with Stripe PaymentMethod object)
+// ---------------------------------------------------------------------------
+
+export type CardBrand =
+  | "amex"
+  | "cartes_bancaires"
+  | "diners"
+  | "discover"
+  | "eftpos_au"
+  | "jcb"
+  | "mastercard"
+  | "unionpay"
+  | "visa"
+  | "unknown";
+
+export type CardFunding = "credit" | "debit" | "prepaid" | "unknown";
+
+export type CardWalletType =
+  | "apple_pay"
+  | "google_pay"
+  | "samsung_pay"
+  | "link";
+
+export interface PaymentMethodCard {
+  brand: CardBrand;
+  display_brand: string | null;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+  funding: CardFunding;
+  country: string | null;
+  fingerprint: string | null;
+  checks: {
+    address_line1_check: string | null;
+    address_postal_code_check: string | null;
+    cvc_check: string | null;
+  } | null;
+  three_d_secure_usage: {
+    supported: boolean;
+  } | null;
+  wallet: {
+    type: CardWalletType;
+    dynamic_last4: string | null;
+  } | null;
+  networks: {
+    available: string[];
+    preferred: string | null;
+  } | null;
+}
+
+export interface PaymentMethodBillingDetails {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: {
+    city: string | null;
+    country: string | null;
+    line1: string | null;
+    line2: string | null;
+    postal_code: string | null;
+    state: string | null;
+  } | null;
+}
+
+export interface PaymentMethod {
+  id: string;
+  type: "card" | "sepa_debit" | "us_bank_account" | string;
+  card: PaymentMethodCard | null;
+  billing_details: PaymentMethodBillingDetails;
+  created: number;
+  livemode: boolean;
+  is_default: boolean;
 }
 
 // ---------------------------------------------------------------------------

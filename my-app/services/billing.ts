@@ -10,6 +10,7 @@ import type {
   Invoice,
   CreditBalance,
   BillingInterval,
+  PaymentMethod,
 } from "@/types/billing";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://backend.intelliconcierge.com";
@@ -184,6 +185,26 @@ export class BillingService {
 
   static async getCreditUsage(orgId: string): Promise<CreditBalance> {
     return apiFetch<CreditBalance>(`/subscriptions/org/${orgId}/credits/`);
+  }
+
+  // -----------------------------------------------------------------------
+  // Payment methods
+  // -----------------------------------------------------------------------
+
+  static async getPaymentMethods(orgId: string): Promise<PaymentMethod[]> {
+    return apiFetch<PaymentMethod[]>(`/subscriptions/org/${orgId}/payment-methods/`);
+  }
+
+  static async removePaymentMethod(orgId: string, paymentMethodId: string): Promise<{ message: string }> {
+    return apiFetch(`/subscriptions/org/${orgId}/payment-methods/${paymentMethodId}/`, {
+      method: "DELETE",
+    });
+  }
+
+  static async getSetupIntent(orgId: string): Promise<{ client_secret: string }> {
+    return apiFetch(`/subscriptions/org/${orgId}/payment-methods/setup/`, {
+      method: "POST",
+    });
   }
 
   // -----------------------------------------------------------------------
