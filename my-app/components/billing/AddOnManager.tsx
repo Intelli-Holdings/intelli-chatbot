@@ -4,8 +4,9 @@ import { useState } from "react";
 import { BillingService } from "@/services/billing";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Minus, ArrowRight, RotateCcw, RefreshCw } from "lucide-react";
+import { Plus, Minus, RotateCcw, RefreshCw, ArrowRight } from "lucide-react";
 import type { AddOn, SubscriptionAddOn, SubscriptionStatus, PaymentProvider } from "@/types/billing";
 import { useAddOnCatalog } from "@/hooks/use-addon-catalog";
 import {
@@ -93,9 +94,9 @@ export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscrip
 
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
+          <Skeleton key={i} className="h-16 w-full rounded-lg" />
         ))}
       </div>
     );
@@ -103,7 +104,7 @@ export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscrip
 
   if (addonsError) {
     return (
-      <div className="flex flex-col items-center gap-3 py-6 text-center">
+      <div className="flex flex-col items-center gap-3 py-8 text-center">
         <p className="text-sm text-muted-foreground">{addonsError}</p>
         <Button variant="outline" size="sm" onClick={refetchAddOns}>
           <RefreshCw className="h-3 w-3 mr-1" />
@@ -122,34 +123,34 @@ export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscrip
         return (
           <div
             key={addon.id}
-            className={`flex items-center justify-between p-3 rounded-lg border ${
+            className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
               pendingRemoval
-                ? "border-amber-200 bg-amber-50/50"
+                ? "border-amber-200 bg-amber-50/30"
                 : attached
-                  ? "border-primary/30 bg-primary/5"
-                  : "border-border"
+                  ? "border-primary/20 bg-primary/[0.02]"
+                  : "border-border hover:border-muted-foreground/20"
             }`}
           >
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className={`text-sm font-medium ${pendingRemoval ? "text-muted-foreground" : ""}`}>
                   {addon.name}
                 </p>
                 {attached && !pendingRemoval && (
-                  <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                     Active
-                  </span>
+                  </Badge>
                 )}
                 {pendingRemoval && (
-                  <span className="text-[10px] font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
-                    Cancels {periodEnd ? new Date(periodEnd).toLocaleDateString() : "at period end"}
-                  </span>
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-amber-200 text-amber-700 bg-amber-50">
+                    Cancels {periodEnd ? new Date(periodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "at period end"}
+                  </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 ${addon.unit_price} {addon.unit_label}
-                {attached && addon.is_metered && qty > 0 && (
-                  <> &middot; Qty: {qty}</>
+                {attached && addon.is_metered && qty > 1 && (
+                  <span className="text-foreground font-medium"> · Qty: {qty}</span>
                 )}
               </p>
             </div>
@@ -157,6 +158,7 @@ export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscrip
               <Button
                 variant="outline"
                 size="sm"
+                className="h-7 text-xs shrink-0"
                 onClick={() => handleReactivate(addon)}
                 disabled={reactivatingId === addon.id}
               >
@@ -167,6 +169,7 @@ export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscrip
               <Button
                 variant={attached ? "outline" : "default"}
                 size="sm"
+                className="h-7 text-xs shrink-0"
                 onClick={() =>
                   attached ? handleRemoveClick(addon) : handleAddClick(addon)
                 }
@@ -196,7 +199,7 @@ export function AddOnManager({ organizationId, currentAddOns, onUpdate, subscrip
               End your trial and start your subscription with add-ons.
             </p>
           </div>
-          <Button size="sm" asChild>
+          <Button size="sm" className="h-7 text-xs" asChild>
             <a href={checkoutUrl}>
               Subscribe now
               <ArrowRight className="h-3 w-3 ml-1" />

@@ -82,8 +82,8 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
       onClose();
       await onPlanChanged?.();
       router.refresh();
-    } catch {
-      // Error handled by service
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to change plan");
     }
   };
 
