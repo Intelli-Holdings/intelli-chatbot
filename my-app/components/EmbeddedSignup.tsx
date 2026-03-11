@@ -37,9 +37,16 @@ type WhatsAppSessionInfo = {
 
 type AppServiceResponse = { id: number; is_coexistence?: boolean; [key: string]: any }
 
-type SyncResponse = {
-  messaging_product: string
-  request_id: string
+type SyncTracker = {
+  id: number
+  sync_type: 'contacts' | 'history'
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  items_synced: number
+  request_id: string | null
+  error_message: string | null
+  started_at: string
+  completed_at: string | null
+  updated_at: string
 }
 
 type Assistant = {
@@ -84,10 +91,8 @@ const EmbeddedSignup = () => {
   const [appServiceResponse, setAppServiceResponse] = useState<AppServiceResponse | null>(null)
 
   // Coexistence sync state
-  const [contactsSyncResponse, setContactsSyncResponse] = useState<SyncResponse | null>(null)
-  const [historySyncResponse, setHistorySyncResponse] = useState<SyncResponse | null>(null)
-  const [isSyncingContacts, setIsSyncingContacts] = useState(false)
-  const [isSyncingHistory, setIsSyncingHistory] = useState(false)
+  const [syncTrackers, setSyncTrackers] = useState<SyncTracker[]>([])
+  const [isSyncing, setIsSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
 
   // Debug
@@ -209,110 +214,80 @@ const EmbeddedSignup = () => {
   }, [step, sdkCode, sessionInfo, fetchAssistants])
 
   // -------------------------------------------------------------------------
-  // 6) Coexistence sync: history then contacts (defined first for dependency order)
+  // 6) Coexistence sync: initiate via backend + poll for progress
   // -------------------------------------------------------------------------
-  const initiateHistorySync = useCallback(async () => {
-    if (!sessionInfo?.phone_number_id || !appServiceResponse) return
-
-    setIsSyncingHistory(true)
+  const initiateSync = useCallback(async (appserviceId: number) => {
+    setIsSyncing(true)
     setSyncError(null)
-    setStep("syncingHistory")
-    setStatusMessage("Synchronizing message history...")
+    setStep("syncingContacts")
+    setStatusMessage("Starting data synchronization...")
 
     try {
-      const accessToken = appServiceResponse.access_token
-      if (!accessToken) {
-        logger.warn("No access token on AppService response, skipping history sync")
-        setStep("complete")
-        setStatusMessage("Setup complete! Your WhatsApp Business app is connected.")
-        return
-      }
-
-      const url = `https://graph.facebook.com/v22.0/${sessionInfo.phone_number_id}/smb_app_data`
-      const response = await fetch(url, {
+      const response = await fetch(`/api/appservice/${appserviceId}/coexistence/sync`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          sync_type: "history",
-        }),
+        headers: { "Content-Type": "application/json" },
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error?.message || "Failed to initiate history synchronization")
+        throw new Error(data.error || "Failed to initiate sync")
       }
 
-      setHistorySyncResponse(data)
-      setStatusMessage("History sync initiated. Completing setup...")
-
-      setTimeout(() => {
-        setStep("complete")
-        setStatusMessage("Setup complete! Your WhatsApp Business app is connected and data synchronization is in progress.")
-      }, 2000)
+      setSyncTrackers(data)
+      logger.info("Coexistence sync initiated:", { trackers: data })
     } catch (err) {
-      logger.error("Error initiating history sync:", { error: err instanceof Error ? err.message : String(err) })
-      setSyncError(err instanceof Error ? err.message : "Error initiating history sync")
-      setTimeout(() => {
-        setStep("complete")
-        setStatusMessage("Setup complete! History sync could not be initiated but your account is ready.")
-      }, 2000)
-    } finally {
-      setIsSyncingHistory(false)
+      logger.error("Error initiating sync:", { error: err instanceof Error ? err.message : String(err) })
+      setSyncError(err instanceof Error ? err.message : "Error initiating sync")
+      setIsSyncing(false)
     }
-  }, [sessionInfo, appServiceResponse])
+  }, [])
 
-  const initiateContactsSync = useCallback(async () => {
-    if (!sessionInfo?.phone_number_id || !appServiceResponse) return
+  // Poll sync status while syncing
+  useEffect(() => {
+    if (!isSyncing || !appServiceResponse?.id || syncTrackers.length === 0) return
 
-    setIsSyncingContacts(true)
-    setSyncError(null)
-    setStatusMessage("Synchronizing contacts from WhatsApp Business app...")
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/appservice/${appServiceResponse.id}/coexistence/sync/status`)
+        if (!response.ok) return
 
-    try {
-      const accessToken = appServiceResponse.access_token
-      if (!accessToken) {
-        logger.warn("No access token on AppService response, skipping contacts sync")
-        setStep("complete")
-        setStatusMessage("Setup complete! Your WhatsApp Business app is connected.")
-        return
+        const data: SyncTracker[] = await response.json()
+        setSyncTrackers(data)
+
+        const contactsTracker = data.find(t => t.sync_type === 'contacts')
+        const historyTracker = data.find(t => t.sync_type === 'history')
+
+        // Update step based on progress
+        if (contactsTracker?.status === 'in_progress' || contactsTracker?.status === 'pending') {
+          setStep("syncingContacts")
+          const count = contactsTracker.items_synced || 0
+          setStatusMessage(count > 0
+            ? `Synchronizing contacts... (${count} synced)`
+            : "Synchronizing contacts...")
+        } else if (historyTracker?.status === 'in_progress' || historyTracker?.status === 'pending') {
+          setStep("syncingHistory")
+          const count = historyTracker.items_synced || 0
+          setStatusMessage(count > 0
+            ? `Synchronizing message history... (${count} messages)`
+            : "Synchronizing message history...")
+        }
+
+        // Check if all done
+        const allDone = data.every(t => t.status === 'completed' || t.status === 'failed')
+        if (allDone) {
+          clearInterval(pollInterval)
+          setIsSyncing(false)
+          setStep("complete")
+          setStatusMessage("Setup complete! Your WhatsApp Business app is connected and synchronized.")
+        }
+      } catch (err) {
+        logger.error("Error polling sync status:", { error: err instanceof Error ? err.message : String(err) })
       }
+    }, 3000)
 
-      const url = `https://graph.facebook.com/v22.0/${sessionInfo.phone_number_id}/smb_app_data`
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          sync_type: "smb_app_state_sync",
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || "Failed to initiate contacts synchronization")
-      }
-
-      setContactsSyncResponse(data)
-      setStatusMessage("Contacts sync initiated. Now synchronizing message history...")
-
-      setTimeout(() => initiateHistorySync(), 1000)
-    } catch (err) {
-      logger.error("Error initiating contacts sync:", { error: err instanceof Error ? err.message : String(err) })
-      setSyncError(err instanceof Error ? err.message : "Error initiating contacts sync")
-      setTimeout(() => initiateHistorySync(), 1000)
-    } finally {
-      setIsSyncingContacts(false)
-    }
-  }, [sessionInfo, appServiceResponse, initiateHistorySync])
+    return () => clearInterval(pollInterval)
+  }, [isSyncing, appServiceResponse?.id, syncTrackers.length])
 
   // -------------------------------------------------------------------------
   // 7) Connect WhatsApp -- single backend call handles everything
@@ -366,9 +341,7 @@ const EmbeddedSignup = () => {
       logger.info("WhatsApp connected successfully:", { appServiceId: data.id, isCoexistence: data.is_coexistence })
 
       if (isBusinessAppOnboarding && sessionInfo) {
-        setStep("syncingContacts")
-        setStatusMessage("WhatsApp connected. Starting data synchronization...")
-        setTimeout(() => initiateContactsSync(), 1000)
+        initiateSync(data.id)
       } else {
         setStep("complete")
         setStatusMessage("Setup complete! Your WhatsApp business account is ready.")
@@ -381,7 +354,7 @@ const EmbeddedSignup = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [sdkCode, organizationId, selectedAssistant, isBusinessAppOnboarding, sessionInfo, initiateContactsSync])
+  }, [sdkCode, organizationId, selectedAssistant, isBusinessAppOnboarding, sessionInfo, initiateSync])
 
   // -------------------------------------------------------------------------
   // Reset
@@ -397,8 +370,8 @@ const EmbeddedSignup = () => {
     setAssistants([])
     setSelectedAssistant(null)
     setAppServiceResponse(null)
-    setContactsSyncResponse(null)
-    setHistorySyncResponse(null)
+    setSyncTrackers([])
+    setIsSyncing(false)
     setSyncError(null)
   }, [])
 
@@ -513,78 +486,85 @@ const EmbeddedSignup = () => {
         )
 
       case "syncingContacts":
-        return (
-          <div className="flex flex-col space-y-4">
-            <div className="p-4 bg-blue-50 rounded-md">
-              <p className="font-medium text-blue-700">Synchronizing Contacts</p>
-              <p className="text-sm text-blue-600">
-                Importing your WhatsApp Business app contacts. This may take a few moments...
-              </p>
-              {contactsSyncResponse && (
-                <div className="mt-2 p-2 bg-white rounded-md">
-                  <p className="text-xs text-gray-600">Request ID: {contactsSyncResponse.request_id}</p>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center justify-center p-4">
-              <Loader size={24} className="animate-spin" />
-              <span className="ml-2">Synchronizing contacts...</span>
-            </div>
-            {syncError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600">{syncError}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 text-xs"
-                  onClick={() => {
-                    setSyncError(null)
-                    initiateContactsSync()
-                  }}
-                >
-                  <RefreshCcw size={12} className="mr-1" /> Retry Sync
-                </Button>
-              </div>
-            )}
-          </div>
-        )
+      case "syncingHistory": {
+        const contactsTracker = syncTrackers.find(t => t.sync_type === 'contacts')
+        const historyTracker = syncTrackers.find(t => t.sync_type === 'history')
+        const isOnContacts = step === "syncingContacts"
 
-      case "syncingHistory":
         return (
           <div className="flex flex-col space-y-4">
-            <div className="p-4 bg-blue-50 rounded-md">
-              <p className="font-medium text-blue-700">Synchronizing Message History</p>
-              <p className="text-sm text-blue-600">
-                Importing your WhatsApp Business app message history. This process may take several minutes...
-              </p>
-              {historySyncResponse && (
-                <div className="mt-2 p-2 bg-white rounded-md">
-                  <p className="text-xs text-gray-600">Request ID: {historySyncResponse.request_id}</p>
+            {/* Contacts sync progress */}
+            <div className={`p-4 rounded-md ${isOnContacts ? 'bg-blue-50' : 'bg-green-50'}`}>
+              <div className="flex items-center justify-between">
+                <p className={`font-medium ${isOnContacts ? 'text-blue-700' : 'text-green-700'}`}>
+                  {isOnContacts ? 'Synchronizing Contacts' : 'Contacts Synchronized'}
+                </p>
+                {contactsTracker && contactsTracker.items_synced > 0 && (
+                  <span className="text-sm font-mono text-gray-600">
+                    {contactsTracker.items_synced} synced
+                  </span>
+                )}
+              </div>
+              {isOnContacts && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Importing your WhatsApp Business app contacts...
+                </p>
+              )}
+              {!isOnContacts && contactsTracker && (
+                <div className="flex items-center space-x-1 mt-1">
+                  <CheckCircle size={14} className="text-green-500" />
+                  <span className="text-sm text-green-600">
+                    {contactsTracker.items_synced} contacts synced
+                  </span>
                 </div>
               )}
             </div>
+
+            {/* History sync progress */}
+            {!isOnContacts && (
+              <div className="p-4 bg-blue-50 rounded-md">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-blue-700">Synchronizing Message History</p>
+                  {historyTracker && historyTracker.items_synced > 0 && (
+                    <span className="text-sm font-mono text-gray-600">
+                      {historyTracker.items_synced} messages
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-blue-600 mt-1">
+                  Importing your WhatsApp Business app message history...
+                </p>
+              </div>
+            )}
+
+            {/* Spinner */}
             <div className="flex items-center justify-center p-4">
               <Loader size={24} className="animate-spin" />
-              <span className="ml-2">Synchronizing message history...</span>
+              <span className="ml-2">{statusMessage}</span>
             </div>
+
+            {/* Error */}
             {syncError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-sm text-red-600">{syncError}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 text-xs"
-                  onClick={() => {
-                    setSyncError(null)
-                    initiateHistorySync()
-                  }}
-                >
-                  <RefreshCcw size={12} className="mr-1" /> Retry Sync
-                </Button>
+                {appServiceResponse && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 text-xs"
+                    onClick={() => {
+                      setSyncError(null)
+                      initiateSync(appServiceResponse.id)
+                    }}
+                  >
+                    <RefreshCcw size={12} className="mr-1" /> Retry Sync
+                  </Button>
+                )}
               </div>
             )}
           </div>
         )
+      }
 
       case "complete":
         return (
@@ -603,23 +583,23 @@ const EmbeddedSignup = () => {
                     <CheckCircle size={16} className="text-green-500" />
                     <span className="text-sm text-green-600">WhatsApp Business app connected</span>
                   </div>
-                  {contactsSyncResponse && (
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle size={16} className="text-green-500" />
-                      <span className="text-sm text-green-600">Contacts synchronization initiated</span>
+                  {syncTrackers.map((tracker) => (
+                    <div key={tracker.id} className="flex items-center space-x-2">
+                      {tracker.status === 'completed' ? (
+                        <CheckCircle size={16} className="text-green-500" />
+                      ) : tracker.status === 'failed' ? (
+                        <AlertCircle size={16} className="text-red-500" />
+                      ) : (
+                        <Loader size={16} className="animate-spin text-blue-500" />
+                      )}
+                      <span className={`text-sm ${tracker.status === 'failed' ? 'text-red-600' : 'text-green-600'}`}>
+                        {tracker.sync_type === 'contacts' ? 'Contacts' : 'Message history'} sync
+                        {tracker.status === 'completed' && ` completed (${tracker.items_synced} ${tracker.sync_type === 'contacts' ? 'contacts' : 'messages'})`}
+                        {tracker.status === 'failed' && `: ${tracker.error_message || 'failed'}`}
+                        {(tracker.status === 'in_progress' || tracker.status === 'pending') && ' in progress...'}
+                      </span>
                     </div>
-                  )}
-                  {historySyncResponse && (
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle size={16} className="text-green-500" />
-                      <span className="text-sm text-green-600">Message history synchronization initiated</span>
-                    </div>
-                  )}
-                  <div className="mt-3 p-2 bg-yellow-50 rounded-md">
-                    <p className="text-xs text-yellow-600">
-                      <strong>Note:</strong> Synchronization will continue in the background. You&apos;ll receive webhooks as your data is processed.
-                    </p>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -682,8 +662,7 @@ const EmbeddedSignup = () => {
                   hasSdkCode: !!sdkCode,
                   selectedAssistant: selectedAssistant?.name || null,
                   appServiceResponseId: appServiceResponse?.id || null,
-                  contactsSynced: !!contactsSyncResponse,
-                  historySynced: !!historySyncResponse,
+                  syncTrackers: syncTrackers.map(t => `${t.sync_type}:${t.status}`),
                 },
                 null,
                 2,
