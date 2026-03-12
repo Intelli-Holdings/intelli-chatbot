@@ -1,10 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { usePathname } from "next/navigation"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
-import { SettingsSearch } from "@/components/settings-search"
 import { useAppServices } from "@/hooks/use-app-services"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -23,29 +19,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AlertTriangle, Bot, Loader2, MessageSquare, Pause, Play, Settings2, Workflow } from "lucide-react"
 import { toast } from "sonner"
 import { logger } from "@/lib/logger"
-
-const settingsNavigation = [
-  {
-    title: "General",
-    href: "/dashboard/settings",
-  },
-  {
-    title: "Automation",
-    href: "/dashboard/settings/automation",
-  },
-  {
-    title: "Custom Fields",
-    href: "/dashboard/settings/custom-fields",
-  },
-  {
-    title: "Escalation Events",
-    href: "/dashboard/settings/escalation-events",
-  },
-  {
-    title: "Webhooks",
-    href: "/dashboard/settings/webhooks",
-  },
-]
 
 interface ChatbotFlowInfo {
   id: string
@@ -68,7 +41,6 @@ interface AutomationSettings {
 }
 
 export default function AutomationSettingsPage() {
-  const pathname = usePathname()
   const { appServices, loading: loadingAppServices, selectedAppService, setSelectedAppService } = useAppServices()
 
   const [settings, setSettings] = useState<AutomationSettings | null>(null)
@@ -76,13 +48,11 @@ export default function AutomationSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [toggling, setToggling] = useState(false)
 
-  // Form state
   const [mode, setMode] = useState<string>("manual")
   const [selectedAssistantId, setSelectedAssistantId] = useState<string>("")
   const [selectedChatbotFlowIds, setSelectedChatbotFlowIds] = useState<string[]>([])
   const [autoFallback, setAutoFallback] = useState(true)
 
-  // Fetch automation settings when app service changes
   useEffect(() => {
     const fetchSettings = async () => {
       if (!selectedAppService?.id) return
@@ -100,11 +70,8 @@ export default function AutomationSettingsPage() {
         }
 
         setSettings(data as AutomationSettings)
-
-        // Initialize form state from settings
         setMode(data.automation_mode === "paused" ? "manual" : data.automation_mode)
         setSelectedAssistantId(data.assistant?.id?.toString() || "")
-        // Get enabled flow IDs from active_chatbot_flows or available_chatbot_flows
         const enabledFlowIds = data.active_chatbot_flows?.map((f: ChatbotFlowInfo) => f.id) ||
           data.available_chatbot_flows?.filter((f: ChatbotFlowInfo) => f.is_enabled).map((f: ChatbotFlowInfo) => f.id) ||
           (data.chatbot_flow ? [data.chatbot_flow.id] : [])
@@ -197,7 +164,7 @@ export default function AutomationSettingsPage() {
       case "chatbot_with_fallback":
         return "Chatbot flow first, then AI assistant if no match or handoff"
       case "manual":
-        return "No automation - all messages require Human Agent"
+        return "No automation — all messages require a human agent"
       default:
         return ""
     }
@@ -207,67 +174,28 @@ export default function AutomationSettingsPage() {
   const needsChatbot = mode === "chatbot_only" || mode === "chatbot_with_fallback"
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Left Sidebar Navigation */}
-      <aside className="w-64 border-r border-border bg-card">
-        <div className="sticky top-0 flex h-screen flex-col">
-          {/* Header */}
-          <div className="border-b border-border p-6">
-            <h1 className="text-2xl font-bold">Settings</h1>
-            <Link
-              href="/dashboard"
-              className="mt-2 flex items-center text-sm text-muted-foreground hover:text-foreground"
-            >
-              <span>← Go to Dashboard</span>
-            </Link>
-          </div>
+    <>
+      {/* Page header */}
+      <div className="mb-golden-xl">
+        <h2 className="text-golden-heading font-semibold tracking-tight">Automation</h2>
+        <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
+          Configure how your WhatsApp messages are handled automatically
+        </p>
+      </div>
 
-          {/* Search */}
-          <div className="border-b border-border p-4">
-            <SettingsSearch />
-          </div>
-
-          {/* Navigation Items */}
-          <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-            {settingsNavigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground",
-                )}
-              >
-                {item.title}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold">Automation</h2>
-            <p className="mt-2 text-muted-foreground">
-              Configure how your WhatsApp messages are handled automatically
-            </p>
-          </div>
-
-          {/* App Service Selector */}
-          <div className="mb-6">
-            <Label className="mb-2 block text-sm font-medium">WhatsApp Number</Label>
+      <div className="flex flex-col gap-golden-lg">
+        {/* WhatsApp Number selector */}
+        <section>
+          <h3 className="mb-golden-sm px-golden-3xs text-golden-label font-medium uppercase tracking-wide text-muted-foreground">
+            WhatsApp Number
+          </h3>
+          <div className="rounded-squircle-md border border-border/60 bg-card px-golden-lg py-golden-md">
             {loadingAppServices ? (
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-[34px] w-full" />
             ) : appServices.length === 0 ? (
-              <Alert>
-                <AlertDescription>
-                  No WhatsApp services configured. Please set up a WhatsApp Business account first.
-                </AlertDescription>
-              </Alert>
+              <p className="text-golden-body-sm text-muted-foreground">
+                No WhatsApp services configured. Set up a WhatsApp Business account first.
+              </p>
             ) : (
               <Select
                 value={selectedAppService?.id?.toString() || ""}
@@ -289,50 +217,44 @@ export default function AutomationSettingsPage() {
               </Select>
             )}
           </div>
+        </section>
 
-          {selectedAppService && (
-            <>
-              {loadingSettings ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-48 w-full" />
-                  <Skeleton className="h-32 w-full" />
-                </div>
-              ) : settings ? (
-                <div className="space-y-6">
-                  {/* Pause/Resume Toggle */}
-                  {settings.automation_paused && (
-                    <div className="flex items-center justify-between rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4">
-                      <div className="flex items-center gap-3">
-                        <Pause className="size-4 text-yellow-600" />
-                        <span className="text-sm text-yellow-600">Automation is currently paused</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleTogglePause}
-                        disabled={toggling}
-                      >
-                        {toggling ? (
-                          <Loader2 className="mr-2 size-4 animate-spin" />
-                        ) : (
-                          <Play className="mr-2 size-4" />
-                        )}
-                        Resume
-                      </Button>
+        {selectedAppService && (
+          <>
+            {loadingSettings ? (
+              <div className="flex flex-col gap-golden-md">
+                <Skeleton className="h-48 w-full rounded-squircle-md" />
+                <Skeleton className="h-32 w-full rounded-squircle-md" />
+              </div>
+            ) : settings ? (
+              <>
+                {/* Pause banner */}
+                {settings.automation_paused && (
+                  <div className="flex items-center justify-between rounded-squircle-md border border-amber-500/40 bg-amber-500/8 px-golden-lg py-golden-md">
+                    <div className="flex items-center gap-golden-sm">
+                      <Pause className="size-4 text-amber-600" />
+                      <span className="text-golden-body-sm text-amber-600 font-medium">Automation is currently paused</span>
                     </div>
-                  )}
+                    <Button size="sm" variant="outline" onClick={handleTogglePause} disabled={toggling}>
+                      {toggling ? <Loader2 className="mr-golden-3xs size-4 animate-spin" /> : <Play className="mr-golden-3xs size-4" />}
+                      Resume
+                    </Button>
+                  </div>
+                )}
 
-                  {/* Current Status */}
-                  <div className="rounded-lg border border-border bg-card p-4">
+                {/* Current Status */}
+                <section>
+                  <h3 className="mb-golden-sm px-golden-3xs text-golden-label font-medium uppercase tracking-wide text-muted-foreground">
+                    Status
+                  </h3>
+                  <div className="rounded-squircle-md border border-border/60 bg-card px-golden-lg py-golden-md">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Settings2 className="size-5 text-muted-foreground" />
-                        <span className="font-medium">Current Status</span>
+                      <div className="flex items-center gap-golden-sm">
+                        <Settings2 className="size-4 text-muted-foreground" />
+                        <span className="text-golden-body-sm font-medium">Current Mode</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {settings.automation_paused ? (
-                          <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30">Paused</Badge>
-                        ) : settings.automation_mode === "paused" ? (
+                      <div className="flex items-center gap-golden-xs">
+                        {settings.automation_paused || settings.automation_mode === "paused" ? (
                           <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30">Paused</Badge>
                         ) : settings.automation_mode === "manual" ? (
                           <Badge variant="outline">Live Chat</Badge>
@@ -346,152 +268,111 @@ export default function AutomationSettingsPage() {
                           <Badge variant="outline">{settings.automation_mode}</Badge>
                         )}
                         {!settings.automation_paused && settings.automation_mode !== "manual" && settings.automation_mode !== "paused" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleTogglePause}
-                            disabled={toggling}
-                          >
-                            {toggling ? (
-                              <Loader2 className="size-4 animate-spin" />
-                            ) : (
-                              <Pause className="size-4" />
-                            )}
+                          <Button size="icon" variant="ghost" className="size-7" onClick={handleTogglePause} disabled={toggling}>
+                            {toggling ? <Loader2 className="size-3.5 animate-spin" /> : <Pause className="size-3.5" />}
                           </Button>
                         )}
                       </div>
                     </div>
                   </div>
+                </section>
 
-                  {/* Automation Mode Selection */}
-                  <div className="rounded-lg border border-border bg-card p-6">
-                    <h3 className="mb-4 text-lg font-semibold">Automation Mode</h3>
-
-                    <RadioGroup value={mode} onValueChange={setMode} className="space-y-4">
-                      <div className="flex items-start space-x-3 rounded-lg border border-border p-4 transition-colors hover:bg-accent/50">
-                        <RadioGroupItem value="ai_only" id="ai_only" className="mt-1" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor="ai_only" className="cursor-pointer font-medium">
-                              AI Assistant Only
-                            </Label>
-                            <Bot className="size-4 text-blue-500" />
+                {/* Automation Mode — macOS grouped radio list */}
+                <section>
+                  <h3 className="mb-golden-sm px-golden-3xs text-golden-label font-medium uppercase tracking-wide text-muted-foreground">
+                    Automation Mode
+                  </h3>
+                  <div className="rounded-squircle-md border border-border/60 bg-card overflow-hidden">
+                    <RadioGroup value={mode} onValueChange={setMode}>
+                      <label htmlFor="ai_only" className="flex items-start gap-golden-md px-golden-lg py-golden-md border-b border-border/40 cursor-pointer transition-colors hover:bg-accent/40">
+                        <RadioGroupItem value="ai_only" id="ai_only" className="mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-golden-sm">
+                            <span className="text-golden-body-sm font-medium">AI Assistant Only</span>
+                            <Bot className="size-3.5 text-blue-500" />
                           </div>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {getModeDescription("ai_only")}
-                          </p>
+                          <p className="mt-golden-3xs text-golden-label text-muted-foreground">{getModeDescription("ai_only")}</p>
                         </div>
-                      </div>
+                      </label>
 
-                      <div className="flex items-start space-x-3 rounded-lg border border-border p-4 transition-colors hover:bg-accent/50">
-                        <RadioGroupItem value="chatbot_only" id="chatbot_only" className="mt-1" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor="chatbot_only" className="cursor-pointer font-medium">
-                              Chatbot Flow Only
-                            </Label>
-                            <Workflow className="size-4 text-teal-500" />
+                      <label htmlFor="chatbot_only" className="flex items-start gap-golden-md px-golden-lg py-golden-md border-b border-border/40 cursor-pointer transition-colors hover:bg-accent/40">
+                        <RadioGroupItem value="chatbot_only" id="chatbot_only" className="mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-golden-sm">
+                            <span className="text-golden-body-sm font-medium">Chatbot Flow Only</span>
+                            <Workflow className="size-3.5 text-teal-500" />
                           </div>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {getModeDescription("chatbot_only")}
-                          </p>
+                          <p className="mt-golden-3xs text-golden-label text-muted-foreground">{getModeDescription("chatbot_only")}</p>
                         </div>
-                      </div>
+                      </label>
 
-                      <div className="flex items-start space-x-3 rounded-lg border border-purple-500/50 bg-purple-500/5 p-4 transition-colors hover:bg-purple-500/10">
-                        <RadioGroupItem value="chatbot_with_fallback" id="chatbot_with_fallback" className="mt-1" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor="chatbot_with_fallback" className="cursor-pointer font-medium">
-                              Chatbot + AI Fallback
-                            </Label>
-                            <Workflow className="size-4 text-purple-500" />
-                            <Bot className="size-4 text-purple-500" />
-                            <Badge variant="secondary" className="text-xs">Recommended</Badge>
+                      <label htmlFor="chatbot_with_fallback" className="flex items-start gap-golden-md px-golden-lg py-golden-md border-b border-border/40 cursor-pointer transition-colors hover:bg-accent/40 bg-purple-500/[0.03]">
+                        <RadioGroupItem value="chatbot_with_fallback" id="chatbot_with_fallback" className="mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-golden-sm flex-wrap">
+                            <span className="text-golden-body-sm font-medium">Chatbot + AI Fallback</span>
+                            <Workflow className="size-3.5 text-purple-500" />
+                            <Bot className="size-3.5 text-purple-500" />
+                            <Badge variant="secondary" className="text-golden-caption">Recommended</Badge>
                           </div>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {getModeDescription("chatbot_with_fallback")}
-                          </p>
+                          <p className="mt-golden-3xs text-golden-label text-muted-foreground">{getModeDescription("chatbot_with_fallback")}</p>
                         </div>
-                      </div>
+                      </label>
 
-                      <div className="flex items-start space-x-3 rounded-lg border border-border p-4 transition-colors hover:bg-accent/50">
-                        <RadioGroupItem value="manual" id="manual" className="mt-1" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor="manual" className="cursor-pointer font-medium">
-                              Live Chat
-                            </Label>
-                            <MessageSquare className="size-4 text-muted-foreground" />
+                      <label htmlFor="manual" className="flex items-start gap-golden-md px-golden-lg py-golden-md cursor-pointer transition-colors hover:bg-accent/40">
+                        <RadioGroupItem value="manual" id="manual" className="mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-golden-sm">
+                            <span className="text-golden-body-sm font-medium">Live Chat</span>
+                            <MessageSquare className="size-3.5 text-muted-foreground" />
                           </div>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {getModeDescription("manual")}
-                          </p>
+                          <p className="mt-golden-3xs text-golden-label text-muted-foreground">{getModeDescription("manual")}</p>
                         </div>
-                      </div>
+                      </label>
                     </RadioGroup>
                   </div>
+                </section>
 
-                  {/* Configuration Based on Mode */}
-                  {(needsAssistant || needsChatbot) && (
-                    <div className="rounded-lg border border-border bg-card p-6">
-                      <h3 className="mb-4 text-lg font-semibold">Configuration</h3>
-
-                      <div className="space-y-4">
-                        {/* Assistant Selection */}
-                        {needsAssistant && (
-                          <div>
-                            <Label className="mb-2 block text-sm font-medium">
-                              AI Assistant
-                            </Label>
+                {/* Configuration */}
+                {(needsAssistant || needsChatbot) && (
+                  <section>
+                    <h3 className="mb-golden-sm px-golden-3xs text-golden-label font-medium uppercase tracking-wide text-muted-foreground">
+                      Configuration
+                    </h3>
+                    <div className="rounded-squircle-md border border-border/60 bg-card overflow-hidden divide-y divide-border/40">
+                      {needsAssistant && (
+                        <div className="px-golden-lg py-golden-md">
+                          <Label className="text-golden-body-sm font-medium">AI Assistant</Label>
+                          <div className="mt-golden-sm">
                             {settings.available_assistants.length === 0 ? (
-                              <Alert>
-                                <AlertDescription>
-                                  No AI assistants available. Create one in the Assistants section.
-                                </AlertDescription>
-                              </Alert>
+                              <p className="text-golden-label text-muted-foreground">No AI assistants available. Create one in the Assistants section.</p>
                             ) : (
-                              <Select
-                                value={selectedAssistantId}
-                                onValueChange={setSelectedAssistantId}
-                              >
+                              <Select value={selectedAssistantId} onValueChange={setSelectedAssistantId}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select an AI assistant" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {settings.available_assistants.map((assistant) => (
-                                    <SelectItem key={assistant.id} value={assistant.id.toString()}>
-                                      {assistant.name}
-                                    </SelectItem>
+                                    <SelectItem key={assistant.id} value={assistant.id.toString()}>{assistant.name}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                             )}
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {/* Chatbot Flow Selection - Multiple */}
-                        {needsChatbot && (
-                          <div>
-                            <Label className="mb-2 block text-sm font-medium">
-                              Chatbot Flows
-                            </Label>
-                            <p className="mb-3 text-xs text-muted-foreground">
-                              Select multiple flows - each will trigger on its own keywords
-                            </p>
+                      {needsChatbot && (
+                        <div className="px-golden-lg py-golden-md">
+                          <Label className="text-golden-body-sm font-medium">Chatbot Flows</Label>
+                          <p className="mt-golden-3xs text-golden-label text-muted-foreground">Select flows — each triggers on its own keywords</p>
+                          <div className="mt-golden-sm">
                             {settings.available_chatbot_flows.length === 0 ? (
-                              <Alert>
-                                <AlertDescription>
-                                  No chatbot flows available. Create one in the Chatbots section.
-                                </AlertDescription>
-                              </Alert>
+                              <p className="text-golden-label text-muted-foreground">No chatbot flows available. Create one in the Chatbots section.</p>
                             ) : (
-                              <div className="space-y-2 rounded-lg border border-border p-3">
+                              <div className="flex flex-col gap-golden-3xs">
                                 {settings.available_chatbot_flows.map((flow) => (
-                                  <div
-                                    key={flow.id}
-                                    className="flex items-start space-x-3 rounded-md p-2 hover:bg-accent/50"
-                                  >
+                                  <label key={flow.id} htmlFor={`flow-${flow.id}`} className="flex items-start gap-golden-sm rounded-squircle-xs p-golden-xs cursor-pointer hover:bg-accent/40 transition-colors">
                                     <Checkbox
                                       id={`flow-${flow.id}`}
                                       checked={selectedChatbotFlowIds.includes(flow.id)}
@@ -503,94 +384,71 @@ export default function AutomationSettingsPage() {
                                         }
                                       }}
                                     />
-                                    <div className="flex-1">
-                                      <Label
-                                        htmlFor={`flow-${flow.id}`}
-                                        className="cursor-pointer font-medium"
-                                      >
-                                        {flow.name}
-                                      </Label>
+                                    <div className="flex-1 min-w-0">
+                                      <span className="text-golden-body-sm font-medium">{flow.name}</span>
                                       {flow.trigger_keywords && flow.trigger_keywords.length > 0 && (
-                                        <div className="mt-1 flex flex-wrap gap-1">
+                                        <div className="mt-golden-3xs flex flex-wrap gap-golden-3xs">
                                           {flow.trigger_keywords.slice(0, 5).map((keyword, idx) => (
-                                            <Badge key={idx} variant="outline" className="text-xs">
-                                              {keyword}
-                                            </Badge>
+                                            <Badge key={idx} variant="outline" className="text-golden-caption">{keyword}</Badge>
                                           ))}
                                           {flow.trigger_keywords.length > 5 && (
-                                            <Badge variant="outline" className="text-xs">
-                                              +{flow.trigger_keywords.length - 5} more
-                                            </Badge>
+                                            <Badge variant="outline" className="text-golden-caption">+{flow.trigger_keywords.length - 5} more</Badge>
                                           )}
                                         </div>
                                       )}
                                     </div>
-                                  </div>
+                                  </label>
                                 ))}
                               </div>
                             )}
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {/* Auto Fallback Option */}
-                        {mode === "chatbot_with_fallback" && (
-                          <div className="flex items-center space-x-2 rounded-lg border border-border p-4">
-                            <Checkbox
-                              id="auto_fallback"
-                              checked={autoFallback}
-                              onCheckedChange={(checked) => setAutoFallback(checked === true)}
-                            />
-                            <div className="flex-1">
-                              <Label htmlFor="auto_fallback" className="cursor-pointer font-medium">
-                                Auto-fallback to AI
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Automatically use AI assistant when chatbot has no matching trigger
-                              </p>
-                            </div>
+                      {mode === "chatbot_with_fallback" && (
+                        <label htmlFor="auto_fallback" className="flex items-center gap-golden-md px-golden-lg py-golden-md cursor-pointer">
+                          <Checkbox id="auto_fallback" checked={autoFallback} onCheckedChange={(checked) => setAutoFallback(checked === true)} />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-golden-body-sm font-medium">Auto-fallback to AI</span>
+                            <p className="text-golden-label text-muted-foreground">Automatically use AI when chatbot has no matching trigger</p>
                           </div>
-                        )}
-                      </div>
+                        </label>
+                      )}
                     </div>
-                  )}
+                  </section>
+                )}
 
-                  {/* Chatbot Warnings */}
-                  {settings.chatbot_warnings.length > 0 && needsChatbot && (
-                    <Alert className="border-yellow-500/50 bg-yellow-500/10">
-                      <AlertTriangle className="size-4 text-yellow-600" />
-                      <AlertDescription>
-                        <div className="font-medium text-yellow-600">Chatbot Flow Warnings</div>
-                        <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-yellow-600">
-                          {settings.chatbot_warnings.map((warning, index) => (
-                            <li key={index}>{warning}</li>
-                          ))}
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                {/* Chatbot Warnings */}
+                {settings.chatbot_warnings.length > 0 && needsChatbot && (
+                  <Alert className="border-amber-500/40 bg-amber-500/8">
+                    <AlertTriangle className="size-4 text-amber-600" />
+                    <AlertDescription>
+                      <p className="text-golden-body-sm font-medium text-amber-600">Chatbot Flow Warnings</p>
+                      <ul className="mt-golden-xs list-inside list-disc text-golden-label text-amber-600 flex flex-col gap-golden-3xs">
+                        {settings.chatbot_warnings.map((warning, index) => (
+                          <li key={index}>{warning}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                  {/* Save Button */}
-                  <div className="flex justify-end gap-3">
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving}
-                    >
-                      {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
-                      Save Changes
-                    </Button>
-                  </div>
+                {/* Save */}
+                <div className="flex justify-end">
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving && <Loader2 className="mr-golden-xs size-4 animate-spin" />}
+                    Save Changes
+                  </Button>
                 </div>
-              ) : (
-                <Alert>
-                  <AlertDescription>
-                    Failed to load automation settings. Please try again.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
-          )}
-        </div>
-      </main>
-    </div>
+              </>
+            ) : (
+              <Alert>
+                <AlertDescription>Failed to load automation settings. Please try again.</AlertDescription>
+              </Alert>
+            )}
+          </>
+        )}
+      </div>
+    </>
   )
 }
