@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useCallback, useState } from "react"
 import { useQueryClient } from "react-query"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Loader, RefreshCcw, AlertCircle, CheckCircle } from "lucide-react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
@@ -95,8 +95,6 @@ const EmbeddedSignup = () => {
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
 
-  // Debug
-  const [debugMode, setDebugMode] = useState(false)
 
   // -------------------------------------------------------------------------
   // 1) FB SDK initialization
@@ -651,32 +649,7 @@ const EmbeddedSignup = () => {
           <p className="text-xs italic text-muted-foreground mt-3">{statusMessage}</p>
         )}
 
-        {debugMode && (
-          <div className="mt-3">
-            <pre className="text-[10px] p-2 bg-gray-50 border rounded overflow-auto max-h-32">
-              {JSON.stringify(
-                {
-                  step,
-                  isBusinessAppOnboarding,
-                  sessionInfo,
-                  hasSdkCode: !!sdkCode,
-                  selectedAssistant: selectedAssistant?.name || null,
-                  appServiceResponseId: appServiceResponse?.id || null,
-                  syncTrackers: syncTrackers.map(t => `${t.sync_type}:${t.status}`),
-                },
-                null,
-                2,
-              )}
-            </pre>
-          </div>
-        )}
       </CardContent>
-
-      <CardFooter className="justify-end pt-0">
-        <Button variant="ghost" size="sm" onClick={() => setDebugMode(!debugMode)} className="text-xs text-gray-400">
-          {debugMode ? "Hide Debug" : "Debug"}
-        </Button>
-      </CardFooter>
     </Card>
   )
 }
