@@ -1768,15 +1768,15 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const hasMediaHeader = formData.headerParameters.some(p => ['image', 'video', 'document'].includes(p.type));
 
   const isCarouselTemplate = useMemo(() => {
-    const selectedTemplate = getSelectedTemplate();
-    if (!selectedTemplate) return false;
-    return selectedTemplate.components?.some((c: any) => c.type === 'CAROUSEL') ?? false;
+    const tpl = approvedTemplates.find(t => t.name === formData.templateName);
+    if (!tpl) return false;
+    return tpl.components?.some((c: any) => c.type === 'CAROUSEL') ?? false;
   }, [formData.templateName, approvedTemplates]);
 
   const carouselCardCount = useMemo(() => {
-    const selectedTemplate = getSelectedTemplate();
-    if (!selectedTemplate) return 0;
-    const carouselComp = selectedTemplate.components?.find((c: any) => c.type === 'CAROUSEL');
+    const tpl = approvedTemplates.find(t => t.name === formData.templateName);
+    if (!tpl) return 0;
+    const carouselComp = tpl.components?.find((c: any) => c.type === 'CAROUSEL');
     return carouselComp?.cards?.length || 0;
   }, [formData.templateName, approvedTemplates]);
 
@@ -1867,7 +1867,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                   >
                     {step > index + 1 ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
                   </div>
-                  <span className="text-xs font-medium text-foreground mt-2 text-center whitespace-nowrap px-1">
+                  <span className="text-xs font-medium text-foreground mt-2 text-center truncate max-w-[80px] sm:max-w-none sm:whitespace-nowrap px-1">
                     {title}
                   </span>
                 </div>
@@ -2202,6 +2202,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                                           <>
                                             {/* Thumbnail */}
                                             {carouselPreviews[i] ? (
+                                              /* eslint-disable-next-line @next/next/no-img-element */
                                               <img
                                                 src={carouselPreviews[i]}
                                                 alt={`Card ${i + 1}`}

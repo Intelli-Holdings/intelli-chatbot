@@ -4,6 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { CampaignService } from '@/services/campaign';
 import { logger } from "@/lib/logger";
 
+interface ErrorInfo {
+  error?: string;
+  error_type?: string;
+  error_code?: number;
+  error_subcode?: number;
+  status_code?: number;
+  fbtrace_id?: string;
+}
+
 interface Recipient {
   id: string;
   contact_id: number;
@@ -14,8 +23,7 @@ interface Recipient {
   sent_at?: string;
   delivered_at?: string;
   read_at?: string;
-  failed_at?: string;
-  error_message?: string;
+  error_info?: ErrorInfo | null;
 }
 
 interface UseCampaignRecipientsReturn {

@@ -124,7 +124,7 @@ export default function HotelInfo() {
     toast({
       title: "You submitted the following values:",
       description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+        <pre className="mt-2 max-w-full w-[340px] rounded-md bg-slate-950 p-4 overflow-x-auto">
           <code className="text-white">{JSON.stringify(formData, null, 2)}</code>
         </pre>
       ),

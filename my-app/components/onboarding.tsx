@@ -250,7 +250,7 @@ const OnboardingComponent = () => {
                       <div className="text-sm text-gray-600">
                         Start by making your first request to the chat completions API:
                       </div>
-                      <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
+                      <pre className="bg-gray-100 p-4 rounded overflow-x-auto max-w-full text-sm whitespace-pre-wrap break-words">
                         <code>{sampleCode}</code>
                       </pre>
                     </div>

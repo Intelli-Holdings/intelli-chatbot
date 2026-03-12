@@ -116,11 +116,11 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.posthog.com https://www.googletagmanager.com https://js.stripe.com https://cdn.jsdelivr.net https://backend.intelliconcierge.com https://vercel.live https://*.sentry.io https://va.vercel-scripts.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.posthog.com https://www.googletagmanager.com https://js.stripe.com https://cdn.jsdelivr.net https://backend.intelliconcierge.com https://vercel.live https://*.sentry.io https://static.cloudflareinsights.com https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://backend.intelliconcierge.com",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:*",
+              "connect-src 'self' https: wss: ws: http://localhost:* http://127.0.0.1:*",
               "frame-src 'self' https://*.clerk.accounts.dev https://clerk.intelliconcierge.com https://*.stripe.com https://*.facebook.com https://demo.arcade.software https://vercel.live",
               "worker-src 'self' blob:",
               "frame-ancestors 'self'",

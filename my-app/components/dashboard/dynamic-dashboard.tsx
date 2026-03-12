@@ -291,7 +291,7 @@ export const DynamicDashboard: React.FC = () => {
 
         {/* Dialogs */}
         <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
             <WhatsappOnboarding />
           </DialogContent>
         </Dialog>
@@ -722,7 +722,7 @@ export const DynamicDashboard: React.FC = () => {
 
       {/* Dialogs */}
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
           <WhatsappOnboarding />
         </DialogContent>
       </Dialog>

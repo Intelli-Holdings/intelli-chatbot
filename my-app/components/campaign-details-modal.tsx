@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, Play, Pause, BarChart3, Users, MessageSquare, Clock, Calendar, Target } from 'lucide-react';
+import { X, Play, Pause, BarChart3, Users, MessageSquare, Clock, Calendar, Target, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -333,45 +333,68 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                         </TableHeader>
                         <TableBody>
                           {recipients.map((recipient) => (
-                            <TableRow key={recipient.id}>
-                              <TableCell>
-                                <div className="font-medium text-foreground">{recipient.contact_phone || '-'}</div>
-                                <div className="text-xs text-muted-foreground">{recipient.contact_name}</div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-sm text-foreground line-clamp-2">
-                                  {recipient.message_content || '—'}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  className={
-                                    recipient.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                    recipient.status === 'read' ? 'bg-blue-100 text-blue-800' :
-                                    recipient.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                                    recipient.status === 'failed' ? 'bg-red-100 text-red-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }
-                                >
-                                  {recipient.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <span className="text-xs text-muted-foreground">
-                                  {recipient.sent_at ? formatUTCForDisplay(recipient.sent_at) : '—'}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <span className="text-xs text-muted-foreground">
-                                  {recipient.delivered_at ? formatUTCForDisplay(recipient.delivered_at) : '—'}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                <span className="text-xs text-muted-foreground">
-                                  {recipient.read_at ? formatUTCForDisplay(recipient.read_at) : '—'}
-                                </span>
-                              </TableCell>
-                            </TableRow>
+                            <React.Fragment key={recipient.id}>
+                              <TableRow>
+                                <TableCell>
+                                  <div className="font-medium text-foreground">{recipient.contact_phone || '-'}</div>
+                                  <div className="text-xs text-muted-foreground">{recipient.contact_name}</div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm text-foreground line-clamp-2">
+                                    {recipient.message_content || '—'}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={
+                                      recipient.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                      recipient.status === 'read' ? 'bg-blue-100 text-blue-800' :
+                                      recipient.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                                      recipient.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }
+                                  >
+                                    {recipient.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-xs text-muted-foreground">
+                                    {recipient.sent_at ? formatUTCForDisplay(recipient.sent_at) : '—'}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-xs text-muted-foreground">
+                                    {recipient.delivered_at ? formatUTCForDisplay(recipient.delivered_at) : '—'}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-xs text-muted-foreground">
+                                    {recipient.read_at ? formatUTCForDisplay(recipient.read_at) : '—'}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                              {recipient.status === 'failed' && recipient.error_info && (
+                                <TableRow className="bg-red-50/50">
+                                  <TableCell colSpan={6} className="py-2">
+                                    <div className="flex items-start gap-2 text-sm">
+                                      <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                                      <div className="space-y-0.5">
+                                        <p className="text-red-700 font-medium">
+                                          {recipient.error_info.error || 'Unknown error'}
+                                        </p>
+                                        <p className="text-red-500 text-xs">
+                                          {[
+                                            recipient.error_info.error_type && `Type: ${recipient.error_info.error_type}`,
+                                            recipient.error_info.error_code && `Code: ${recipient.error_info.error_code}`,
+                                            recipient.error_info.error_subcode && `Subcode: ${recipient.error_info.error_subcode}`,
+                                          ].filter(Boolean).join(' | ')}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
                           ))}
                         </TableBody>
                       </Table>

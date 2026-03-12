@@ -261,7 +261,7 @@ export default function UserInputFlowNodeEditor({ data, onUpdate }: UserInputFlo
               {/* Payload Preview */}
               <div className="space-y-2">
                 <Label>Payload Preview</Label>
-                <pre className="text-xs bg-muted p-3 rounded-lg overflow-x-auto">
+                <pre className="text-xs bg-muted p-3 rounded-lg overflow-x-auto max-w-full whitespace-pre-wrap break-words">
 {`{
   ${localData.webhook.includeMetadata ? `"metadata": {
     "flow_name": "${localData.flowName || 'Untitled'}",

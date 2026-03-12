@@ -103,7 +103,7 @@ export function EmailList({
                   <div className="flex-1 overflow-hidden">
                     <div className="flex items-center justify-between">
                       <p className={`truncate text-sm ${!email.read ? "font-semibold" : ""}`}>{email.from.name}</p>
-                      <p className="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                      <p className="shrink-0 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 ml-2">
                         {formatDistanceToNow(email.date)}
                       </p>
                     </div>

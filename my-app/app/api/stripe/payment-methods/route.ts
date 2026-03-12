@@ -62,15 +62,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Retrieve customer's payment methods
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: customerId,
-      type: 'card',
-    });
+    // Retrieve customer's payment methods and default
+    const [paymentMethods, customer] = await Promise.all([
+      stripe.paymentMethods.list({ customer: customerId, type: "card" }),
+      stripe.customers.retrieve(customerId),
+    ]);
+
+    const defaultPaymentMethod =
+      customer && !("deleted" in customer && customer.deleted)
+        ? (customer.invoice_settings?.default_payment_method as string | null)
+        : null;
 
     return NextResponse.json({
       success: true,
       paymentMethods: paymentMethods.data,
+      defaultPaymentMethod,
     });
 
   } catch (error) {
@@ -80,6 +86,42 @@ export async function GET(request: NextRequest) {
       { 
         error: error instanceof Error ? error.message : 'Internal server error',
         success: false 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { paymentMethodId, customerId } = body;
+
+    if (!paymentMethodId || !customerId) {
+      return NextResponse.json(
+        { error: "Payment method ID and customer ID are required" },
+        { status: 400 }
+      );
+    }
+
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Default payment method updated",
+    });
+  } catch (error) {
+    logger.error("Error setting default payment method", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Internal server error",
+        success: false,
       },
       { status: 500 }
     );
