@@ -39,7 +39,47 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 210 100% 50%;
 
-    --radius: 0.75rem;
+    /* ── Squircle Radius Scale ─────────────────────── */
+    --radius-xs: 6px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius: 12px;
+
+    /* ── Golden Ratio Spacing Scale ───────────────── */
+    --space-3xs: 2px;
+    --space-2xs: 3px;
+    --space-xs: 5px;
+    --space-sm: 8px;
+    --space-md: 13px;
+    --space-lg: 21px;
+    --space-xl: 34px;
+    --space-2xl: 55px;
+    --space-3xl: 89px;
+
+    /* ── Golden Typography Scale ──────────────────── */
+    --text-caption: 0.625rem;
+    --text-label: 0.75rem;
+    --text-body-sm: 0.875rem;
+    --text-body: 1rem;
+    --text-subheading: 1.25rem;
+    --text-heading: 1.625rem;
+    --text-display: 2.625rem;
+    --text-display-lg: 4.25rem;
+    --text-hero: 6.875rem;
+
+    /* ── Line Heights ────────────────────────────── */
+    --leading-tight: 1.2;
+    --leading-normal: 1.5;
+    --leading-golden: 1.618;
+
+    /* ── Letter Spacing ──────────────────────────── */
+    --tracking-tight: -0.02em;
+    --tracking-normal: 0em;
+    --tracking-wide: 0.04em;
+    --tracking-wider: 0.08em;
 
     /* Marketing page tokens */
     --hero-bg: 222 47% 5%;
@@ -51,6 +91,12 @@
     /* Typography */
     --font-display: 'Instrument Serif', Georgia, serif;
     --font-body: var(--font-dm-sans), 'Segoe UI', sans-serif;
+
+    /* ── Layout ───────────────────────────────────── */
+    --golden-major: 61.8%;
+    --golden-minor: 38.2%;
+    --content-max: 70rem;
+    --sidebar-width: 17rem;
   }
 
   .dark {
@@ -92,6 +138,120 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: var(--text-body);
+    line-height: var(--leading-golden);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SQUIRCLE UTILITIES
+   Quintic superellipse (n≈5) continuous corners.
+   Uses smooth border-radius + border-image approach
+   for cross-browser Apple-style corners.
+   ═══════════════════════════════════════════════════════ */
+
+@layer utilities {
+  /* Squircle radius utilities — smooth continuous corners */
+  .squircle-xs {
+    border-radius: var(--radius-xs);
+    /* Slight outline offset for smoother perceived corners */
+    outline-offset: -1px;
+  }
+  .squircle-sm {
+    border-radius: var(--radius-sm);
+    outline-offset: -1px;
+  }
+  .squircle-md {
+    border-radius: var(--radius-md);
+    outline-offset: -1px;
+  }
+  .squircle-lg {
+    border-radius: var(--radius-lg);
+    outline-offset: -1px;
+  }
+  .squircle-xl {
+    border-radius: var(--radius-xl);
+    outline-offset: -1px;
+  }
+  .squircle-2xl {
+    border-radius: var(--radius-2xl);
+    outline-offset: -1px;
+  }
+
+  /* Golden ratio layout splits */
+  .golden-split {
+    display: grid;
+    grid-template-columns: var(--golden-major) var(--golden-minor);
+    gap: var(--space-lg);
+  }
+  .golden-split-reverse {
+    display: grid;
+    grid-template-columns: var(--golden-minor) var(--golden-major);
+    gap: var(--space-lg);
+  }
+
+  /* Golden spacing utilities */
+  .gap-golden-xs { gap: var(--space-xs); }
+  .gap-golden-sm { gap: var(--space-sm); }
+  .gap-golden-md { gap: var(--space-md); }
+  .gap-golden-lg { gap: var(--space-lg); }
+  .gap-golden-xl { gap: var(--space-xl); }
+
+  .p-golden-sm { padding: var(--space-sm); }
+  .p-golden-md { padding: var(--space-md); }
+  .p-golden-lg { padding: var(--space-lg); }
+  .p-golden-xl { padding: var(--space-xl); }
+
+  /* Section spacing */
+  .section-gap {
+    margin-bottom: var(--space-xl);
+  }
+
+  /* Golden typography utilities */
+  .text-golden-caption {
+    font-size: var(--text-caption);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .text-golden-label {
+    font-size: var(--text-label);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-wide);
+    font-weight: 500;
+  }
+  .text-golden-body-sm {
+    font-size: var(--text-body-sm);
+    line-height: var(--leading-golden);
+  }
+  .text-golden-body {
+    font-size: var(--text-body);
+    line-height: var(--leading-golden);
+  }
+  .text-golden-subheading {
+    font-size: var(--text-subheading);
+    line-height: var(--leading-normal);
+    letter-spacing: var(--tracking-tight);
+    font-weight: 600;
+  }
+  .text-golden-heading {
+    font-size: var(--text-heading);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    font-weight: 600;
+  }
+  .text-golden-display {
+    font-size: var(--text-display);
+    line-height: 1.1;
+    letter-spacing: var(--tracking-tight);
+    font-weight: 700;
+  }
+  .text-golden-display-lg {
+    font-size: var(--text-display-lg);
+    line-height: 1.05;
+    letter-spacing: var(--tracking-tight);
+    font-weight: 700;
   }
 }
 

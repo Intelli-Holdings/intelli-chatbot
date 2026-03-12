@@ -76,7 +76,7 @@ export function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col max-w-[400px] mx-auto border bg-white rounded-xl">
+    <div className="flex flex-col w-full max-w-[400px] mx-auto border bg-white rounded-xl">
       <div className="flex items-center justify-between p-4 bg-[#007FFF] text-white rounded-t-lg">
         <div className="flex items-center space-x2 border-none">
           <Avatar>

@@ -62,7 +62,7 @@ export function CheckboxReactHookFormMultiple() {
     toast({
       title: "You submitted the following values:",
       description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+        <pre className="mt-golden-sm w-[340px] rounded-squircle-sm bg-slate-950 p-golden-lg">
           <code className="text-white">{JSON.stringify(data, null, 2)}</code>
         </pre>
       ),
@@ -71,7 +71,7 @@ export function CheckboxReactHookFormMultiple() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-golden-xl">
         <FormField
           control={form.control}
           name="items"
@@ -92,7 +92,7 @@ export function CheckboxReactHookFormMultiple() {
                     return (
                       <FormItem
                         key={item.id}
-                        className="flex flex-row items-start space-x-3 space-y-0"
+                        className="flex flex-row items-start gap-golden-md"
                       >
                         <FormControl>
                           <Checkbox
@@ -108,7 +108,7 @@ export function CheckboxReactHookFormMultiple() {
                             }}
                           />
                         </FormControl>
-                        <FormLabel className="text-sm font-normal">
+                        <FormLabel className="text-golden-body-sm font-normal">
                           {item.label}
                         </FormLabel>
                       </FormItem>

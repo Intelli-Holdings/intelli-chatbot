@@ -314,7 +314,7 @@ export default function EscalationEvents({
   const eventsContent = (
     <div className="space-y-6">
       {hasDefaultEvents && (
-        <div className="space-y-3">
+        <div className="space-y-3 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-[#111b21]">
@@ -339,7 +339,7 @@ export default function EscalationEvents({
           )}
         </div>
       )}
-      <div className="space-y-3">
+      <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-[#111b21]">
@@ -436,7 +436,7 @@ export default function EscalationEvents({
             </div>
           )}
           {events.length > 0 && (
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-4 flex items-center gap-2 p-4">
               <Search className="h-4 w-4 text-[#667781]" />
               <Input
                 type="text"

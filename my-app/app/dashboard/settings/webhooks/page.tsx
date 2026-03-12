@@ -1,10 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { usePathname } from "next/navigation"
-import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { SettingsSearch } from "@/components/settings-search"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { useAppServices } from "@/hooks/use-app-services"
 import { useWhatsAppTemplates } from "@/hooks/use-whatsapp-templates"
@@ -76,14 +73,6 @@ import {
 import { toast } from "sonner"
 import { logger } from "@/lib/logger"
 
-const settingsNavigation = [
-  { title: "General", href: "/dashboard/settings" },
-  { title: "Automation", href: "/dashboard/settings/automation" },
-  { title: "Custom Fields", href: "/dashboard/settings/custom-fields" },
-  { title: "Escalation Events", href: "/dashboard/settings/escalation-events" },
-  { title: "Webhooks", href: "/dashboard/settings/webhooks" },
-]
-
 const LOG_STATUS_COLORS: Record<string, string> = {
   success: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   failed: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
@@ -116,7 +105,6 @@ const FORMATTERS = [
 ]
 
 export default function WebhooksSettingsPage() {
-  const pathname = usePathname()
   const organizationId = useActiveOrganizationId()
 
   // App services for WhatsApp
@@ -653,57 +641,16 @@ export default function WebhooksSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Left Sidebar Navigation */}
-      <aside className="w-64 border-r border-border bg-card">
-        <div className="sticky top-0 flex h-screen flex-col">
-          <div className="border-b border-border p-6">
-            <h1 className="text-2xl font-bold">Settings</h1>
-            <Link
-              href="/dashboard"
-              className="mt-2 flex items-center text-sm text-muted-foreground hover:text-foreground"
-            >
-              <span>&larr; Go to Dashboard</span>
-            </Link>
-          </div>
+    <>
+      {/* Page header */}
+      <div className="mb-golden-xl">
+        <h2 className="text-golden-heading font-semibold tracking-tight">Webhooks</h2>
+        <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
+          Manage outbound and inbound webhooks for your organization
+        </p>
+      </div>
 
-          <div className="border-b border-border p-4">
-            <SettingsSearch />
-          </div>
-
-          <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-            {settingsNavigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground",
-                )}
-              >
-                {item.title}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8">
-            <div className="flex items-center gap-3">
-              <Webhook className="size-8 text-primary" />
-              <div>
-                <h2 className="text-3xl font-bold">Webhooks</h2>
-                <p className="mt-1 text-muted-foreground">
-                  Manage outbound and inbound webhooks for your organization
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="flex flex-col gap-golden-lg">
 
           {!organizationId ? (
             <Alert>
@@ -1214,9 +1161,6 @@ export default function WebhooksSettingsPage() {
               </TabsContent>
             </Tabs>
           )}
-        </div>
-      </main>
-
       {/* API Key Display Dialog (shown after creation) */}
       <Dialog open={!!createdWebhook} onOpenChange={(open) => !open && setCreatedWebhook(null)}>
         <DialogContent>
@@ -1726,6 +1670,7 @@ export default function WebhooksSettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   )
 }

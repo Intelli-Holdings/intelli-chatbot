@@ -51,7 +51,7 @@ export function DataTable<TData, TValue>({
         }
         className="w-full md:max-w-sm"
       />
-      <ScrollArea className="rounded-md border h-[calc(80vh-220px)]">
+      <ScrollArea className="rounded-squircle-md border h-[calc(80vh-220px)]">
         <Table className="relative">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -102,12 +102,12 @@ export function DataTable<TData, TValue>({
         </Table>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
+      <div className="flex items-center justify-end gap-golden-sm py-golden-lg">
+        <div className="flex-1 text-golden-body-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
-        <div className="space-x-2">
+        <div className="flex gap-golden-sm">
           <Button
             variant="outline"
             size="sm"
