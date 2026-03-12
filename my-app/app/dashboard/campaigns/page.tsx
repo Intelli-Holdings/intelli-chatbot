@@ -330,7 +330,7 @@ export default function CampaignsPage() {
               </div>
               <Button
                 onClick={() => setShowCreateForm(true)}
-                className="bg-[#0070f3] hover:bg-[#007fff]"
+                className="bg-[#0070f3] hover:bg-[#007fff] w-full sm:w-auto"
                 disabled={!selectedAppService || !organizationId}
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -374,7 +374,7 @@ export default function CampaignsPage() {
             )}
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3 items-center mb-3">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -385,7 +385,7 @@ export default function CampaignsPage() {
                 />
               </div>
               <Select value={channelFilter} onValueChange={setChannelFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="All Channels" />
                 </SelectTrigger>
                 <SelectContent>
@@ -396,7 +396,7 @@ export default function CampaignsPage() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
