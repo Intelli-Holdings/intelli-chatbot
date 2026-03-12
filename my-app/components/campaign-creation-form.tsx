@@ -1867,7 +1867,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                   >
                     {step > index + 1 ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
                   </div>
-                  <span className="text-xs font-medium text-foreground mt-2 text-center whitespace-nowrap px-1">
+                  <span className="text-xs font-medium text-foreground mt-2 text-center truncate max-w-[80px] sm:max-w-none sm:whitespace-nowrap px-1">
                     {title}
                   </span>
                 </div>

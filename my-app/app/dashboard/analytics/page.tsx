@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
         {/* Header Section */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Advanced Analytics Dashboard</h1>
+            <h1 className="text-3xl font-bold mb-2">Analytics</h1>
             <p className="text-muted-foreground">Real-time metrics, cost analysis, and customer insights</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

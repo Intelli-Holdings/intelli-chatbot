@@ -6,7 +6,7 @@ import { Suspense } from 'react'
 
 export default function Page() {
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-golden-lg py-golden-lg">
       <Suspense fallback={<Skeleton className="w-full h-[600px]" />}>
         <DashComponent />
       </Suspense>      

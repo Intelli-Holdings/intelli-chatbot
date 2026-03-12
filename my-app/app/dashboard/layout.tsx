@@ -41,14 +41,14 @@ function DashboardLayoutContent({
     >
       <AppSidebar activePath={pathname} />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 px-4">
+        <header className="flex h-[55px] shrink-0 items-center gap-golden-sm px-golden-lg">
           <SidebarTrigger id="tour-step-sidebar-toggle" className="-ml-1" />
           <div id="tour-step-notifications" className="ml-auto">
             <NotificationIndicator />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <main className="">{children}</main>
+        <div className="flex flex-1 flex-col gap-golden-lg p-golden-lg pt-0">
+          <main>{children}</main>
         </div>
       </SidebarInset>
     </SidebarProvider>
