@@ -47,9 +47,14 @@ interface ApiResponse {
   totalItems?: number
 }
 
-const MediumBlogComponent: React.FC = () => {
-  const [posts, setPosts] = useState<MediumPost[]>([])
-  const [loading, setLoading] = useState(true)
+interface MediumBlogComponentProps {
+  initialPosts?: MediumPost[]
+}
+
+const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts }) => {
+  const hasInitialPosts = initialPosts && initialPosts.length > 0
+  const [posts, setPosts] = useState<MediumPost[]>(initialPosts || [])
+  const [loading, setLoading] = useState(!hasInitialPosts)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -116,8 +121,12 @@ const MediumBlogComponent: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    fetchPosts(false)
+    // Skip initial client-side fetch if server already provided posts
+    if (!hasInitialPosts) {
+      fetchPosts(false)
+    }
 
+    // Still poll for fresh data regardless
     pollingIntervalRef.current = setInterval(() => {
       logger.debug("Polling for new posts")
       fetchPosts(true)
@@ -128,7 +137,7 @@ const MediumBlogComponent: React.FC = () => {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [fetchPosts])
+  }, [fetchPosts, hasInitialPosts])
 
   useEffect(() => {
     const handleVisibilityChange = () => {
