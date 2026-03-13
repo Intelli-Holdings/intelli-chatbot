@@ -42,8 +42,8 @@ function DashboardLayoutContent({
       <AppSidebar activePath={pathname} />
       <SidebarInset>
         <header className="flex h-[55px] shrink-0 items-center gap-golden-sm px-golden-lg">
-          <SidebarTrigger id="tour-step-sidebar-toggle" className="-ml-1" />
-          <div id="tour-step-notifications" className="ml-auto">
+          <SidebarTrigger className="-ml-1" />
+          <div className="ml-auto">
             <NotificationIndicator />
           </div>
         </header>
