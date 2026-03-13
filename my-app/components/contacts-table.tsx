@@ -178,10 +178,10 @@ export function ContactsTable({ contacts, isLoading, isFetching, searchTerm, tag
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarImage src={`https://avatar.vercel.sh/${contact.fullname}.png`} />
-                        <AvatarFallback>{contact.fullname.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(contact.fullname || "??").slice(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{contact.fullname}</div>
+                        <div className="font-medium">{contact.fullname || "Unknown"}</div>
                         <div className="text-xs text-muted-foreground">{contact.phone}</div>
                       </div>
                     </div>
