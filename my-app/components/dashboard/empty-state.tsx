@@ -68,7 +68,6 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
         <div className="grid gap-4 md:grid-cols-3">
           {/* Step 1 */}
           <Card
-            id="tour-step-connect-channel"
             className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
@@ -107,7 +106,6 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
 
           {/* Step 2 */}
           <Card
-            id="tour-step-create-assistant"
             className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
@@ -136,7 +134,6 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
 
           {/* Step 3 */}
           <Card
-            id="tour-step-engage-customers"
             className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
@@ -266,7 +263,7 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900">Need Help Getting Started?</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Check out our documentation or click the &quot;Take Tour&quot; button above to learn about all features.
+              Check out our documentation to learn about all features.
             </p>
           </div>
         </div>

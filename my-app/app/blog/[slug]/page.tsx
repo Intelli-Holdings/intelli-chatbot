@@ -1,154 +1,74 @@
-"use client"
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, Calendar, Clock, ExternalLink } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { createSlug, formatDate } from "@/lib/blog-utils"
 import { sanitizeHtml } from "@/lib/sanitize"
-import { logger } from "@/lib/logger"
+import { fetchMediumPosts } from "@/lib/medium-feed"
+import { RelatedArticleCard } from "./article-content"
 
-interface MediumPost {
-  title: string
-  link: string
-  contentSnippet: string
-  content: string
-  thumbnail?: string
-  pubDate?: string
-  categories?: string[]
-  author?: string
-  readTime?: string
-  guid?: string
+export const revalidate = 300 // revalidate every 5 minutes (ISR)
+
+interface PageProps {
+  params: { slug: string }
 }
 
-interface ApiResponse {
-  items: MediumPost[]
-  success: boolean
-  message?: string
-  error?: string
-}
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = params
+  const feedResult = await fetchMediumPosts()
 
-export default function BlogArticlePage() {
-  const params = useParams()
-  const router = useRouter()
-  const [article, setArticle] = useState<MediumPost | null>(null)
-  const [relatedArticles, setRelatedArticles] = useState<MediumPost[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const slug = params.slug as string
-
-  useEffect(() => {
-    const fetchArticleAndRelated = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const response = await fetch("/api/medium")
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const data: ApiResponse = await response.json()
-
-        if (data.success && data.items) {
-          // Find the article by slug
-          const foundArticle = data.items.find((post) => createSlug(post.title) === slug)
-
-          if (foundArticle) {
-            setArticle(foundArticle)
-            // Get related articles (excluding current article)
-            const related = data.items.filter((post) => createSlug(post.title) !== slug).slice(0, 3)
-            setRelatedArticles(related)
-          } else {
-            setError("Article not found")
-          }
-        } else {
-          throw new Error(data.error || "Failed to fetch article")
-        }
-      } catch (err) {
-        logger.error("Fetch error", { error: err instanceof Error ? err.message : String(err) })
-        setError(err instanceof Error ? err.message : "Failed to load article")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchArticleAndRelated()
-  }, [slug])
-
-  const RelatedArticleCard = ({ post }: { post: MediumPost }) => (
-    <Card className="group overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
-      <div className="relative aspect-[16/10] overflow-hidden">
-        <Image
-          src={post.thumbnail || "/blogThumbnail.png?height=400&width=600"}
-          alt={post.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
-        <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-          {post.categories?.slice(0, 2).map((category, index) => (
-            <Badge key={index} variant="secondary" className="text-xs bg-white/90 text-gray-800">
-              {category}
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      <CardContent className="p-6 space-y-4">
-        <div className="space-y-2">
-          <h3 className="text-lg font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
-            {post.title}
-          </h3>
-          <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">{post.contentSnippet}</p>
-        </div>
-
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{post.readTime}</span>
-            </div>
-          </div>
-
-          <Link href={`/blog/${createSlug(post.title)}`}>
-            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-              Read Article
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  if (loading) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <Skeleton className="h-8 w-32 mb-8" />
-            <Skeleton className="h-12 w-3/4 mb-4" />
-            <Skeleton className="h-6 w-1/2 mb-8" />
-            <Skeleton className="aspect-[16/9] w-full mb-8" />
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          </div>
-        </div>
-      </>
-    )
+  if (!feedResult.success) {
+    return { title: "Article – Intelli Blog" }
   }
 
-  if (error || !article) {
+  const article = feedResult.items.find((post) => createSlug(post.title) === slug)
+
+  if (!article) {
+    return { title: "Article Not Found – Intelli Blog" }
+  }
+
+  return {
+    title: `${article.title} – Intelli Blog`,
+    description: article.contentSnippet,
+    openGraph: {
+      title: article.title,
+      description: article.contentSnippet,
+      url: `https://intelliconcierge.com/blog/${slug}`,
+      type: "article",
+      ...(article.thumbnail && { images: [{ url: article.thumbnail }] }),
+      ...(article.pubDate && { publishedTime: article.pubDate }),
+      ...(article.author && { authors: [article.author] }),
+    },
+  }
+}
+
+export async function generateStaticParams() {
+  const feedResult = await fetchMediumPosts()
+
+  if (!feedResult.success) {
+    return []
+  }
+
+  return feedResult.items.map((post) => ({
+    slug: createSlug(post.title),
+  }))
+}
+
+export default async function BlogArticlePage({ params }: PageProps) {
+  const { slug } = params
+  const feedResult = await fetchMediumPosts()
+
+  if (!feedResult.success) {
+    notFound()
+  }
+
+  const article = feedResult.items.find((post) => createSlug(post.title) === slug)
+
+  if (!article) {
     return (
       <>
         <Navbar />
@@ -175,19 +95,23 @@ export default function BlogArticlePage() {
     )
   }
 
+  const relatedArticles = feedResult.items
+    .filter((post) => createSlug(post.title) !== slug)
+    .slice(0, 3)
+
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         .article-content {
           line-height: 1.8;
           font-size: 18px;
         }
-        
+
         .article-content p {
           margin-bottom: 1.5rem;
           color: #374151;
         }
-        
+
         .article-content h1,
         .article-content h2,
         .article-content h3,
@@ -199,11 +123,11 @@ export default function BlogArticlePage() {
           font-weight: 700;
           color: #111827;
         }
-        
+
         .article-content h1 { font-size: 2.25rem; }
         .article-content h2 { font-size: 1.875rem; }
         .article-content h3 { font-size: 1.5rem; }
-        
+
         .article-content img {
           max-width: 100%;
           height: auto;
@@ -211,19 +135,19 @@ export default function BlogArticlePage() {
           margin: 2rem 0;
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
-        
+
         .article-content figure {
           margin: 2rem 0;
           text-align: center;
         }
-        
+
         .article-content figcaption {
           margin-top: 0.75rem;
           font-size: 0.875rem;
           color: #6b7280;
           font-style: italic;
         }
-        
+
         .article-content blockquote {
           border-left: 4px solid #e5e7eb;
           padding-left: 1.5rem;
@@ -232,32 +156,32 @@ export default function BlogArticlePage() {
           color: #6b7280;
           font-size: 1.125rem;
         }
-        
+
         .article-content ul,
         .article-content ol {
           margin: 1.5rem 0;
           padding-left: 2rem;
         }
-        
+
         .article-content li {
           margin-bottom: 0.75rem;
         }
-        
+
         .article-content a {
           color: #2563eb;
           text-decoration: underline;
           font-weight: 500;
         }
-        
+
         .article-content a:hover {
           color: #1d4ed8;
         }
-        
+
         .article-content strong {
           font-weight: 600;
           color: #111827;
         }
-        
+
         .article-content code {
           background-color: #f3f4f6;
           padding: 0.25rem 0.5rem;
@@ -266,7 +190,7 @@ export default function BlogArticlePage() {
           font-size: 0.875rem;
           color: #dc2626;
         }
-        
+
         .article-content pre {
           background-color: #1f2937;
           color: #f9fafb;
@@ -275,13 +199,13 @@ export default function BlogArticlePage() {
           overflow-x: auto;
           margin: 2rem 0;
         }
-        
+
         .article-content pre code {
           background-color: transparent;
           padding: 0;
           color: inherit;
         }
-        
+
         .article-content iframe {
           width: 100%;
           max-width: 600px;

@@ -13,7 +13,7 @@ Click on `Use this template` to copy the Intelli starter kit. The starter kit co
 Install the [Intelli CLI](https://www.npmjs.com/package/intelli) to preview the documentation changes locally. To install, use the following command
 
 ```
-npm i -g intelli
+bun add -g intelli
 ```
 
 Run the following command at the root of your documentation (where mint.json is)

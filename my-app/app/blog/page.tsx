@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import MediumBlogComponent from "./medium-blog-component";
 import { Navbar } from "@/components/navbar";
 import { FooterComponent } from "@/components/home/Footer";
-import Link from "next/link";
+import { fetchMediumPosts } from "@/lib/medium-feed";
+
+export const revalidate = 300; // revalidate every 5 minutes (ISR)
 
 export const metadata: Metadata = {
   title: "Intelli Blog – AI Customer Support, WhatsApp Automation & Industry Insights",
@@ -23,14 +25,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const feedResult = await fetchMediumPosts();
+
   return (
     <div className="relative">
       <Navbar />
 
       <main className="pt-20">
 
-        <MediumBlogComponent />
+        <MediumBlogComponent initialPosts={feedResult.items} />
 
         <FooterComponent />
       </main>
