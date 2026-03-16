@@ -259,7 +259,7 @@ export default function SimpleCarouselCreator({
       }
 
       // Validate card body text length
-      if (cards[i].bodyText && cards[i].bodyText.trim().length > 160) {
+      if (cards[i].bodyText && cards[i].bodyText!.trim().length > 160) {
         toast.error(`Card ${i + 1}: Body text exceeds 160 character limit`);
         setCurrentCardIndex(i);
         return;
