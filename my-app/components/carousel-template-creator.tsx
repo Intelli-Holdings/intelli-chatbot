@@ -326,6 +326,15 @@ export default function CarouselTemplateCreator({
       }
     }
 
+    // Validate card body text length
+    for (let i = 0; i < cards.length; i++) {
+      if (cards[i].bodyText.length > 160) {
+        toast.error(`Card ${i + 1}: Body text exceeds 160 character limit (${cards[i].bodyText.length}/160)`);
+        setCurrentCardIndex(i);
+        return false;
+      }
+    }
+
     // Check structure consistency
     const firstHasBody = !!cards[0].bodyText.trim();
     const firstButtonCount = cards[0].buttons.length;
