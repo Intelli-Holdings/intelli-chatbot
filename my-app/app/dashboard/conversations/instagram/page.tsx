@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import ChatSidebar from "@/app/dashboard/conversations/components/chat-sidebar"
-import ChatArea from "@/app/dashboard/conversations/components/chat-area"
+import InstagramChatArea from "@/app/dashboard/conversations/components/instagram-chat-area"
 import DownloadPage from "@/app/dashboard/conversations/components/download-page"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { useInstagramAppServices } from "@/hooks/use-instagram-appservices"
@@ -93,17 +93,21 @@ export default function InstagramConvosPage() {
   const {
     appServices,
     primaryAccountId,
+    primaryPageId,
     isLoading: appServicesLoading,
     error: appServicesError,
   } = useInstagramAppServices(activeOrganizationId || undefined)
 
   const [selectedAccountId, setSelectedAccountId] = useState<string>("")
+  const [selectedPageId, setSelectedPageId] = useState<string>("")
   const accountId = selectedAccountId || primaryAccountId
+  const pageId = selectedPageId || primaryPageId
 
   // Auto-select first AppService when available
   useEffect(() => {
     if (!selectedAccountId && appServices.length > 0 && appServices[0].instagram_business_account_id) {
       setSelectedAccountId(appServices[0].instagram_business_account_id || "")
+      setSelectedPageId(appServices[0].instagram_page_id || "")
     }
   }, [appServices, selectedAccountId])
 
@@ -112,6 +116,9 @@ export default function InstagramConvosPage() {
     if (newAccountId === selectedAccountId) return
 
     setSelectedAccountId(newAccountId)
+    // Find the matching appService to get its page_id
+    const matchingService = appServices.find(s => s.instagram_business_account_id === newAccountId)
+    setSelectedPageId(matchingService?.instagram_page_id || "")
     setConversations([])
     setSelectedConversation(null)
     selectedConversationRef.current = null
@@ -119,7 +126,7 @@ export default function InstagramConvosPage() {
     messageCacheRef.current = {}
     scrollPositionsRef.current = {}
     setIsInitializing(true)
-  }, [selectedAccountId])
+  }, [selectedAccountId, appServices])
 
   const {
     sessions,
@@ -465,7 +472,7 @@ export default function InstagramConvosPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
+    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
       {/* Left Panel - Account Selector + Conversations */}
       <div className="flex flex-col h-full">
         {/* Account Selector - only show if multiple accounts exist */}
@@ -503,12 +510,13 @@ export default function InstagramConvosPage() {
           />
         </div>
       </div>
-      <div className="flex-1 relative bg-[#efeae2]">
+      <div className="flex-1 relative bg-[#FAFAFA]">
         {selectedConversation ? (
-          <ChatArea
+          <InstagramChatArea
             conversation={selectedConversation}
             conversations={conversations}
-            phoneNumber={accountId}
+            phoneNumber={pageId}
+            instagramBusinessAccountId={accountId}
             organizationId={activeOrganizationId ?? undefined}
             fetchMessages={fetchMessagesForConversation}
             fetchOlderMessages={fetchOlderMessages}
@@ -521,7 +529,7 @@ export default function InstagramConvosPage() {
             onMessagesUpdate={handleMessagesUpdate}
           />
         ) : (
-          <div className="flex items-center justify-center h-full bg-[#f0f2f5]">
+          <div className="flex items-center justify-center h-full bg-[#FAFAFA]">
             <DownloadPage />
           </div>
         )}
@@ -532,10 +540,11 @@ export default function InstagramConvosPage() {
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetContent side="bottom" className="w-full sm:max-w-full">
             {selectedConversation && (
-              <ChatArea
+              <InstagramChatArea
                 conversation={selectedConversation}
                 conversations={conversations}
-                phoneNumber={accountId}
+                phoneNumber={pageId}
+                instagramBusinessAccountId={accountId}
                 organizationId={activeOrganizationId ?? undefined}
                 fetchMessages={fetchMessagesForConversation}
                 fetchOlderMessages={fetchOlderMessages}

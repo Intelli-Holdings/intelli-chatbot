@@ -21,12 +21,14 @@ import { CallUI } from "@/components/call-ui";
 interface ConversationHeaderProps {
   conversation: Conversation | null;
   phoneNumber: string;
+  instagramBusinessAccountId?: string;
   onAiSupportChange?: (isActive: boolean) => void;
 }
 
 const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   conversation,
   phoneNumber,
+  instagramBusinessAccountId,
   onAiSupportChange,
 }) => {
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +54,9 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
       const formData = new FormData();
       formData.append("phoneNumber", phoneNumber);
       formData.append("customerNumber", conversation.customer_number || conversation.recipient_id);
+      if (instagramBusinessAccountId) {
+        formData.append("instagramBusinessAccountId", instagramBusinessAccountId);
+      }
 
       if (isAiSupport) {
         const result = await takeoverConversation(formData);

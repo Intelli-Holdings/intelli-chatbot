@@ -24,11 +24,17 @@ export async function takeoverConversation(formData: FormData) {
 
   const customerNumber = formData.get('customerNumber');
   const phoneNumber = formData.get('phoneNumber');
+  const instagramBusinessAccountId = formData.get('instagramBusinessAccountId');
 
-  const payload: ConversationPayload = {
+  const payload: Record<string, string> = {
     customer_number: customerNumber as string,
-    phone_number: phoneNumber as string,
   };
+
+  if (instagramBusinessAccountId) {
+    payload.instagram_business_account_id = instagramBusinessAccountId as string;
+  } else {
+    payload.phone_number = phoneNumber as string;
+  }
 
   logger.info('Taking over conversation:');
 
@@ -62,11 +68,17 @@ export async function handoverConversation(formData: FormData) {
 
   const customerNumber = formData.get('customerNumber');
   const phoneNumber = formData.get('phoneNumber');
+  const instagramBusinessAccountId = formData.get('instagramBusinessAccountId');
 
-  const payload: ConversationPayload = {
+  const payload: Record<string, string> = {
     customer_number: customerNumber as string,
-    phone_number: phoneNumber as string,
   };
+
+  if (instagramBusinessAccountId) {
+    payload.instagram_business_account_id = instagramBusinessAccountId as string;
+  } else {
+    payload.phone_number = phoneNumber as string;
+  }
 
   logger.info('Handing over conversation:');
 
@@ -92,6 +104,46 @@ export async function handoverConversation(formData: FormData) {
     success: true,
     message: 'Conversation handover initiated',
   };
+}
+
+export async function sendInstagramMessage(formData: FormData) {
+  // For text-only messages
+  if (!formData.has('file')) {
+    const payload = {
+      instagram_business_account_id: formData.get('instagram_business_account_id'),
+      customer_id: formData.get('customer_id'),
+      answer: formData.get('answer'),
+    };
+
+    const response = await fetch(`${API_BASE_URL}/appservice/conversations/instagram/send_message/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+  // For messages with media files
+  else {
+    const response = await fetch(`${API_BASE_URL}/appservice/conversations/instagram/send_message/`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      logger.error('Instagram API error response:', { error: errorData });
+      toast.error('Failed to send message');
+    }
+
+    return response.json();
+  }
 }
 
 export async function sendMessage(formData: FormData) {

@@ -39,10 +39,12 @@ export function useInstagramAppServices(organizationId?: string) {
 
   const appServices = query.data || []
   const primaryAccountId = appServices[0]?.instagram_business_account_id || ""
+  const primaryPageId = appServices[0]?.instagram_page_id || ""
 
   return {
     appServices,
     primaryAccountId,
+    primaryPageId,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     error: query.error instanceof Error ? query.error.message : null,

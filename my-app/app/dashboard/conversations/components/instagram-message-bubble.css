@@ -1,0 +1,139 @@
+/* Instagram message bubble styling */
+.ig-message-bubble {
+  position: relative;
+  padding: 0.5rem 0.75rem;
+  margin: 0.25rem 0;
+  max-width: 65%;
+  border-radius: 1.25rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: igSlideIn 0.2s ease-out;
+}
+
+@keyframes igSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ig-message-bubble:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Customer messages - light gray bubble */
+.ig-message-customer {
+  background-color: #EFEFEF;
+  color: #262626;
+  align-self: flex-start;
+}
+
+/* AI assistant messages - light purple */
+.ig-message-assistant {
+  background-color: #7C3AED;
+  color: #ffffff;
+  align-self: flex-end;
+}
+
+/* Human/business messages - Instagram blue */
+.ig-message-human {
+  background-color: #3797F0;
+  color: #ffffff;
+  align-self: flex-end;
+}
+
+/* Reaction overlay - Instagram style floating emoji */
+.ig-reaction-overlay {
+  position: absolute;
+  bottom: -10px;
+  right: 10px;
+  font-size: 18px;
+  background: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.ig-message-bubble:has(.ig-reaction-overlay) {
+  margin-bottom: 1rem;
+}
+
+/* Typography */
+.ig-message-bubble p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
+  margin: 0.5rem 0;
+}
+
+.ig-message-bubble p:first-child {
+  margin-top: 0;
+}
+
+.ig-message-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.ig-message-bubble.expanded p {
+  -webkit-line-clamp: unset;
+}
+
+/* List styling */
+.ig-message-bubble ol,
+.ig-message-bubble ul {
+  margin: 0.5rem 0 1em;
+  padding-left: 1.5rem;
+}
+
+.ig-message-bubble ol {
+  list-style-type: decimal;
+}
+
+.ig-message-bubble ul {
+  list-style-type: disc;
+}
+
+.ig-message-bubble li {
+  margin: 0.25rem 0 0.5em;
+  padding-left: 0.5rem;
+}
+
+/* Link styling */
+.ig-message-bubble a {
+  text-decoration: underline;
+  text-decoration-color: rgba(0, 0, 0, 0.3);
+  transition: text-decoration-color 0.2s;
+}
+
+.ig-message-bubble.ig-message-customer a {
+  color: #00376B;
+}
+
+.ig-message-bubble.ig-message-human a,
+.ig-message-bubble.ig-message-assistant a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+}
+
+.ig-message-bubble a:hover {
+  text-decoration-color: currentColor;
+}
+
+/* Formatted text */
+.ig-message-bubble .text-sm {
+  white-space: pre-wrap;
+}
