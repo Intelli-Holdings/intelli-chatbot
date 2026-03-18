@@ -21,7 +21,7 @@ import { useMediaQuery } from "@/app/hooks/use-media-query"
 import type { Conversation } from "@/app/dashboard/conversations/components/types"
 import { toast } from "sonner"
 import { logger } from "@/lib/logger"
-import { WhatsAppSkeletonLoader } from "@/app/dashboard/conversations/components/whatsapp-skeleton-loader"
+import { ConversationsSkeleton } from "@/components/conversations/conversations-skeleton"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 
@@ -468,7 +468,7 @@ export default function InstagramConvosPage() {
   }
 
   if (isInitializing) {
-    return <WhatsAppSkeletonLoader />
+    return <ConversationsSkeleton />
   }
 
   return (
