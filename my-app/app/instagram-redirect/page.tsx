@@ -57,7 +57,7 @@ export default function InstagramRedirectPage() {
   const fetchAssistants = useCallback(async (orgId: string) => {
     setIsFetchingAssistants(true)
     try {
-      const response = await fetch(`/api/assistants?organization_id=${orgId}`)
+      const response = await fetch(`/api/assistants/org/${orgId}`)
       const data = await response.json()
 
       if (!response.ok) {
