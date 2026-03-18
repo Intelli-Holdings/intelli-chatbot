@@ -9,7 +9,7 @@ import { useOrganization } from "@clerk/nextjs"
 import Image from 'next/image'
 import { logger } from "@/lib/logger"
 
-type SetupStep = "processing" | "exchanging" | "creating" | "selectingAssistant" | "creatingAppService" | "complete" | "error"
+type SetupStep = "loading" | "selectingAssistant" | "connecting" | "complete" | "error"
 
 type Assistant = {
   id: number
@@ -20,25 +20,15 @@ type Assistant = {
   organization_id: string
 }
 
-type PackageResponse = {
-  id: number
-  instagram_business_account_id: string
-  page_id?: string
-  [key: string]: any
-}
-
-type InstagramAccountInfo = {
-  page_id: string
-  page_name: string
-  page_access_token: string
-  instagram_business_account_id: string
-}
-
 /**
  * Instagram OAuth Redirect Page
- * This page receives the authorization code from Facebook OAuth flow,
- * exchanges it for a token, creates the Instagram package, lets user select assistant,
- * creates the appservice, and redirects to conversations
+ *
+ * Flow:
+ * 1. Receives ?code= from Facebook OAuth
+ * 2. Fetches assistants, lets user pick one
+ * 3. Sends code + assistant_id to backend in a single call
+ *    (backend handles token exchange + account discovery + AppService creation)
+ * 4. Redirects to conversations
  */
 export default function InstagramRedirectPage() {
   const router = useRouter()
@@ -46,118 +36,24 @@ export default function InstagramRedirectPage() {
   const { organization } = useOrganization()
   const organizationId = organization?.id
 
-  const [step, setStep] = useState<SetupStep>("processing")
+  const [step, setStep] = useState<SetupStep>("loading")
   const [error, setError] = useState<string | null>(null)
-  const [statusMessage, setStatusMessage] = useState<string>("Processing authorization...")
+  const [statusMessage, setStatusMessage] = useState<string>("Loading...")
   const [hasStarted, setHasStarted] = useState(false)
 
-  // Token and account info
-  const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [accountInfo, setAccountInfo] = useState<InstagramAccountInfo | null>(null)
+  // OAuth params captured from URL
+  const [authCode, setAuthCode] = useState<string | null>(null)
 
-  // Package and AppService state
-  const [packageResponse, setPackageResponse] = useState<PackageResponse | null>(null)
+  // Backend response
+  const [connectResponse, setConnectResponse] = useState<Record<string, any> | null>(null)
 
   // Assistant state
   const [assistants, setAssistants] = useState<Assistant[]>([])
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null)
   const [isFetchingAssistants, setIsFetchingAssistants] = useState(false)
-  const [appServiceError, setAppServiceError] = useState<string | null>(null)
+  const [connectError, setConnectError] = useState<string | null>(null)
 
-  // Exchange authorization code for access token
-  const exchangeCodeForToken = useCallback(async (code: string, redirectUri: string) => {
-    try {
-      setStep("exchanging")
-      setStatusMessage("Exchanging authorization code for access token...")
-
-      const response = await fetch("/api/facebook/exchange-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, redirect_uri: redirectUri })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to exchange authorization code")
-      }
-
-      if (data.access_token) {
-        setAccessToken(data.access_token)
-        return data.access_token
-      } else {
-        throw new Error("No access token in response")
-      }
-    } catch (err) {
-      logger.error("Token exchange error", { error: err instanceof Error ? err.message : String(err) })
-      throw err
-    }
-  }, [])
-
-  // Create the Instagram channel package
-  const createInstagramChannel = useCallback(async (token: string, orgId: string) => {
-    try {
-      setStep("creating")
-      setStatusMessage("Setting up your Instagram channel...")
-
-      // Fetch pages and Instagram Business Account via Facebook
-      const pagesResponse = await fetch(
-        `https://graph.facebook.com/v22.0/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
-      )
-      const pagesData = await pagesResponse.json()
-
-      if (!pagesResponse.ok || !pagesData.data || pagesData.data.length === 0) {
-        throw new Error("No Facebook Pages found. Please create a Facebook Page and link it to your Instagram account.")
-      }
-
-      // Find a page with Instagram Business Account
-      const pageWithInstagram = pagesData.data.find((page: any) => page.instagram_business_account)
-
-      if (!pageWithInstagram) {
-        throw new Error("No Instagram Business Account found linked to your Facebook Pages. Please link your Instagram Professional account to a Facebook Page.")
-      }
-
-      const instagramAccountInfo: InstagramAccountInfo = {
-        page_id: pageWithInstagram.id,
-        page_name: pageWithInstagram.name,
-        page_access_token: pageWithInstagram.access_token,
-        instagram_business_account_id: pageWithInstagram.instagram_business_account.id
-      }
-      setAccountInfo(instagramAccountInfo)
-
-      // Create the channel package
-      const payload = {
-        choice: "instagram",
-        data: {
-          page_id: pageWithInstagram.id,
-          page_access_token: pageWithInstagram.access_token,
-          user_access_token: token,
-          instagram_business_account_id: pageWithInstagram.instagram_business_account.id
-        },
-        organization_id: orgId
-      }
-
-      const response = await fetch("/api/channels/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || data.detail || "Failed to create Instagram channel")
-      }
-
-      setPackageResponse(data)
-      return { package: data, accountInfo: instagramAccountInfo }
-    } catch (err) {
-      logger.error("Channel creation error", { error: err instanceof Error ? err.message : String(err) })
-      throw err
-    }
-  }, [])
-
-  // Fetch assistants using regular fetch (not react-query)
+  // Fetch assistants
   const fetchAssistants = useCallback(async (orgId: string) => {
     setIsFetchingAssistants(true)
     try {
@@ -169,11 +65,6 @@ export default function InstagramRedirectPage() {
       }
 
       setAssistants(data)
-
-      if (data.length === 0) {
-        setError("No assistants found. Please create an assistant first.")
-        setStatusMessage("You need to create an assistant before setting up Instagram.")
-      }
       return data
     } catch (error) {
       logger.error("Error fetching assistants", { error: error instanceof Error ? error.message : String(error) })
@@ -183,59 +74,59 @@ export default function InstagramRedirectPage() {
     }
   }, [])
 
-  // Create AppService
-  const createAppService = useCallback(async () => {
-    if (!packageResponse || !organizationId || !selectedAssistant || !accountInfo) {
-      setAppServiceError("Missing required information to create AppService")
-      return
-    }
+  // Send auth code + assistant to backend
+  const connectInstagram = useCallback(async (code: string, orgId: string, assistantId?: string) => {
+    setConnectError(null)
+    setStep("connecting")
+    setStatusMessage("Connecting your Instagram account...")
 
-    setAppServiceError(null)
-    setStep("creatingAppService")
-    setStatusMessage("Creating AppService...")
+    const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
+      `${window.location.origin}/instagram-redirect`
 
     try {
-      const data = {
-        organization_id: organizationId,
-        instagram_business_account_id: accountInfo.instagram_business_account_id,
-        assistant_id: selectedAssistant.assistant_id,
+      const payload: Record<string, string> = {
+        organization_id: orgId,
+        code,
+        redirect_uri: redirectUri,
       }
-      logger.info("Creating Instagram AppService", { data })
+      if (assistantId) {
+        payload.assistant_id = assistantId
+      }
 
-      const res = await fetch("/api/appservice/create-instagram", {
+      const response = await fetch("/api/appservice/connect/instagram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload)
       })
 
-      const appsvc = await res.json()
+      const data = await response.json()
 
-      if (!res.ok) {
-        logger.error("AppService creation error", { data: appsvc })
-        throw new Error(appsvc.error || appsvc.detail || "Failed to create AppService")
+      if (!response.ok) {
+        throw new Error(data.error || data.detail || "Failed to connect Instagram account")
       }
 
+      setConnectResponse(data)
       setStep("complete")
       setStatusMessage("Setup complete! Redirecting to conversations...")
 
-      // Redirect to conversations after a brief delay
       setTimeout(() => {
         router.push("/dashboard/conversations/instagram")
       }, 2000)
-    } catch (e) {
-      logger.error("Error creating AppService", { error: e instanceof Error ? e.message : String(e) })
-      setAppServiceError(e instanceof Error ? e.message : "Error creating AppService")
-      setStatusMessage("Error creating AppService. Please try again.")
+    } catch (err) {
+      logger.error("Instagram connect error", { error: err instanceof Error ? err.message : String(err) })
+      setConnectError(err instanceof Error ? err.message : "Failed to connect Instagram account")
+      // Go back to assistant selection so user can retry
+      setStep("selectingAssistant")
     }
-  }, [organizationId, selectedAssistant, packageResponse, accountInfo, router])
+  }, [router])
 
   // Handle assistant confirmation
   const handleAssistantConfirm = useCallback(() => {
-    if (!selectedAssistant || !packageResponse) return
-    createAppService()
-  }, [selectedAssistant, packageResponse, createAppService])
+    if (!authCode || !organizationId) return
+    connectInstagram(authCode, organizationId, selectedAssistant?.assistant_id)
+  }, [authCode, organizationId, selectedAssistant, connectInstagram])
 
-  // Main effect to process the OAuth callback
+  // Main effect: capture code from URL and fetch assistants
   useEffect(() => {
     const code = searchParams.get("code")
     const urlError = searchParams.get("error")
@@ -253,43 +144,29 @@ export default function InstagramRedirectPage() {
       return
     }
 
-    // Wait for organizationId to be available
     if (!organizationId) {
       setStatusMessage("Loading organization...")
       return
     }
 
-    // Prevent running multiple times
     if (hasStarted) return
     setHasStarted(true)
+    setAuthCode(code)
 
-    // Build redirect URI - must match what was used in OAuth start
-    const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
-      `${window.location.origin}/instagram-redirect`
-
-    // Start the setup process
-    const setupInstagram = async () => {
+    const setup = async () => {
       try {
-        // Step 1: Exchange code for token
-        const token = await exchangeCodeForToken(code, redirectUri)
-
-        // Step 2: Create channel package
-        await createInstagramChannel(token, organizationId)
-
-        // Step 3: Fetch assistants and show selection
         setStep("selectingAssistant")
-        setStatusMessage("Please select an assistant for your Instagram channel.")
+        setStatusMessage("Select an assistant for your Instagram channel.")
         await fetchAssistants(organizationId)
       } catch (err) {
         setStep("error")
-        setError(err instanceof Error ? err.message : "Setup failed")
+        setError(err instanceof Error ? err.message : "Failed to load assistants")
       }
     }
 
-    setupInstagram()
-  }, [searchParams, organizationId, hasStarted, exchangeCodeForToken, createInstagramChannel, fetchAssistants])
+    setup()
+  }, [searchParams, organizationId, hasStarted, fetchAssistants])
 
-  // Go back to channels
   const handleGoToChannels = useCallback(() => {
     router.push("/dashboard/channels")
   }, [router])
@@ -314,18 +191,11 @@ export default function InstagramRedirectPage() {
         </div>
 
         <CardContent className="space-y-4">
-          {/* Processing / Exchanging / Creating */}
-          {(step === "processing" || step === "exchanging" || step === "creating") && (
+          {/* Loading */}
+          {step === "loading" && (
             <div className="flex flex-col items-center space-y-4 py-8">
               <Loader className="w-10 h-10 animate-spin text-purple-600" />
-              <div className="text-center">
-                <p className="font-medium text-gray-900">
-                  {step === "processing" && "Processing Authorization..."}
-                  {step === "exchanging" && "Exchanging Code for Token..."}
-                  {step === "creating" && "Creating Instagram Channel..."}
-                </p>
-                <p className="text-sm text-gray-600 mt-2">{statusMessage}</p>
-              </div>
+              <p className="text-sm text-gray-600">{statusMessage}</p>
             </div>
           )}
 
@@ -335,16 +205,6 @@ export default function InstagramRedirectPage() {
               <div className="p-4 bg-gray-50 rounded-md">
                 <p className="font-medium">Select Your Assistant</p>
                 <p className="text-sm text-gray-500 mb-4">Choose an assistant to handle Instagram conversations</p>
-                {accountInfo && (
-                  <div className="mb-4 p-2 bg-purple-50 rounded-md">
-                    <p className="text-sm text-purple-600">
-                      Connected Page: <strong>{accountInfo.page_name}</strong>
-                    </p>
-                    <p className="text-xs text-purple-500 mt-1">
-                      Instagram Business Account: {accountInfo.instagram_business_account_id}
-                    </p>
-                  </div>
-                )}
                 <div className="mt-2 space-y-2">
                   {isFetchingAssistants ? (
                     <div className="flex items-center justify-center p-4">
@@ -379,6 +239,11 @@ export default function InstagramRedirectPage() {
                   )}
                 </div>
               </div>
+              {connectError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{connectError}</p>
+                </div>
+              )}
               <CardFooter className="flex justify-end pt-0 px-0">
                 <Button
                   onClick={handleAssistantConfirm}
@@ -391,38 +256,16 @@ export default function InstagramRedirectPage() {
             </div>
           )}
 
-          {/* Creating AppService */}
-          {step === "creatingAppService" && (
-            <div className="flex flex-col space-y-4">
-              <div className="p-4 bg-gray-50 rounded-md">
-                <p className="font-medium">Creating AppService</p>
-                {accountInfo && (
-                  <p className="text-sm text-gray-500">Page: {accountInfo.page_name}</p>
-                )}
-                {selectedAssistant && (
-                  <p className="text-sm text-gray-500">Assistant: {selectedAssistant.name}</p>
-                )}
+          {/* Connecting */}
+          {step === "connecting" && (
+            <div className="flex flex-col items-center space-y-4 py-8">
+              <Loader className="w-10 h-10 animate-spin text-purple-600" />
+              <div className="text-center">
+                <p className="font-medium text-gray-900">Connecting Instagram Account</p>
+                <p className="text-sm text-gray-600 mt-2">
+                  Exchanging credentials and setting up your channel...
+                </p>
               </div>
-              <div className="flex items-center justify-center p-4">
-                <Loader className="w-6 h-6 animate-spin text-purple-600" />
-                <span className="ml-2">Creating AppService...</span>
-              </div>
-              {appServiceError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-600">{appServiceError}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 text-xs"
-                    onClick={() => {
-                      setAppServiceError(null)
-                      createAppService()
-                    }}
-                  >
-                    <RefreshCcw className="w-3 h-3 mr-1" /> Try Again
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
@@ -437,9 +280,9 @@ export default function InstagramRedirectPage() {
                     <p className="text-sm text-green-700 mt-1">
                       Your Instagram channel is now ready to receive messages.
                     </p>
-                    {accountInfo && (
+                    {connectResponse?.instagram_page_name && (
                       <p className="text-sm text-green-600 mt-2">
-                        Connected Page: <strong>{accountInfo.page_name}</strong>
+                        Connected Page: <strong>{connectResponse.instagram_page_name}</strong>
                       </p>
                     )}
                     {selectedAssistant && (
