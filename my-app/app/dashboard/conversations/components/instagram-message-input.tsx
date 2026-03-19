@@ -3,7 +3,7 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, useRef, type ChangeEvent, type KeyboardEvent, useEffect } from "react"
-import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, MessageSquareText } from "lucide-react"
+import { Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, MessageSquareText, Heart, ImageIcon, Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { sendInstagramMessage } from "@/app/actions"
 import { useUser } from "@clerk/nextjs"
@@ -375,11 +375,47 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
     )
   }
 
-  return (
-    <div className="border rounded-xl shadow-sm overflow-hidden bg-white">
-      {error && <p className="text-red-500 px-4 py-2 text-sm">{error}</p>}
+  const hasContent = answer.trim() !== "" || files.length > 0 || !!audioBlob
 
-      <form onSubmit={handleSubmit} className="flex flex-col">
+  return (
+    <div>
+      {error && <p className="text-red-500 px-3 py-1.5 text-xs">{error}</p>}
+
+      {showEmojiPicker && (
+        <div className="p-2 border-b border-[#DBDBDB]">
+          <div className="relative">
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 h-6 w-6 bg-white rounded-full"
+              onClick={() => setShowEmojiPicker(false)}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isRecording && renderAudioWaveform()}
+
+      {files.length > 0 && (
+        <div className="flex flex-wrap gap-2 p-2 border-b border-[#DBDBDB]">
+          {files.map((file, index) => renderFilePreview(file, index))}
+        </div>
+      )}
+
+      {audioUrl && (
+        <div className="flex items-center gap-2 p-2 border-b border-[#DBDBDB]">
+          <audio src={audioUrl} controls className="h-8 flex-grow" />
+          <Button type="button" variant="ghost" size="icon" onClick={deleteRecording} className="h-8 w-8">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="flex items-end gap-2 px-3 py-2">
         <input
           type="file"
           ref={fileInputRef}
@@ -389,44 +425,21 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
           className="hidden"
         />
 
-        {showEmojiPicker && (
-          <div className="p-2 border-b">
-            <div className="relative">
-              <EmojiPicker onEmojiClick={handleEmojiClick} />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 h-6 w-6 bg-white rounded-full"
-                onClick={() => setShowEmojiPicker(false)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Emoji / Sticker button */}
+        <button
+          type="button"
+          className="shrink-0 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          disabled={isLoading || isRecording}
+        >
+          <Smile className="h-6 w-6 text-[#262626]" />
+        </button>
 
-        {isRecording && renderAudioWaveform()}
-
-        {files.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-2 border-b">
-            {files.map((file, index) => renderFilePreview(file, index))}
-          </div>
-        )}
-
-        {audioUrl && (
-          <div className="flex items-center gap-2 p-2 border-b">
-            <audio src={audioUrl} controls className="h-8 flex-grow" />
-            <Button type="button" variant="ghost" size="icon" onClick={deleteRecording} className="h-8 w-8">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        <div className="relative shadow-sm">
+        {/* Input field - Instagram pill style */}
+        <div className="flex-1 flex items-end border border-[#DBDBDB] rounded-[22px] px-3 py-1.5 min-h-[44px]">
           <Textarea
             placeholder="Message..."
-            className="min-h-[60px] max-h-[200px] resize-none p-4 pb-12 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="flex-1 min-h-[24px] max-h-[120px] resize-none border-0 p-0 text-[14px] leading-[20px] placeholder:text-[#8E8E8E] focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
             value={answer}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
@@ -435,76 +448,76 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
             rows={1}
           />
 
-          <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
-            {/* Character counter */}
-            <span className={`text-[10px] ${textByteLength > 900 ? "text-red-500" : "text-gray-400"}`}>
-              {textByteLength > 0 ? `${textByteLength}/${INSTAGRAM_TEXT_LIMIT}` : ""}
-            </span>
-
-            <div className="flex items-center gap-2">
+          {/* Right side icons inside the pill */}
+          {!hasContent && (
+            <div className="flex items-center gap-1 ml-2 shrink-0">
+              <button
+                type="button"
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isLoading}
+              >
+                <Mic className={`h-5 w-5 ${isRecording ? "text-red-500 animate-pulse" : "text-[#262626]"}`} />
+              </button>
+              <button
+                type="button"
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || isRecording}
+              >
+                <ImageIcon className="h-5 w-5 text-[#262626]" />
+              </button>
               {onOpenCannedResponses && (
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full h-8 w-8"
+                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
                   onClick={onOpenCannedResponses}
                   disabled={isLoading || isRecording}
                   title="Canned responses"
                 >
-                  <MessageSquareText className="h-4 w-4 text-gray-500" />
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="rounded-full h-8 w-8"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                disabled={isLoading || isRecording}
-              >
-                <Smile className="h-4 w-4 text-gray-500" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="rounded-full h-8 w-8"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading || isRecording}
-              >
-                <Paperclip className="h-4 w-4 text-gray-500" />
-              </Button>
-
-              {!answer.trim() && files.length === 0 && !audioBlob ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full h-8 w-8"
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isLoading}
-                >
-                  <Mic className={`h-4 w-4 ${isRecording ? "text-red-500 animate-pulse" : "text-gray-500"}`} />
-                </Button>
-              ) : (
-                <Button
-                  className="rounded-xl h-8 w-8 bg-[#3797F0] hover:bg-[#2680d4]"
-                  type="submit"
-                  size="icon"
-                  disabled={isSubmitDisabled}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 text-white animate-spin" />
-                  ) : (
-                    <ArrowUp className="h-4 w-4 text-white" />
-                  )}
-                </Button>
+                  <MessageSquareText className="h-5 w-5 text-[#262626]" />
+                </button>
               )}
             </div>
-          </div>
+          )}
+
+          {/* Send button when there is content */}
+          {hasContent && (
+            <button
+              type="submit"
+              className="ml-2 shrink-0 text-[14px] font-semibold text-[#0095F6] hover:text-[#00376B] transition-colors disabled:opacity-40"
+              disabled={isSubmitDisabled}
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                "Send"
+              )}
+            </button>
+          )}
         </div>
+
+        {/* Heart quick-send when empty */}
+        {!hasContent && (
+          <button
+            type="button"
+            className="shrink-0 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            disabled={isLoading || isRecording}
+            title="Send heart"
+          >
+            <Heart className="h-6 w-6 text-[#262626]" />
+          </button>
+        )}
       </form>
+
+      {/* Character counter - subtle, only when typing */}
+      {textByteLength > 0 && (
+        <div className="px-4 pb-1">
+          <span className={`text-[10px] ${textByteLength > 900 ? "text-red-500" : "text-[#8E8E8E]"}`}>
+            {textByteLength}/{INSTAGRAM_TEXT_LIMIT}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

@@ -510,7 +510,7 @@ export default function InstagramConvosPage() {
           />
         </div>
       </div>
-      <div className="flex-1 relative bg-[#FAFAFA]">
+      <div className="flex-1 relative bg-white">
         {selectedConversation ? (
           <InstagramChatArea
             conversation={selectedConversation}
@@ -529,7 +529,7 @@ export default function InstagramConvosPage() {
             onMessagesUpdate={handleMessagesUpdate}
           />
         ) : (
-          <div className="flex items-center justify-center h-full bg-[#FAFAFA]">
+          <div className="flex items-center justify-center h-full bg-white">
             <DownloadPage />
           </div>
         )}

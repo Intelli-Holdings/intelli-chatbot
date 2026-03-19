@@ -685,12 +685,12 @@ export default function InstagramChatArea({
 
   if (!conversation) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#FAFAFA]">
+      <div className="flex items-center justify-center h-full bg-white">
         <div className="text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center">
             <Image src="/instagram.png" alt="Instagram" width={48} height={48} className="object-contain opacity-40" />
           </div>
-          <p className="text-sm text-muted-foreground">Select a conversation to view messages</p>
+          <p className="text-[14px] text-[#8E8E8E]">Select a conversation to view messages</p>
         </div>
       </div>
     )
@@ -723,8 +723,8 @@ export default function InstagramChatArea({
       dateString = format(messageDate, "MMMM d, yyyy")
     }
     return (
-      <div className="flex justify-center my-3">
-        <span className="px-3 py-1.5 text-[11px] font-medium text-gray-500 bg-white rounded-full shadow-sm">{dateString}</span>
+      <div className="ig-timestamp-separator">
+        {dateString}
       </div>
     )
   }
@@ -819,8 +819,8 @@ export default function InstagramChatArea({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#FAFAFA]">
-      <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200">
+    <div className="flex flex-col h-full bg-white">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-[#DBDBDB]">
         <ConversationHeader
           conversation={conversation}
           phoneNumber={phoneNumber}
@@ -838,7 +838,7 @@ export default function InstagramChatArea({
       )}
 
       {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-end gap-2">
+      <div className="bg-white border-b border-[#DBDBDB] px-3 py-2 flex items-center justify-end gap-2">
         {!isAiSupport && (
           <div className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0">
             <span
@@ -887,7 +887,7 @@ export default function InstagramChatArea({
 
       {/* Messages area */}
       <div
-        className="flex-1 overflow-y-auto p-4 bg-[#FAFAFA]"
+        className="flex-1 overflow-y-auto p-4 bg-white"
         onScroll={handleScroll}
         ref={scrollAreaRef}
       >
@@ -953,11 +953,9 @@ export default function InstagramChatArea({
                           return (
                             <div
                               className={cn(
-                                "ig-message-bubble ig-message-customer group",
+                                "ig-message-bubble ig-message-customer",
                                 !expandedMessages.includes(message.id) && "collapsed",
                               )}
-                              onMouseEnter={() => setHoveredMessageId(message.id)}
-                              onMouseLeave={() => setHoveredMessageId(null)}
                             >
                               <div className="text-sm">
                                 {contentHasMedia ? (
@@ -975,10 +973,6 @@ export default function InstagramChatArea({
                                   formatMessage(message.content)
                                 )}
                               </div>
-                              <span className="text-[11px] text-gray-400 mt-1 block">
-                                {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                              </span>
-                              {/* Show reaction overlay if present */}
                               {message.reaction?.emoji && (
                                 <span className="ig-reaction-overlay">{message.reaction.emoji}</span>
                               )}
@@ -991,50 +985,31 @@ export default function InstagramChatArea({
                           return (
                             <div
                               className={cn(
-                                "ig-message-bubble group",
+                                "ig-message-bubble",
                                 message.sender === "ai" ? "ig-message-assistant" : "ig-message-human",
-                                message.status === "failed" && "border-2 border-red-400 bg-red-50/50",
+                                message.status === "failed" && "!bg-red-100 !text-red-700",
                               )}
-                              onMouseEnter={() => setHoveredMessageId(message.id)}
-                              onMouseLeave={() => setHoveredMessageId(null)}
                             >
                               {message.status === "failed" && (
-                                <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
+                                <div className="text-[10px] font-medium mb-1 flex items-center gap-1">
                                   <span>Failed to send</span>
+                                  <button
+                                    onClick={() => handleRetryMessage(message.id)}
+                                    className="underline ml-1"
+                                  >
+                                    Retry
+                                  </button>
                                 </div>
                               )}
-                              <div className={cn(
-                                "text-[9px] font-semibold mb-1",
-                                message.sender === "ai" ? "text-purple-300" : "text-blue-100"
-                              )}>
-                                {message.sender === "ai" ? "AI Assistant" : "Business"}
-                              </div>
                               <div className="text-sm">{formatMessage(message.answer)}</div>
-                              <div className="flex items-center gap-1 mt-1">
-                                <span className={cn(
-                                  "text-[11px]",
-                                  message.sender === "ai" ? "text-purple-300" : "text-blue-200"
-                                )}>
-                                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                                {message.sender === "human" && (
-                                  <>
-                                    <MessageStatus
-                                      status={message.pending ? 'sending' : message.status || 'delivered'}
-                                      className="text-blue-200"
-                                    />
-                                    {message.status === "failed" && (
-                                      <button
-                                        onClick={() => handleRetryMessage(message.id)}
-                                        className="ml-2 text-[10px] text-red-300 hover:text-red-200 underline"
-                                        title="Retry sending this message"
-                                      >
-                                        Retry
-                                      </button>
-                                    )}
-                                  </>
-                                )}
-                              </div>
+                              {message.sender === "human" && message.pending && (
+                                <div className="flex justify-end mt-0.5">
+                                  <MessageStatus
+                                    status="sending"
+                                    className="text-white/60"
+                                  />
+                                </div>
+                              )}
                               {message.reaction?.emoji && (
                                 <span className="ig-reaction-overlay">{message.reaction.emoji}</span>
                               )}
@@ -1048,44 +1023,25 @@ export default function InstagramChatArea({
                           return (
                             <div
                               className={cn(
-                                "ig-message-bubble group",
-                                isCustomerMedia
-                                  ? "ig-message-customer"
-                                  : message.sender === "ai"
-                                    ? "ig-message-assistant"
-                                    : "ig-message-human",
+                                "max-w-[65%] mb-0.5",
+                                isCustomerMedia ? "self-start" : "self-end",
                               )}
-                              onMouseEnter={() => setHoveredMessageId(message.id)}
-                              onMouseLeave={() => setHoveredMessageId(null)}
                             >
-                              <div className="text-sm cursor-pointer">
-                                <div className="max-w-xs rounded-xl overflow-hidden">
-                                  {message.type === "image" ? (
-                                    <Image
-                                      src={message.media || "/placeholder.svg"}
-                                      alt="Image"
-                                      className="w-full h-auto rounded-xl"
-                                    />
-                                  ) : (
-                                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
-                                      {getFileIcon(message.type)}
-                                      <span className="text-sm truncate">Attachment</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 mt-1">
-                                <span className={cn(
-                                  "text-[11px]",
-                                  isCustomerMedia ? "text-gray-400" : "text-blue-200"
-                                )}>
-                                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                                {message.sender === "human" && !isCustomerMedia && (
-                                  <MessageStatus
-                                    status={message.pending ? 'sending' : message.status || 'delivered'}
-                                    className="text-blue-200"
+                              <div className="rounded-[18px] overflow-hidden">
+                                {message.type === "image" ? (
+                                  <Image
+                                    src={message.media || "/placeholder.svg"}
+                                    alt="Image"
+                                    className="w-full h-auto"
                                   />
+                                ) : (
+                                  <div className={cn(
+                                    "flex items-center gap-2 p-3 rounded-[18px]",
+                                    isCustomerMedia ? "bg-[#EFEFEF]" : "bg-gradient-to-b from-[#8B2FB8] via-[#6758CD] to-[#5974DB] text-white"
+                                  )}>
+                                    {getFileIcon(message.type)}
+                                    <span className="text-sm truncate">Attachment</span>
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -1110,7 +1066,7 @@ export default function InstagramChatArea({
       </div>
 
       {/* Message input */}
-      <div className="p-2 bg-white border-t border-gray-200">
+      <div className="bg-white border-t border-[#DBDBDB]">
         <InstagramMessageInput
           customerNumber={conversation.customer_number || conversation.recipient_id}
           instagramBusinessAccountId={instagramBusinessAccountId}
