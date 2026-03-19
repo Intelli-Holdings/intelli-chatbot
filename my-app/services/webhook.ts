@@ -49,7 +49,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || errorData.detail || `HTTP error: ${response.status}`);
+    throw new Error(errorData.error || errorData.message || errorData.detail || `HTTP error: ${response.status}`);
   }
   return response.json();
 }
