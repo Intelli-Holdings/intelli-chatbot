@@ -11,6 +11,8 @@ interface ErrorInfo {
   error_subcode?: number;
   status_code?: number;
   fbtrace_id?: string;
+  error_details?: string;
+  error_message_detail?: string;
 }
 
 interface Recipient {
