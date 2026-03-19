@@ -12,6 +12,9 @@ interface AppService {
   name?: string;
   status?: string;
   is_default?: boolean;
+  channel?: 'whatsapp' | 'instagram' | 'messenger';
+  instagram_business_account_id?: string;
+  instagram_page_name?: string;
 }
 
 interface WhatsAppTemplate {

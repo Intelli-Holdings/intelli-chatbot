@@ -16,7 +16,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertTriangle, Bot, Loader2, MessageSquare, Pause, Play, Settings2, Workflow } from "lucide-react"
+import { AlertTriangle, Bot, Instagram, Loader2, MessageSquare, Pause, Play, Settings2, Workflow } from "lucide-react"
 import { toast } from "sonner"
 import { logger } from "@/lib/logger"
 
@@ -179,22 +179,22 @@ export default function AutomationSettingsPage() {
       <div className="mb-golden-xl">
         <h2 className="text-golden-heading font-semibold tracking-tight">Automation</h2>
         <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
-          Configure how your WhatsApp messages are handled automatically
+          Configure how your messages are handled automatically
         </p>
       </div>
 
       <div className="flex flex-col gap-golden-lg">
-        {/* WhatsApp Number selector */}
+        {/* Channel selector */}
         <section>
           <h3 className="mb-golden-sm px-golden-3xs text-golden-label font-medium uppercase tracking-wide text-muted-foreground">
-            WhatsApp Number
+            Channel
           </h3>
           <div className="rounded-squircle-md border border-border/60 bg-card px-golden-lg py-golden-md">
             {loadingAppServices ? (
               <Skeleton className="h-[34px] w-full" />
             ) : appServices.length === 0 ? (
               <p className="text-golden-body-sm text-muted-foreground">
-                No WhatsApp services configured. Set up a WhatsApp Business account first.
+                No channels configured. Set up a WhatsApp or Instagram account first.
               </p>
             ) : (
               <Select
@@ -205,12 +205,21 @@ export default function AutomationSettingsPage() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a WhatsApp number" />
+                  <SelectValue placeholder="Select a channel" />
                 </SelectTrigger>
                 <SelectContent>
                   {appServices.map((service) => (
                     <SelectItem key={service.id} value={service.id.toString()}>
-                      {service.phone_number}
+                      <span className="flex items-center gap-golden-xs">
+                        {service.channel === "instagram" ? (
+                          <Instagram className="size-3.5 text-pink-500" />
+                        ) : (
+                          <MessageSquare className="size-3.5 text-green-500" />
+                        )}
+                        {service.channel === "instagram"
+                          ? (service.instagram_page_name || service.instagram_business_account_id || `Instagram ${service.id}`)
+                          : service.phone_number}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
