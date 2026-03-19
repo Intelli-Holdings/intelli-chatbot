@@ -16,6 +16,7 @@ import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { logger } from "@/lib/logger";
 import { useCampaignRecipients } from '@/hooks/use-campaign-recipients';
 import { formatUTCForDisplay } from '@/lib/timezone-utils';
+import { getMetaErrorInfo, getHumanReadableError, getErrorResolution } from "@/utils/meta-error-codes";
 
 interface CampaignDetailsModalProps {
   campaign: Campaign;
@@ -373,18 +374,29 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                                   </span>
                                 </TableCell>
                               </TableRow>
-                              {recipient.status === 'failed' && recipient.error_info && (
+                              {recipient.status === 'failed' && recipient.error_info && (() => {
+                                const mapped = getMetaErrorInfo(recipient.error_info.error_code)
+                                const humanError = getHumanReadableError(recipient.error_info)
+                                const resolution = getErrorResolution(recipient.error_info.error_code)
+                                return (
                                 <TableRow className="bg-red-50/50">
                                   <TableCell colSpan={6} className="py-2">
                                     <div className="flex items-start gap-2 text-sm">
                                       <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                                      <div className="space-y-0.5">
+                                      <div className="space-y-1">
                                         <p className="text-red-700 font-medium">
-                                          {recipient.error_info.error || 'Unknown error'}
+                                          {mapped?.title || recipient.error_info.error || 'Message delivery failed'}
                                         </p>
-                                        <p className="text-red-500 text-xs">
+                                        <p className="text-red-600 text-xs">
+                                          {humanError}
+                                        </p>
+                                        {resolution && (
+                                          <p className="text-amber-700 text-xs bg-amber-50 rounded px-2 py-1 inline-block">
+                                            {resolution}
+                                          </p>
+                                        )}
+                                        <p className="text-red-400 text-[10px]">
                                           {[
-                                            recipient.error_info.error_type && `Type: ${recipient.error_info.error_type}`,
                                             recipient.error_info.error_code && `Code: ${recipient.error_info.error_code}`,
                                             recipient.error_info.error_subcode && `Subcode: ${recipient.error_info.error_subcode}`,
                                           ].filter(Boolean).join(' | ')}
@@ -393,7 +405,8 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                                     </div>
                                   </TableCell>
                                 </TableRow>
-                              )}
+                                )
+                              })()}
                             </React.Fragment>
                           ))}
                         </TableBody>
