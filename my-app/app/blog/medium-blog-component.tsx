@@ -24,6 +24,7 @@ interface MediumPost {
   author?: string
   readTime?: string
   guid?: string
+  slug?: string
 }
 
 interface FeedInfo {
@@ -230,7 +231,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href={`/blog/${createSlug(post.title)}`}>
+            <Link href={`/blog/${post.slug || createSlug(post.title)}`}>
               <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                 {post.content ? "Read Article" : "Read More"}
                 <ArrowRight className="w-3 h-3 ml-1" />

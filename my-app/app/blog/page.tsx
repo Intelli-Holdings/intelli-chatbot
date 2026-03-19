@@ -3,8 +3,9 @@ import MediumBlogComponent from "./medium-blog-component";
 import { Navbar } from "@/components/navbar";
 import { FooterComponent } from "@/components/home/Footer";
 import { fetchMediumPosts } from "@/lib/medium-feed";
+import { fetchCmsPosts } from "@/lib/cms-feed";
 
-export const revalidate = 300; // revalidate every 5 minutes (ISR)
+export const revalidate = 60; // revalidate every minute (ISR)
 
 export const metadata: Metadata = {
   title: "Intelli Blog – AI Customer Support, WhatsApp Automation & Industry Insights",
@@ -26,7 +27,13 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogPage() {
-  const feedResult = await fetchMediumPosts();
+  const [feedResult, cmsResult] = await Promise.all([
+    fetchMediumPosts(),
+    fetchCmsPosts(),
+  ]);
+
+  // CMS posts first (newest), then Medium posts
+  const allPosts = [...cmsResult.items, ...feedResult.items];
 
   return (
     <div className="relative">
@@ -34,7 +41,7 @@ export default async function BlogPage() {
 
       <main className="pt-20">
 
-        <MediumBlogComponent initialPosts={feedResult.items} />
+        <MediumBlogComponent initialPosts={allPosts} />
 
         <FooterComponent />
       </main>
