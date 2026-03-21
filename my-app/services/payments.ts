@@ -17,8 +17,7 @@ import type {
   TestConfigResult,
 } from '@/types/payments';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend.intelliconcierge.com';
+import { commerceFetch, API_BASE, COMMERCE_URL } from '@/lib/commerce-api';
 
 /**
  * API Error response
@@ -67,14 +66,8 @@ export class PaymentService {
    */
   static async getConfigs(organizationId: string): Promise<PaymentConfigResponse[]> {
     try {
-      const response = await fetch(
-        `/api/payments/config?organizationId=${encodeURIComponent(organizationId)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/config/`
       );
 
       if (!response.ok) {
@@ -83,7 +76,7 @@ export class PaymentService {
       }
 
       const data = await response.json();
-      return data.configs || [];
+      return data.configs || data;
     } catch (error) {
       console.error('Error fetching payment configs:', error);
       throw error;
@@ -93,14 +86,11 @@ export class PaymentService {
   /**
    * Get a specific payment configuration
    */
-  static async getConfig(configId: string): Promise<PaymentConfigResponse> {
+  static async getConfig(organizationId: string, configId: string): Promise<PaymentConfigResponse> {
     try {
-      const response = await fetch(`/api/payments/config/${configId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/config/${configId}/`
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -122,16 +112,13 @@ export class PaymentService {
     config: CreatePaymentConfigRequest
   ): Promise<PaymentConfigResponse> {
     try {
-      const response = await fetch('/api/payments/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          organizationId,
-          ...config,
-        }),
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/config/`,
+        {
+          method: 'POST',
+          body: JSON.stringify(config),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -149,17 +136,18 @@ export class PaymentService {
    * Update an existing payment configuration
    */
   static async updateConfig(
+    organizationId: string,
     configId: string,
     updates: UpdatePaymentConfigRequest
   ): Promise<PaymentConfigResponse> {
     try {
-      const response = await fetch(`/api/payments/config/${configId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/config/${configId}/`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(updates),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -176,14 +164,14 @@ export class PaymentService {
   /**
    * Delete a payment configuration
    */
-  static async deleteConfig(configId: string): Promise<void> {
+  static async deleteConfig(organizationId: string, configId: string): Promise<void> {
     try {
-      const response = await fetch(`/api/payments/config/${configId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/config/${configId}/`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -198,14 +186,14 @@ export class PaymentService {
   /**
    * Test a payment configuration
    */
-  static async testConfig(configId: string): Promise<TestConfigResult> {
+  static async testConfig(organizationId: string, configId: string): Promise<TestConfigResult> {
     try {
-      const response = await fetch(`/api/payments/config/${configId}/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/config/${configId}/test/`,
+        {
+          method: 'POST',
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -237,16 +225,13 @@ export class PaymentService {
     request: CreatePaymentLinkRequest
   ): Promise<PaymentLink> {
     try {
-      const response = await fetch('/api/payments/link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          organizationId,
-          ...request,
-        }),
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/link/`,
+        {
+          method: 'POST',
+          body: JSON.stringify(request),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -263,14 +248,11 @@ export class PaymentService {
   /**
    * Get payment link details
    */
-  static async getPaymentLink(linkId: string): Promise<PaymentLink> {
+  static async getPaymentLink(organizationId: string, linkId: string): Promise<PaymentLink> {
     try {
-      const response = await fetch(`/api/payments/link/${linkId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/link/${linkId}/`
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -287,14 +269,14 @@ export class PaymentService {
   /**
    * Cancel a payment link
    */
-  static async cancelPaymentLink(linkId: string): Promise<void> {
+  static async cancelPaymentLink(organizationId: string, linkId: string): Promise<void> {
     try {
-      const response = await fetch(`/api/payments/link/${linkId}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/link/${linkId}/cancel/`,
+        {
+          method: 'POST',
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -318,9 +300,7 @@ export class PaymentService {
     filters?: TransactionQueryFilters
   ): Promise<{ transactions: PaymentTransaction[]; total: number }> {
     try {
-      const params = new URLSearchParams({
-        organizationId,
-      });
+      const params = new URLSearchParams();
 
       if (filters) {
         if (filters.provider) {
@@ -347,12 +327,10 @@ export class PaymentService {
         if (filters.offset) params.set('offset', filters.offset.toString());
       }
 
-      const response = await fetch(`/api/payments/transactions?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const queryString = params.toString();
+      const url = `${COMMERCE_URL(organizationId)}/payments/transactions/${queryString ? `?${queryString}` : ''}`;
+
+      const response = await commerceFetch(url);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -369,14 +347,14 @@ export class PaymentService {
   /**
    * Get a specific transaction
    */
-  static async getTransaction(transactionId: string): Promise<PaymentTransaction> {
+  static async getTransaction(
+    organizationId: string,
+    transactionId: string
+  ): Promise<PaymentTransaction> {
     try {
-      const response = await fetch(`/api/payments/transactions/${transactionId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/transactions/${transactionId}/`
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -399,19 +377,15 @@ export class PaymentService {
     dateTo?: string
   ): Promise<TransactionStats> {
     try {
-      const params = new URLSearchParams({
-        organizationId,
-      });
+      const params = new URLSearchParams();
 
       if (dateFrom) params.set('date_from', dateFrom);
       if (dateTo) params.set('date_to', dateTo);
 
-      const response = await fetch(`/api/payments/transactions/stats?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const queryString = params.toString();
+      const url = `${COMMERCE_URL(organizationId)}/payments/transactions/stats/${queryString ? `?${queryString}` : ''}`;
+
+      const response = await commerceFetch(url);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -429,21 +403,22 @@ export class PaymentService {
    * Refund a transaction
    */
   static async refundTransaction(
+    organizationId: string,
     transactionId: string,
     amount?: number,
     reason?: string
   ): Promise<PaymentTransaction> {
     try {
-      const response = await fetch(`/api/payments/transactions/${transactionId}/refund`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount,
-          reason,
-        }),
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/payments/transactions/${transactionId}/refund/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            amount,
+            reason,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -462,50 +437,10 @@ export class PaymentService {
   // ==========================================================================
 
   /**
-   * Verify webhook signature for Paystack
-   */
-  static verifyPaystackSignature(
-    payload: string,
-    signature: string,
-    secretKey: string
-  ): boolean {
-    // This should be done server-side for security
-    // Included here for reference
-    if (typeof window !== 'undefined') {
-      console.warn('Webhook signature verification should be done server-side');
-      return false;
-    }
-
-    const crypto = require('crypto');
-    const hash = crypto.createHmac('sha512', secretKey).update(payload).digest('hex');
-    return hash === signature;
-  }
-
-  /**
-   * Verify webhook signature for Flutterwave
-   */
-  static verifyFlutterwaveSignature(
-    payload: string,
-    signature: string,
-    secretHash: string
-  ): boolean {
-    // This should be done server-side for security
-    if (typeof window !== 'undefined') {
-      console.warn('Webhook signature verification should be done server-side');
-      return false;
-    }
-
-    return signature === secretHash;
-  }
-
-  /**
    * Get webhook URL for a provider
    */
   static getWebhookUrl(organizationId: string, provider: PaymentProvider): string {
-    const baseUrl = typeof window !== 'undefined'
-      ? window.location.origin
-      : API_BASE_URL;
-    return `${baseUrl}/api/payments/webhooks/${provider}?org=${organizationId}`;
+    return `${API_BASE}/commerce/org/${organizationId}/payments/webhooks/${provider}/`;
   }
 
   /**
