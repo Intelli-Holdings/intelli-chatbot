@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 interface Campaign {
   id: string;
   name: string;
@@ -67,6 +69,8 @@ interface CreateCampaignData {
     body_params?: string[];  // Backend format for body parameters
     button_params?: string[];  // Backend format for button parameters
     message_content?: string;
+    is_carousel?: boolean;
+    carousel_card_media_ids?: string[];
   };
   recipient_contacts?: string[];
   recipient_tags?: string[];
@@ -91,13 +95,13 @@ export class CampaignService {
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("Backend error response:", errorData)
+        logger.error("Backend error response", { data: errorData })
         throw new Error(errorData.error || errorData.detail || errorData.message || "Failed to create campaign")
       }
 
       return await response.json()
     } catch (error) {
-      console.error("Error creating campaign:", error)
+      logger.error("Error creating campaign", { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
@@ -157,7 +161,7 @@ export class CampaignService {
       // Fallback
       return { campaigns: [], count: 0, next: null, previous: null };
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
+      logger.error('Error fetching campaigns', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -176,7 +180,7 @@ export class CampaignService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching campaign:', error);
+      logger.error('Error fetching campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -195,7 +199,7 @@ export class CampaignService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching campaign summary:', error);
+      logger.error('Error fetching campaign summary', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -244,7 +248,7 @@ export class CampaignService {
         totalCount: campaigns.length
       };
     } catch (error) {
-      console.error('Error fetching WhatsApp campaigns:', error);
+      logger.error('Error fetching WhatsApp campaigns', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -263,7 +267,7 @@ export class CampaignService {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching WhatsApp campaign:', error);
+      logger.error('Error fetching WhatsApp campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -295,7 +299,7 @@ static async updateCampaign(
 
       return await response.json()
     } catch (error) {
-      console.error("Error updating campaign:", error)
+      logger.error("Error updating campaign", { error: error instanceof Error ? error.message : String(error) })
       throw error
     }
   }
@@ -314,7 +318,7 @@ static async updateCampaign(
         throw new Error(errorData.error || 'Failed to delete campaign');
       }
     } catch (error) {
-      console.error('Error deleting campaign:', error);
+      logger.error('Error deleting campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -326,7 +330,7 @@ static async updateCampaign(
     try {
       await this.updateCampaign(campaignId, organizationId, { status: 'paused' } as any);
     } catch (error) {
-      console.error('Error pausing campaign:', error);
+      logger.error('Error pausing campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -338,7 +342,7 @@ static async updateCampaign(
     try {
       await this.updateCampaign(campaignId, organizationId, { status: 'ready' } as any);
     } catch (error) {
-      console.error('Error resuming campaign:', error);
+      logger.error('Error resuming campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -350,16 +354,17 @@ static async updateCampaign(
     try {
       return await this.getCampaignSummary(campaignId, organizationId);
     } catch (error) {
-      console.error('Error fetching campaign stats:', error);
+      logger.error('Error fetching campaign stats', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
 
   /**
    * Add recipients to WhatsApp campaign
-   * Supports two formats:
+   * Supports three formats:
    * 1. Legacy format: Add recipients by tag_ids/contact_ids (no parameters)
    * 2. New format: Add recipients with template parameters per recipient
+   * 3. Tag format with global params: Add by tag_ids with template_params that apply to all
    */
   static async addWhatsAppCampaignRecipients(
     campaignId: string,
@@ -377,6 +382,12 @@ static async updateCampaign(
           button_params?: string[];
         };
       }>;
+      // Global template params (applied to all contacts from tags/contact_ids)
+      template_params?: {
+        header_params?: string[];
+        body_params?: string[];
+        button_params?: string[];
+      };
     }
   ): Promise<any> {
     try {
@@ -411,6 +422,11 @@ static async updateCampaign(
         payload.recipients = recipients.recipients;
       }
 
+      // Global template params (for tag-based recipients)
+      if (recipients.template_params) {
+        payload.template_params = recipients.template_params;
+      }
+
       const response = await fetch(`/api/campaigns/whatsapp/${campaignId}/add_recipients`, {
         method: 'POST',
         headers: {
@@ -435,7 +451,7 @@ static async updateCampaign(
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Error adding recipients:', error);
+      logger.error('Error adding recipients', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -481,7 +497,7 @@ static async updateCampaign(
 
       return await response.json();
     } catch (error) {
-      console.error('Error executing campaign:', error);
+      logger.error('Error executing campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -517,7 +533,7 @@ static async updateCampaign(
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching recipients:', error);
+      logger.error('Error fetching recipients', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -547,7 +563,7 @@ static async updateCampaign(
 
       return await response.json();
     } catch (error) {
-      console.error('Error previewing messages:', error);
+      logger.error('Error previewing messages', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -575,7 +591,7 @@ static async updateCampaign(
         throw new Error('Phone number is required');
       }
 
-      console.log('Creating duplicate campaign from:', originalCampaign.id);
+      logger.info('Creating duplicate campaign', { originalCampaignId: originalCampaign.id });
 
       // Step 1: Create a new campaign with the same payload
       const newCampaignData: CreateCampaignData = {
@@ -589,7 +605,7 @@ static async updateCampaign(
       };
 
       const newCampaign = await this.createCampaign(newCampaignData);
-      console.log('New campaign created:', newCampaign.id);
+      logger.info('New campaign created', { campaignId: newCampaign.id });
 
       // Step 2: Get recipients from the original campaign
       if (!originalCampaign.whatsapp_campaign_id) {
@@ -603,7 +619,7 @@ static async updateCampaign(
       );
 
       const recipients = Array.isArray(recipientsData) ? recipientsData : recipientsData.results || [];
-      console.log(`Found ${recipients.length} recipients from original campaign`);
+      logger.info(`Found ${recipients.length} recipients from original campaign`);
 
       // Step 3: Extract unique contact IDs from recipients
       const contactIds = Array.from(new Set(recipients.map((r: any) => r.contact_id)))
@@ -624,7 +640,7 @@ static async updateCampaign(
         { contact_ids: contactIds }
       );
 
-      console.log(`Added ${contactIds.length} recipients to new campaign`);
+      logger.info(`Added ${contactIds.length} recipients to new campaign`);
 
       // Step 5: Execute the new campaign
       const executeNow = !scheduleAt;
@@ -634,7 +650,7 @@ static async updateCampaign(
         executeNow
       );
 
-      console.log('New campaign executed successfully');
+      logger.info('New campaign executed successfully');
 
       return {
         original_campaign_id: originalCampaign.id,
@@ -644,7 +660,7 @@ static async updateCampaign(
         scheduled: !executeNow
       };
     } catch (error) {
-      console.error('Error re-executing campaign:', error);
+      logger.error('Error re-executing campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -697,7 +713,45 @@ static async updateCampaign(
 
       return await response.blob();
     } catch (error) {
-      console.error('Error exporting params template:', error);
+      logger.error('Error exporting params template', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Retry failed messages in a WhatsApp campaign
+   * Resets failed message statuses to pending and re-triggers the campaign
+   */
+  static async retryFailedMessages(
+    whatsappCampaignId: string,
+    organizationId: string
+  ): Promise<{
+    message: string;
+    task_id: string;
+    retry_count: number;
+  }> {
+    try {
+      const response = await fetch(
+        `/api/campaigns/whatsapp/${whatsappCampaignId}/retry_messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            organization_id: organizationId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || errorData.detail || 'Failed to retry messages');
+      }
+
+      return await response.json();
+    } catch (error) {
+      logger.error('Error retrying failed messages', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -765,7 +819,7 @@ static async updateCampaign(
 
       return await response.json();
     } catch (error) {
-      console.error('Error importing params template:', error);
+      logger.error('Error importing params template', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

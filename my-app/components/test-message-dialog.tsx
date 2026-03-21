@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { type WhatsAppTemplate } from '@/services/whatsapp';
 import { Upload, Image as ImageIcon, Video, FileText, Loader2, Info, MapPin } from 'lucide-react';
 
+import { logger } from "@/lib/logger";
 interface TestMessageDialogProps {
   template: WhatsAppTemplate | null;
   appService: any;
@@ -150,7 +151,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       }
       formData.append('organization', resolvedOrg);
 
-      console.log('Uploading media via backend...', {
+      logger.info('Uploading media via backend...', {
         fileName: file.name,
         fileSize: file.size,
         appServicePhone: appService.phone_number
@@ -169,12 +170,12 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
         } catch {
           error = { error: errorText };
         }
-        console.error('Upload failed:', error);
+        logger.error('Upload failed:', { error: error instanceof Error ? error.message : String(error) });
         throw new Error(error.error || 'Failed to upload media');
       }
 
       const data = await response.json();
-      console.log('Media upload response:', data);
+      logger.info('Media upload response:', { data: data });
 
       if (!data.handle && !data.id) {
         throw new Error('No media handle received from upload');
@@ -182,7 +183,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
 
       return { handle: data.id || data.handle, id: data.id };
     } catch (error) {
-      console.error('Backend upload error:', error);
+      logger.error('Backend upload error:', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       setIsUploadingMedia(false);
@@ -201,7 +202,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
       setHeaderMediaId(id || '');
       toast.success('Media uploaded successfully!');
     } catch (error) {
-      console.error('File upload error:', error);
+      logger.error('File upload error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to upload media');
       setHeaderMediaFile(null);
       setHeaderMediaHandle('');
@@ -366,7 +367,7 @@ export default function TestMessageDialog({ template, appService, isOpen, onClos
         address: ''
       });
     } catch (error) {
-      console.error('Send message error:', error);
+      logger.error('Send message error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Failed to send message");
     } finally {
       setIsSending(false);

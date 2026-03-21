@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server"
+import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { phone_number_id, pin, access_token, system_token } = body
 
-    console.log("Direct register phone request:", {
+    logger.debug("Direct register phone request", {
       phone_number_id,
       pin,
       hasAccessToken: !!access_token,
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
 
     // Validate the token first
     const debugResponse = await fetch(
-      `https://graph.facebook.com/debug_token?input_token=${token}&access_token=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID}|${process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET}`,
+      `https://graph.facebook.com/debug_token?input_token=${token}&access_token=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID}|${process.env.FACEBOOK_APP_SECRET}`,
     )
     const debugData = await debugResponse.json()
     
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log("Token debug info:", {
+    logger.debug("Token debug info", {
       isValid: debugData.data?.is_valid,
       scopes: debugData.data?.scopes,
       type: debugData.data?.type,
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     // This is a direct implementation of the example code provided
     const url = `https://graph.facebook.com/v22.0/${phone_number_id}/register`
 
-    console.log(`Making direct request to: ${url}`)
+    logger.debug("Making direct request", { url })
 
     // Always use the token in the URL for better compatibility
     const urlWithToken = `${url}?access_token=${encodeURIComponent(token)}`
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
     })
 
     const data = await response.json()
-    console.log("Direct Facebook API response:", data)
+    logger.debug("Direct Facebook API response", { data })
 
     if (data.error) {
       if (data.error.code === 100) {
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Server error:", error)
+    logger.error("Server error", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       {
         error: "Internal server error",

@@ -17,20 +17,20 @@ function StartNode({ id, data, selected }: StartNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[240px] rounded-lg border bg-card shadow-sm transition-all relative',
-        selected && 'ring-2 ring-primary ring-offset-2',
+        'w-[280px] rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md transition-all relative',
+        selected && 'ring-2 ring-[#007fff] ring-offset-2 shadow-[0_0_20px_rgba(0,127,255,0.3)]',
         !selected && validationClass
       )}
     >
       <NodeValidationIndicator nodeId={id} />
       {/* Header */}
-      <div className="flex items-center gap-2 rounded-t-lg bg-green-500 px-3 py-2 text-white">
+      <div className="flex items-center gap-2 rounded-t-xl bg-gradient-to-r from-green-500 to-emerald-400 px-3 py-2 text-white">
         <Zap className="h-4 w-4" />
         <span className="text-sm font-medium">Start Flow</span>
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-2">
+      <div className="p-3 min-h-[48px] space-y-2">
         <div className="flex items-center gap-2">
           <Key className="h-3.5 w-3.5" />
           <span className="text-sm font-medium">Keyword Trigger</span>

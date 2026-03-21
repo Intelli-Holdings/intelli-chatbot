@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -69,7 +70,7 @@ export async function POST(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error importing params template:", error)
+    logger.error("Error importing params template", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -29,6 +29,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
+import { logger } from "@/lib/logger";
 
 type RoomType = "standard" | "executive" | "apartment";
 
@@ -167,7 +168,7 @@ export function ChatWindow() {
         toast.error(error || "An error occurred while submitting the reservation.");
       }
     } catch (error) {
-      console.error("Error submitting reservation:", error);
+      logger.error("Error submitting reservation", { error: error instanceof Error ? error.message : String(error) });
       toast.error("An error occurred while submitting the reservation.");
     } finally {
       setIsLoading(false);

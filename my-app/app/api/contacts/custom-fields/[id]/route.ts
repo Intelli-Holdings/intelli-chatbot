@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -39,7 +40,7 @@ export async function PATCH(
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error updating custom field:', error);
+    logger.error("Error updating custom field", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to update custom field' },
       { status: 500 }
@@ -80,14 +81,14 @@ export async function DELETE(
       } catch {
         errorData = { error: errorText || 'Unknown error' };
       }
-      console.error('Error deleting custom field:', response.status, errorData);
+      logger.error("Error deleting custom field", { status: response.status, error: errorData });
       return NextResponse.json(errorData, { status: response.status });
     }
 
     // 204 No Content - return empty response
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error deleting custom field:', error);
+    logger.error("Error deleting custom field", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to delete custom field' },
       { status: 500 }

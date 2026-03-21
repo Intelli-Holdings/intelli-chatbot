@@ -1,155 +1,565 @@
 "use client"
 
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import ChatSidebar from "@/app/dashboard/conversations/components/chat-sidebar"
+import InstagramChatArea from "@/app/dashboard/conversations/components/instagram-chat-area"
+import DownloadPage from "@/app/dashboard/conversations/components/download-page"
+import useActiveOrganizationId from "@/hooks/use-organization-id"
+import { useInstagramAppServices } from "@/hooks/use-instagram-appservices"
+import { useInstagramChatSessions } from "@/hooks/use-instagram-chat-sessions"
+import { useInstagramChatMessages } from "@/hooks/use-instagram-chat-messages"
+import { useMediaQuery } from "@/app/hooks/use-media-query"
+import type { Conversation } from "@/app/dashboard/conversations/components/types"
+import { toast } from "sonner"
+import { logger } from "@/lib/logger"
+import { ConversationsSkeleton } from "@/components/conversations/conversations-skeleton"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
-import { Heart, MessageCircle, Compass, Search, MoreHorizontal, Sparkles, Send } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 
-const mockThreads = [
-  { id: "ig-1", name: "Luna Street", preview: "That reel is stunning!", time: "5m", unread: true },
-  { id: "ig-2", name: "Studio 48", preview: "Can we collab next week?", time: "22m", unread: false },
-  { id: "ig-3", name: "Nico K", preview: "Sent the lookbook link.", time: "1h", unread: false },
-  { id: "ig-4", name: "Raya", preview: "Need product details.", time: "4h", unread: false },
-]
+type ReadConversationsMap = Record<string, string>
+const EMPTY_MESSAGES: Conversation["messages"] = []
+const EMPTY_ATTACHMENTS: NonNullable<Conversation["attachments"]> = []
 
-const InstagramPage = () => {
-  return (
-    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-2xl border border-[#f3e8ff] bg-[#fff8f4] shadow-lg">
-      <aside className="hidden w-[260px] flex-col border-r border-[#f2d9ff] bg-white/70 p-5 lg:flex">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white font-semibold">
-            IG
+const areConversationsEqual = (left: Conversation[], right: Conversation[]) => {
+  if (left === right) return true
+  if (left.length !== right.length) return false
+
+  for (let index = 0; index < left.length; index += 1) {
+    const prev = left[index]
+    const next = right[index]
+
+    if (prev.id !== next.id) return false
+    if (prev.updated_at !== next.updated_at) return false
+    if ((prev.unread_messages ?? 0) !== (next.unread_messages ?? 0)) return false
+    if (prev.customer_number !== next.customer_number) return false
+    if (prev.recipient_id !== next.recipient_id) return false
+    if (prev.messages !== next.messages) return false
+    if ((prev.attachments ?? EMPTY_ATTACHMENTS) !== (next.attachments ?? EMPTY_ATTACHMENTS)) return false
+  }
+
+  return true
+}
+
+const getReadConversations = (accountId: string): ReadConversationsMap => {
+  if (typeof window === "undefined") return {}
+  try {
+    const stored = localStorage.getItem(`readConversations_ig_${accountId}`)
+    if (!stored) return {}
+    const parsed = JSON.parse(stored)
+    if (Array.isArray(parsed)) return {}
+    if (parsed && typeof parsed === "object") return parsed as ReadConversationsMap
+    return {}
+  } catch {
+    return {}
+  }
+}
+
+const saveReadConversations = (accountId: string, readConversations: ReadConversationsMap) => {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(`readConversations_ig_${accountId}`, JSON.stringify(readConversations))
+  } catch (error) {
+    logger.error("Failed to save read conversations to localStorage", { error: error instanceof Error ? error.message : String(error) })
+  }
+}
+
+export default function InstagramConvosPage() {
+  const searchParams = useSearchParams()
+  const customerParam = searchParams.get('customer')
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const isMobile = useMediaQuery("(max-width: 768px)")
+  const activeOrganizationId = useActiveOrganizationId()
+  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [loadingMessage, setLoadingMessage] = useState("")
+  const [isInitializing, setIsInitializing] = useState(true)
+  const [loadingConversationId, setLoadingConversationId] = useState<number | null>(null)
+  const selectedConversationRef = useRef<number | null>(null)
+  const messageCacheRef = useRef<Record<number, Conversation["messages"]>>({})
+  const scrollPositionsRef = useRef<Record<number, number>>({})
+  const conversationsRef = useRef<Conversation[]>([])
+  const hasAutoSelectedRef = useRef(false)
+
+  const {
+    appServices,
+    primaryAccountId,
+    primaryPageId,
+    isLoading: appServicesLoading,
+    error: appServicesError,
+  } = useInstagramAppServices(activeOrganizationId || undefined)
+
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("")
+  const [selectedPageId, setSelectedPageId] = useState<string>("")
+  const accountId = selectedAccountId || primaryAccountId
+  const pageId = selectedPageId || primaryPageId
+
+  // Auto-select first AppService when available
+  useEffect(() => {
+    if (!selectedAccountId && appServices.length > 0 && appServices[0].instagram_business_account_id) {
+      setSelectedAccountId(appServices[0].instagram_business_account_id || "")
+      setSelectedPageId(appServices[0].instagram_page_id || "")
+    }
+  }, [appServices, selectedAccountId])
+
+  // Handle AppService selection change
+  const handleAppServiceChange = useCallback((newAccountId: string) => {
+    if (newAccountId === selectedAccountId) return
+
+    setSelectedAccountId(newAccountId)
+    // Find the matching appService to get its page_id
+    const matchingService = appServices.find(s => s.instagram_business_account_id === newAccountId)
+    setSelectedPageId(matchingService?.instagram_page_id || "")
+    setConversations([])
+    setSelectedConversation(null)
+    selectedConversationRef.current = null
+    hasAutoSelectedRef.current = false
+    messageCacheRef.current = {}
+    scrollPositionsRef.current = {}
+    setIsInitializing(true)
+  }, [selectedAccountId, appServices])
+
+  const {
+    sessions,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isLoading: sessionsLoading,
+    error: sessionsError,
+  } = useInstagramChatSessions(activeOrganizationId || undefined, accountId, 12)
+
+  const { fetchMessages, fetchOlderMessages, getCachedMessages, setCachedMessages, hasMore, isLoadingMore, resetPagination } =
+    useInstagramChatMessages(accountId)
+  const listLoading = sessionsLoading && conversations.length === 0
+  const listHasMore = Boolean(hasNextPage)
+
+  useEffect(() => {
+    conversationsRef.current = conversations
+  }, [conversations])
+
+  const resolveUpdatedAt = useCallback((current: string, latest?: string) => {
+    if (!latest) return current
+    const currentTime = current ? new Date(current).getTime() : 0
+    const latestTime = new Date(latest).getTime()
+    return latestTime > currentTime ? latest : current
+  }, [])
+
+  const handleScrollPositionChange = useCallback((conversationId: number, scrollTop: number) => {
+    scrollPositionsRef.current[conversationId] = scrollTop
+  }, [])
+
+  const handleMessagesUpdate = useCallback(
+    (conversationId: number, messages: Conversation["messages"]) => {
+      const normalizedMessages = messages ?? []
+      messageCacheRef.current[conversationId] = normalizedMessages
+      const conversationMatch = conversationsRef.current.find((conv) => conv.id === conversationId)
+      const customerNumber = conversationMatch?.customer_number || conversationMatch?.recipient_id
+      if (customerNumber) {
+        setCachedMessages(customerNumber, normalizedMessages as NonNullable<Conversation["messages"]>)
+      }
+      const latestMessage = normalizedMessages.length > 0 ? normalizedMessages[normalizedMessages.length - 1] : null
+      const latestTimestamp = latestMessage?.created_at
+
+      setConversations((prev) => {
+        let didChange = false
+        const next = prev.map((conv) => {
+          if (conv.id !== conversationId) return conv
+          if (conv.messages === normalizedMessages) return conv
+
+          didChange = true
+          return {
+            ...conv,
+            messages: normalizedMessages,
+            updated_at: resolveUpdatedAt(conv.updated_at, latestTimestamp),
+            unread_messages: conv.id === selectedConversationRef.current ? 0 : conv.unread_messages,
+          }
+        })
+
+        return didChange ? next : prev
+      })
+
+      setSelectedConversation((prev) => {
+        if (!prev || prev.id !== conversationId) return prev
+        if (prev.messages === normalizedMessages) return prev
+        return {
+          ...prev,
+          messages: normalizedMessages,
+          updated_at: resolveUpdatedAt(prev.updated_at, latestTimestamp),
+        }
+      })
+    },
+    [resolveUpdatedAt, setCachedMessages],
+  )
+
+  useEffect(() => {
+    if (!activeOrganizationId) return
+
+    if (appServicesLoading) {
+      setLoadingMessage("Fetching Instagram accounts...")
+      setLoadingProgress(20)
+      return
+    }
+
+    if (appServicesError) {
+      toast.error(appServicesError)
+      setIsInitializing(false)
+      return
+    }
+
+    if (accountId) {
+      setLoadingProgress(40)
+      setLoadingMessage("Instagram account loaded")
+    }
+  }, [activeOrganizationId, appServicesLoading, appServicesError, accountId])
+
+  useEffect(() => {
+    if (!accountId || !activeOrganizationId) return
+
+    if (sessionsLoading) {
+      setLoadingProgress(60)
+      setLoadingMessage("Loading conversations...")
+      return
+    }
+
+    if (sessionsError) {
+      toast.error(sessionsError)
+      setIsInitializing(false)
+      return
+    }
+
+    let isActive = true
+
+    const syncConversations = async () => {
+      const readConversations = getReadConversations(accountId)
+      const previousById = new Map(conversationsRef.current.map((conv) => [conv.id, conv]))
+
+      const conversationsWithMessages = sessions.map((conv: any) => {
+        const existing = previousById.get(conv.id)
+        const customerNumber = conv.customer_number || conv.recipient_id
+        const cachedMessages = (getCachedMessages(customerNumber) ?? [])
+        const fallbackMessages =
+          cachedMessages.length > 0
+            ? cachedMessages
+            : (existing?.messages ?? messageCacheRef.current[conv.id] ?? EMPTY_MESSAGES)
+
+        if ((fallbackMessages?.length ?? 0) > 0 && cachedMessages.length === 0) {
+          setCachedMessages(customerNumber, (fallbackMessages ?? EMPTY_MESSAGES) as NonNullable<Conversation["messages"]>)
+        }
+
+        const latestCachedTimestamp =
+          (fallbackMessages && fallbackMessages.length > 0)
+            ? fallbackMessages[fallbackMessages.length - 1]?.created_at
+            : undefined
+
+        return {
+          ...conv,
+          messages: fallbackMessages,
+          updated_at: resolveUpdatedAt(conv.updated_at, latestCachedTimestamp),
+          phone_number: accountId,
+          recipient_id: customerNumber,
+          attachments: conv.attachments ?? EMPTY_ATTACHMENTS,
+          unread_messages: existing?.unread_messages ?? conv.unread_messages,
+        }
+      })
+
+      const resetPromises = conversationsWithMessages
+        .filter((conv: any) => {
+          const lastReadAt = readConversations[conv.customer_number]
+          if (!lastReadAt) return false
+          const lastReadTime = new Date(lastReadAt).getTime()
+          const updatedAtTime = conv.updated_at ? new Date(conv.updated_at).getTime() : 0
+          return (conv.unread_messages || 0) > 0 && updatedAtTime <= lastReadTime
+        })
+        .map(async (conv: any) => {
+          try {
+            await fetch(`/api/appservice/reset/unread_messages/${accountId}/${conv.customer_number}/`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+            })
+            conv.unread_messages = 0
+          } catch (error) {
+            logger.error("Failed to reset unread messages", { customerNumber: conv.customer_number, error: error instanceof Error ? error.message : String(error) })
+          }
+        })
+
+      if (resetPromises.length > 0) {
+        setLoadingMessage("Syncing read status...")
+        await Promise.all(resetPromises)
+      }
+
+      if (!isActive) return
+
+      setConversations((prev) =>
+        areConversationsEqual(prev, conversationsWithMessages) ? prev : conversationsWithMessages,
+      )
+      setLoadingProgress(100)
+      setLoadingMessage("Ready!")
+      setTimeout(() => {
+        setIsInitializing(false)
+      }, 300)
+    }
+
+    syncConversations().catch((error) => {
+      logger.error("Failed to sync conversations", { error: error instanceof Error ? error.message : String(error) })
+      toast.error("Failed to fetch conversations")
+      setIsInitializing(false)
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [
+    accountId,
+    activeOrganizationId,
+    sessions,
+    sessionsLoading,
+    sessionsError,
+    resolveUpdatedAt,
+    getCachedMessages,
+    setCachedMessages,
+  ])
+
+  const loadMoreConversations = async () => {
+    if (!hasNextPage || isFetchingNextPage) return
+    try {
+      await fetchNextPage()
+    } catch (error) {
+      logger.error("Failed to load more conversations", { error: error instanceof Error ? error.message : String(error) })
+      toast.error("Failed to load more conversations")
+    }
+  }
+
+  const fetchMessagesForConversation = useCallback(
+    async (customerNumber: string) => {
+      if (!customerNumber) return []
+      try {
+        return await fetchMessages(customerNumber)
+      } catch (error) {
+        logger.error("Failed to fetch messages for customer", { customerNumber, error: error instanceof Error ? error.message : String(error) })
+        return []
+      }
+    },
+    [fetchMessages],
+  )
+
+  const handleSelectConversation = useCallback(async (conversation: Conversation) => {
+    selectedConversationRef.current = conversation.id
+    const customerNumber = conversation.customer_number || conversation.recipient_id
+    const cachedMessages = customerNumber ? getCachedMessages(customerNumber) : []
+    const fallbackCache = messageCacheRef.current[conversation.id] ?? []
+    const initialMessages =
+      (conversation.messages && conversation.messages.length > 0)
+        ? conversation.messages
+        : (cachedMessages.length > 0 ? cachedMessages : fallbackCache)
+    const hydratedConversation =
+      initialMessages && initialMessages.length > 0 ? ({ ...conversation, messages: initialMessages } as Conversation) : conversation
+
+    if (initialMessages && initialMessages.length > 0) {
+      messageCacheRef.current[conversation.id] = initialMessages
+      if (customerNumber && cachedMessages.length === 0) {
+        setCachedMessages(customerNumber, initialMessages)
+      }
+    }
+
+    setSelectedConversation(hydratedConversation)
+
+    if (!initialMessages || initialMessages.length === 0) {
+      setLoadingConversationId(conversation.id)
+      try {
+        const messages = await fetchMessagesForConversation(customerNumber)
+        messageCacheRef.current[conversation.id] = messages
+        if (customerNumber) {
+          setCachedMessages(customerNumber, messages)
+        }
+        handleMessagesUpdate(conversation.id, messages)
+
+        if (selectedConversationRef.current === conversation.id) {
+          setSelectedConversation({
+            ...conversation,
+            messages,
+          } as Conversation)
+        }
+      } catch (error) {
+        logger.error("Failed to fetch messages for selected conversation", { error: error instanceof Error ? error.message : String(error) })
+        toast.error("Failed to load messages")
+      } finally {
+        if (selectedConversationRef.current === conversation.id) {
+          setLoadingConversationId(null)
+        }
+      }
+    } else {
+      setLoadingConversationId(null)
+    }
+
+    if (isMobile) {
+      setIsSheetOpen(true)
+    }
+  }, [fetchMessagesForConversation, getCachedMessages, handleMessagesUpdate, isMobile, setCachedMessages])
+
+  // Auto-select conversation from URL parameter
+  useEffect(() => {
+    if (!customerParam || hasAutoSelectedRef.current || conversations.length === 0 || isInitializing) return
+
+    const targetConversation = conversations.find(
+      (conv) => conv.customer_number === customerParam || conv.recipient_id === customerParam
+    )
+
+    if (targetConversation) {
+      hasAutoSelectedRef.current = true
+      handleSelectConversation(targetConversation)
+    }
+  }, [customerParam, conversations, isInitializing, handleSelectConversation])
+
+  // Listen for unread messages reset events
+  useEffect(() => {
+    const handleUnreadReset = (event: CustomEvent) => {
+      const { customerNumber } = event.detail
+
+      const readConversations = getReadConversations(accountId)
+      const readAt =
+        conversationsRef.current.find((conv) => conv.customer_number === customerNumber)?.updated_at ||
+        new Date().toISOString()
+      readConversations[customerNumber] = readAt
+      saveReadConversations(accountId, readConversations)
+
+      setConversations((prev) =>
+        prev.map((conv) => (conv.customer_number === customerNumber ? { ...conv, unread_messages: 0 } : conv)),
+      )
+      setSelectedConversation((prev) => {
+        if (!prev) return prev
+        if (prev.customer_number === customerNumber) {
+          return { ...prev, unread_messages: 0 } as Conversation
+        }
+        return prev
+      })
+    }
+
+    window.addEventListener("unreadMessagesReset", handleUnreadReset as EventListener)
+
+    return () => {
+      window.removeEventListener("unreadMessagesReset", handleUnreadReset as EventListener)
+    }
+  }, [accountId])
+
+  // No Instagram accounts connected
+  if (!appServicesLoading && appServices.length === 0 && !isInitializing) {
+    return (
+      <div className="flex h-[calc(100vh-8rem)] items-center justify-center overflow-hidden rounded-2xl border bg-muted/30">
+        <div className="text-center max-w-md">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+            <Image src="/instagram.png" alt="Instagram" width={64} height={64} className="object-contain" />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-[#111827]">Instagram Studio</p>
-            <p className="text-xs text-[#6b7280]">@intelli_concierge</p>
-          </div>
-        </div>
-        <div className="mt-6 space-y-2 text-sm text-[#6b7280]">
-          <button className="flex w-full items-center justify-between rounded-lg bg-[#fde7f3] px-3 py-2 text-[#c026d3]">
-            Primary
-            <span className="text-xs font-semibold text-[#c026d3]">9</span>
-          </button>
-          <button className="flex w-full items-center justify-between rounded-lg px-3 py-2 hover:bg-[#fef3f8]">
-            Requests
-            <span className="text-xs font-semibold text-[#6b7280]">3</span>
-          </button>
-          <button className="flex w-full items-center justify-between rounded-lg px-3 py-2 hover:bg-[#fef3f8]">
-            Collaborations
-            <span className="text-xs font-semibold text-[#6b7280]">2</span>
-          </button>
-        </div>
-        <div className="mt-auto rounded-xl border border-[#f2d9ff] bg-white p-4">
-          <p className="text-xs font-semibold text-[#111827]">Creator Notes</p>
-          <p className="mt-2 text-xs text-[#6b7280]">
-            Stay within the 24-hour window for Instagram replies.
+          <h1 className="text-lg font-semibold text-muted-foreground mb-2">No Instagram Account Connected</h1>
+          <p className="text-sm text-muted-foreground">
+            Connect your Instagram Business account from the Channels page to start receiving direct messages.
           </p>
         </div>
-      </aside>
+      </div>
+    )
+  }
 
-      <section className="flex w-[320px] flex-col border-r border-[#f2d9ff] bg-white">
-        <div className="border-b border-[#f2d9ff] p-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">
-              <Image src="/instagram.png" alt="Instagram" width={18} height={18} />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-[#111827]">Instagram DMs</h2>
-              <p className="text-xs text-[#6b7280]">Creator inbox</p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[#9ca3af]" />
-              <Input className="pl-9" placeholder="Search inbox" />
-            </div>
-            <Button size="icon" variant="outline">
-              <Compass className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {mockThreads.map((thread) => (
-            <button
-              key={thread.id}
-              className={`flex w-full items-start gap-3 border-b border-[#fef3f8] px-4 py-3 text-left hover:bg-[#fff4fb] ${
-                thread.unread ? "bg-[#fde7f3]" : ""
-              }`}
-            >
-              <div className="relative h-10 w-10 overflow-hidden rounded-full bg-[#fde7f3] text-[#c026d3] flex items-center justify-center text-sm font-semibold">
-                {thread.name.slice(0, 1)}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-[#111827]">{thread.name}</p>
-                  <span className="text-xs text-[#6b7280]">{thread.time}</span>
-                </div>
-                <p className="text-xs text-[#6b7280]">{thread.preview}</p>
-              </div>
-              {thread.unread && <span className="mt-1 h-2 w-2 rounded-full bg-[#ec4899]" />}
-            </button>
-          ))}
-        </div>
-      </section>
+  if (isInitializing) {
+    return <ConversationsSkeleton />
+  }
 
-      <main className="flex flex-1 flex-col bg-white">
-        <div className="flex items-center justify-between border-b border-[#f2d9ff] px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-[#fde7f3] text-[#c026d3] flex items-center justify-center text-sm font-semibold">
-              L
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#111827]">Luna Street</p>
-              <p className="text-xs text-[#6b7280]">Story reply · 5 minutes ago</p>
-            </div>
+  return (
+    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+      {/* Left Panel - Account Selector + Conversations */}
+      <div className="flex flex-col h-full">
+        {/* Account Selector - only show if multiple accounts exist */}
+        {appServices.length > 1 && (
+          <div className="w-[420px] p-3 border-b border-[#e9edef] bg-[#f0f2f5]">
+            <Select value={selectedAccountId} onValueChange={handleAppServiceChange}>
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Select an Instagram account" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {appServices.map((appService) => (
+                    <SelectItem
+                      key={appService.id}
+                      value={appService.instagram_business_account_id || ""}
+                    >
+                      {appService.instagram_page_name || appService.instagram_business_account_id || `Instagram ${appService.id}`}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon">
-              <Heart className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon">
-              <MessageCircle className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        )}
 
-        <div className="flex-1 space-y-4 overflow-y-auto bg-[#fff8f4] px-6 py-6">
-          <div className="max-w-[60%] rounded-2xl bg-white p-4 text-sm text-[#111827] shadow-sm">
-            That studio tour reel looked incredible. Can you share the behind the scenes?
-            <p className="mt-2 text-[11px] text-[#6b7280]">1:20 PM</p>
-          </div>
-          <div className="ml-auto max-w-[60%] rounded-2xl bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] p-4 text-sm text-white shadow-sm">
-            Absolutely! I can send a short recap and the highlight clips.
-            <p className="mt-2 text-[11px] text-white/70">1:22 PM</p>
-          </div>
-          <div className="max-w-[60%] rounded-2xl bg-white p-4 text-sm text-[#111827] shadow-sm">
-            Love that. Also, can we pin a partnership offer?
-            <div className="mt-3 flex items-center gap-2 text-xs text-[#c026d3]">
-              <Sparkles className="h-3 w-3" />
-              IG highlight: Potential collab
-            </div>
-            <p className="mt-2 text-[11px] text-[#6b7280]">1:24 PM</p>
-          </div>
+        <div className="flex-1 overflow-hidden">
+          <ChatSidebar
+            conversations={conversations}
+            onSelectConversation={handleSelectConversation}
+            selectedConversationId={selectedConversation?.id || null}
+            loading={listLoading}
+            hasMore={listHasMore}
+            loadMore={loadMoreConversations}
+            isLoadingMore={isFetchingNextPage}
+          />
         </div>
+      </div>
+      <div className="flex-1 relative bg-white">
+        {selectedConversation ? (
+          <InstagramChatArea
+            conversation={selectedConversation}
+            conversations={conversations}
+            phoneNumber={pageId}
+            instagramBusinessAccountId={accountId}
+            organizationId={activeOrganizationId ?? undefined}
+            fetchMessages={fetchMessagesForConversation}
+            fetchOlderMessages={fetchOlderMessages}
+            hasMoreMessages={hasMore}
+            isLoadingOlderMessages={isLoadingMore}
+            isMessagesLoading={loadingConversationId === selectedConversation.id}
+            initialFetchEnabled={false}
+            initialScrollTop={scrollPositionsRef.current[selectedConversation.id] ?? null}
+            onScrollPositionChange={handleScrollPositionChange}
+            onMessagesUpdate={handleMessagesUpdate}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full bg-white">
+            <DownloadPage />
+          </div>
+        )}
+      </div>
 
-        <div className="border-t border-[#f2d9ff] px-6 py-4">
-          <div className="flex items-center gap-3 rounded-2xl border border-[#f2d9ff] bg-white px-4 py-3">
-            <input className="w-full text-sm text-[#111827] outline-none" placeholder="Send a reply..." />
-            <Button size="icon" variant="outline">
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="mt-3 flex items-center gap-2 text-xs text-[#6b7280]">
-            <Sparkles className="h-4 w-4 text-[#c026d3]" />
-            Messages appear in your connected Instagram Business inbox.
-          </div>
-        </div>
-      </main>
+      {/* Conversation View - Mobile */}
+      {isMobile && (
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetContent side="bottom" className="w-full sm:max-w-full">
+            {selectedConversation && (
+              <InstagramChatArea
+                conversation={selectedConversation}
+                conversations={conversations}
+                phoneNumber={pageId}
+                instagramBusinessAccountId={accountId}
+                organizationId={activeOrganizationId ?? undefined}
+                fetchMessages={fetchMessagesForConversation}
+                fetchOlderMessages={fetchOlderMessages}
+                hasMoreMessages={hasMore}
+                isLoadingOlderMessages={isLoadingMore}
+                isMessagesLoading={loadingConversationId === selectedConversation.id}
+                initialFetchEnabled={false}
+                initialScrollTop={scrollPositionsRef.current[selectedConversation.id] ?? null}
+                onScrollPositionChange={handleScrollPositionChange}
+                onMessagesUpdate={handleMessagesUpdate}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   )
 }
-
-export default InstagramPage

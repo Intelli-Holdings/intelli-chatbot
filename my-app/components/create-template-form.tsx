@@ -22,6 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { logger } from "@/lib/logger";
 import {
   Plus,
   X,
@@ -275,7 +276,7 @@ export default function CreateTemplateForm({
 
       return data.handle;
     } catch (error) {
-      console.error("Backend upload error:", error);
+      logger.error("Backend upload error:", { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       setIsUploadingMedia(false);
@@ -473,7 +474,7 @@ export default function CreateTemplateForm({
 
           toast.success("Media uploaded successfully!");
         } catch (uploadError) {
-          console.error("Upload error:", uploadError);
+          logger.error("Upload error:", { error: uploadError instanceof Error ? uploadError.message : String(uploadError) });
           toast.error(
             `Failed to upload media: ${uploadError instanceof Error ? uploadError.message : "Unknown error"}`
           );
@@ -501,7 +502,7 @@ export default function CreateTemplateForm({
         onClose();
       }
     } catch (error) {
-      console.error("Template creation error:", error);
+      logger.error("Template creation error:", { error: error instanceof Error ? error.message : String(error) });
       toast.error(
         error instanceof Error ? error.message : "Failed to create template"
       );
@@ -784,7 +785,7 @@ export default function CreateTemplateForm({
                     onClose();
                   }
                 } catch (error) {
-                  console.error("Template creation error:", error);
+                  logger.error("Template creation error:", { error: error instanceof Error ? error.message : String(error) });
                   toast.error(error instanceof Error ? error.message : "Failed to create template");
                 } finally {
                   setIsSubmitting(false);

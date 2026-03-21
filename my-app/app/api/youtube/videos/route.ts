@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from "@/lib/logger";
 
 interface YouTubeVideo {
   id: string;
@@ -188,7 +189,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ videos });
 
   } catch (error) {
-    console.error('Error fetching YouTube videos:', error);
+    logger.error('Error fetching YouTube videos', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to fetch videos from YouTube' },
       { status: 500 }

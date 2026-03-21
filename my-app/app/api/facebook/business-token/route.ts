@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
@@ -9,25 +10,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "WhatsApp Business Account ID is required" }, { status: 400 })
     }
 
-    console.log("Getting business token for WABA ID:", waba_id)
+    logger.info("Getting business token for WABA ID", { waba_id })
 
     // Use app credentials to get a system user access token
     // This is the recommended approach for WhatsApp Business API
     const appAccessTokenResponse = await fetch(
-      `https://graph.facebook.com/v22.0/oauth/access_token?client_id=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID}&client_secret=${process.env.NEXT_PUBLIC_FACEBOOK_APP_SECRET}&grant_type=client_credentials`,
+      `https://graph.facebook.com/v22.0/oauth/access_token?client_id=${process.env.NEXT_PUBLIC_FACEBOOK_APP_ID}&client_secret=${process.env.FACEBOOK_APP_SECRET}&grant_type=client_credentials`,
     )
 
     const appTokenData = await appAccessTokenResponse.json()
     
     if (!appAccessTokenResponse.ok || !appTokenData.access_token) {
-      console.error("Failed to get app access token:", appTokenData)
+      logger.error("Failed to get app access token", { data: appTokenData })
       return NextResponse.json(
         { error: "Failed to get app access token", details: appTokenData },
         { status: 500 },
       )
     }
 
-    console.log("Got app access token")
+    logger.info("Got app access token")
 
     // Now get the system user access token for the WhatsApp Business Account
     const wabaTokenResponse = await fetch(
@@ -37,14 +38,14 @@ export async function POST(request: Request) {
     const wabaData = await wabaTokenResponse.json()
     
     if (!wabaTokenResponse.ok) {
-      console.error("Failed to get WABA info:", wabaData)
+      logger.error("Failed to get WABA info", { data: wabaData })
       return NextResponse.json(
         { error: "Failed to get WhatsApp Business Account info", details: wabaData },
         { status: 500 },
       )
     }
 
-    console.log("WABA info:", {
+    logger.info("WABA info", {
       messaging_app_id: wabaData.messaging_app_id,
       business_id: wabaData.owner_business_info?.id,
     })
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     const systemTokenData = await systemUserTokenResponse.json()
     
     if (!systemUserTokenResponse.ok) {
-      console.error("Failed to get system user token:", systemTokenData)
+      logger.error("Failed to get system user token", { data: systemTokenData })
       return NextResponse.json(
         { error: "Failed to get system user token", details: systemTokenData },
         { status: 500 },
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       business_id: wabaData.owner_business_info?.id,
     })
   } catch (error) {
-    console.error("Server error:", error)
+    logger.error("Server error", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

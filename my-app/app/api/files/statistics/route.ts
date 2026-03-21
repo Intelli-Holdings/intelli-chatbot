@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
+import { logger } from "@/lib/logger";
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error fetching file statistics", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to fetch file statistics' }, 
         { status: response.status }
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching file statistics:', error)
+    logger.error("Error fetching file statistics", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

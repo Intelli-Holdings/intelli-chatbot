@@ -5,7 +5,7 @@ import Image from "next/image";
 const UsecaseComponent = () => {
   return (
     <div>
-      <h2 className="text-center text-5xl font-bold mb-10">
+      <h2 className="text-center text-[clamp(32px,4.5vw,56px)] font-bold text-[#1a1a1a] leading-[1.1] mb-10">
         Intelli is for these businesses
       </h2>
       <section className="bg-gray-10 py-16 border border-gray-100 rounded-3xl">
@@ -171,7 +171,7 @@ const UsecaseComponent = () => {
           </div>
 
           {/* Card 4: Government Agencies Section */}
-          <div className="bg-white mt-10 rounded-lg shadow-smuseca p-4">
+          <div className="bg-white mt-10 rounded-lg shadow-sm p-4">
             <div className="space-y-4 mb-4">
               <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center px-4 md:px-8">
                 {/* Right Section: Image */}

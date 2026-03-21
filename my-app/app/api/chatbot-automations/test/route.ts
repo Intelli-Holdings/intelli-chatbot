@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ChatbotAutomationService } from "@/services/chatbot-automation";
+import { logger } from "@/lib/logger";
 import { chatbotsStore } from "../_store";
 
 export async function POST(request: NextRequest) {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       fallbackTriggered: true,
     });
   } catch (error) {
-    console.error("Error testing chatbot:", error);
+    logger.error("Error testing chatbot", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

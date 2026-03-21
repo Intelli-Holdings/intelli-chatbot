@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 export const createNewOrganization = async (name: string, userId: string) => {
   try {
     const response = await fetch('/api/organizations', {
@@ -14,7 +16,7 @@ export const createNewOrganization = async (name: string, userId: string) => {
 
     return await response.json();
   } catch (error) {
-    console.error("Failed to create organization:", error);
+    logger.error("Failed to create organization", { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 };

@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { Bot, CircleDot, BadgeCheck, Info, MoreVertical, Pencil, Trash, Plus, Phone, Check, AlertTriangle } from "lucide-react"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 
+import { logger } from "@/lib/logger";
 // Types
 interface WhatsAppPackage {
   id: number
@@ -116,7 +117,7 @@ export default function WhatsAppPackage() {
         toast.info("No WhatsApp packages found. Create one to get started.")
       }
     } catch (error) {
-      console.error("Error fetching WhatsApp packages:", error)
+      logger.error("Error fetching WhatsApp packages:", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to fetch WhatsApp packages. Please try again.")
     } finally {
       setIsLoading(false)
@@ -134,7 +135,7 @@ export default function WhatsAppPackage() {
       const data: Assistant[] = await response.json()
       setAssistants(data)
     } catch (error) {
-      console.error("Error fetching assistants:", error)
+      logger.error("Error fetching assistants:", { error: error instanceof Error ? error.message : String(error) })
     }
   }, [organizationId])
 
@@ -165,7 +166,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
         whatsAppForm.reset()
         fetchWhatsAppPackages()
     } catch (error) {
-        console.error("Error creating WhatsApp package:", error)
+        logger.error("Error creating WhatsApp package:", { error: error instanceof Error ? error.message : String(error) })
         toast.error("Failed to create WhatsApp package. Please try again.")
     }
 }
@@ -194,7 +195,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
       whatsAppForm.reset()
       fetchWhatsAppPackages()
     } catch (error) {
-      console.error("Error updating WhatsApp package:", error)
+      logger.error("Error updating WhatsApp package:", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to update WhatsApp package. Please try again.")
     }
   }
@@ -212,7 +213,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
       setDeleteDialog({ isOpen: false, packageId: null })
       fetchWhatsAppPackages()
     } catch (error) {
-      console.error("Error deleting WhatsApp package:", error)
+      logger.error("Error deleting WhatsApp package:", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to delete WhatsApp package. Please try again.")
     }
   }
@@ -238,7 +239,7 @@ const handleCreatePackage = async (values: z.infer<typeof whatsAppPackageSchema>
       setCurrentStep(0)
       appServiceForm.reset()
     } catch (error) {
-      console.error("Error creating App Service:", error)
+      logger.error("Error creating App Service:", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to create App Service. Please try again.")
     }
   }

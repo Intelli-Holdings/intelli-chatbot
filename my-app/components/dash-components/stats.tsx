@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@clerk/nextjs";
 import Link from 'next/link';
 
+import { logger } from "@/lib/logger";
 type DashboardMetricProps = {
   title: string;
   value: number | null;
@@ -94,7 +95,7 @@ export function StatsOverview() {
             total + account.chatsessions.length, 0)
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        logger.error('Error fetching stats:', { error: error instanceof Error ? error.message : String(error) });
       } finally {
         setIsLoading(false);
       }

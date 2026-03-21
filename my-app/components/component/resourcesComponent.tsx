@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Calendar, Play, BookOpen, Users } from "lucide-react"
 
+import { logger } from "@/lib/logger";
 interface BlogPost {
   id: string;
   title: string;
@@ -161,7 +162,7 @@ export function ResourcesComponent() {
             setVideos(mockVideos);
           }
         } catch (videoError) {
-          console.error('Error fetching YouTube videos:', videoError);
+          logger.error('Error fetching YouTube videos:', { error: videoError instanceof Error ? videoError.message : String(videoError) });
           // Fallback to mock data on error
           const mockVideos: VideoContent[] = [
             {
@@ -251,7 +252,7 @@ export function ResourcesComponent() {
       }));
     } catch (err) {
       setError('Failed to load content. Please try again later.');
-      console.error(err);
+      logger.error("Error occurred", { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

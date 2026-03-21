@@ -48,6 +48,7 @@ import { CampaignService, type CreateCampaignData } from "@/services/campaign"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { useContactTags } from "@/hooks/use-contact-tags"
 import { usePaginatedContacts } from "@/hooks/use-contacts"
+import { logger } from "@/lib/logger";
 
 type WizardStep = "details" | "template" | "audience" | "schedule" | "review"
 type LaunchOption = "draft" | "immediate" | "scheduled"
@@ -223,7 +224,9 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       const formData = new FormData()
       formData.append("media_file", file)
       formData.append("appservice_phone_number", appService.phone_number)
-      formData.append("upload_type", "resumable")
+      // Use 'media' upload type for campaigns (returns Media ID for sending)
+      // 'resumable' is only for template creation (returns handle)
+      formData.append("upload_type", "media")
 
       const organizationId = appService.organization_id || appService.organization?.id || appService.organizationId
       if (organizationId) {
@@ -247,11 +250,13 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       }
 
       const data = await response.json()
-      if (!data.handle) {
-        throw new Error("No media handle received from upload")
+      // Media API returns 'id', resumable returns 'handle'
+      const mediaId = data.id || data.handle
+      if (!mediaId) {
+        throw new Error("No media ID received from upload")
       }
 
-      return data.handle
+      return mediaId
     } finally {
       setIsUploadingMedia(false)
     }
@@ -276,7 +281,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       setSingleMediaUrl(handle)
       toast.success("Media uploaded successfully")
     } catch (error: any) {
-      console.error("Media upload failed:", error)
+      logger.error("Media upload failed", { error: error instanceof Error ? error.message : String(error) })
       toast.error(error?.message || "Failed to upload media")
       setSingleMediaFile(null)
       setSingleMediaUrl("")
@@ -477,7 +482,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
         scheduled_at: scheduledDateTime ? scheduledDateTime.toISOString() : undefined,
       }
 
-      console.log("Creating campaign with data:", campaignData)
+      logger.info("Creating campaign", { data: campaignData })
       const createdCampaign = await CampaignService.createCampaign(campaignData)
 
       if (!createdCampaign.whatsapp_campaign_id) {
@@ -577,7 +582,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
         recipientData.recipients = recipients
       }
 
-      console.log("Adding recipients:", recipientData)
+      logger.debug("Adding recipients", { data: recipientData })
       await CampaignService.addWhatsAppCampaignRecipients(
         createdCampaign.whatsapp_campaign_id,
         organizationId,
@@ -589,7 +594,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
 
       // Step 3: Execute or schedule based on launch option
       if (launchOption === "immediate") {
-        console.log("Executing campaign immediately")
+        logger.info("Executing campaign immediately")
         await CampaignService.executeWhatsAppCampaign(
           createdCampaign.whatsapp_campaign_id,
           organizationId,
@@ -600,7 +605,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
         if (!scheduledDateTime) {
           throw new Error("Scheduled time is missing")
         }
-        console.log("Scheduling campaign for:", scheduledDateTime.toISOString())
+        logger.info("Scheduling campaign", { scheduledFor: scheduledDateTime.toISOString() })
         await CampaignService.executeWhatsAppCampaign(
           createdCampaign.whatsapp_campaign_id,
           organizationId,
@@ -617,7 +622,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       onSuccess()
       onClose()
     } catch (error: any) {
-      console.error("Error creating campaign:", error)
+      logger.error("Error creating campaign", { error: error instanceof Error ? error.message : String(error) })
       toast.error(error.message || "Failed to create campaign")
     } finally {
       setSubmitting(false)
@@ -646,7 +651,7 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
       setPreviewError(null)
       setPreviewUpdatedAt(new Date().toISOString())
     } catch (error) {
-      console.error("Error loading campaign preview:", error)
+      logger.error("Error loading campaign preview", { error: error instanceof Error ? error.message : String(error) })
       const message = error instanceof Error ? error.message : "Failed to fetch campaign preview"
       setPreviewError(message)
       toast.error(message)

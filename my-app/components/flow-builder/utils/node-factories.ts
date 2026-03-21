@@ -18,7 +18,9 @@ import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { HttpApiNodeData } from '../nodes/HttpApiNode';
 import { ProductMessageNodeData, ProductMessageType } from '../nodes/ProductMessageNode';
 import { PaymentNodeData } from '../nodes/PaymentNode';
+import { SequenceNodeData } from '../nodes/SequenceNode';
 
+import { logger } from "@/lib/logger";
 // Extended node data type
 export type ExtendedFlowNodeData =
   | StartNodeData
@@ -32,11 +34,12 @@ export type ExtendedFlowNodeData =
   | CTAButtonNodeData
   | HttpApiNodeData
   | ProductMessageNodeData
-  | PaymentNodeData;
+  | PaymentNodeData
+  | SequenceNodeData;
 
 export interface ExtendedFlowNode {
   id: string;
-  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button' | 'http_api' | 'product_message' | 'payment';
+  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button' | 'http_api' | 'product_message' | 'payment' | 'sequence';
   position: NodePosition;
   data: ExtendedFlowNodeData;
 }
@@ -209,6 +212,13 @@ export function createUserInputFlowNode(position: NodePosition): ExtendedFlowNod
     label: 'User Input Flow',
     flowName: '',
     description: '',
+    webhook: {
+      enabled: false,
+      url: '',
+      method: 'POST',
+      headers: {},
+      includeMetadata: true,
+    },
   };
 
   return {
@@ -341,6 +351,26 @@ export function createPaymentNode(position: NodePosition): ExtendedFlowNode {
 }
 
 /**
+ * Create a new Sequence node
+ */
+export function createSequenceNode(position: NodePosition): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const data: SequenceNodeData = {
+    type: 'sequence',
+    label: 'Sequence',
+    steps: [],
+  };
+
+  return {
+    id: `sequence-${nodeId}`,
+    type: 'sequence',
+    position,
+    data,
+  };
+}
+
+/**
  * Create node from context menu action
  */
 export function createNodeFromAction(
@@ -384,6 +414,8 @@ export function createNodeFromAction(
       return createProductMessageNode(position, 'multi');
     case 'add-payment':
       return createPaymentNode(position);
+    case 'add-sequence':
+      return createSequenceNode(position);
     default:
       return null;
   }
@@ -407,14 +439,14 @@ export function cloneNode(
   try {
     clonedData = JSON.parse(JSON.stringify(node.data)) as ExtendedFlowNodeData;
   } catch (error) {
-    console.error('Failed to clone node data:', error);
+    logger.error('Failed to clone node data:', { error: error instanceof Error ? error.message : String(error) });
     // Return a copy with the original data reference as fallback
     clonedData = { ...node.data } as ExtendedFlowNodeData;
   }
 
   // Validate cloned data has required type property
   if (!clonedData || typeof clonedData !== 'object' || !('type' in clonedData)) {
-    console.error('Invalid cloned data structure');
+    logger.error('Invalid cloned data structure');
     clonedData = { ...node.data } as ExtendedFlowNodeData;
   }
 
@@ -511,6 +543,12 @@ export function getToolbarItems() {
       label: 'HTTP API',
       description: 'Call external APIs',
       color: 'bg-violet-500',
+    },
+    {
+      type: 'sequence',
+      label: 'Sequence',
+      description: 'Schedule follow-up messages',
+      color: 'bg-emerald-500',
     },
     // Ecommerce nodes
     {

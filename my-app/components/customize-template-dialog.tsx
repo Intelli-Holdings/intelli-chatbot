@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { DefaultTemplate } from '@/data/default-templates';
 
+import { logger } from "@/lib/logger";
 interface CustomizeTemplateDialogProps {
   template: DefaultTemplate | null;
   open: boolean;
@@ -372,7 +373,7 @@ export function CustomizeTemplateDialog({
         } catch {
           error = { error: errorText };
         }
-        console.error('Upload failed:', error);
+        logger.error('Upload failed:', { error: error instanceof Error ? error.message : String(error) });
         throw new Error(error.error || 'Failed to upload media');
       }
 
@@ -384,7 +385,7 @@ export function CustomizeTemplateDialog({
 
       return data.handle;
     } catch (error) {
-      console.error('Backend upload error:', error);
+      logger.error('Backend upload error:', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       setIsUploadingMedia(false);
@@ -454,7 +455,7 @@ export function CustomizeTemplateDialog({
           headerMediaHandle = await uploadMediaToMeta(customizations.mediaFile);
           toast.success("Media uploaded successfully!");
         } catch (uploadError) {
-          console.error('Failed to upload media:', uploadError);
+          logger.error('Failed to upload media:', { error: uploadError instanceof Error ? uploadError.message : String(uploadError) });
           toast.error(uploadError instanceof Error ? uploadError.message : "Failed to upload media to Meta");
           setIsSubmitting(false);
           return;
@@ -608,7 +609,7 @@ export function CustomizeTemplateDialog({
         return component;
       });
 
-      console.log('Final template being sent to API:', JSON.stringify(formattedTemplate, null, 2));
+      logger.info('Final template being sent to API:', { data: JSON.stringify(formattedTemplate, null, 2) });
 
       try {
         const success = await onSubmit(formattedTemplate, customizations);
@@ -619,11 +620,11 @@ export function CustomizeTemplateDialog({
           }
         }
       } catch (error) {
-        console.error('Template creation error:', error);
+        logger.error('Template creation error:', { error: error instanceof Error ? error.message : String(error) });
         toast.error(error instanceof Error ? error.message : "Failed to create template");
       }
     } catch (error) {
-      console.error('Template submission error:', error);
+      logger.error('Template submission error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Failed to submit template");
     } finally {
       setIsSubmitting(false);

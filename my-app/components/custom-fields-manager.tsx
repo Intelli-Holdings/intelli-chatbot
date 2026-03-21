@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 
+import { logger } from "@/lib/logger";
 interface CustomFieldFormData {
   name: string;
   key: string;
@@ -178,7 +179,7 @@ export default function CustomFieldsManager() {
       handleCloseDialog();
       refetch();
     } catch (error) {
-      console.error('Error saving custom field:', error);
+      logger.error('Error saving custom field:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to save custom field');
     } finally {
       setIsSubmitting(false);
@@ -199,7 +200,7 @@ export default function CustomFieldsManager() {
       toast.success('Custom field deleted successfully');
       refetch();
     } catch (error) {
-      console.error('Error deleting custom field:', error);
+      logger.error('Error deleting custom field:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to delete custom field');
     } finally {
       setIsDeleting(false);

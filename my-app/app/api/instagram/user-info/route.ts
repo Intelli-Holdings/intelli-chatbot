@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { logger } from "@/lib/logger";
 
 /**
  * Fetch Instagram user info and business account details
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     const userInfo = await userInfoResponse.json()
 
     if (!userInfoResponse.ok) {
-      console.error("Instagram user info fetch error:", userInfo)
+      logger.error("Instagram user info fetch error", { error: userInfo })
       return NextResponse.json(
         { error: userInfo.error?.message || "Failed to fetch user info" },
         { status: userInfoResponse.status }
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       instagram_business_account_id: userInfo.id,
     })
   } catch (error) {
-    console.error("Error fetching Instagram user info:", error)
+    logger.error("Error fetching Instagram user info", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }

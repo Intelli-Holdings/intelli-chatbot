@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import Papa from 'papaparse';
 import * as ExcelJS from 'exceljs';
+import { logger } from "@/lib/logger";
 
 interface Contact {
   id?: string;
@@ -185,7 +186,7 @@ export default function BulkContactUpload({ appService }: BulkContactUploadProps
           header: false,
           skipEmptyLines: true,
           error: (error) => {
-            console.error('CSV parsing error:', error);
+            logger.error("CSV parsing error", { error: error instanceof Error ? error.message : String(error) });
             toast.error('Failed to parse CSV file');
             setIsProcessing(false);
           }
@@ -210,7 +211,7 @@ export default function BulkContactUpload({ appService }: BulkContactUploadProps
         processContactData(data);
       }
     } catch (error) {
-      console.error('File processing error:', error);
+      logger.error("File processing error", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to process file');
       setIsProcessing(false);
     }
@@ -306,7 +307,7 @@ export default function BulkContactUpload({ appService }: BulkContactUploadProps
       fetchSavedLists();
       
     } catch (error) {
-      console.error('Error saving contacts:', error);
+      logger.error("Error saving contacts", { error: error instanceof Error ? error.message : String(error) });
       toast.error('Failed to save contacts');
     } finally {
       setIsProcessing(false);
@@ -324,7 +325,7 @@ export default function BulkContactUpload({ appService }: BulkContactUploadProps
         setSavedLists(lists);
       }
     } catch (error) {
-      console.error('Error fetching contact lists:', error);
+      logger.error("Error fetching contact lists", { error: error instanceof Error ? error.message : String(error) });
     }
   }, [appService]);
 

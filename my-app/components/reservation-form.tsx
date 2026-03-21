@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 import {
   Select,
   SelectContent,
@@ -117,7 +118,7 @@ export const ReservationForm = () => {
         }
       );
       
-      console.log('Backend response:', response);
+      logger.info('Backend response:', { data: response });
   
       if (response.ok) {
         toast.success('Reservation successfully sent!'); // Show a success toast
@@ -126,8 +127,8 @@ export const ReservationForm = () => {
         toast.error('Failed to send reservation'); // Show an error toast
       }
     } catch (error) {
-      console.error('Error sending reservation:', error);}
-      console.log('Sending reservation data:', formData);
+      logger.error('Error sending reservation:', { error: error instanceof Error ? error.message : String(error) });}
+      logger.info('Sending reservation data:', { data: formData });
   };
 
   return (

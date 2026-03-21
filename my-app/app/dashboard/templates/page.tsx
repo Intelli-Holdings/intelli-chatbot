@@ -7,6 +7,7 @@ import {
   type WhatsAppTemplate,
 } from "@/services/whatsapp";
 import { DefaultTemplate, defaultTemplates } from "@/data/default-templates";
+import { logger } from "@/lib/logger";
 import {
   RefreshCw,
   Plus,
@@ -98,7 +99,7 @@ export default function TemplatesPage() {
         setSelectedAppService(defaultService);
       }
     } catch (error: any) {
-      console.error("Error fetching app services:", error);
+      logger.error("Error fetching app services", { error: error instanceof Error ? error.message : String(error) });
       setServicesError(error.message || "Failed to fetch app services");
       toast.error("Failed to load app services");
     } finally {
@@ -120,7 +121,7 @@ export default function TemplatesPage() {
       );
       setTemplates(fetchedTemplates);
     } catch (error: any) {
-      console.error("Error fetching templates:", error);
+      logger.error("Error fetching templates", { error: error instanceof Error ? error.message : String(error) });
       setTemplatesError(error.message || "Failed to fetch templates");
       toast.error("Failed to load templates");
     } finally {
@@ -142,7 +143,7 @@ export default function TemplatesPage() {
       setLastSyncedAt(new Date());
       await fetchTemplates();
     } catch (error: any) {
-      console.error("Error syncing templates:", error);
+      logger.error("Error syncing templates", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to sync templates");
     } finally {
       setSyncingTemplates(false);
@@ -181,7 +182,7 @@ export default function TemplatesPage() {
       toast.success(`Template "${template.name}" created successfully!`);
       await fetchTemplates();
     } catch (error: any) {
-      console.error("Error creating template:", error);
+      logger.error("Error creating template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to create template");
     } finally {
       setCreatingTemplateId(null);
@@ -215,7 +216,7 @@ export default function TemplatesPage() {
       await fetchTemplates();
       return true;
     } catch (error: any) {
-      console.error("Error creating customized template:", error);
+      logger.error("Error creating customized template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to create template");
       return false;
     } finally {
@@ -237,7 +238,7 @@ export default function TemplatesPage() {
       await fetchTemplates();
       return true;
     } catch (error: any) {
-      console.error("Error creating template:", error);
+      logger.error("Error creating template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to create template");
       return false;
     }
@@ -257,7 +258,7 @@ export default function TemplatesPage() {
       setIsEditorDialogOpen(false);
       return true;
     } catch (error: any) {
-      console.error("Error updating template:", error);
+      logger.error("Error updating template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error.message || "Failed to update template");
       return false;
     }
@@ -310,23 +311,25 @@ export default function TemplatesPage() {
   const renderTierBadge = (tier?: string) => {
     const normalized = tier?.toUpperCase() || "";
     const label =
-      normalized === "TIER_4"
+      normalized === "TIER_UNLIMITED"
         ? "Unlimited"
-        : normalized === "TIER_3"
+        : normalized === "TIER_100K"
           ? "100K/day"
-          : normalized === "TIER_2"
+          : normalized === "TIER_10K"
             ? "10K/day"
-            : normalized === "TIER_1"
+            : normalized === "TIER_1K"
               ? "1K/day"
-              : "Unknown";
+              : normalized === "STANDARD"
+                ? "250/day"
+                : "Unknown";
     const classes =
-      normalized === "TIER_4"
+      normalized === "TIER_UNLIMITED"
         ? "bg-purple-100 text-purple-800 border-purple-200"
-        : normalized === "TIER_3"
+        : normalized === "TIER_100K"
           ? "bg-blue-100 text-blue-800 border-blue-200"
-          : normalized === "TIER_2"
+          : normalized === "TIER_10K"
             ? "bg-green-100 text-green-800 border-green-200"
-            : normalized === "TIER_1"
+            : normalized === "TIER_1K"
               ? "bg-gray-100 text-gray-800 border-gray-200"
               : "bg-gray-100 text-gray-700 border-gray-200";
     return (
@@ -438,20 +441,20 @@ export default function TemplatesPage() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Messages Sent</p>
+              <p className="text-xl font-semibold">{formatMetric(analytics?.totalSent)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Messages Delivered</p>
+              <p className="text-xl font-semibold">{formatMetric(analytics?.totalDelivered)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Conversations</p>
               <p className="text-xl font-semibold">{formatMetric(analytics?.totalConversations)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Free Tier Conversations</p>
-              <p className="text-xl font-semibold">{formatMetric(analytics?.freeTierConversations)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Business Initiated</p>
-              <p className="text-xl font-semibold">{formatMetric(analytics?.businessInitiatedConversations)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -464,7 +467,7 @@ export default function TemplatesPage() {
 
         <Card>
           <CardContent className="p-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            <div className="grid gap-3 sm:grid-cols-3 text-sm">
               <div className="space-y-1">
                 <p className="text-muted-foreground">Phone Number</p>
                 <p className="font-medium">{!selectedAppService || analyticsLoading ? "—" : displayPhoneNumber || "—"}</p>
@@ -474,16 +477,8 @@ export default function TemplatesPage() {
                 {selectedAppService ? renderQualityBadge(primaryProfile?.quality_rating) : renderQualityBadge()}
               </div>
               <div className="space-y-1">
-                <p className="text-muted-foreground">Messaging Tier</p>
+                <p className="text-muted-foreground">Messaging Limit</p>
                 {selectedAppService ? renderTierBadge(primaryProfile?.messaging_limit?.tier) : renderTierBadge()}
-              </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground">Daily Limit</p>
-                <p className="font-medium">
-                  {!selectedAppService || analyticsLoading
-                    ? "—"
-                    : primaryProfile?.messaging_limit?.max?.toLocaleString() || "—"}
-                </p>
               </div>
             </div>
           </CardContent>

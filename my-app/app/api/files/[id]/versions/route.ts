@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
+import { logger } from "@/lib/logger";
 
 // GET - Get file versions
 export async function GET(
@@ -33,7 +34,7 @@ export async function GET(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error fetching file versions", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to fetch file versions' }, 
         { status: response.status }
@@ -43,7 +44,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching file versions:', error)
+    logger.error("Error fetching file versions", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

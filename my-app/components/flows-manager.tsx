@@ -45,6 +45,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { WhatsAppService, type WhatsAppFlow, type FlowDetails } from '@/services/whatsapp';
 
+import { logger } from "@/lib/logger";
 interface FlowManagerProps {
   appService: any;
 }
@@ -87,7 +88,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
       setFlows(flowsData);
       toast.success(`Loaded ${flowsData.length} flow(s)`);
     } catch (error) {
-      console.error('Error fetching flows:', error);
+      logger.error('Error fetching flows:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to load flows');
     } finally {
       setLoading(false);
@@ -122,7 +123,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
 
       return details;
     } catch (error) {
-      console.error('Error fetching flow details:', error);
+      logger.error('Error fetching flow details:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to load flow details');
       return null;
     } finally {
@@ -198,7 +199,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
       }
 
       // Also log the full error for debugging
-      console.error('Flow send error:', error);
+      logger.error('Flow send error:', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setSending(false);
     }
@@ -264,7 +265,7 @@ export default function FlowManager({ appService }: FlowManagerProps) {
       }
 
       // Also log the full error for debugging
-      console.error('Template creation error:', error);
+      logger.error('Template creation error:', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setCreatingTemplate(false);
     }

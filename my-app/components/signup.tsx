@@ -17,6 +17,7 @@ import {
 import * as React from 'react';
 import { useSignUp } from '@clerk/nextjs';
 
+import { logger } from "@/lib/logger";
 export default function SignUpComponent() {
   const { isLoaded, signUp, setActive } = useSignUp();
   const [emailAddress, setEmailAddress] = React.useState('');
@@ -38,13 +39,13 @@ export default function SignUpComponent() {
       });
 
       // After successful sign-up, log the email address
-      console.log('User signed up with email:', emailAddress);
+      logger.info('User signed up with email:', { data: emailAddress });
 
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
 
       setPendingVerification(true);
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
+      logger.error("Data", { data: JSON.stringify(err, null, 2) });
     }
   };
 
@@ -59,14 +60,14 @@ export default function SignUpComponent() {
         code,
       });
       if (completeSignUp.status !== 'complete') {
-        console.log(JSON.stringify(completeSignUp, null, 2));
+        logger.info("Data", { data: JSON.stringify(completeSignUp, null, 2) });
       }
       if (completeSignUp.status === 'complete') {
         await setActive({ session: completeSignUp.createdSessionId });
         router.push('/');
       }
     } catch (err: any) {
-      console.error(JSON.stringify(err, null, 2));
+      logger.error("Data", { data: JSON.stringify(err, null, 2) });
     }
   };
 

@@ -30,6 +30,7 @@ import { CreateWidgetData } from "@/types/widget";
 import { createWidget } from "@/lib/widgets";
 import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 
+import { logger } from "@/lib/logger";
 export default function Playground() {
   const [widgetData, setWidgetData] = useState<CreateWidgetData>({
     organizationId: "",
@@ -145,16 +146,16 @@ export default function Playground() {
 
   const handleCreateWidget = async () => {
     if (!widgetData.organizationId || !widgetData.assistantId) {
-      console.error("Organization and Assistant must be selected");
+      logger.error("Organization and Assistant must be selected");
       return;
     }
 
     try {
       const response = await createWidget(widgetData);
-      console.log("Widget created:", response);
+      logger.info("Widget created:", { data: response });
       // Handle success (e.g., show a success message, reset form, etc.)
     } catch (error) {
-      console.error("Error creating widget:", error);
+      logger.error("Error creating widget:", { error: error instanceof Error ? error.message : String(error) });
       // Handle error (e.g., show an error message)
     }
   };

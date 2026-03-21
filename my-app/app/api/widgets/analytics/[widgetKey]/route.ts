@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -53,7 +54,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Widget analytics error:", error)
+    logger.error("Widget analytics error", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: "Failed to fetch widget analytics" },
       { status: 500 }

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useWebSocket, type WebSocketMessage } from "@/hooks/use-websocket"
 import { auth } from '@clerk/nextjs/server';
 
+import { logger } from "@/lib/logger";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const WEBSOCKET_BASE_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://backend.intelliconcierge.com/ws";
@@ -23,13 +24,19 @@ export async function takeoverConversation(formData: FormData) {
 
   const customerNumber = formData.get('customerNumber');
   const phoneNumber = formData.get('phoneNumber');
+  const instagramBusinessAccountId = formData.get('instagramBusinessAccountId');
 
-  const payload: ConversationPayload = {
+  const payload: Record<string, string> = {
     customer_number: customerNumber as string,
-    phone_number: phoneNumber as string,
   };
 
-  console.log('Taking over conversation:');
+  if (instagramBusinessAccountId) {
+    payload.instagram_business_account_id = instagramBusinessAccountId as string;
+  } else {
+    payload.phone_number = phoneNumber as string;
+  }
+
+  logger.info('Taking over conversation:');
 
   const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/takeover_conversation/`, {
     method: 'POST',
@@ -42,12 +49,12 @@ export async function takeoverConversation(formData: FormData) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('API response error:', errorText);
+    logger.error('API response error:', { error: errorText });
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
   const responseData = await response.json();
-  console.log('Conversation takeover successful:');
+  logger.info('Conversation takeover successful');
 
   return {
     success: true,
@@ -61,13 +68,19 @@ export async function handoverConversation(formData: FormData) {
 
   const customerNumber = formData.get('customerNumber');
   const phoneNumber = formData.get('phoneNumber');
+  const instagramBusinessAccountId = formData.get('instagramBusinessAccountId');
 
-  const payload: ConversationPayload = {
+  const payload: Record<string, string> = {
     customer_number: customerNumber as string,
-    phone_number: phoneNumber as string,
   };
 
-  console.log('Handing over conversation:');
+  if (instagramBusinessAccountId) {
+    payload.instagram_business_account_id = instagramBusinessAccountId as string;
+  } else {
+    payload.phone_number = phoneNumber as string;
+  }
+
+  logger.info('Handing over conversation:');
 
   const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/handover_conversation/`, {
     method: 'POST',
@@ -80,17 +93,57 @@ export async function handoverConversation(formData: FormData) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('API response error:', errorText);
+    logger.error('API response error:', { error: errorText });
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
   const responseData = await response.json();
-  console.log('Conversation handover successful:');
+  logger.info('Conversation handover successful:');
 
   return {
     success: true,
     message: 'Conversation handover initiated',
   };
+}
+
+export async function sendInstagramMessage(formData: FormData) {
+  // For text-only messages
+  if (!formData.has('file')) {
+    const payload = {
+      instagram_business_account_id: formData.get('instagram_business_account_id'),
+      customer_id: formData.get('customer_id'),
+      answer: formData.get('answer'),
+    };
+
+    const response = await fetch(`${API_BASE_URL}/appservice/conversations/instagram/send_message/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+  // For messages with media files
+  else {
+    const response = await fetch(`${API_BASE_URL}/appservice/conversations/instagram/send_message/`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      logger.error('Instagram API error response:', { error: errorData });
+      toast.error('Failed to send message');
+    }
+
+    return response.json();
+  }
 }
 
 export async function sendMessage(formData: FormData) {
@@ -126,7 +179,7 @@ export async function sendMessage(formData: FormData) {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('API error response:', errorData);
+      logger.error('API error response:', { error: errorData });
       toast.error('Failed to send message');
     }
 
@@ -134,14 +187,37 @@ export async function sendMessage(formData: FormData) {
   }
 }
 
+export async function sendTemplateMessage(payload: {
+  phone_number: string
+  customer_number: string
+  template_name: string
+  language?: string
+  components?: any[]
+}) {
+  const response = await fetch(`${API_BASE_URL}/appservice/conversations/whatsapp/send_template/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to send template: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function humanSupportMessages(customerNumber: string, phoneNumber: string) {
   const WEBSOCKET_URL = `${WEBSOCKET_BASE_URL}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`;
-  console.log('Connecting to WebSocket for human support');
+  logger.info('Connecting to WebSocket for human support');
 
   const ws = new WebSocket(WEBSOCKET_URL);
 
   ws.onopen = () => {
-    console.log('WebSocket connection established for human support.');
+    logger.info('WebSocket connection established for human support.');
   };
 
   ws.onmessage = (event) => {
@@ -188,11 +264,11 @@ export async function humanSupportMessages(customerNumber: string, phoneNumber: 
   };
 
   ws.onclose = () => {
-    console.log('WebSocket connection closed for human support.');
+    logger.info('WebSocket connection closed for human support.');
   };
 
   ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
+    logger.error('WebSocket error:', { error: error instanceof Error ? error.message : String(error) });
   };
 
   return ws; // Return the WebSocket instance for further control if needed
@@ -323,7 +399,7 @@ export async function connectToCRM(provider: string, credentials: any | null) {
     };
 
   } catch (error) {
-    console.error('CRM connection error:', error);
+    logger.error('CRM connection error:', { error: error instanceof Error ? error.message : String(error) });
     return { 
       success: false, 
       message: error instanceof Error ? error.message : 'Failed to connect to CRM'

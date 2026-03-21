@@ -127,7 +127,7 @@ const CardWallet: React.FC<CardWalletProps> = ({
               {cards.slice(0, 3).map((card, index) => (
                 <motion.div
                   key={card.id}
-                  className="w-16 h-10 rounded-md shadow-md cursor-pointer relative overflow-hidden"
+                  className="w-16 h-10 rounded-squircle-xs shadow-md cursor-pointer relative overflow-hidden"
                   style={{
                     background: `linear-gradient(135deg, ${getBrandColor(card.brand).split(" ")[1]}, ${getBrandColor(card.brand).split(" ")[3]})`,
                     zIndex: index + 1,
@@ -163,7 +163,7 @@ const CardWallet: React.FC<CardWalletProps> = ({
 
               {/* Card count indicator if more than 3 cards */}
               {cards.length > 3 && (
-                <div className="w-16 h-10 rounded-md bg-amber-200/20 border border-amber-200/40 flex items-center justify-center text-xs text-amber-100 font-medium">
+                <div className="w-16 h-10 rounded-squircle-xs bg-amber-200/20 border border-amber-200/40 flex items-center justify-center text-golden-label text-amber-100 font-medium">
                   +{cards.length - 3}
                 </div>
               )}
@@ -182,8 +182,8 @@ const CardWallet: React.FC<CardWalletProps> = ({
 
           {/* Wallet Info */}
           <div className="absolute bottom-4 left-4 text-amber-100">
-            <p className="text-xs font-medium opacity-80">Intelli Business Wallet</p>
-            <p className="text-lg font-bold tracking-wider">{cards.length} Cards</p>
+            <p className="text-golden-label font-medium opacity-80">Intelli Business Wallet</p>
+            <p className="text-golden-subheading font-bold tracking-wider">{cards.length} Cards</p>
           </div>
 
           {/* Open Indicator */}
@@ -275,11 +275,11 @@ const CardWallet: React.FC<CardWalletProps> = ({
                           scale: selectedCard === card.id ? 1.1 : 1,
                         }}
                       >
-                        <span className="text-sm font-medium opacity-90">
+                        <span className="text-golden-body-sm font-medium opacity-90">
                           {revealedDetails === card.id ? card.holderName : card.holderName.replace(/./g, '•')}
                         </span>
                         {card.isDefault && (
-                          <Badge className="bg-yellow-500 text-yellow-900 text-xs px-1 py-0">
+                          <Badge className="bg-yellow-500 text-yellow-900 text-golden-label px-1 py-0">
                             <Star className="h-2 w-2 mr-1" />
                             Default
                           </Badge>
@@ -299,12 +299,12 @@ const CardWallet: React.FC<CardWalletProps> = ({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent 
                           align="end" 
-                          className="z-[9999] bg-white border border-gray-200 shadow-lg rounded-md min-w-[180px]"
+                          className="z-[9999] bg-popover border border-border shadow-lg rounded-squircle-md min-w-[180px]"
                           sideOffset={5}
                         >
                           {!card.isDefault && (
                             <>
-                              <DropdownMenuItem onClick={() => onSetDefault(card.id)} className="text-gray-700 hover:bg-gray-100">
+                              <DropdownMenuItem onClick={() => onSetDefault(card.id)} className="text-foreground hover:bg-accent">
                                 <Star className="mr-2 h-4 w-4" />
                                 Set as Default
                               </DropdownMenuItem>
@@ -358,7 +358,7 @@ const CardWallet: React.FC<CardWalletProps> = ({
                       transition={{ duration: 0.3 }}
                     >
                       <div 
-                        className="text-lg font-mono tracking-wider mb-2 cursor-pointer flex items-center gap-2"
+                        className="text-golden-subheading font-mono tracking-wider mb-golden-sm cursor-pointer flex items-center gap-golden-sm"
                         onClick={(e) => toggleReveal(card.id, e)}
                       >
                         <span>
@@ -373,7 +373,7 @@ const CardWallet: React.FC<CardWalletProps> = ({
                           <Eye className="h-4 w-4" />
                         )}
                       </div>
-                      <div className="text-xs opacity-75 uppercase tracking-wide">{card.brand}</div>
+                      <div className="text-golden-label opacity-75 uppercase tracking-wide">{card.brand}</div>
 
                       <AnimatePresence>
                         {selectedCard === card.id && (
@@ -384,7 +384,7 @@ const CardWallet: React.FC<CardWalletProps> = ({
                             transition={{ duration: 0.3, delay: 0.1 }}
                             className="mt-2 pt-2 border-t border-white/20"
                           >
-                            <div className="flex justify-between text-xs">
+                            <div className="flex justify-between text-golden-label">
                               <span className="opacity-75">
                                 EXP: {revealedDetails === card.id 
                                   ? `${String(card.expMonth).padStart(2, '0')}/${card.expYear.toString().slice(-2)}`

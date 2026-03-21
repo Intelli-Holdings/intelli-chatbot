@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Send, MoreVertical, CheckCheck, User, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { useAuth } from "@clerk/nextjs";
 import useActiveOrganizationId from "@/hooks/use-organization-id";
 import { useWebsiteWidgets } from "@/hooks/use-website-widgets";
@@ -142,7 +143,7 @@ export default function WebsiteConversationsPage() {
     const setupWebSocket = async () => {
       const token = await getToken({ organizationId: activeOrganizationId });
       if (!token) {
-        console.error('Cannot establish WebSocket connection: No authentication token');
+        logger.error("Cannot establish WebSocket connection: No authentication token");
         return;
       }
 
@@ -151,25 +152,25 @@ export default function WebsiteConversationsPage() {
       );
 
       ws.onopen = () => {
-        console.log("WebSocket connected");
+        logger.info("WebSocket connected");
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log("WebSocket message:", data);
+          logger.debug("WebSocket message received", { data });
 
           // Handle new messages
           if (data.type === 'business_forward' || data.type === 'new_chat') {
             refetchVisitors();
           }
         } catch (error) {
-          console.error("WebSocket message error:", error);
+          logger.error("WebSocket message error", { error: error instanceof Error ? error.message : String(error) });
         }
       };
 
       ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        logger.error("WebSocket error", { error: error instanceof Error ? error.message : String(error) });
       };
 
       wsRef.current = ws;
@@ -329,7 +330,7 @@ export default function WebsiteConversationsPage() {
         action === "takeover" ? "You are now handling this chat" : "Chat handed over to AI"
       );
     } catch (error) {
-      console.error("Takeover error:", error);
+      logger.error("Takeover error", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : "Action failed. Please try again");
     }
   };

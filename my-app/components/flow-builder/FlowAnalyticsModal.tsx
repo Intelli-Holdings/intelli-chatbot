@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { ChatbotAutomationService, FlowAnalytics } from '@/services/chatbot-automation';
 
+import { logger } from "@/lib/logger";
 interface FlowAnalyticsModalProps {
   open: boolean;
   onClose: () => void;
@@ -54,6 +55,7 @@ export function FlowAnalyticsModal({
     if (open && flowId) {
       fetchAnalytics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, flowId, periodDays]);
 
   const fetchAnalytics = async () => {
@@ -64,7 +66,7 @@ export function FlowAnalyticsModal({
       setAnalytics(data);
     } catch (err) {
       setError('Failed to load analytics');
-      console.error(err);
+      logger.error("Error occurred", { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

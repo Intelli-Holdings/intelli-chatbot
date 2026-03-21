@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -56,7 +57,7 @@ export async function GET(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[API] Backend error: ${response.status} - ${errorText}`);
+      logger.error("Backend error fetching widgets", { status: response.status, errorText });
       return NextResponse.json(
         { error: `Failed to fetch widgets: ${response.statusText}` },
         { status: response.status }
@@ -74,7 +75,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[API] Error fetching widgets:", error);
+    logger.error("Error fetching widgets", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       {
         error: "Internal server error",

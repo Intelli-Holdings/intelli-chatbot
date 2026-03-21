@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import type { FlowJSON } from '@/types/flows';
 
+import { logger } from "@/lib/logger";
 interface FlowsBuilderProps {
   onComplete: (flowId: string, selectedScreenId: string) => Promise<boolean>;
   onBack: () => void;
@@ -79,7 +80,7 @@ export default function FlowsBuilder({
       toast.info('No published flows found. Publish a flow in Meta Business Manager first.');
     }
   } catch (error) {
-    console.error('Error fetching flows:', error);
+    logger.error('Error fetching flows:', { error: error instanceof Error ? error.message : String(error) });
     toast.error('Failed to load flows from Meta');
   } finally {
     setLoadingFlows(false);

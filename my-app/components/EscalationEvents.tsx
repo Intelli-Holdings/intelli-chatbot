@@ -32,6 +32,7 @@ import {
 } from "@/hooks/use-escalation-events-cache";
 import { useQueryClient } from "react-query";
 
+import { logger } from "@/lib/logger";
 interface EscalationEventsProps {
   variant?: "full" | "panel";
   className?: string;
@@ -95,7 +96,7 @@ export default function EscalationEvents({
       toast.success("Event created successfully");
       refetch();
     } catch (error) {
-      console.error("Error creating event:", error);
+      logger.error("Error creating event:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to create event");
     } finally {
       setIsSubmitting(false);
@@ -133,7 +134,7 @@ export default function EscalationEvents({
       toast.success("Event updated successfully");
       refetch();
     } catch (error) {
-      console.error("Error updating event:", error);
+      logger.error("Error updating event:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to update event");
     } finally {
       setIsSubmitting(false);
@@ -157,7 +158,7 @@ export default function EscalationEvents({
       toast.success("Event deleted successfully");
       refetch();
     } catch (error) {
-      console.error("Error deleting event:", error);
+      logger.error("Error deleting event:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to delete event");
     } finally {
       setDeletingEventId(null);
@@ -199,7 +200,7 @@ export default function EscalationEvents({
         `Default event ${nextActive ? "enabled" : "disabled"} successfully`
       );
     } catch (error) {
-      console.error("Error updating default event:", error);
+      logger.error("Error updating default event:", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to update default event");
     } finally {
       setDefaultUpdates((prev) => ({ ...prev, [eventId]: false }));
@@ -313,7 +314,7 @@ export default function EscalationEvents({
   const eventsContent = (
     <div className="space-y-6">
       {hasDefaultEvents && (
-        <div className="space-y-3">
+        <div className="space-y-3 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-[#111b21]">
@@ -338,7 +339,7 @@ export default function EscalationEvents({
           )}
         </div>
       )}
-      <div className="space-y-3">
+      <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-[#111b21]">
@@ -435,7 +436,7 @@ export default function EscalationEvents({
             </div>
           )}
           {events.length > 0 && (
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-4 flex items-center gap-2 p-4">
               <Search className="h-4 w-4 text-[#667781]" />
               <Input
                 type="text"

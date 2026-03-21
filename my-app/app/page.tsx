@@ -13,6 +13,6 @@ export default function Homepage() {
       <ChatWidget />
     </main>
     </>
-    
+
   );
 }

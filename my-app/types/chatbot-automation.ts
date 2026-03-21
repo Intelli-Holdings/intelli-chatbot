@@ -57,6 +57,9 @@ export interface ChatbotMenu {
   // Footer (optional)
   footer?: string;
 
+  // List button text (for interactive_list only, max 20 chars)
+  buttonText?: string;
+
   // Options/Buttons
   options: MenuOption[];
 }

@@ -59,6 +59,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     onPaneClick,
     onPaneContextMenu,
     onNodeContextMenu,
+    onEdgeContextMenu,
     onDrop,
     onDragOver,
     onConnectStart,
@@ -68,6 +69,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     closeContextMenu,
     closeConnectionMenu,
     deleteNode,
+    deleteEdge,
     updateNodeData,
     autoLayout,
     syncToChatbot,
@@ -225,6 +227,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onConnectStart={onConnectStart}
@@ -284,6 +287,8 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
                 return '#10b981';
               case 'payment':
                 return '#8b5cf6';
+              case 'sequence':
+                return '#10b981';
               default:
                 return '#94a3b8';
             }
@@ -310,6 +315,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
       <ContextMenu
         position={contextMenu?.position || null}
         nodeId={contextMenu?.nodeId}
+        edgeId={contextMenu?.edgeId}
         onAction={handleContextMenuAction}
         onClose={closeContextMenu}
       />

@@ -24,6 +24,7 @@ import {
   Package,
   ShoppingBag,
   CreditCard,
+  Timer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,35 +62,35 @@ const nodeItems: DraggableNodeItem[] = [
     label: 'Trigger',
     description: 'Entry point with keywords',
     icon: Zap,
-    color: 'bg-green-500 hover:bg-green-600',
+    color: 'bg-green-500/80 hover:bg-green-500/90',
   },
   {
     type: 'question',
     label: 'Interactive',
     description: 'Interactive message',
     icon: MessageSquare,
-    color: 'bg-blue-500 hover:bg-blue-600',
+    color: 'bg-blue-500/80 hover:bg-blue-500/90',
   },
   {
     type: 'text',
     label: 'Text',
     description: 'Send a text message',
     icon: Send,
-    color: 'bg-indigo-500 hover:bg-indigo-600',
+    color: 'bg-indigo-500/80 hover:bg-indigo-500/90',
   },
   {
     type: 'cta_button',
     label: 'CTA',
     description: 'Button with URL link',
     icon: ExternalLink,
-    color: 'bg-orange-500 hover:bg-orange-600',
+    color: 'bg-orange-500/80 hover:bg-orange-500/90',
   },
   {
     type: 'user_input_flow',
     label: 'Input Flow',
     description: 'Collect user input',
     icon: HelpCircle,
-    color: 'bg-teal-500 hover:bg-teal-600',
+    color: 'bg-teal-500/80 hover:bg-teal-500/90',
   },
   {
     type: 'media',
@@ -97,7 +98,7 @@ const nodeItems: DraggableNodeItem[] = [
     label: 'Image',
     description: 'Send image',
     icon: Image,
-    color: 'bg-pink-500 hover:bg-pink-600',
+    color: 'bg-pink-500/80 hover:bg-pink-500/90',
   },
   {
     type: 'media',
@@ -105,7 +106,7 @@ const nodeItems: DraggableNodeItem[] = [
     label: 'Video',
     description: 'Send video',
     icon: Video,
-    color: 'bg-rose-500 hover:bg-rose-600',
+    color: 'bg-rose-500/80 hover:bg-rose-500/90',
   },
   {
     type: 'media',
@@ -113,7 +114,7 @@ const nodeItems: DraggableNodeItem[] = [
     label: 'File',
     description: 'Send document',
     icon: FileText,
-    color: 'bg-amber-500 hover:bg-amber-600',
+    color: 'bg-amber-500/80 hover:bg-amber-500/90',
   },
   {
     type: 'media',
@@ -121,21 +122,28 @@ const nodeItems: DraggableNodeItem[] = [
     label: 'Audio',
     description: 'Send audio',
     icon: Music,
-    color: 'bg-cyan-500 hover:bg-cyan-600',
+    color: 'bg-cyan-500/80 hover:bg-cyan-500/90',
   },
   {
     type: 'condition',
     label: 'Condition',
     description: 'Branch on rules',
     icon: GitBranch,
-    color: 'bg-yellow-500 hover:bg-yellow-600',
+    color: 'bg-yellow-500/80 hover:bg-yellow-500/90',
   },
   {
     type: 'http_api',
     label: 'API',
     description: 'Call external APIs',
     icon: Globe,
-    color: 'bg-violet-500 hover:bg-violet-600',
+    color: 'bg-violet-500/80 hover:bg-violet-500/90',
+  },
+  {
+    type: 'sequence',
+    label: 'Sequence',
+    description: 'Schedule follow-ups',
+    icon: Timer,
+    color: 'bg-emerald-500/80 hover:bg-emerald-500/90',
   },
   {
     type: 'action',
@@ -143,7 +151,7 @@ const nodeItems: DraggableNodeItem[] = [
     label: 'AI',
     description: 'Hand off to AI',
     icon: Bot,
-    color: 'bg-orange-500 hover:bg-orange-600',
+    color: 'bg-orange-500/80 hover:bg-orange-500/90',
   },
   {
     type: 'action',
@@ -151,7 +159,7 @@ const nodeItems: DraggableNodeItem[] = [
     label: 'End',
     description: 'End conversation',
     icon: XCircle,
-    color: 'bg-red-500 hover:bg-red-600',
+    color: 'bg-red-500/80 hover:bg-red-500/90',
   },
   // Ecommerce nodes
   {
@@ -198,8 +206,8 @@ export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, onAn
         {/* Draggable Nodes */}
         {nodeItems.map((item, index) => {
           const Icon = item.icon;
-          // Separators: before media nodes (index 5), before condition (index 9), and before ecommerce (index 13)
-          const showSeparator = index === 5 || index === 9 || index === 13;
+          // Separators: before media nodes (index 5), before condition (index 9), before actions (index 12), before ecommerce (index 14)
+          const showSeparator = index === 5 || index === 9 || index === 12 || index === 14;
           const uniqueKey = `${item.type}-${item.actionType || item.mediaType || item.productMessageType || item.label}`;
 
           return (
@@ -210,7 +218,7 @@ export default function FlowToolbar({ onAutoLayout, onValidate, onSimulate, onAn
                   <div
                     draggable
                     onDragStart={(e) => onDragStart(e, item)}
-                    className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg cursor-grab active:cursor-grabbing transition-all hover:scale-105 active:scale-95 ${item.color} text-white shadow-sm`}
+                    className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg cursor-grab active:cursor-grabbing transition-all hover:scale-105 active:scale-95 backdrop-blur-sm text-white shadow-sm ${item.color}`}
                   >
                     <Icon className="h-5 w-5" />
                     <span className="text-[10px] mt-0.5 font-medium truncate max-w-[40px]">{item.label}</span>

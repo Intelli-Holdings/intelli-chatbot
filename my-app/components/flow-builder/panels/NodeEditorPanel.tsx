@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music, FileInput, HelpCircle, ExternalLink, Globe, Package, ShoppingBag, CreditCard } from 'lucide-react';
+import { X, Trash2, Zap, MessageSquare, Send, Type, GitBranch, Bot, XCircle, Image, Video, FileText, Music, FileInput, HelpCircle, ExternalLink, Globe, Package, ShoppingBag, CreditCard, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -29,6 +29,7 @@ import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { HttpApiNodeData } from '../nodes/HttpApiNode';
 import { ProductMessageNodeData } from '../nodes/ProductMessageNode';
 import { PaymentNodeData } from '../nodes/PaymentNode';
+import { SequenceNodeData } from '../nodes/SequenceNode';
 import { ExtendedFlowNode, ExtendedFlowNodeData } from '../utils/node-factories';
 import StartNodeEditor from './StartNodeEditor';
 import QuestionNodeEditor from './QuestionNodeEditor';
@@ -42,6 +43,7 @@ import CTAButtonNodeEditor from './CTAButtonNodeEditor';
 import HttpApiNodeEditor from './HttpApiNodeEditor';
 import ProductMessageNodeEditor from './ProductMessageNodeEditor';
 import PaymentNodeEditor from './PaymentNodeEditor';
+import SequenceNodeEditor from './SequenceNodeEditor';
 import { cn } from '@/lib/utils';
 
 interface NodeEditorPanelProps {
@@ -139,6 +141,12 @@ export default function NodeEditorPanel({
           title: 'Configure Payment',
           icon: CreditCard,
           color: 'bg-violet-500',
+        };
+      case 'sequence':
+        return {
+          title: 'Configure Sequence',
+          icon: Timer,
+          color: 'bg-emerald-500',
         };
       case 'action': {
         const actionData = selectedNode.data as ActionNodeData;
@@ -285,6 +293,13 @@ export default function NodeEditorPanel({
         {selectedNode.data.type === 'payment' && (
           <PaymentNodeEditor
             data={selectedNode.data as PaymentNodeData}
+            onUpdate={handleUpdate}
+          />
+        )}
+
+        {selectedNode.data.type === 'sequence' && (
+          <SequenceNodeEditor
+            data={selectedNode.data as SequenceNodeData}
             onUpdate={handleUpdate}
           />
         )}

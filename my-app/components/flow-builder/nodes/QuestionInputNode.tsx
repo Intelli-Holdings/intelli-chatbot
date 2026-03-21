@@ -30,8 +30,8 @@ function QuestionInputNode({ id, data, selected }: QuestionInputNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[240px] max-w-[300px] rounded-lg border bg-card shadow-sm transition-all relative',
-        selected && 'ring-2 ring-primary ring-offset-2',
+        'w-[280px] rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md transition-all relative',
+        selected && 'ring-2 ring-[#007fff] ring-offset-2 shadow-[0_0_20px_rgba(0,127,255,0.3)]',
         !selected && validationClass
       )}
     >
@@ -45,7 +45,7 @@ function QuestionInputNode({ id, data, selected }: QuestionInputNodeProps) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 rounded-t-lg bg-cyan-500 px-3 py-2 text-white">
+      <div className="flex items-center justify-between gap-2 rounded-t-xl bg-gradient-to-r from-cyan-500 to-cyan-400 px-3 py-2 text-white">
         <div className="flex items-center gap-2">
           <HelpCircle className="h-4 w-4" />
           <span className="text-sm font-medium">Question</span>
@@ -60,7 +60,7 @@ function QuestionInputNode({ id, data, selected }: QuestionInputNodeProps) {
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-2">
+      <div className="p-3 min-h-[48px] space-y-2">
         {/* Question Text */}
         <div className="flex items-start gap-2">
           <CheckCircle2 className="h-4 w-4 text-cyan-500 flex-shrink-0 mt-0.5" />

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Analytics from "@/components/Analytics"
 import { Button } from "@/components/ui/button"
 import { produceMetricsSnapshot } from "@/lib/metrics-service"
+import { logger } from "@/lib/logger"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 
 // Import new advanced analytics components
@@ -43,7 +44,7 @@ export default function AnalyticsPage() {
       setTimeout(() => setRefreshSuccess(false), 3000)
       window.location.reload()
     } catch (error) {
-      console.error("Error producing snapshot:", error)
+      logger.error("Error producing snapshot", { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setIsRefreshing(false)
     }
@@ -68,7 +69,7 @@ export default function AnalyticsPage() {
         {/* Header Section */}
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Advanced Analytics Dashboard</h1>
+            <h1 className="text-3xl font-bold mb-2">Analytics</h1>
             <p className="text-muted-foreground">Real-time metrics, cost analysis, and customer insights</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

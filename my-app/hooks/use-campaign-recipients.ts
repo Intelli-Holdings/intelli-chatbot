@@ -2,6 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CampaignService } from '@/services/campaign';
+import { logger } from "@/lib/logger";
+
+interface ErrorInfo {
+  error?: string;
+  error_type?: string;
+  error_code?: number;
+  error_subcode?: number;
+  status_code?: number;
+  fbtrace_id?: string;
+  error_details?: string;
+  error_message_detail?: string;
+}
 
 interface Recipient {
   id: string;
@@ -13,8 +25,7 @@ interface Recipient {
   sent_at?: string;
   delivered_at?: string;
   read_at?: string;
-  failed_at?: string;
-  error_message?: string;
+  error_info?: ErrorInfo | null;
 }
 
 interface UseCampaignRecipientsReturn {
@@ -52,7 +63,7 @@ export function useCampaignRecipients(
       );
       setRecipients(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
-      console.error('Error fetching recipients:', err);
+      logger.error('Error fetching recipients', { error: err instanceof Error ? err.message : String(err) });
       setError(err instanceof Error ? err.message : 'Failed to fetch recipients');
       setRecipients([]);
     } finally {
@@ -76,7 +87,7 @@ export function useCampaignRecipients(
       );
       await fetchRecipients(); // Refresh the list
     } catch (err) {
-      console.error('Error adding recipients:', err);
+      logger.error('Error adding recipients', { error: err instanceof Error ? err.message : String(err) });
       setError(err instanceof Error ? err.message : 'Failed to add recipients');
       throw err;
     } finally {
@@ -99,7 +110,7 @@ export function useCampaignRecipients(
         executeNow
       );
     } catch (err) {
-      console.error('Error executing campaign:', err);
+      logger.error('Error executing campaign', { error: err instanceof Error ? err.message : String(err) });
       setError(err instanceof Error ? err.message : 'Failed to execute campaign');
       throw err;
     } finally {

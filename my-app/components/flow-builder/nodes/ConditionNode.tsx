@@ -41,8 +41,8 @@ function ConditionNode({ id, data, selected }: ConditionNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[240px] max-w-[300px] rounded-lg border bg-card shadow-sm transition-all relative',
-        selected && 'ring-2 ring-primary ring-offset-2',
+        'w-[280px] rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md transition-all relative',
+        selected && 'ring-2 ring-[#007fff] ring-offset-2 shadow-[0_0_20px_rgba(0,127,255,0.3)]',
         !selected && validationClass
       )}
     >
@@ -52,11 +52,11 @@ function ConditionNode({ id, data, selected }: ConditionNodeProps) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-3 !w-3 !border-2 !border-yellow-500 !bg-white"
+        className="!h-3 !w-3 !border-2 !border-amber-500 !bg-white"
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 rounded-t-lg bg-yellow-500 px-3 py-2 text-white">
+      <div className="flex items-center justify-between gap-2 rounded-t-xl bg-gradient-to-r from-yellow-500 to-amber-400 px-3 py-2 text-white">
         <div className="flex items-center gap-2">
           <GitBranch className="h-4 w-4" />
           <span className="text-sm font-medium">Condition</span>
@@ -67,7 +67,7 @@ function ConditionNode({ id, data, selected }: ConditionNodeProps) {
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-2">
+      <div className="p-3 min-h-[48px] space-y-2">
         {rules.length > 0 ? (
           <div className="space-y-1">
             {rules.slice(0, 3).map((rule, index) => (
@@ -82,7 +82,7 @@ function ConditionNode({ id, data, selected }: ConditionNodeProps) {
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground italic">No conditions set</p>
+          <p className="text-xs text-muted-foreground/60 italic">No conditions set</p>
         )}
 
         {/* Branch Labels */}

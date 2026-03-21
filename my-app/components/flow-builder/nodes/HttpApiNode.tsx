@@ -61,8 +61,8 @@ function HttpApiNode({ id, data, selected }: HttpApiNodeProps) {
   return (
     <div
       className={cn(
-        'min-w-[200px] max-w-[280px] rounded-lg border bg-card shadow-sm transition-all relative',
-        selected && 'ring-2 ring-primary ring-offset-2',
+        'w-[280px] rounded-xl border border-white/20 dark:border-white/10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md transition-all relative',
+        selected && 'ring-2 ring-[#007fff] ring-offset-2 shadow-[0_0_20px_rgba(0,127,255,0.3)]',
         !selected && validationClass
       )}
     >
@@ -77,13 +77,13 @@ function HttpApiNode({ id, data, selected }: HttpApiNodeProps) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-center gap-2 rounded-t-lg px-3 py-2 text-white bg-violet-500">
+      <div className="flex items-center justify-center gap-2 rounded-t-xl px-3 py-2 text-white bg-gradient-to-r from-violet-500 to-violet-400">
         <Globe className="h-4 w-4" />
         <span className="text-sm font-medium">HTTP API</span>
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-2">
+      <div className="p-3 min-h-[48px] space-y-2">
         {/* Method Badge and URL */}
         <div className="flex items-center gap-2">
           <span className={cn(

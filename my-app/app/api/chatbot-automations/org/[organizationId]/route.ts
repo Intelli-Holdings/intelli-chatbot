@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 // Import the shared store - we need to use a different approach for shared state
 // For now, re-import from the main route (this is a limitation of the in-memory approach)
@@ -17,7 +18,7 @@ export async function GET(
 
     return NextResponse.json(chatbots);
   } catch (error) {
-    console.error("Error fetching chatbots:", error);
+    logger.error("Error fetching chatbots", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

@@ -3,14 +3,14 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, useRef, type ChangeEvent, type KeyboardEvent, useEffect } from "react"
-import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile } from "lucide-react"
+import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, FileText, MessageSquareText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { sendMessage } from "@/app/actions"
 import { useUser } from "@clerk/nextjs"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 import EmojiPicker from "emoji-picker-react"
 import { Textarea } from "@/components/ui/textarea"
-import { CannedResponsesPicker } from "@/components/canned-responses-picker"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -22,6 +22,8 @@ interface MessageInputProps {
   onMessageSent?: (newMessageContent: string, mediaUrl?: string, mediaType?: string) => number | void
   onMessageSendSuccess?: (tempId: number, realMessage: any) => void
   onMessageSendFailure?: (tempId: number) => void
+  onOpenTemplatePicker?: () => void
+  onOpenCannedResponses?: () => void
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -30,7 +32,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   organizationId,
   onMessageSent,
   onMessageSendSuccess,
-  onMessageSendFailure
+  onMessageSendFailure,
+  onOpenTemplatePicker,
+  onOpenCannedResponses,
 }) => {
   const [answer, setAnswer] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -81,8 +85,23 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     window.addEventListener("retryMessage", handleRetry as unknown as EventListener)
+
+    // Listen for canned response insert events
+    const handleCannedResponse = (event: CustomEvent) => {
+      const { content } = event.detail
+      if (content) {
+        setAnswer(content)
+        if (textareaRef.current) {
+          textareaRef.current.focus()
+        }
+      }
+    }
+
+    window.addEventListener("setCannedResponse", handleCannedResponse as unknown as EventListener)
+
     return () => {
       window.removeEventListener("retryMessage", handleRetry as unknown as EventListener)
+      window.removeEventListener("setCannedResponse", handleCannedResponse as unknown as EventListener)
     }
   }, [])
 
@@ -135,7 +154,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       }
 
       const response = await sendMessage(formData)
-      console.log("Message sent successfully:", response)
+      logger.info("Message sent successfully", { data: response })
 
       // Note: The real message will come via WebSocket, which will replace the optimistic one
       // We don't need to manually call onMessageSendSuccess here
@@ -151,7 +170,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     } catch (e) {
       setError((e as Error).message)
       toast.error("Failed to send message")
-      console.error("Error sending message:", e)
+      logger.error("Error sending message", { error: e instanceof Error ? e.message : String(e) })
 
       // Mark optimistic message as failed
       if (tempId && onMessageSendFailure) {
@@ -262,7 +281,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       mediaRecorder.start()
       setIsRecording(true)
     } catch (error) {
-      console.error("Error accessing microphone:", error)
+      logger.error("Error accessing microphone", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to access microphone")
     }
   }
@@ -285,13 +304,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleEmojiClick = (emojiData: { emoji: string }) => {
     setAnswer((prev) => prev + emojiData.emoji)
     setShowEmojiPicker(false)
-    if (textareaRef.current) {
-      textareaRef.current.focus()
-    }
-  }
-
-  const handleCannedResponseSelect = (content: string) => {
-    setAnswer(content)
     if (textareaRef.current) {
       textareaRef.current.focus()
     }
@@ -423,12 +435,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
           />
 
           <div className="absolute bottom-0 right-0 p-3 flex items-center gap-2">
-            {organizationId && (
-              <CannedResponsesPicker
-                organizationId={organizationId}
-                onSelect={handleCannedResponseSelect}
-                className="rounded-full"
-              />
+            {onOpenCannedResponses && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8"
+                onClick={onOpenCannedResponses}
+                disabled={isLoading || isRecording}
+                title="Canned responses"
+              >
+                <MessageSquareText className="h-4 w-4 text-gray-500" />
+              </Button>
             )}
             <Button
               type="button"
@@ -450,20 +468,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
             >
               <Paperclip className="h-4 w-4 text-gray-500" />
             </Button>
-            {/** 
-             * <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-8 w-8"
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isLoading}
-            >
-              <Mic className="h-4 w-4 text-gray-500" />
-            </Button>             * 
-             * 
-            */}
-            
+            {onOpenTemplatePicker && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8"
+                onClick={onOpenTemplatePicker}
+                disabled={isLoading || isRecording}
+                title="Send template message"
+              >
+                <FileText className="h-4 w-4 text-gray-500" />
+              </Button>
+            )}
+
             <Button
               className="rounded-xl h-8 w-8"
               type="submit"

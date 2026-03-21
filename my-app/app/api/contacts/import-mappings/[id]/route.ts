@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -39,7 +40,7 @@ export async function PATCH(
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error updating import mapping:', error);
+    logger.error("Error updating import mapping", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to update import mapping' },
       { status: 500 }
@@ -79,7 +80,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true }, { status: 204 });
   } catch (error) {
-    console.error('Error deleting import mapping:', error);
+    logger.error("Error deleting import mapping", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to delete import mapping' },
       { status: 500 }
