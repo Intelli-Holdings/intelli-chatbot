@@ -28,6 +28,7 @@ const PROVIDER_LABELS: Record<PaymentProvider, string> = {
   flutterwave: 'Flutterwave',
   mpesa: 'M-PESA',
   momo: 'MTN MoMo',
+  pesapal: 'Pesapal',
 };
 
 function PaymentNode({ id, data, selected }: PaymentNodeProps) {
