@@ -11,8 +11,7 @@ import type {
   OrderStatus,
 } from '@/types/ecommerce';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://backend.intelliconcierge.com';
+import { commerceFetch, COMMERCE_URL } from '@/lib/commerce-api';
 
 /**
  * API Error response
@@ -64,9 +63,7 @@ export class OrdersService {
     filters?: OrderQueryFilters
   ): Promise<{ orders: WhatsAppOrder[]; total: number }> {
     try {
-      const params = new URLSearchParams({
-        organization_id: organizationId,
-      });
+      const params = new URLSearchParams();
 
       if (filters) {
         if (filters.status) {
@@ -84,12 +81,10 @@ export class OrdersService {
         if (filters.offset) params.set('offset', filters.offset.toString());
       }
 
-      const response = await fetch(`/api/orders?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const queryString = params.toString();
+      const url = `${COMMERCE_URL(organizationId)}/orders/${queryString ? `?${queryString}` : ''}`;
+
+      const response = await commerceFetch(url);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -106,14 +101,9 @@ export class OrdersService {
   /**
    * Get a single order by ID
    */
-  static async getOrder(orderId: string): Promise<WhatsAppOrder> {
+  static async getOrder(organizationId: string, orderId: string): Promise<WhatsAppOrder> {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await commerceFetch(`${COMMERCE_URL(organizationId)}/orders/${orderId}/`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -135,15 +125,9 @@ export class OrdersService {
     order: CreateOrderRequest
   ): Promise<WhatsAppOrder> {
     try {
-      const response = await fetch('/api/orders', {
+      const response = await commerceFetch(`${COMMERCE_URL(organizationId)}/orders/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          organization_id: organizationId,
-          ...order,
-        }),
+        body: JSON.stringify(order),
       });
 
       if (!response.ok) {
@@ -162,15 +146,13 @@ export class OrdersService {
    * Update an existing order
    */
   static async updateOrder(
+    organizationId: string,
     orderId: string,
     updates: UpdateOrderRequest
   ): Promise<WhatsAppOrder> {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const response = await commerceFetch(`${COMMERCE_URL(organizationId)}/orders/${orderId}/`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(updates),
       });
 
@@ -189,13 +171,10 @@ export class OrdersService {
   /**
    * Delete an order
    */
-  static async deleteOrder(orderId: string): Promise<void> {
+  static async deleteOrder(organizationId: string, orderId: string): Promise<void> {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const response = await commerceFetch(`${COMMERCE_URL(organizationId)}/orders/${orderId}/`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -216,32 +195,34 @@ export class OrdersService {
    * Update order status
    */
   static async updateOrderStatus(
+    organizationId: string,
     orderId: string,
     status: OrderStatus,
     notes?: string
   ): Promise<WhatsAppOrder> {
-    return this.updateOrder(orderId, { status, notes });
+    return this.updateOrder(organizationId, orderId, { status, notes });
   }
 
   /**
    * Send payment link for an order
    */
   static async sendPaymentLink(
+    organizationId: string,
     orderId: string,
     provider: string,
     customerPhone: string
   ): Promise<{ payment_link: string; message_id: string }> {
     try {
-      const response = await fetch(`/api/orders/${orderId}/payment-link`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          provider,
-          customer_phone: customerPhone,
-        }),
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/orders/${orderId}/payment-link/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            provider,
+            customer_phone: customerPhone,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -259,19 +240,20 @@ export class OrdersService {
    * Send order confirmation message
    */
   static async sendConfirmation(
+    organizationId: string,
     orderId: string,
     customerPhone: string
   ): Promise<{ message_id: string }> {
     try {
-      const response = await fetch(`/api/orders/${orderId}/confirm`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customer_phone: customerPhone,
-        }),
-      });
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/orders/${orderId}/confirm/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            customer_phone: customerPhone,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -289,10 +271,11 @@ export class OrdersService {
    * Cancel an order
    */
   static async cancelOrder(
+    organizationId: string,
     orderId: string,
     reason?: string
   ): Promise<WhatsAppOrder> {
-    return this.updateOrder(orderId, {
+    return this.updateOrder(organizationId, orderId, {
       status: 'cancelled',
       notes: reason,
     });
@@ -319,19 +302,15 @@ export class OrdersService {
     currency: string;
   }> {
     try {
-      const params = new URLSearchParams({
-        organization_id: organizationId,
-      });
+      const params = new URLSearchParams();
 
       if (dateFrom) params.set('date_from', dateFrom);
       if (dateTo) params.set('date_to', dateTo);
 
-      const response = await fetch(`/api/orders/stats?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const queryString = params.toString();
+      const url = `${COMMERCE_URL(organizationId)}/orders/stats/${queryString ? `?${queryString}` : ''}`;
+
+      const response = await commerceFetch(url);
 
       if (!response.ok) {
         const errorData = await response.json();
