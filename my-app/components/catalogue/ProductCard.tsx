@@ -54,6 +54,12 @@ export function ProductCard({
     product.currency as SupportedCurrency
   );
 
+  const formattedSalePrice = product.sale_price
+    ? formatCurrency(product.sale_price, product.currency as SupportedCurrency)
+    : null;
+
+  const isOnSale = product.sale_price != null && product.sale_price < product.price;
+
   return (
     <Card
       className={cn(
@@ -96,6 +102,11 @@ export function ProductCard({
             <Package className="h-12 w-12 text-muted-foreground" />
           </div>
         )}
+        {isOnSale && !selectable && (
+          <Badge className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white text-[10px] px-1.5 py-0.5 leading-none">
+            SALE
+          </Badge>
+        )}
       </div>
 
       <CardContent className="p-3">
@@ -113,7 +124,14 @@ export function ProductCard({
           )}
 
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-sm">{formattedPrice}</span>
+            {isOnSale ? (
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-sm text-green-600">{formattedSalePrice}</span>
+                <span className="text-xs text-muted-foreground line-through">{formattedPrice}</span>
+              </div>
+            ) : (
+              <span className="font-semibold text-sm">{formattedPrice}</span>
+            )}
             {getAvailabilityBadge()}
           </div>
 
