@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
   Search,
@@ -47,6 +47,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { CommerceEmptyState } from '@/components/commerce';
 import { cn } from '@/lib/utils';
 import type {
   PaymentTransaction,
@@ -90,6 +91,8 @@ export function TransactionHistory({
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<PaymentTransaction | null>(null);
   const [refunding, setRefunding] = useState(false);
+  const [refundType, setRefundType] = useState<'full' | 'partial'>('full');
+  const [refundAmount, setRefundAmount] = useState<string>('');
 
   const currentPage = Math.floor((filters.offset || 0) / pageSize) + 1;
   const totalPages = Math.ceil(total / pageSize);
@@ -97,14 +100,21 @@ export function TransactionHistory({
   const handleSearch = useCallback(
     (query: string) => {
       setSearchQuery(query);
+    },
+    []
+  );
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
       onFiltersChange?.({
         ...filters,
-        reference: query || undefined,
+        reference: searchQuery || undefined,
         offset: 0,
       });
-    },
-    [filters, onFiltersChange]
-  );
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   const handleStatusFilter = useCallback(
     (status: string) => {
@@ -141,10 +151,12 @@ export function TransactionHistory({
 
   const handleRefund = async () => {
     if (!selectedTransaction || !onRefund) return;
-
     setRefunding(true);
     try {
-      await onRefund(selectedTransaction.id);
+      const amount = refundType === 'partial' && refundAmount
+        ? parseFloat(refundAmount)
+        : undefined;
+      await onRefund(selectedTransaction.id, amount);
       setRefundDialogOpen(false);
       setSelectedTransaction(null);
     } finally {
@@ -154,6 +166,8 @@ export function TransactionHistory({
 
   const openRefundDialog = (transaction: PaymentTransaction) => {
     setSelectedTransaction(transaction);
+    setRefundType('full');
+    setRefundAmount('');
     setRefundDialogOpen(true);
   };
 
@@ -259,8 +273,8 @@ export function TransactionHistory({
           <TableBody>
             {transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  No transactions found
+                <TableCell colSpan={7} className="p-0">
+                  <CommerceEmptyState type="transactions" />
                 </TableCell>
               </TableRow>
             ) : (
@@ -304,7 +318,7 @@ export function TransactionHistory({
                         )}
                         {transaction.order_id && (
                           <DropdownMenuItem asChild>
-                            <a href={`/dashboard/orders/${transaction.order_id}`}>
+                            <a href={`/dashboard/commerce/orders/${transaction.order_id}`}>
                               <ExternalLink className="mr-2 h-4 w-4" />
                               View Order
                             </a>
@@ -383,6 +397,54 @@ export function TransactionHistory({
               </p>
             </div>
           )}
+
+          {/* Refund type toggle */}
+          {selectedTransaction && (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={refundType === 'full' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setRefundType('full');
+                    setRefundAmount('');
+                  }}
+                >
+                  Full Refund
+                </Button>
+                <Button
+                  type="button"
+                  variant={refundType === 'partial' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setRefundType('partial')}
+                >
+                  Partial Refund
+                </Button>
+              </div>
+
+              {refundType === 'partial' && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Enter amount..."
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    min="0.01"
+                    max={selectedTransaction.amount}
+                    step="0.01"
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {selectedTransaction.currency.toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           <DialogFooter>
             <Button
               variant="outline"
@@ -394,7 +456,14 @@ export function TransactionHistory({
             <Button
               variant="destructive"
               onClick={handleRefund}
-              disabled={refunding}
+              disabled={
+                refunding ||
+                (refundType === 'partial' && (
+                  !refundAmount ||
+                  parseFloat(refundAmount) <= 0 ||
+                  parseFloat(refundAmount) > (selectedTransaction?.amount ?? 0)
+                ))
+              }
             >
               {refunding ? 'Processing...' : 'Confirm Refund'}
             </Button>
