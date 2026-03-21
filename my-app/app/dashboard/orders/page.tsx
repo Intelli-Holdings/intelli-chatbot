@@ -19,6 +19,8 @@ import {
   ShoppingBag,
   Clock,
   AlertCircle,
+  TrendingUp,
+  Download,
 } from 'lucide-react';
 import { useOrders, useOrderStats } from '@/hooks/use-orders';
 import {
@@ -67,6 +69,10 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { WhatsAppOrder, OrderStatus } from '@/types/ecommerce';
 import { formatCurrency, type SupportedCurrency } from '@/types/ecommerce';
+import { getProvidersForCurrency, PAYMENT_PROVIDERS, type PaymentProvider } from '@/types/payments';
+import { getRecommendedProviders } from '@/lib/payment-market-map';
+import { OrdersService } from '@/services/orders';
+import useActiveOrganizationId from '@/hooks/use-organization-id';
 
 const statusConfig: Record<
   OrderStatus,
@@ -83,6 +89,7 @@ const statusConfig: Record<
 };
 
 export default function OrdersPage() {
+  const organizationId = useActiveOrganizationId();
   const {
     orders,
     total,
@@ -104,6 +111,10 @@ export default function OrdersPage() {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<OrderStatus>('confirmed');
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [paymentLinkDialogOpen, setPaymentLinkDialogOpen] = useState(false);
+  const [paymentLinkOrder, setPaymentLinkOrder] = useState<WhatsAppOrder | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<PaymentProvider | ''>('');
+  const [sendingPaymentLink, setSendingPaymentLink] = useState(false);
 
   const pageSize = 10;
   const currentPage = Math.floor((filters.offset || 0) / pageSize) + 1;
@@ -180,6 +191,89 @@ export default function OrdersPage() {
     setCancelDialogOpen(true);
   };
 
+  const openPaymentLinkDialog = (order: WhatsAppOrder) => {
+    setPaymentLinkOrder(order);
+    // Auto-select best provider based on customer phone
+    const recommended = getRecommendedProviders(order.customer_phone, order.currency);
+    const available = getProvidersForCurrency(order.currency);
+    const best = recommended.length > 0 ? recommended[0] : available.length > 0 ? available[0] : '';
+    setSelectedProvider(best);
+    setPaymentLinkDialogOpen(true);
+  };
+
+  const handleSendPaymentLink = async () => {
+    if (!paymentLinkOrder || !selectedProvider || !organizationId) return;
+
+    setSendingPaymentLink(true);
+    try {
+      await OrdersService.sendPaymentLink(
+        organizationId,
+        paymentLinkOrder.id,
+        selectedProvider,
+        paymentLinkOrder.customer_phone
+      );
+      toast.success('Payment link sent successfully');
+      setPaymentLinkDialogOpen(false);
+      setPaymentLinkOrder(null);
+      setSelectedProvider('');
+      refetch();
+    } catch {
+      toast.error('Failed to send payment link');
+    } finally {
+      setSendingPaymentLink(false);
+    }
+  };
+
+  const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({
+      ...filters,
+      date_from: e.target.value || undefined,
+      offset: 0,
+    });
+  };
+
+  const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({
+      ...filters,
+      date_to: e.target.value || undefined,
+      offset: 0,
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (orders.length === 0) {
+      toast.error('No orders to export');
+      return;
+    }
+
+    const headers = ['Order ID', 'Customer Name', 'Customer Phone', 'Items Count', 'Total', 'Currency', 'Status', 'Date'];
+    const rows = orders.map((order) => [
+      order.id,
+      order.customer_name || 'Unknown',
+      order.customer_phone,
+      String(order.items.length),
+      String(order.total_amount),
+      order.currency,
+      order.status,
+      format(new Date(order.created_at), 'yyyy-MM-dd'),
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `orders-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
@@ -190,15 +284,21 @@ export default function OrdersPage() {
             Manage your WhatsApp Commerce orders
           </p>
         </div>
-        <Button onClick={refetch} disabled={loading}>
-          <RefreshCw className={cn('h-4 w-4 mr-2', loading && 'animate-spin')} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportCSV} disabled={loading || orders.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            Download
+          </Button>
+          <Button onClick={refetch} disabled={loading}>
+            <RefreshCw className={cn('h-4 w-4 mr-2', loading && 'animate-spin')} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
       {!loadingStats && stats && (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
@@ -244,6 +344,18 @@ export default function OrdersPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(stats.average_order_value, stats.currency as SupportedCurrency)}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -275,6 +387,21 @@ export default function OrdersPage() {
             ))}
           </SelectContent>
         </Select>
+
+        <Input
+          type="date"
+          placeholder="From"
+          value={filters.date_from || ''}
+          onChange={handleDateFromChange}
+          className="w-[160px]"
+        />
+        <Input
+          type="date"
+          placeholder="To"
+          value={filters.date_to || ''}
+          onChange={handleDateToChange}
+          className="w-[160px]"
+        />
       </div>
 
       {/* Error */}
@@ -396,7 +523,9 @@ export default function OrdersPage() {
                                       Update Status
                                     </DropdownMenuItem>
                                     {order.status === 'pending' && (
-                                      <DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => openPaymentLinkDialog(order)}
+                                      >
                                         <Send className="mr-2 h-4 w-4" />
                                         Send Payment Link
                                       </DropdownMenuItem>
@@ -521,6 +650,76 @@ export default function OrdersPage() {
               disabled={saving}
             >
               {saving ? 'Cancelling...' : 'Cancel Order'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Payment Link Dialog */}
+      <Dialog open={paymentLinkDialogOpen} onOpenChange={setPaymentLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Payment Link</DialogTitle>
+            <DialogDescription>
+              Choose a payment provider and send a payment link to the customer.
+            </DialogDescription>
+          </DialogHeader>
+          {paymentLinkOrder && (
+            <div className="space-y-4 py-4">
+              <div className="text-sm text-muted-foreground">
+                Sending to: <span className="font-medium text-foreground">{paymentLinkOrder.customer_phone}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Amount: <span className="font-medium text-foreground">
+                  {formatCurrency(paymentLinkOrder.total_amount, paymentLinkOrder.currency as SupportedCurrency)}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Payment Provider</label>
+                <Select
+                  value={selectedProvider}
+                  onValueChange={(v) => setSelectedProvider(v as PaymentProvider)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getProvidersForCurrency(paymentLinkOrder.currency).map((provider) => {
+                      const info = PAYMENT_PROVIDERS[provider];
+                      return (
+                        <SelectItem key={provider} value={provider}>
+                          {info.name}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedProvider && (
+                <div className="rounded-md border p-3 text-sm space-y-1">
+                  <p className="font-medium">{PAYMENT_PROVIDERS[selectedProvider as PaymentProvider].name}</p>
+                  <p className="text-muted-foreground">
+                    Payment methods: {PAYMENT_PROVIDERS[selectedProvider as PaymentProvider].payment_methods.join(', ')}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPaymentLinkDialogOpen(false)}
+              disabled={sendingPaymentLink}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendPaymentLink}
+              disabled={sendingPaymentLink || !selectedProvider}
+            >
+              {sendingPaymentLink ? 'Sending...' : 'Send Payment Link'}
             </Button>
           </DialogFooter>
         </DialogContent>
