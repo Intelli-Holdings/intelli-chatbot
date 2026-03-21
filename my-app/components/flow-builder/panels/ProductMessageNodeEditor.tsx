@@ -16,6 +16,9 @@ import {
 import { ProductMessageNodeData, ProductMessageType } from '../nodes/ProductMessageNode';
 import { useCatalogues, useProducts } from '@/hooks/use-catalogue';
 import { useAppServices } from '@/hooks/use-app-services';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProductMessageNodeEditorProps {
@@ -26,10 +29,24 @@ interface ProductMessageNodeEditorProps {
 export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMessageNodeEditorProps) {
   const { selectedAppService } = useAppServices();
   const { catalogues, loading: loadingCatalogues } = useCatalogues(selectedAppService);
-  const { products, loading: loadingProducts, search } = useProducts(
-    selectedAppService,
-    data.catalogId || null
-  );
+  const {
+    products: metaProducts,
+    loading: loadingProducts,
+    search,
+  } = useProducts(selectedAppService, data.catalogId || null);
+
+  // Map Meta products to common format
+  const products = (metaProducts || []).map((p) => ({
+    id: p.id,
+    retailer_id: p.retailer_id,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    currency: p.currency,
+    availability: p.availability,
+    image_url: p.image_url,
+    category: p.category,
+  }));
 
   const [localData, setLocalData] = useState({
     catalogId: data.catalogId || '',
@@ -69,7 +86,7 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
   };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim() || !selectedAppService || !localData.catalogId) return;
+    if (!searchQuery.trim() || !localData.catalogId) return;
 
     setIsSearching(true);
     try {
@@ -147,32 +164,50 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
         </div>
         <p className="text-xs text-muted-foreground">
           {isSingleProduct
-            ? 'Send a single product with details from your catalogue'
+            ? 'Send a native WhatsApp product card from your Meta catalogue'
             : 'Send a list of products organized in sections (max 30 items)'}
         </p>
       </div>
 
-      {/* Catalogue Selection */}
+      {/* Meta Catalogue Selection */}
       <div className="space-y-2">
-        <Label>Catalogue</Label>
-        <Select
-          value={localData.catalogId}
-          onValueChange={(value) => handleChange('catalogId', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={loadingCatalogues ? 'Loading...' : 'Select catalogue'} />
-          </SelectTrigger>
-          <SelectContent>
-            {catalogues.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label>Meta Catalogue</Label>
+        {!selectedAppService ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Select a WhatsApp number in Settings to load catalogues.
+            </AlertDescription>
+          </Alert>
+        ) : loadingCatalogues ? (
+          <div className="text-xs text-muted-foreground">Loading catalogues...</div>
+        ) : catalogues.length === 0 ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              No Meta catalogue connected. Connect one in Commerce → Products → Meta Catalogue tab.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Select
+            value={localData.catalogId}
+            onValueChange={(value) => handleChange('catalogId', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select catalogue" />
+            </SelectTrigger>
+            <SelectContent>
+              {catalogues.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name} {cat.product_count ? `(${cat.product_count} products)` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      {/* Product Search */}
+      {/* Product Search — only show when catalogue is selected */}
       {localData.catalogId && (
         <div className="space-y-2">
           <Label>Search Products</Label>
@@ -417,7 +452,7 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
       <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
         <p>
           {isSingleProduct
-            ? 'The product message will display the product image, name, price, and description from your WhatsApp Commerce catalogue.'
+            ? 'The product message will display a native WhatsApp product card from your Meta Commerce catalogue.'
             : 'Multi-product messages can contain up to 30 products organized in up to 10 sections.'}
         </p>
       </div>
