@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { PaymentService } from '@/services/payments';
 import type {
   PaymentProvider,
@@ -34,6 +35,7 @@ export interface UsePaymentConfigsReturn {
  * Hook to manage payment configurations
  */
 export const usePaymentConfigs = (): UsePaymentConfigsReturn => {
+  const { isLoaded, isSignedIn } = useAuth();
   const organizationId = useActiveOrganizationId();
   const [configs, setConfigs] = useState<PaymentConfigResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,7 @@ export const usePaymentConfigs = (): UsePaymentConfigsReturn => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchConfigs = useCallback(async () => {
-    if (!organizationId) {
+    if (!organizationId || !isLoaded || !isSignedIn) {
       return;
     }
 
@@ -62,7 +64,7 @@ export const usePaymentConfigs = (): UsePaymentConfigsReturn => {
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, isLoaded, isSignedIn]);
 
   const createConfig = useCallback(
     async (config: CreatePaymentConfigRequest): Promise<PaymentConfigResponse> => {
@@ -96,11 +98,15 @@ export const usePaymentConfigs = (): UsePaymentConfigsReturn => {
       configId: string,
       updates: UpdatePaymentConfigRequest
     ): Promise<PaymentConfigResponse> => {
+      if (!organizationId) {
+        throw new Error('Organization ID not available');
+      }
+
       setSaving(true);
       setError(null);
 
       try {
-        const updatedConfig = await PaymentService.updateConfig(configId, updates);
+        const updatedConfig = await PaymentService.updateConfig(organizationId, configId, updates);
         setConfigs((prev) =>
           prev.map((c) => (c.id === configId ? updatedConfig : c))
         );
@@ -116,15 +122,19 @@ export const usePaymentConfigs = (): UsePaymentConfigsReturn => {
         setSaving(false);
       }
     },
-    []
+    [organizationId]
   );
 
   const deleteConfig = useCallback(async (configId: string): Promise<void> => {
+    if (!organizationId) {
+      throw new Error('Organization ID not available');
+    }
+
     setSaving(true);
     setError(null);
 
     try {
-      await PaymentService.deleteConfig(configId);
+      await PaymentService.deleteConfig(organizationId, configId);
       setConfigs((prev) => prev.filter((c) => c.id !== configId));
     } catch (err) {
       let errorMessage = 'Failed to delete payment config';
@@ -136,19 +146,23 @@ export const usePaymentConfigs = (): UsePaymentConfigsReturn => {
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [organizationId]);
 
   const testConfig = useCallback(
     async (configId: string): Promise<TestConfigResult> => {
+      if (!organizationId) {
+        return { success: false, message: 'Organization ID not available' };
+      }
+
       setTesting(true);
 
       try {
-        return await PaymentService.testConfig(configId);
+        return await PaymentService.testConfig(organizationId, configId);
       } finally {
         setTesting(false);
       }
     },
-    []
+    [organizationId]
   );
 
   const getConfigForProvider = useCallback(
@@ -159,10 +173,10 @@ export const usePaymentConfigs = (): UsePaymentConfigsReturn => {
   );
 
   useEffect(() => {
-    if (organizationId) {
+    if (organizationId && isLoaded && isSignedIn) {
       fetchConfigs();
     }
-  }, [organizationId, fetchConfigs]);
+  }, [organizationId, isLoaded, isSignedIn, fetchConfigs]);
 
   return {
     configs,
@@ -201,6 +215,7 @@ export interface UseTransactionsReturn {
 export const useTransactions = (
   initialFilters: TransactionQueryFilters = {}
 ): UseTransactionsReturn => {
+  const { isLoaded, isSignedIn } = useAuth();
   const organizationId = useActiveOrganizationId();
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [total, setTotal] = useState(0);
@@ -210,7 +225,7 @@ export const useTransactions = (
   const [filters, setFilters] = useState<TransactionQueryFilters>(initialFilters);
 
   const fetchTransactions = useCallback(async () => {
-    if (!organizationId) {
+    if (!organizationId || !isLoaded || !isSignedIn) {
       return;
     }
 
@@ -231,15 +246,20 @@ export const useTransactions = (
     } finally {
       setLoading(false);
     }
-  }, [organizationId, filters]);
+  }, [organizationId, filters, isLoaded, isSignedIn]);
 
   const refundTransaction = useCallback(
     async (transactionId: string, amount?: number): Promise<void> => {
+      if (!organizationId) {
+        throw new Error('Organization ID not available');
+      }
+
       setRefunding(true);
       setError(null);
 
       try {
         const refundedTransaction = await PaymentService.refundTransaction(
+          organizationId,
           transactionId,
           amount
         );
@@ -258,14 +278,14 @@ export const useTransactions = (
         setRefunding(false);
       }
     },
-    []
+    [organizationId]
   );
 
   useEffect(() => {
-    if (organizationId) {
+    if (organizationId && isLoaded && isSignedIn) {
       fetchTransactions();
     }
-  }, [organizationId, fetchTransactions]);
+  }, [organizationId, isLoaded, isSignedIn, fetchTransactions]);
 
   return {
     transactions,
@@ -298,13 +318,14 @@ export const useTransactionStats = (
   dateFrom?: string,
   dateTo?: string
 ): UseTransactionStatsReturn => {
+  const { isLoaded, isSignedIn } = useAuth();
   const organizationId = useActiveOrganizationId();
   const [stats, setStats] = useState<TransactionStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
-    if (!organizationId) {
+    if (!organizationId || !isLoaded || !isSignedIn) {
       return;
     }
 
@@ -328,13 +349,13 @@ export const useTransactionStats = (
     } finally {
       setLoading(false);
     }
-  }, [organizationId, dateFrom, dateTo]);
+  }, [organizationId, dateFrom, dateTo, isLoaded, isSignedIn]);
 
   useEffect(() => {
-    if (organizationId) {
+    if (organizationId && isLoaded && isSignedIn) {
       fetchStats();
     }
-  }, [organizationId, fetchStats]);
+  }, [organizationId, isLoaded, isSignedIn, fetchStats]);
 
   return {
     stats,
