@@ -11,7 +11,7 @@
 /**
  * Supported payment providers
  */
-export type PaymentProvider = 'paystack' | 'flutterwave' | 'mpesa' | 'momo';
+export type PaymentProvider = 'paystack' | 'flutterwave' | 'mpesa' | 'momo' | 'pesapal';
 
 /**
  * Payment status
@@ -90,13 +90,22 @@ export interface MOMOConfig extends PaymentConfigBase {
 }
 
 /**
+ * Pesapal configuration
+ */
+export interface PesapalConfig extends PaymentConfigBase {
+  provider: 'pesapal';
+  environment: 'sandbox' | 'production';
+}
+
+/**
  * Union type for all payment configs
  */
 export type PaymentConfig =
   | PaystackConfig
   | FlutterwaveConfig
   | MPESAConfig
-  | MOMOConfig;
+  | MOMOConfig
+  | PesapalConfig;
 
 /**
  * Payment config for API responses (sanitized, no secrets)
@@ -163,13 +172,24 @@ export interface CreateMOMOConfigRequest {
 }
 
 /**
+ * Create Pesapal config request
+ */
+export interface CreatePesapalConfigRequest {
+  provider: 'pesapal';
+  consumer_key: string;
+  consumer_secret: string;
+  environment: 'sandbox' | 'production';
+}
+
+/**
  * Union type for create config requests
  */
 export type CreatePaymentConfigRequest =
   | CreatePaystackConfigRequest
   | CreateFlutterwaveConfigRequest
   | CreateMPESAConfigRequest
-  | CreateMOMOConfigRequest;
+  | CreateMOMOConfigRequest
+  | CreatePesapalConfigRequest;
 
 /**
  * Update payment config request
@@ -442,6 +462,16 @@ export const PAYMENT_PROVIDERS: Record<PaymentProvider, PaymentProviderInfo> = {
     payment_methods: ['Mobile Money'],
     features: ['Instant payments', 'Disbursements'],
     docs_url: 'https://developer.flutterwave.com/docs/collecting-payments/mobile-money',
+  },
+  pesapal: {
+    id: 'pesapal',
+    name: 'Pesapal',
+    description: 'Accept payments across East Africa via M-PESA, cards, and mobile money',
+    supported_countries: ['KE', 'UG', 'TZ', 'RW'],
+    supported_currencies: ['KES', 'UGX', 'TZS', 'RWF', 'USD'],
+    payment_methods: ['M-PESA', 'Card', 'Mobile Money', 'Bank Transfer'],
+    features: ['Multi-channel payments', 'Recurring billing', 'Payment links'],
+    docs_url: 'https://developer.pesapal.com',
   },
 };
 
