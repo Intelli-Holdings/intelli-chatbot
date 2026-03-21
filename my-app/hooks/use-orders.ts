@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { OrdersService } from '@/services/orders';
 import type {
   WhatsAppOrder,
@@ -33,6 +34,7 @@ export interface UseOrdersReturn {
  * Hook to manage orders
  */
 export const useOrders = (initialFilters: OrderQueryFilters = {}): UseOrdersReturn => {
+  const { isLoaded, isSignedIn } = useAuth();
   const organizationId = useActiveOrganizationId();
   const [orders, setOrders] = useState<WhatsAppOrder[]>([]);
   const [total, setTotal] = useState(0);
@@ -42,7 +44,7 @@ export const useOrders = (initialFilters: OrderQueryFilters = {}): UseOrdersRetu
   const [filters, setFilters] = useState<OrderQueryFilters>(initialFilters);
 
   const fetchOrders = useCallback(async () => {
-    if (!organizationId) {
+    if (!organizationId || !isLoaded || !isSignedIn) {
       return;
     }
 
@@ -63,7 +65,7 @@ export const useOrders = (initialFilters: OrderQueryFilters = {}): UseOrdersRetu
     } finally {
       setLoading(false);
     }
-  }, [organizationId, filters]);
+  }, [organizationId, filters, isLoaded, isSignedIn]);
 
   const createOrder = useCallback(
     async (order: CreateOrderRequest): Promise<WhatsAppOrder> => {
@@ -95,11 +97,15 @@ export const useOrders = (initialFilters: OrderQueryFilters = {}): UseOrdersRetu
 
   const updateOrder = useCallback(
     async (orderId: string, updates: UpdateOrderRequest): Promise<WhatsAppOrder> => {
+      if (!organizationId) {
+        throw new Error('Organization ID not available');
+      }
+
       setSaving(true);
       setError(null);
 
       try {
-        const updatedOrder = await OrdersService.updateOrder(orderId, updates);
+        const updatedOrder = await OrdersService.updateOrder(organizationId, orderId, updates);
         setOrders((prev) =>
           prev.map((o) => (o.id === orderId ? updatedOrder : o))
         );
@@ -115,15 +121,19 @@ export const useOrders = (initialFilters: OrderQueryFilters = {}): UseOrdersRetu
         setSaving(false);
       }
     },
-    []
+    [organizationId]
   );
 
   const deleteOrder = useCallback(async (orderId: string): Promise<void> => {
+    if (!organizationId) {
+      throw new Error('Organization ID not available');
+    }
+
     setSaving(true);
     setError(null);
 
     try {
-      await OrdersService.deleteOrder(orderId);
+      await OrdersService.deleteOrder(organizationId, orderId);
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
       setTotal((prev) => prev - 1);
     } catch (err) {
@@ -136,7 +146,7 @@ export const useOrders = (initialFilters: OrderQueryFilters = {}): UseOrdersRetu
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [organizationId]);
 
   const updateStatus = useCallback(
     async (
@@ -157,10 +167,10 @@ export const useOrders = (initialFilters: OrderQueryFilters = {}): UseOrdersRetu
   );
 
   useEffect(() => {
-    if (organizationId) {
+    if (organizationId && isLoaded && isSignedIn) {
       fetchOrders();
     }
-  }, [organizationId, fetchOrders]);
+  }, [organizationId, isLoaded, isSignedIn, fetchOrders]);
 
   return {
     orders,
@@ -200,13 +210,15 @@ export interface UseOrderReturn {
  * Hook to manage a single order
  */
 export const useOrder = (orderId: string | null): UseOrderReturn => {
+  const { isLoaded, isSignedIn } = useAuth();
+  const organizationId = useActiveOrganizationId();
   const [order, setOrder] = useState<WhatsAppOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchOrder = useCallback(async () => {
-    if (!orderId) {
+    if (!orderId || !organizationId || !isLoaded || !isSignedIn) {
       return;
     }
 
@@ -214,7 +226,7 @@ export const useOrder = (orderId: string | null): UseOrderReturn => {
     setError(null);
 
     try {
-      const data = await OrdersService.getOrder(orderId);
+      const data = await OrdersService.getOrder(organizationId, orderId);
       setOrder(data);
     } catch (err) {
       let errorMessage = 'Failed to fetch order';
@@ -226,19 +238,19 @@ export const useOrder = (orderId: string | null): UseOrderReturn => {
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, organizationId, isLoaded, isSignedIn]);
 
   const updateOrder = useCallback(
     async (updates: UpdateOrderRequest): Promise<WhatsAppOrder> => {
-      if (!orderId) {
-        throw new Error('Order ID not available');
+      if (!orderId || !organizationId) {
+        throw new Error('Order ID or Organization ID not available');
       }
 
       setSaving(true);
       setError(null);
 
       try {
-        const updatedOrder = await OrdersService.updateOrder(orderId, updates);
+        const updatedOrder = await OrdersService.updateOrder(organizationId, orderId, updates);
         setOrder(updatedOrder);
         return updatedOrder;
       } catch (err) {
@@ -252,7 +264,7 @@ export const useOrder = (orderId: string | null): UseOrderReturn => {
         setSaving(false);
       }
     },
-    [orderId]
+    [orderId, organizationId]
   );
 
   const updateStatus = useCallback(
@@ -264,15 +276,15 @@ export const useOrder = (orderId: string | null): UseOrderReturn => {
 
   const sendPaymentLink = useCallback(
     async (provider: string): Promise<void> => {
-      if (!orderId || !order) {
-        throw new Error('Order not available');
+      if (!orderId || !order || !organizationId) {
+        throw new Error('Order or Organization not available');
       }
 
       setSaving(true);
       setError(null);
 
       try {
-        await OrdersService.sendPaymentLink(orderId, provider, order.customer_phone);
+        await OrdersService.sendPaymentLink(organizationId, orderId, provider, order.customer_phone);
       } catch (err) {
         let errorMessage = 'Failed to send payment link';
         if (err instanceof Error) {
@@ -284,19 +296,19 @@ export const useOrder = (orderId: string | null): UseOrderReturn => {
         setSaving(false);
       }
     },
-    [orderId, order]
+    [orderId, order, organizationId]
   );
 
   const sendConfirmation = useCallback(async (): Promise<void> => {
-    if (!orderId || !order) {
-      throw new Error('Order not available');
+    if (!orderId || !order || !organizationId) {
+      throw new Error('Order or Organization not available');
     }
 
     setSaving(true);
     setError(null);
 
     try {
-      await OrdersService.sendConfirmation(orderId, order.customer_phone);
+      await OrdersService.sendConfirmation(organizationId, orderId, order.customer_phone);
     } catch (err) {
       let errorMessage = 'Failed to send confirmation';
       if (err instanceof Error) {
@@ -307,7 +319,7 @@ export const useOrder = (orderId: string | null): UseOrderReturn => {
     } finally {
       setSaving(false);
     }
-  }, [orderId, order]);
+  }, [orderId, order, organizationId]);
 
   const cancelOrder = useCallback(
     async (reason?: string): Promise<WhatsAppOrder> => {
@@ -317,10 +329,10 @@ export const useOrder = (orderId: string | null): UseOrderReturn => {
   );
 
   useEffect(() => {
-    if (orderId) {
+    if (orderId && organizationId && isLoaded && isSignedIn) {
       fetchOrder();
     }
-  }, [orderId, fetchOrder]);
+  }, [orderId, organizationId, isLoaded, isSignedIn, fetchOrder]);
 
   return {
     order,
@@ -362,13 +374,14 @@ export const useOrderStats = (
   dateFrom?: string,
   dateTo?: string
 ): UseOrderStatsReturn => {
+  const { isLoaded, isSignedIn } = useAuth();
   const organizationId = useActiveOrganizationId();
   const [stats, setStats] = useState<UseOrderStatsReturn['stats']>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
-    if (!organizationId) {
+    if (!organizationId || !isLoaded || !isSignedIn) {
       return;
     }
 
@@ -388,13 +401,13 @@ export const useOrderStats = (
     } finally {
       setLoading(false);
     }
-  }, [organizationId, dateFrom, dateTo]);
+  }, [organizationId, dateFrom, dateTo, isLoaded, isSignedIn]);
 
   useEffect(() => {
-    if (organizationId) {
+    if (organizationId && isLoaded && isSignedIn) {
       fetchStats();
     }
-  }, [organizationId, fetchStats]);
+  }, [organizationId, isLoaded, isSignedIn, fetchStats]);
 
   return {
     stats,
