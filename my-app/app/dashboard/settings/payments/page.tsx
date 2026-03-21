@@ -59,14 +59,6 @@ const settingsNavigation = [
     title: 'Escalation Events',
     href: '/dashboard/settings/escalation-events',
   },
-  {
-    title: 'Catalogue',
-    href: '/dashboard/settings/catalogue',
-  },
-  {
-    title: 'Payments',
-    href: '/dashboard/settings/payments',
-  },
 ];
 
 export default function PaymentsSettingsPage() {
