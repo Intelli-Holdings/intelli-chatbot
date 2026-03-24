@@ -2,11 +2,11 @@
 
 import * as React from 'react';
 import { useState } from 'react';
+import Image from 'next/image';
 import { Loader2, Eye, EyeOff, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -56,17 +56,14 @@ export function PaymentConfigForm({
   const isEditing = !!existingConfig;
 
   // Form state
-  const [isTestMode, setIsTestMode] = useState(existingConfig?.is_test_mode ?? true);
   const [showSecrets, setShowSecrets] = useState(false);
 
   // Paystack fields
-  const [paystackPublicKey, setPaystackPublicKey] = useState(existingConfig?.public_key || '');
+  const [paystackPublicKey, setPaystackPublicKey] = useState('');
   const [paystackSecretKey, setPaystackSecretKey] = useState('');
 
   // Flutterwave fields
-  const [flutterwavePublicKey, setFlutterwavePublicKey] = useState(
-    existingConfig?.public_key || ''
-  );
+  const [flutterwavePublicKey, setFlutterwavePublicKey] = useState('');
   const [flutterwaveSecretKey, setFlutterwaveSecretKey] = useState('');
   const [flutterwaveEncryptionKey, setFlutterwaveEncryptionKey] = useState('');
 
@@ -92,7 +89,6 @@ export function PaymentConfigForm({
           provider: 'paystack',
           public_key: paystackPublicKey,
           secret_key: paystackSecretKey,
-          is_test_mode: isTestMode,
         };
         break;
       case 'flutterwave':
@@ -101,7 +97,6 @@ export function PaymentConfigForm({
           public_key: flutterwavePublicKey,
           secret_key: flutterwaveSecretKey,
           encryption_key: flutterwaveEncryptionKey,
-          is_test_mode: isTestMode,
         };
         break;
       case 'mpesa':
@@ -133,11 +128,18 @@ export function PaymentConfigForm({
         <Label htmlFor="paystack-public-key">Public Key</Label>
         <Input
           id="paystack-public-key"
-          placeholder={isTestMode ? 'pk_test_...' : 'pk_live_...'}
+          placeholder={isEditing && existingConfig?.public_key_hint
+            ? `Current: ${existingConfig.public_key_hint}`
+            : 'pk_test_... or pk_live_...'}
           value={paystackPublicKey}
           onChange={(e) => setPaystackPublicKey(e.target.value)}
-          required
+          required={!isEditing}
         />
+        {isEditing && existingConfig?.public_key_hint && (
+          <p className="text-xs text-muted-foreground">
+            Current key: {existingConfig.public_key_hint} — leave blank to keep
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="paystack-secret-key">Secret Key</Label>
@@ -145,7 +147,9 @@ export function PaymentConfigForm({
           <Input
             id="paystack-secret-key"
             type={showSecrets ? 'text' : 'password'}
-            placeholder={isEditing ? '••••••••••••' : isTestMode ? 'sk_test_...' : 'sk_live_...'}
+            placeholder={isEditing && existingConfig?.secret_key_hint
+              ? `Current: ${existingConfig.secret_key_hint}`
+              : 'sk_test_... or sk_live_...'}
             value={paystackSecretKey}
             onChange={(e) => setPaystackSecretKey(e.target.value)}
             required={!isEditing}
@@ -160,7 +164,9 @@ export function PaymentConfigForm({
         </div>
         {isEditing && (
           <p className="text-xs text-muted-foreground">
-            Leave blank to keep existing secret key
+            {existingConfig?.has_secret_key
+              ? `Current key: ${existingConfig.secret_key_hint} — leave blank to keep`
+              : 'No secret key configured'}
           </p>
         )}
       </div>
@@ -173,11 +179,18 @@ export function PaymentConfigForm({
         <Label htmlFor="flutterwave-public-key">Public Key</Label>
         <Input
           id="flutterwave-public-key"
-          placeholder="FLWPUBK_TEST-..."
+          placeholder={isEditing && existingConfig?.public_key_hint
+            ? `Current: ${existingConfig.public_key_hint}`
+            : 'FLWPUBK_TEST-...'}
           value={flutterwavePublicKey}
           onChange={(e) => setFlutterwavePublicKey(e.target.value)}
-          required
+          required={!isEditing}
         />
+        {isEditing && existingConfig?.public_key_hint && (
+          <p className="text-xs text-muted-foreground">
+            Current key: {existingConfig.public_key_hint} — leave blank to keep
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="flutterwave-secret-key">Secret Key</Label>
@@ -185,7 +198,9 @@ export function PaymentConfigForm({
           <Input
             id="flutterwave-secret-key"
             type={showSecrets ? 'text' : 'password'}
-            placeholder={isEditing ? '••••••••••••' : 'FLWSECK_TEST-...'}
+            placeholder={isEditing && existingConfig?.secret_key_hint
+              ? `Current: ${existingConfig.secret_key_hint}`
+              : 'FLWSECK_TEST-...'}
             value={flutterwaveSecretKey}
             onChange={(e) => setFlutterwaveSecretKey(e.target.value)}
             required={!isEditing}
@@ -198,6 +213,13 @@ export function PaymentConfigForm({
             {showSecrets ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_secret_key
+              ? `Current key: ${existingConfig.secret_key_hint} — leave blank to keep`
+              : 'No secret key configured'}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="flutterwave-encryption-key">Encryption Key</Label>
@@ -205,12 +227,21 @@ export function PaymentConfigForm({
           <Input
             id="flutterwave-encryption-key"
             type={showSecrets ? 'text' : 'password'}
-            placeholder={isEditing ? '••••••••••••' : 'FLWSECK_TEST...'}
+            placeholder={isEditing && existingConfig?.encryption_key_hint
+              ? `Current: ${existingConfig.encryption_key_hint}`
+              : 'FLWSECK_TEST...'}
             value={flutterwaveEncryptionKey}
             onChange={(e) => setFlutterwaveEncryptionKey(e.target.value)}
             required={!isEditing}
           />
         </div>
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_encryption_key
+              ? `Current key: ${existingConfig.encryption_key_hint} — leave blank to keep`
+              : 'No encryption key configured'}
+          </p>
+        )}
       </div>
     </>
   );
@@ -248,6 +279,13 @@ export function PaymentConfigForm({
           onChange={(e) => setMpesaConsumerKey(e.target.value)}
           required={!isEditing}
         />
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_consumer_key
+              ? 'Key configured — leave blank to keep'
+              : 'No consumer key configured'}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="mpesa-consumer-secret">Consumer Secret</Label>
@@ -268,6 +306,13 @@ export function PaymentConfigForm({
             {showSecrets ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_consumer_secret
+              ? 'Secret configured — leave blank to keep'
+              : 'No consumer secret configured'}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="mpesa-passkey">Passkey</Label>
@@ -281,6 +326,13 @@ export function PaymentConfigForm({
             required={!isEditing}
           />
         </div>
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_passkey
+              ? 'Passkey configured — leave blank to keep'
+              : 'No passkey configured'}
+          </p>
+        )}
       </div>
     </>
   );
@@ -314,7 +366,16 @@ export function PaymentConfigForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {providerInfo.logo && (
+              <Image
+                src={providerInfo.logo}
+                alt={providerInfo.name}
+                width={24}
+                height={24}
+                className="object-contain"
+              />
+            )}
             {isEditing ? 'Edit' : 'Configure'} {providerInfo.name}
           </DialogTitle>
           <DialogDescription>
@@ -325,19 +386,6 @@ export function PaymentConfigForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Test mode toggle (except for MPESA which has its own env selector) */}
-          {provider !== 'mpesa' && provider !== 'momo' && (
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <Label>Test Mode</Label>
-                <p className="text-xs text-muted-foreground">
-                  Use test credentials for development
-                </p>
-              </div>
-              <Switch checked={isTestMode} onCheckedChange={setIsTestMode} />
-            </div>
-          )}
-
           {/* Provider-specific fields */}
           {renderProviderFields()}
 
