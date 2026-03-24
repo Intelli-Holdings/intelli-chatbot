@@ -433,6 +433,58 @@ export class PaymentService {
   }
 
   // ==========================================================================
+  // ANALYTICS
+  // ==========================================================================
+
+  /**
+   * Get revenue time series data
+   */
+  static async getRevenueTimeSeries(
+    organizationId: string,
+    days: number = 30
+  ): Promise<{ date: string; revenue: number; orders: number }[]> {
+    try {
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/analytics/revenue/?days=${days}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(this.extractErrorMessage(errorData));
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching revenue time series:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get payment provider breakdown
+   */
+  static async getProviderBreakdown(
+    organizationId: string,
+    days: number = 30
+  ): Promise<{ provider: string; count: number; amount: number }[]> {
+    try {
+      const response = await commerceFetch(
+        `${COMMERCE_URL(organizationId)}/analytics/providers/?days=${days}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(this.extractErrorMessage(errorData));
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching provider breakdown:', error);
+      throw error;
+    }
+  }
+
+  // ==========================================================================
   // UTILITY METHODS
   // ==========================================================================
 
