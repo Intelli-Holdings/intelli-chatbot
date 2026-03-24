@@ -286,6 +286,8 @@ export const DynamicDashboard: React.FC = () => {
           userName={organization?.name || "there"}
           onWhatsAppSetup={handleWhatsAppSetup}
           onWebsiteSetup={handleWebsiteSetup}
+          onInstagramSetup={handleInstagramSetup}
+          onMessengerSetup={handleFacebookSetup}
           stats={emptyStateStats}
         />
 
