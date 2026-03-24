@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { Check, X, Settings, TestTube, Loader2, ExternalLink } from 'lucide-react';
 import {
   Card,
@@ -10,7 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import type {
@@ -63,9 +63,19 @@ export function PaymentProviderCard({
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <span className="text-lg font-bold text-primary">
-                {providerInfo.name.charAt(0)}
-              </span>
+              {providerInfo.logo ? (
+                <Image
+                  src={providerInfo.logo}
+                  alt={providerInfo.name}
+                  width={24}
+                  height={24}
+                  className="object-contain"
+                />
+              ) : (
+                <span className="text-lg font-bold text-primary">
+                  {providerInfo.name.charAt(0)}
+                </span>
+              )}
             </div>
             <div>
               <CardTitle className="text-lg">{providerInfo.name}</CardTitle>
@@ -77,11 +87,6 @@ export function PaymentProviderCard({
 
           {isConfigured && (
             <div className="flex items-center gap-2">
-              {config.is_test_mode && (
-                <Badge variant="outline" className="text-xs">
-                  Test Mode
-                </Badge>
-              )}
               <Switch
                 checked={isActive}
                 onCheckedChange={handleToggle}
@@ -96,30 +101,20 @@ export function PaymentProviderCard({
         {/* Supported currencies */}
         <div>
           <p className="text-xs text-muted-foreground mb-1">Supported currencies</p>
-          <div className="flex flex-wrap gap-1">
-            {providerInfo.supported_currencies.slice(0, 5).map((currency) => (
-              <Badge key={currency} variant="secondary" className="text-xs">
-                {currency}
-              </Badge>
-            ))}
+          <p className="text-sm">
+            {providerInfo.supported_currencies.slice(0, 5).join(' · ')}
             {providerInfo.supported_currencies.length > 5 && (
-              <Badge variant="secondary" className="text-xs">
-                +{providerInfo.supported_currencies.length - 5}
-              </Badge>
+              <span className="text-muted-foreground"> · +{providerInfo.supported_currencies.length - 5} more</span>
             )}
-          </div>
+          </p>
         </div>
 
         {/* Payment methods */}
         <div>
           <p className="text-xs text-muted-foreground mb-1">Payment methods</p>
-          <div className="flex flex-wrap gap-1">
-            {providerInfo.payment_methods.map((method) => (
-              <Badge key={method} variant="outline" className="text-xs">
-                {method}
-              </Badge>
-            ))}
-          </div>
+          <p className="text-sm">
+            {providerInfo.payment_methods.join(' · ')}
+          </p>
         </div>
 
         {/* Status and actions */}
