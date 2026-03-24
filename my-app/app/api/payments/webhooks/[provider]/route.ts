@@ -39,24 +39,15 @@ function verifyFlutterwaveSignature(
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { provider } = await params;
-    const organizationId = request.nextUrl.searchParams.get('org');
     const body = await request.text();
 
-    if (!organizationId) {
-      console.error('Webhook missing organization ID');
-      return NextResponse.json(
-        { error: 'Organization ID required' },
-        { status: 400 }
-      );
-    }
-
     // Log webhook receipt for debugging
-    console.log(`[Webhook] Received ${provider} webhook for org ${organizationId}`);
+    console.log(`[Webhook] Received ${provider} webhook`);
 
     // Forward to backend for processing
-    // Backend will verify signature and process the event
+    // Backend identifies the org from the transaction reference, not a query param
     const response = await fetch(
-      `${API_BASE_URL}/payments/webhooks/${provider}/?organization_id=${organizationId}`,
+      `${API_BASE_URL}/commerce/webhooks/${provider}/`,
       {
         method: 'POST',
         headers: {
