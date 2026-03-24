@@ -129,6 +129,9 @@ export interface PaymentConfigResponse {
   has_consumer_key?: boolean;
   has_consumer_secret?: boolean;
   has_passkey?: boolean;
+  has_subscription_key?: boolean;
+  has_api_user_id?: boolean;
+  has_api_key?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -173,8 +176,10 @@ export interface CreateMPESAConfigRequest {
  */
 export interface CreateMOMOConfigRequest {
   provider: 'momo';
-  // Uses Flutterwave credentials
-  flutterwave_config_id: string;
+  subscription_key: string;
+  api_user_id: string;
+  api_key: string;
+  environment: 'sandbox' | 'production';
 }
 
 /**
