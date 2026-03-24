@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import Image from 'next/image';
-import { Loader2, Eye, EyeOff, Info } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -78,6 +77,21 @@ export function PaymentConfigForm({
     existingConfig?.environment || 'sandbox'
   );
 
+  // MoMo fields
+  const [momoSubscriptionKey, setMomoSubscriptionKey] = useState('');
+  const [momoApiUserId, setMomoApiUserId] = useState('');
+  const [momoApiKey, setMomoApiKey] = useState('');
+  const [momoEnvironment, setMomoEnvironment] = useState<'sandbox' | 'production'>(
+    existingConfig?.environment || 'sandbox'
+  );
+
+  // Pesapal fields
+  const [pesapalConsumerKey, setPesapalConsumerKey] = useState('');
+  const [pesapalConsumerSecret, setPesapalConsumerSecret] = useState('');
+  const [pesapalEnvironment, setPesapalEnvironment] = useState<'sandbox' | 'production'>(
+    existingConfig?.environment || 'sandbox'
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -112,7 +126,18 @@ export function PaymentConfigForm({
       case 'momo':
         config = {
           provider: 'momo',
-          flutterwave_config_id: '', // Would need to select Flutterwave config
+          subscription_key: momoSubscriptionKey,
+          api_user_id: momoApiUserId,
+          api_key: momoApiKey,
+          environment: momoEnvironment,
+        };
+        break;
+      case 'pesapal':
+        config = {
+          provider: 'pesapal',
+          consumer_key: pesapalConsumerKey,
+          consumer_secret: pesapalConsumerSecret,
+          environment: pesapalEnvironment,
         };
         break;
       default:
@@ -338,13 +363,145 @@ export function PaymentConfigForm({
   );
 
   const renderMomoFields = () => (
-    <Alert>
-      <Info className="h-4 w-4" />
-      <AlertDescription>
-        MTN Mobile Money is integrated through Flutterwave. Please configure
-        Flutterwave first to enable MOMO payments.
-      </AlertDescription>
-    </Alert>
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="momo-environment">Environment</Label>
+        <Select value={momoEnvironment} onValueChange={(v) => setMomoEnvironment(v as 'sandbox' | 'production')}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
+            <SelectItem value="production">Production (Live)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="momo-subscription-key">Subscription Key (Ocp-Apim-Subscription-Key)</Label>
+        <div className="relative">
+          <Input
+            id="momo-subscription-key"
+            type={showSecrets ? 'text' : 'password'}
+            placeholder={isEditing ? '••••••••••••' : 'Primary or Secondary key from MoMo portal'}
+            value={momoSubscriptionKey}
+            onChange={(e) => setMomoSubscriptionKey(e.target.value)}
+            required={!isEditing}
+          />
+          <button
+            type="button"
+            onClick={() => setShowSecrets(!showSecrets)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showSecrets ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_subscription_key
+              ? 'Key configured — leave blank to keep'
+              : 'No subscription key configured'}
+          </p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="momo-api-user-id">API User ID</Label>
+        <Input
+          id="momo-api-user-id"
+          placeholder={isEditing ? '••••••••••••' : 'UUID from MoMo developer portal'}
+          value={momoApiUserId}
+          onChange={(e) => setMomoApiUserId(e.target.value)}
+          required={!isEditing}
+        />
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_api_user_id
+              ? 'User ID configured — leave blank to keep'
+              : 'No API user ID configured'}
+          </p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="momo-api-key">API Key</Label>
+        <div className="relative">
+          <Input
+            id="momo-api-key"
+            type={showSecrets ? 'text' : 'password'}
+            placeholder={isEditing ? '••••••••••••' : 'API key from MoMo developer portal'}
+            value={momoApiKey}
+            onChange={(e) => setMomoApiKey(e.target.value)}
+            required={!isEditing}
+          />
+        </div>
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_api_key
+              ? 'Key configured — leave blank to keep'
+              : 'No API key configured'}
+          </p>
+        )}
+      </div>
+    </>
+  );
+
+  const renderPesapalFields = () => (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="pesapal-environment">Environment</Label>
+        <Select value={pesapalEnvironment} onValueChange={(v) => setPesapalEnvironment(v as 'sandbox' | 'production')}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
+            <SelectItem value="production">Production (Live)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="pesapal-consumer-key">Consumer Key</Label>
+        <Input
+          id="pesapal-consumer-key"
+          placeholder="Consumer Key from Pesapal dashboard"
+          value={pesapalConsumerKey}
+          onChange={(e) => setPesapalConsumerKey(e.target.value)}
+          required={!isEditing}
+        />
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_consumer_key
+              ? 'Key configured — leave blank to keep'
+              : 'No consumer key configured'}
+          </p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="pesapal-consumer-secret">Consumer Secret</Label>
+        <div className="relative">
+          <Input
+            id="pesapal-consumer-secret"
+            type={showSecrets ? 'text' : 'password'}
+            placeholder={isEditing ? '••••••••••••' : 'Consumer Secret from Pesapal dashboard'}
+            value={pesapalConsumerSecret}
+            onChange={(e) => setPesapalConsumerSecret(e.target.value)}
+            required={!isEditing}
+          />
+          <button
+            type="button"
+            onClick={() => setShowSecrets(!showSecrets)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showSecrets ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            {existingConfig?.has_consumer_secret
+              ? 'Secret configured — leave blank to keep'
+              : 'No consumer secret configured'}
+          </p>
+        )}
+      </div>
+    </>
   );
 
   const renderProviderFields = () => {
@@ -357,6 +514,8 @@ export function PaymentConfigForm({
         return renderMpesaFields();
       case 'momo':
         return renderMomoFields();
+      case 'pesapal':
+        return renderPesapalFields();
       default:
         return null;
     }
