@@ -12,7 +12,11 @@ export type WebSocketMessage = {
   // Properties for status updates
   message_id?: string
   status?: string
-  // Add any other properties that might be in your WebSocket messages
+  // Media fields from backend WebSocket payload
+  media?: string
+  media_url?: string
+  // Channel identifier (e.g. "whatsapp", "instagram")
+  channel?: string
 }
 
 // Update the Options interface to include the enabled property

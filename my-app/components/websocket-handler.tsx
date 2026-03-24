@@ -112,21 +112,20 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
         // Generate a unique id for the message with additional randomness
         const newId = Date.now() + Math.floor(Math.random() * 10000)
 
-        // Extract media URL if applicable
-        let mediaUrl = null
-        if (message.type === "image" || message.type === "audio" || message.type === "video") {
-          const mediaMatch = message.content.match(/Media - (https:\/\/[^\s]+)/)
-          if (mediaMatch && mediaMatch[1]) {
-            mediaUrl = mediaMatch[1]
-          }
-        }
-
         // Use the timestamp from the payload if available; otherwise fallback to current time
         const messageTimestamp = message.timestamp || new Date().toISOString()
 
         // Determine if this is a customer message or business/AI message
         const isCustomerMessage = message.sender === "customer"
-        const messageContent = message.type === "text" ? message.content : null
+        // Pass content through for all message types so extractMedia() can parse it downstream
+        const messageContent = message.content || null
+
+        // Read explicit media URL from the WebSocket payload as fallback
+        let mediaUrl = message.media || message.media_url || null
+        // Prevent double-rendering if content already contains the media URL
+        if (mediaUrl && messageContent && messageContent.includes(mediaUrl)) {
+          mediaUrl = null
+        }
 
         // Create the new message object
         // Customer messages go in 'content' field, Business/AI messages go in 'answer' field
