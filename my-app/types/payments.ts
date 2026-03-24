@@ -118,9 +118,17 @@ export interface PaymentConfigResponse {
   is_test_mode: boolean;
   webhook_url: string;
   supported_currencies: string[];
-  public_key?: string;
+  // Masked key hints (e.g. "••••c123")
+  public_key_hint?: string | null;
+  has_secret_key?: boolean;
+  secret_key_hint?: string | null;
+  has_encryption_key?: boolean;
+  encryption_key_hint?: string | null;
   business_shortcode?: string;
   environment?: 'sandbox' | 'production';
+  has_consumer_key?: boolean;
+  has_consumer_secret?: boolean;
+  has_passkey?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -136,7 +144,6 @@ export interface CreatePaystackConfigRequest {
   provider: 'paystack';
   public_key: string;
   secret_key: string;
-  is_test_mode: boolean;
 }
 
 /**
@@ -147,7 +154,6 @@ export interface CreateFlutterwaveConfigRequest {
   public_key: string;
   secret_key: string;
   encryption_key: string;
-  is_test_mode: boolean;
 }
 
 /**
@@ -196,7 +202,6 @@ export type CreatePaymentConfigRequest =
  */
 export interface UpdatePaymentConfigRequest {
   is_active?: boolean;
-  is_test_mode?: boolean;
   public_key?: string;
   secret_key?: string;
   encryption_key?: string;
@@ -403,6 +408,7 @@ export const PAYMENT_PROVIDERS: Record<PaymentProvider, PaymentProviderInfo> = {
     id: 'paystack',
     name: 'Paystack',
     description: 'Accept payments from customers in Africa',
+    logo: '/logos/payments/paystack.svg',
     supported_countries: ['NG', 'GH', 'KE', 'ZA'],
     supported_currencies: ['NGN', 'GHS', 'KES', 'ZAR', 'USD'],
     payment_methods: ['Card', 'Bank Transfer', 'USSD', 'QR', 'Mobile Money'],
@@ -413,6 +419,7 @@ export const PAYMENT_PROVIDERS: Record<PaymentProvider, PaymentProviderInfo> = {
     id: 'flutterwave',
     name: 'Flutterwave',
     description: 'Pan-African payments infrastructure',
+    logo: '/logos/payments/flutterwave.svg',
     supported_countries: ['NG', 'GH', 'KE', 'ZA', 'UG', 'TZ', 'RW', 'CM'],
     supported_currencies: [
       'NGN',
@@ -447,6 +454,7 @@ export const PAYMENT_PROVIDERS: Record<PaymentProvider, PaymentProviderInfo> = {
     id: 'mpesa',
     name: 'M-PESA',
     description: 'Mobile money service in Kenya',
+    logo: '/logos/payments/mpesa.svg',
     supported_countries: ['KE'],
     supported_currencies: ['KES'],
     payment_methods: ['STK Push', 'Paybill', 'Till'],
@@ -456,17 +464,19 @@ export const PAYMENT_PROVIDERS: Record<PaymentProvider, PaymentProviderInfo> = {
   momo: {
     id: 'momo',
     name: 'MTN Mobile Money',
-    description: 'Mobile money across Africa via Flutterwave',
+    description: 'Mobile money payments across Africa',
+    logo: '/logos/payments/momo.png',
     supported_countries: ['GH', 'UG', 'RW', 'CM'],
     supported_currencies: ['GHS', 'UGX', 'RWF', 'XAF'],
     payment_methods: ['Mobile Money'],
     features: ['Instant payments', 'Disbursements'],
-    docs_url: 'https://developer.flutterwave.com/docs/collecting-payments/mobile-money',
+    docs_url: 'https://momodeveloper.mtn.com/api-documentation',
   },
   pesapal: {
     id: 'pesapal',
     name: 'Pesapal',
     description: 'Accept payments across East Africa via M-PESA, cards, and mobile money',
+    logo: '/logos/payments/pesapal.png',
     supported_countries: ['KE', 'UG', 'TZ', 'RW'],
     supported_currencies: ['KES', 'UGX', 'TZS', 'RWF', 'USD'],
     payment_methods: ['M-PESA', 'Card', 'Mobile Money', 'Bank Transfer'],
