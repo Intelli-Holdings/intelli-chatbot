@@ -19,6 +19,8 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
   const wsRef = useRef<WebSocket | null>(null)
   const [isActive, setIsActive] = useState(false)
   const { getToken } = useAuth()
+  const getTokenRef = useRef(getToken)
+  getTokenRef.current = getToken
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptRef = useRef(0)
   const shouldReconnectRef = useRef(true)
@@ -56,7 +58,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
       `${process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://dev-intelliconcierge.onrender.com/ws"}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`
 
     try {
-      const token = await getToken()
+      const token = await getTokenRef.current()
       if (token && !wsUrl.includes("token=")) {
         const separator = wsUrl.includes("?") ? "&" : "?"
         wsUrl = `${wsUrl}${separator}token=${encodeURIComponent(token)}`
@@ -179,7 +181,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
     ws.onerror = (error) => {
       logger.error("WebSocket error:", { error: error instanceof Error ? error.message : String(error) })
     }
-  }, [getToken])
+  }, [])
 
   useEffect(() => {
     // If props are provided, start connection immediately
@@ -221,6 +223,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
     window.addEventListener("aiSupportChanged", handleAiSupportChange as EventListener)
 
     return () => {
+      stopWebSocketConnection()
       window.removeEventListener("websocketControl", handleWebSocketControl as EventListener)
       window.removeEventListener("aiSupportChanged", handleAiSupportChange as EventListener)
     }
