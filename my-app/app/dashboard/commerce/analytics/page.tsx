@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import {
   AreaChart,
@@ -18,56 +18,19 @@ import {
   Legend,
 } from 'recharts';
 import {
-  AlertCircle,
   DollarSign,
   ShoppingCart,
   TrendingUp,
   CreditCard,
 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useOrderStats } from '@/hooks/use-orders';
 import { useTransactionStats } from '@/hooks/use-payments';
+import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { PaymentService } from '@/services/payments';
 import { formatCurrency, SupportedCurrency } from '@/types/ecommerce';
-import { formatPaymentAmount } from '@/types/payments';
-
-// =============================================================================
-// MOCK DATA GENERATORS
-// =============================================================================
-
-function generateMockRevenueData(days: number, total: number) {
-  const data = [];
-  const dailyAvg = total / days;
-  const runningDate = new Date();
-  runningDate.setDate(runningDate.getDate() - days);
-
-  for (let i = 0; i < days; i++) {
-    const seed = i * 13 + 7;
-    const variation = 0.4 + (seed % 12) / 10;
-    data.push({
-      date: format(runningDate, 'MMM d'),
-      revenue: Math.round(dailyAvg * variation),
-    });
-    runningDate.setDate(runningDate.getDate() + 1);
-  }
-  return data;
-}
-
-function generateMockPaymentMethodData(totalCount: number) {
-  const methods = [
-    { name: 'M-PESA', share: 0.4 },
-    { name: 'Card', share: 0.25 },
-    { name: 'Bank Transfer', share: 0.15 },
-    { name: 'Mobile Money', share: 0.12 },
-    { name: 'USSD', share: 0.08 },
-  ];
-
-  return methods.map((m) => ({
-    name: m.name,
-    count: Math.round(totalCount * m.share),
-  }));
-}
+import { PAYMENT_PROVIDERS } from '@/types/payments';
 
 // =============================================================================
 // CONSTANTS
@@ -85,7 +48,13 @@ const STATUS_COLORS = {
   Cancelled: '#ef4444',
 };
 
-const BAR_COLOR = '#6366f1';
+const PROVIDER_COLORS: Record<string, string> = {
+  paystack: '#00C3F7',
+  flutterwave: '#FF5805',
+  mpesa: '#39b54a',
+  momo: '#ffcb05',
+  pesapal: '#1a3a6b',
+};
 
 // =============================================================================
 // COMPONENT
@@ -93,37 +62,75 @@ const BAR_COLOR = '#6366f1';
 
 export default function CommerceAnalyticsPage() {
   const [period, setPeriod] = useState<number>(30);
+  const organizationId = useActiveOrganizationId();
 
   const { stats: orderStats, loading: ordersLoading } = useOrderStats();
   const { stats: txStats, loading: txLoading } = useTransactionStats();
 
+  const [revenueData, setRevenueData] = useState<
+    { date: string; revenue: number; orders: number }[]
+  >([]);
+  const [providerData, setProviderData] = useState<
+    { provider: string; name: string; count: number; amount: number }[]
+  >([]);
+  const [chartsLoading, setChartsLoading] = useState(true);
+
   const loading = ordersLoading || txLoading;
   const currency = (orderStats?.currency ?? txStats?.currency ?? 'USD') as SupportedCurrency;
 
-  // Derived data
-  const revenueData = useMemo(
-    () => generateMockRevenueData(period, orderStats?.total_revenue ?? 0),
-    [period, orderStats?.total_revenue]
-  );
+  const fetchChartData = useCallback(async () => {
+    if (!organizationId) return;
+    setChartsLoading(true);
+    try {
+      const [revenue, providers] = await Promise.allSettled([
+        PaymentService.getRevenueTimeSeries(organizationId, period),
+        PaymentService.getProviderBreakdown(organizationId, period),
+      ]);
 
-  const orderStatusData = useMemo(() => {
-    if (!orderStats) return [];
-    return [
-      { name: 'Pending', value: orderStats.pending_orders },
-      { name: 'Completed', value: orderStats.completed_orders },
-      { name: 'Cancelled', value: orderStats.cancelled_orders },
-    ];
-  }, [orderStats]);
+      if (revenue.status === 'fulfilled') {
+        setRevenueData(
+          revenue.value.map((d) => ({
+            ...d,
+            date: format(new Date(d.date), 'MMM d'),
+          }))
+        );
+      }
 
-  const paymentMethodData = useMemo(
-    () => generateMockPaymentMethodData(txStats?.total_count ?? 0),
-    [txStats?.total_count]
-  );
+      if (providers.status === 'fulfilled') {
+        setProviderData(
+          providers.value.map((d) => ({
+            ...d,
+            name:
+              PAYMENT_PROVIDERS[d.provider as keyof typeof PAYMENT_PROVIDERS]
+                ?.name ?? d.provider,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+    } finally {
+      setChartsLoading(false);
+    }
+  }, [organizationId, period]);
 
-  const successRate = useMemo(() => {
-    if (!txStats || txStats.total_count === 0) return 0;
-    return Math.round((txStats.successful_count / txStats.total_count) * 100);
-  }, [txStats]);
+  useEffect(() => {
+    fetchChartData();
+  }, [fetchChartData]);
+
+  // Order status breakdown (from real stats)
+  const orderStatusData =
+    orderStats
+      ? [
+          { name: 'Pending', value: orderStats.pending_orders },
+          { name: 'Completed', value: orderStats.completed_orders },
+          { name: 'Cancelled', value: orderStats.cancelled_orders },
+        ]
+      : [];
+
+  const successRate =
+    txStats && txStats.total_count > 0
+      ? Math.round((txStats.successful_count / txStats.total_count) * 100)
+      : 0;
 
   const successRateColor =
     successRate > 90 ? '#10b981' : successRate > 70 ? '#f59e0b' : '#ef4444';
@@ -151,14 +158,6 @@ export default function CommerceAnalyticsPage() {
           </Button>
         ))}
       </div>
-
-      {/* Mock Data Disclaimer */}
-      <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/30">
-        <AlertCircle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-amber-800 dark:text-amber-200">
-          Charts show estimated breakdowns based on your stats. Detailed analytics will be available when the backend is connected.
-        </AlertDescription>
-      </Alert>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -205,64 +204,70 @@ export default function CommerceAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData}>
-                  <defs>
-                    <linearGradient
-                      id="revenueGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop
-                        offset="95%"
-                        stopColor="#3b82f6"
-                        stopOpacity={0.0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-muted"
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={false}
-                    axisLine={false}
-                    interval={period > 30 ? Math.floor(period / 10) : undefined}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) =>
-                      formatCurrency(v, currency).replace(/\.00$/, '')
-                    }
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [
-                      formatCurrency(value, currency),
-                      'Revenue',
-                    ]}
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: '1px solid hsl(var(--border))',
-                      backgroundColor: 'hsl(var(--popover))',
-                      color: 'hsl(var(--popover-foreground))',
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    fill="url(#revenueGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {chartsLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                </div>
+              ) : revenueData.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  No revenue data for this period
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueData}>
+                    <defs>
+                      <linearGradient
+                        id="revenueGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-muted"
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={false}
+                      axisLine={false}
+                      interval={period > 30 ? Math.floor(period / 10) : undefined}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(v) =>
+                        formatCurrency(v, currency).replace(/\.00$/, '')
+                      }
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [
+                        formatCurrency(value, currency),
+                        'Revenue',
+                      ]}
+                      contentStyle={{
+                        borderRadius: '8px',
+                        border: '1px solid hsl(var(--border))',
+                        backgroundColor: 'hsl(var(--popover))',
+                        color: 'hsl(var(--popover-foreground))',
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fill="url(#revenueGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -274,41 +279,51 @@ export default function CommerceAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={orderStatusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={110}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                    labelLine={false}
-                  >
-                    {orderStatusData.map((entry) => (
-                      <Cell
-                        key={entry.name}
-                        fill={
-                          STATUS_COLORS[
-                            entry.name as keyof typeof STATUS_COLORS
-                          ]
-                        }
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: '1px solid hsl(var(--border))',
-                      backgroundColor: 'hsl(var(--popover))',
-                      color: 'hsl(var(--popover-foreground))',
-                    }}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                </div>
+              ) : orderStatusData.every((d) => d.value === 0) ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  No order data available
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={orderStatusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={110}
+                      paddingAngle={3}
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${value}`}
+                      labelLine={false}
+                    >
+                      {orderStatusData.map((entry) => (
+                        <Cell
+                          key={entry.name}
+                          fill={
+                            STATUS_COLORS[
+                              entry.name as keyof typeof STATUS_COLORS
+                            ]
+                          }
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: '8px',
+                        border: '1px solid hsl(var(--border))',
+                        backgroundColor: 'hsl(var(--popover))',
+                        color: 'hsl(var(--popover-foreground))',
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -316,55 +331,67 @@ export default function CommerceAnalyticsPage() {
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Payment Methods Bar Chart */}
+        {/* Payment Providers Bar Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Payment Methods</CardTitle>
+            <CardTitle className="text-base">Payment Providers</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={paymentMethodData}
-                  layout="vertical"
-                  margin={{ left: 20 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-muted"
-                    horizontal={false}
-                  />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={100}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [value, 'Transactions']}
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: '1px solid hsl(var(--border))',
-                      backgroundColor: 'hsl(var(--popover))',
-                      color: 'hsl(var(--popover-foreground))',
-                    }}
-                  />
-                  <Bar
-                    dataKey="count"
-                    fill={BAR_COLOR}
-                    radius={[0, 4, 4, 0]}
-                    barSize={24}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {chartsLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                </div>
+              ) : providerData.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  No transaction data for this period
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={providerData}
+                    layout="vertical"
+                    margin={{ left: 20 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-muted"
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={100}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [value, 'Transactions']}
+                      contentStyle={{
+                        borderRadius: '8px',
+                        border: '1px solid hsl(var(--border))',
+                        backgroundColor: 'hsl(var(--popover))',
+                        color: 'hsl(var(--popover-foreground))',
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
+                      {providerData.map((entry) => (
+                        <Cell
+                          key={entry.provider}
+                          fill={PROVIDER_COLORS[entry.provider] ?? '#6366f1'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
