@@ -15,7 +15,8 @@ import type {
   ProductMessageResponse,
   CataloguesResponse,
   ProductsResponse,
-  COMMERCE_LIMITS,
+  CreateMetaProductPayload,
+  UpdateMetaProductPayload,
 } from '@/types/ecommerce';
 
 const META_API_VERSION = process.env.NEXT_PUBLIC_META_API_VERSION || 'v23.0';
@@ -553,6 +554,120 @@ export class CatalogueService {
       return await response.json();
     } catch (error) {
       console.error('Error sending multi-product message:', error);
+      throw error;
+    }
+  }
+
+  // ==========================================================================
+  // PRODUCT CRUD (Meta Graph API)
+  // ==========================================================================
+
+  /**
+   * Create a product in a Meta catalogue
+   * Note: price must be in cents (e.g. $19.99 = 1999)
+   */
+  static async createProduct(
+    appService: AppService,
+    catalogId: string,
+    data: CreateMetaProductPayload
+  ): Promise<{ id: string }> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${catalogId}/products`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(this.extractErrorMessage(errorData));
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating product in Meta catalogue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a product in a Meta catalogue
+   */
+  static async updateProduct(
+    appService: AppService,
+    productId: string,
+    data: UpdateMetaProductPayload
+  ): Promise<{ success: boolean }> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${productId}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(this.extractErrorMessage(errorData));
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating product in Meta catalogue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a product from a Meta catalogue
+   */
+  static async deleteProduct(
+    appService: AppService,
+    productId: string
+  ): Promise<{ success: boolean }> {
+    try {
+      if (!appService.access_token) {
+        throw new Error('Access token is required for Meta Graph API calls');
+      }
+
+      const response = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${productId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${appService.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(this.extractErrorMessage(errorData));
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error deleting product from Meta catalogue:', error);
       throw error;
     }
   }
