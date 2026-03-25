@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
-import { Package, Check, ShoppingCart } from 'lucide-react';
+import { Package, Check, ShoppingCart, Pencil } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,7 @@ interface ProductCardProps {
   selected?: boolean;
   onSelect?: (product: MetaProduct, selected: boolean) => void;
   onSendProduct?: (product: MetaProduct) => void;
+  onEditProduct?: (product: MetaProduct) => void;
   showSendButton?: boolean;
   className?: string;
 }
@@ -27,6 +27,7 @@ export function ProductCard({
   selected = false,
   onSelect,
   onSendProduct,
+  onEditProduct,
   showSendButton = false,
   className,
 }: ProductCardProps) {
@@ -90,12 +91,10 @@ export function ProductCard({
 
       <div className="aspect-square relative bg-muted">
         {product.image_url ? (
-          <Image
+          <img
             src={product.image_url}
             alt={product.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
           <div className="flex h-full items-center justify-center">
@@ -135,8 +134,23 @@ export function ProductCard({
             {getAvailabilityBadge()}
           </div>
 
-          <div className="text-xs text-muted-foreground">
-            SKU: {product.retailer_id}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              SKU: {product.retailer_id}
+            </span>
+            {onEditProduct && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditProduct(product);
+                }}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+            )}
           </div>
 
           {showSendButton && onSendProduct && (
