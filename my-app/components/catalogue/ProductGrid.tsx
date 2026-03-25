@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ProductCard } from './ProductCard';
-import Image from 'next/image';
 import type { MetaProduct, ProductAvailability } from '@/types/ecommerce';
 import { formatCurrency, type SupportedCurrency } from '@/types/ecommerce';
 
@@ -39,6 +38,7 @@ interface ProductGridProps {
   emptyMessage?: string;
   className?: string;
   onEditAvailability?: (product: MetaProduct, availability: ProductAvailability) => void;
+  onEditProduct?: (product: MetaProduct) => void;
 }
 
 export function ProductGrid({
@@ -60,6 +60,7 @@ export function ProductGrid({
   emptyMessage = 'No products found',
   className,
   onEditAvailability,
+  onEditProduct,
 }: ProductGridProps) {
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [isSearching, setIsSearching] = useState(false);
@@ -350,6 +351,7 @@ export function ProductGrid({
               selected={isProductSelected(product)}
               onSelect={handleProductSelect}
               onSendProduct={onSendProduct}
+              onEditProduct={onEditProduct}
               showSendButton={showSendButton}
             />
           ))}
@@ -376,11 +378,9 @@ export function ProductGrid({
               {/* Thumbnail */}
               <div className="h-12 w-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
                 {product.image_url ? (
-                  <Image
+                  <img
                     src={product.image_url}
                     alt={product.name}
-                    width={48}
-                    height={48}
                     className="h-full w-full object-cover"
                   />
                 ) : (
