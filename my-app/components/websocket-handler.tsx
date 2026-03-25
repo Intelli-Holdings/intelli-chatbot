@@ -110,6 +110,10 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
 
         // Handle reaction updates
         if (message.type === "reaction_update") {
+          logger.info("Reaction update received via WebSocket", {
+            message_id: message.message_id,
+            reaction: message.reaction,
+          })
           window.dispatchEvent(
             new CustomEvent("reactionUpdate", {
               detail: {

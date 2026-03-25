@@ -437,16 +437,21 @@ export default function InstagramChatArea({
     // Listen for reaction updates from WebSocket
     const handleReactionUpdate = (event: CustomEvent) => {
       const { message_id, reaction } = event.detail
+      logger.info("Reaction update event received in Instagram chat area", { message_id, reaction })
       if (!message_id) return
 
-      updateMessagesAndSync((prev) =>
-        (prev || []).map((msg) => {
+      updateMessagesAndSync((prev) => {
+        const matched = (prev || []).some(
+          (msg) => msg.whatsapp_message_id === message_id || msg.incoming_whatsapp_message_id === message_id
+        )
+        logger.info("Reaction message match result", { message_id, matched, totalMessages: (prev || []).length })
+        return (prev || []).map((msg) => {
           if (msg.whatsapp_message_id === message_id || msg.incoming_whatsapp_message_id === message_id) {
             return { ...msg, reaction }
           }
           return msg
         })
-      )
+      })
     }
 
     window.addEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
