@@ -672,10 +672,28 @@ export default function ChatArea({
 
     window.addEventListener("websocketConnectionChange", handleConnectionChange as EventListener)
 
+    // Listen for reaction updates from WebSocket
+    const handleReactionUpdate = (event: CustomEvent) => {
+      const { message_id, reaction } = event.detail
+      if (!message_id) return
+
+      updateMessagesAndSync((prev) =>
+        (prev || []).map((msg) => {
+          if (msg.whatsapp_message_id === message_id || msg.incoming_whatsapp_message_id === message_id) {
+            return { ...msg, reaction }
+          }
+          return msg
+        })
+      )
+    }
+
+    window.addEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
+
     return () => {
       window.removeEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
       window.removeEventListener("messageStatusUpdate", handleStatusUpdate as unknown as EventListener)
       window.removeEventListener("websocketConnectionChange", handleConnectionChange as unknown as EventListener)
+      window.removeEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -1247,7 +1265,7 @@ export default function ChatArea({
                       <>
                         {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
                         {contentMedia?.type === "image" && contentMedia?.url && (
-                          <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
+                          <ImagePreview src={contentMedia.url || "/placeholder.svg"} title={contentMedia.filename || undefined} />
                         )}
                         {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
                         {/* Display remaining text if any */}

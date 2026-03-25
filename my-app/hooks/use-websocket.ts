@@ -17,6 +17,9 @@ export type WebSocketMessage = {
   media_url?: string
   // Channel identifier (e.g. "whatsapp", "instagram")
   channel?: string
+  // Reaction update fields
+  reaction?: { emoji: string; reactor_id?: string; created_at?: string } | null
+  reactor_type?: string
 }
 
 // Update the Options interface to include the enabled property

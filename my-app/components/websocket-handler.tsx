@@ -96,12 +96,26 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
 
         // Handle status updates separately
         if (message.type === "status_update") {
-          // Dispatch status update event
           window.dispatchEvent(
             new CustomEvent("messageStatusUpdate", {
               detail: {
                 message_id: message.message_id,
                 status: message.status,
+                timestamp: message.timestamp,
+              },
+            }),
+          )
+          return
+        }
+
+        // Handle reaction updates
+        if (message.type === "reaction_update") {
+          window.dispatchEvent(
+            new CustomEvent("reactionUpdate", {
+              detail: {
+                message_id: message.message_id,
+                reaction: message.reaction,
+                reactor_type: message.reactor_type,
                 timestamp: message.timestamp,
               },
             }),
