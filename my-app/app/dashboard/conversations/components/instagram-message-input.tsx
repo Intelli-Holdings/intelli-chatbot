@@ -111,50 +111,61 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
     setError(null)
     setIsLoading(true)
 
+    // Capture current state before clearing
+    const currentAnswer = answer
+    const currentFiles = [...files]
+    const currentAudioBlob = audioBlob
+    const currentAudioUrl = audioUrl
+
     let mediaUrl: string | undefined
     let mediaType: string | undefined
 
-    if (files.length > 0) {
-      mediaUrl = URL.createObjectURL(files[0])
-      mediaType = getMediaType(files[0])
-    } else if (audioBlob) {
-      mediaUrl = audioUrl || undefined
+    if (currentFiles.length > 0) {
+      mediaUrl = URL.createObjectURL(currentFiles[0])
+      mediaType = getMediaType(currentFiles[0])
+    } else if (currentAudioBlob) {
+      mediaUrl = currentAudioUrl || undefined
       mediaType = "audio"
     }
 
-    const tempId = onMessageSent ? onMessageSent(answer || "Media", mediaUrl, mediaType) : undefined
+    const tempId = onMessageSent ? onMessageSent(currentAnswer || "Media", mediaUrl, mediaType) : undefined
+
+    // Clear input immediately (Instagram-style optimistic UX)
+    setAnswer("")
+    setFiles([])
+    setAudioBlob(null)
+    setAudioWaveform([])
+    if (currentAudioUrl) {
+      URL.revokeObjectURL(currentAudioUrl)
+      setAudioUrl(null)
+    }
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+    }
 
     try {
       const formData = new FormData()
       formData.append("customer_id", customerNumber)
       formData.append("instagram_business_account_id", instagramBusinessAccountId || "")
 
-      if (answer.trim()) {
-        formData.append("answer", answer)
+      if (currentAnswer.trim()) {
+        formData.append("answer", currentAnswer)
       }
 
-      files.forEach((file) => {
+      currentFiles.forEach((file) => {
         formData.append("file", file)
         formData.append("type", getMediaType(file))
       })
 
-      if (audioBlob) {
-        const audioFile = new File([audioBlob], "voice-message.webm", { type: "audio/webm" })
+      if (currentAudioBlob) {
+        const audioFile = new File([currentAudioBlob], "voice-message.webm", { type: "audio/webm" })
         formData.append("file", audioFile)
         formData.append("type", "audio")
       }
 
       const response = await sendInstagramMessage(formData)
       logger.info("Instagram message sent successfully", { data: response })
-
-      setAnswer("")
-      setFiles([])
-      setAudioBlob(null)
-      setAudioWaveform([])
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl)
-        setAudioUrl(null)
-      }
     } catch (e) {
       setError((e as Error).message)
       toast.error("Failed to send message")
