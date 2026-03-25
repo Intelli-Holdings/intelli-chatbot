@@ -4,14 +4,10 @@ import { Contact, CRMProvider } from '@/types/contact';
 import * as XLSX from 'exceljs';
 import Papa from 'papaparse';
 import { revalidatePath } from 'next/cache';
-import { toast } from 'sonner';
-import { useWebSocket, type WebSocketMessage } from "@/hooks/use-websocket"
 import { auth } from '@clerk/nextjs/server';
 
 import { logger } from "@/lib/logger";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-const WEBSOCKET_BASE_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://backend.intelliconcierge.com/ws";
 
 interface ConversationPayload {
   customer_number: string;
@@ -139,7 +135,7 @@ export async function sendInstagramMessage(formData: FormData) {
     if (!response.ok) {
       const errorData = await response.text();
       logger.error('Instagram API error response:', { error: errorData });
-      toast.error('Failed to send message');
+      throw new Error(`Failed to send message: ${response.status}`);
     }
 
     return response.json();
@@ -180,7 +176,7 @@ export async function sendMessage(formData: FormData) {
     if (!response.ok) {
       const errorData = await response.text();
       logger.error('API error response:', { error: errorData });
-      toast.error('Failed to send message');
+      throw new Error(`Failed to send message: ${response.status}`);
     }
 
     return response.json();
@@ -208,70 +204,6 @@ export async function sendTemplateMessage(payload: {
   }
 
   return response.json();
-}
-
-export async function humanSupportMessages(customerNumber: string, phoneNumber: string) {
-  const WEBSOCKET_URL = `${WEBSOCKET_BASE_URL}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`;
-  logger.info('Connecting to WebSocket for human support');
-
-  const ws = new WebSocket(WEBSOCKET_URL);
-
-  ws.onopen = () => {
-    logger.info('WebSocket connection established for human support.');
-  };
-
-  ws.onmessage = (event) => {
-    const message: WebSocketMessage = JSON.parse(event.data);
-
-    // Generate a unique id for the message
-    const newId = Date.now();
-
-    // Extract media URL if applicable
-    let mediaUrl = null;
-    if (message.type === "image" || message.type === "audio" || message.type === "video") {
-      const mediaMatch = message.content.match(/Media - (https:\/\/[^\s]+)/);
-      if (mediaMatch && mediaMatch[1]) {
-        mediaUrl = mediaMatch[1];
-      }
-    }
-
-    // Use the timestamp from the payload if available; otherwise fallback to current time
-    const messageTimestamp = message.timestamp || new Date().toISOString();
-
-    // Determine if this is a customer message or business/AI message
-    const isCustomerMessage = message.sender === "customer";
-    const messageContent = message.type === "text" ? message.content : null;
-
-    // Create the new message object
-    // Customer messages go in 'content' field, Business/AI messages go in 'answer' field
-    const newMessage = {
-      id: newId,
-      content: isCustomerMessage ? messageContent : null,
-      answer: !isCustomerMessage ? messageContent : null,
-      sender: message.sender,
-      created_at: messageTimestamp,
-      read: false,
-      media: mediaUrl,
-      type: message.type,
-    };
-
-    // Dispatch a custom event to update the chat area with the new message
-    window.dispatchEvent(
-      new CustomEvent("newMessageReceived", {
-        detail: { message: newMessage },
-      })
-    );
-  };
-
-  ws.onclose = () => {
-    logger.info('WebSocket connection closed for human support.');
-  };
-
-  ws.onerror = (error) => {
-    logger.error('WebSocket error:', { error: error instanceof Error ? error.message : String(error) });
-  };
-
-  return ws; // Return the WebSocket instance for further control if needed
 }
 
 export async function importContacts(formData: FormData) {
