@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, Package, ShoppingBag, Plus, Trash2, Search, Loader2 } from 'lucide-react';
+import { Check, Package, ShoppingBag, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,11 +29,15 @@ interface ProductMessageNodeEditorProps {
 export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMessageNodeEditorProps) {
   const { selectedAppService } = useAppServices();
   const { catalogues, loading: loadingCatalogues } = useCatalogues(selectedAppService);
+
+  // Track the live catalogue selection (not just saved data)
+  const [activeCatalogId, setActiveCatalogId] = useState(data.catalogId || '');
+
   const {
     products: metaProducts,
     loading: loadingProducts,
     search,
-  } = useProducts(selectedAppService, data.catalogId || null);
+  } = useProducts(selectedAppService, activeCatalogId || null);
 
   // Map Meta products to common format
   const products = (metaProducts || []).map((p) => ({
@@ -59,7 +63,6 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
   });
   const [hasChanges, setHasChanges] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     setLocalData({
@@ -72,6 +75,7 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
       sections: data.sections || [],
     });
     setHasChanges(false);
+    setActiveCatalogId(data.catalogId || '');
   }, [data]);
 
   const handleChange = <K extends keyof typeof localData>(key: K, value: typeof localData[K]) => {
@@ -83,17 +87,6 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
     onUpdate(localData);
     setHasChanges(false);
     toast.success('Product message saved');
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim() || !localData.catalogId) return;
-
-    setIsSearching(true);
-    try {
-      await search(searchQuery);
-    } finally {
-      setIsSearching(false);
-    }
   };
 
   const handleProductSelect = (productId: string, productName?: string) => {
@@ -191,7 +184,10 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
         ) : (
           <Select
             value={localData.catalogId}
-            onValueChange={(value) => handleChange('catalogId', value)}
+            onValueChange={(value) => {
+              handleChange('catalogId', value);
+              setActiveCatalogId(value);
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select catalogue" />
@@ -207,40 +203,14 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
         )}
       </div>
 
-      {/* Product Search — only show when catalogue is selected */}
-      {localData.catalogId && (
-        <div className="space-y-2">
-          <Label>Search Products</Label>
-          <div className="flex gap-2">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name or SKU..."
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleSearch}
-              disabled={isSearching || !searchQuery.trim()}
-            >
-              {isSearching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Single Product Selection */}
       {isSingleProduct && localData.catalogId && (
         <>
-          <div className="space-y-2">
-            <Label>Selected Product</Label>
-            {localData.productRetailerId ? (
-              <div className="p-2 border rounded-md flex items-center justify-between">
+          {/* Selected Product */}
+          {localData.productRetailerId && (
+            <div className="space-y-2">
+              <Label>Selected Product</Label>
+              <div className="p-2 border rounded-md flex items-center justify-between bg-primary/5">
                 <div>
                   <p className="text-sm font-medium">{localData.productName}</p>
                   <p className="text-xs text-muted-foreground">
@@ -255,22 +225,36 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No product selected</p>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Product List */}
-          {products.length > 0 && (
-            <div className="space-y-2">
-              <Label>Available Products</Label>
-              <div className="max-h-[200px] overflow-y-auto border rounded-md">
-                {loadingProducts ? (
-                  <div className="p-4 text-center">
-                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                  </div>
-                ) : (
-                  products.map((product) => (
+          {/* Product List — auto-loaded, with inline filter */}
+          <div className="space-y-2">
+            <Label>{localData.productRetailerId ? 'Change Product' : 'Select a Product'}</Label>
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter products..."
+              className="h-8 text-xs"
+            />
+            <div className="max-h-[240px] overflow-y-auto border rounded-md">
+              {loadingProducts ? (
+                <div className="p-4 text-center">
+                  <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  <p className="text-xs text-muted-foreground mt-1">Loading products...</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="p-4 text-center text-xs text-muted-foreground">
+                  No products in this catalogue
+                </div>
+              ) : (
+                products
+                  .filter((p) =>
+                    !searchQuery ||
+                    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    p.retailer_id.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((product) => (
                     <button
                       key={product.retailer_id}
                       onClick={() => handleProductSelect(product.retailer_id, product.name)}
@@ -286,10 +270,9 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
                       </p>
                     </button>
                   ))
-                )}
-              </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Body Text */}
           <div className="space-y-2">
@@ -349,9 +332,39 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
             </div>
 
             {localData.sections.length === 0 ? (
-              <p className="text-sm text-muted-foreground p-2">
-                No sections yet. Add a section to organize products.
-              </p>
+              <div className="space-y-2 p-3 border-2 border-dashed rounded-md text-center">
+                {loadingProducts ? (
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading products...
+                  </div>
+                ) : products.length > 0 ? (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      {products.length} product{products.length !== 1 ? 's' : ''} available
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const allSkus = products.map((p) => p.retailer_id);
+                        handleChange('sections', [{
+                          title: 'Our Products',
+                          productRetailerIds: allSkus,
+                        }]);
+                      }}
+                    >
+                      Add All {products.length} Products
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      or use &quot;Add Section&quot; to organize manually
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No products in this catalogue
+                  </p>
+                )}
+              </div>
             ) : (
               <div className="space-y-3">
                 {localData.sections.map((section, sectionIndex) => (
@@ -406,7 +419,12 @@ export default function ProductMessageNodeEditor({ data, onUpdate }: ProductMess
                     </div>
 
                     {/* Add product to section */}
-                    {products.length > 0 && (
+                    {loadingProducts ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground p-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading products...
+                      </div>
+                    ) : (
                       <Select
                         onValueChange={(value) =>
                           handleAddProductToSection(sectionIndex, value)
