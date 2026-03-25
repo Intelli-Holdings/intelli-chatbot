@@ -203,7 +203,10 @@ export default function WhatsAppConvosPage() {
   )
 
   useEffect(() => {
-    if (!activeOrganizationId) return
+    if (!activeOrganizationId) {
+      logger.info("WhatsApp page: waiting for organization ID")
+      return
+    }
 
     if (appServicesLoading) {
       setLoadingMessage("Fetching phone configuration...")
@@ -220,8 +223,12 @@ export default function WhatsAppConvosPage() {
     if (phoneNumber) {
       setLoadingProgress(40)
       setLoadingMessage("Phone configuration loaded")
+    } else {
+      // No WhatsApp phone number available — stop loading
+      logger.info("WhatsApp page: no phone number found", { appServicesCount: appServices.length })
+      setIsInitializing(false)
     }
-  }, [activeOrganizationId, appServicesLoading, appServicesError, phoneNumber])
+  }, [activeOrganizationId, appServicesLoading, appServicesError, phoneNumber, appServices.length])
 
   useEffect(() => {
     if (!phoneNumber || !activeOrganizationId) return
@@ -462,6 +469,13 @@ export default function WhatsAppConvosPage() {
 
   // Show professional skeleton loader during initialization
   if (isInitializing) {
+    logger.info("WhatsApp page: still initializing", {
+      activeOrganizationId,
+      appServicesLoading,
+      appServicesCount: appServices.length,
+      phoneNumber,
+      sessionsLoading,
+    })
     return <WhatsAppSkeletonLoader />
   }
 
