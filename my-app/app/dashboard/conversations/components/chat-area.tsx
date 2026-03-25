@@ -1220,9 +1220,11 @@ export default function ChatArea({
                 <div className="" key={date}>
                   {renderDateSeparator(date)}
                   {(messages ?? []).map((message, messageIndex) => {
-                    // Extract media from content if it exists
+                    // Extract media from content (customer) and answer (business) fields
                     const contentMedia = message.content ? extractMedia(message.content) : null
                     const contentHasMedia = contentMedia?.type && contentMedia?.url
+                    const answerMedia = message.answer ? extractMedia(message.answer) : null
+                    const answerHasMedia = answerMedia?.type && answerMedia?.url
                     const messageKey =
                       message.id ??
                       message.whatsapp_message_id ??
@@ -1375,7 +1377,22 @@ export default function ChatArea({
                   )}>
                     {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
                   </div>
-                  <div className="text-sm">{formatMessage(message.answer)}</div>
+                  <div className="text-sm">
+                    {answerHasMedia ? (
+                      <>
+                        {answerMedia?.type === "audio" && answerMedia?.url && <AudioPlayer src={answerMedia.url} />}
+                        {answerMedia?.type === "image" && answerMedia?.url && (
+                          <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
+                        )}
+                        {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
+                        {answerMedia?.displayText && answerMedia.displayText.trim() && (
+                          <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
+                        )}
+                      </>
+                    ) : (
+                      formatMessage(message.answer)
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-[11px] text-[#667781]">
                       {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

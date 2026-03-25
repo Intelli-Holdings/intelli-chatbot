@@ -958,6 +958,8 @@ export default function InstagramChatArea({
                   {(messages ?? []).map((message, messageIndex) => {
                     const contentMedia = message.content ? extractMedia(message.content) : null
                     const contentHasMedia = contentMedia?.type && contentMedia?.url
+                    const answerMedia = message.answer ? extractMedia(message.answer) : null
+                    const answerHasMedia = answerMedia?.type && answerMedia?.url
                     const messageKey =
                       message.id ??
                       message.whatsapp_message_id ??
@@ -1024,7 +1026,22 @@ export default function InstagramChatArea({
                                   </button>
                                 </div>
                               )}
-                              <div className="text-sm">{formatMessage(message.answer)}</div>
+                              <div className="text-sm">
+                                {answerHasMedia ? (
+                                  <>
+                                    {answerMedia?.type === "audio" && answerMedia?.url && <AudioPlayer src={answerMedia.url} />}
+                                    {answerMedia?.type === "image" && answerMedia?.url && (
+                                      <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
+                                    )}
+                                    {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
+                                    {answerMedia?.displayText && answerMedia.displayText.trim() && (
+                                      <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
+                                    )}
+                                  </>
+                                ) : (
+                                  formatMessage(message.answer)
+                                )}
+                              </div>
                               {message.sender === "human" && message.pending && (
                                 <div className="flex justify-end mt-0.5">
                                   <MessageStatus
