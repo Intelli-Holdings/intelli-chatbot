@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import { logger } from "@/lib/logger"
 import EmojiPicker from "emoji-picker-react"
 import { Textarea } from "@/components/ui/textarea"
+import { getSupportedAudioMimeType, getAudioExtension, convertWebmToWav } from "@/utils/audioConvert"
 
 interface InstagramMessageInputProps {
   customerNumber: string
@@ -159,7 +160,8 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
       })
 
       if (currentAudioBlob) {
-        const audioFile = new File([currentAudioBlob], "voice-message.webm", { type: "audio/webm" })
+        const ext = getAudioExtension(currentAudioBlob.type)
+        const audioFile = new File([currentAudioBlob], `voice-message.${ext}`, { type: currentAudioBlob.type })
         formData.append("file", audioFile)
         formData.append("type", "audio")
       }
@@ -249,7 +251,12 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
     setAudioWaveform([])
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+
+      // Prefer Instagram-compatible format (mp4/aac), fall back to webm
+      const mimeType = getSupportedAudioMimeType()
+      const recorderOptions = mimeType ? { mimeType } : undefined
+      const mediaRecorder = new MediaRecorder(stream, recorderOptions)
+      const recordingMime = mediaRecorder.mimeType
 
       const audioContext = new AudioContext()
       const analyser = audioContext.createAnalyser()
@@ -268,7 +275,7 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
         }
       }
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current)
         }
@@ -278,9 +285,19 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
         }
         analyserRef.current = null
 
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" })
-        setAudioBlob(audioBlob)
-        const url = URL.createObjectURL(audioBlob)
+        let finalBlob = new Blob(audioChunksRef.current, { type: recordingMime })
+
+        // Instagram doesn't support webm audio — convert to wav
+        if (recordingMime.includes("webm")) {
+          try {
+            finalBlob = await convertWebmToWav(finalBlob)
+          } catch (e) {
+            logger.error("Failed to convert audio to wav", { error: e instanceof Error ? e.message : String(e) })
+          }
+        }
+
+        setAudioBlob(finalBlob)
+        const url = URL.createObjectURL(finalBlob)
         setAudioUrl(url)
         setIsRecording(false)
         setAudioWaveform([])
