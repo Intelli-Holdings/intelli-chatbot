@@ -20,6 +20,9 @@ import {
   List,
   AlertCircle,
   Loader2,
+  Eye,
+  ShoppingCart,
+  ExternalLink,
 } from 'lucide-react';
 import { useProductsCrud } from '@/hooks/use-products-crud';
 import { ProductService } from '@/services/product';
@@ -29,6 +32,14 @@ import type {
   ProductImageData,
 } from '@/services/product';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { useAppServices } from '@/hooks/use-app-services';
+import {
+  useCatalogues,
+  useCommerceSettings,
+  useProducts as useMetaProducts,
+} from '@/hooks/use-catalogue';
+import { CatalogueSelector, ProductGrid, AddMetaProductDialog, EditMetaProductDialog } from '@/components/catalogue';
+import type { MetaProduct } from '@/types/ecommerce';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -168,6 +179,71 @@ export default function ProductsPage() {
     deleteProduct,
     saving,
   } = useProductsCrud();
+
+  // Meta Catalogue hooks
+  const {
+    appServices,
+    loading: loadingAppServices,
+    selectedAppService,
+    setSelectedAppService,
+  } = useAppServices();
+
+  const {
+    catalogues,
+    loading: loadingCatalogues,
+    error: cataloguesError,
+    refetch: refetchCatalogues,
+    selectedCatalogue,
+    setSelectedCatalogue,
+  } = useCatalogues(selectedAppService);
+
+  const {
+    settings: commerceSettings,
+    loading: loadingSettings,
+    error: settingsError,
+    updateSettings,
+    updating: updatingSettings,
+  } = useCommerceSettings(selectedAppService);
+
+  const {
+    products: metaProducts,
+    loading: loadingMetaProducts,
+    error: metaProductsError,
+    refetch: refetchMetaProducts,
+    loadMore: loadMoreMetaProducts,
+    hasMore: hasMoreMetaProducts,
+    search: searchMetaProducts,
+    searchQuery: metaSearchQuery,
+    clearSearch: clearMetaSearch,
+  } = useMetaProducts(selectedAppService, selectedCatalogue?.id || null, {
+    limit: 12,
+  });
+
+  const [editingMetaProduct, setEditingMetaProduct] = useState<MetaProduct | null>(null);
+
+  const handleToggleCatalogVisible = async (checked: boolean) => {
+    try {
+      await updateSettings({ is_catalog_visible: checked });
+      toast.success(
+        checked
+          ? 'Catalogue is now visible to customers'
+          : 'Catalogue is now hidden from customers'
+      );
+    } catch {
+      toast.error('Failed to update catalogue visibility');
+    }
+  };
+
+  const handleToggleCartEnabled = async (checked: boolean) => {
+    try {
+      await updateSettings({ is_cart_enabled: checked });
+      toast.success(
+        checked ? 'Shopping cart enabled' : 'Shopping cart disabled'
+      );
+    } catch {
+      toast.error('Failed to update cart settings');
+    }
+  };
 
   // Local UI state
   const [searchQuery, setSearchQuery] = useState('');
@@ -881,48 +957,274 @@ export default function ProductsPage() {
         </TabsContent>
 
         <TabsContent value="meta-sync" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Meta Commerce Catalogue</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Connect your Meta Commerce catalogue to enable native WhatsApp product cards and cart experience.
-                Products from your catalogue above can be synced to Meta automatically.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Meta catalogue sync allows your products to appear as native product cards in WhatsApp.
-                  Customers can browse, add to cart, and checkout directly in the chat.
-                  Go to{' '}
-                  <a
-                    href="/dashboard/commerce/catalogue"
-                    className="font-medium underline"
-                  >
-                    Catalogue Settings
-                  </a>{' '}
-                  to connect and manage your Meta catalogue.
-                </AlertDescription>
-              </Alert>
-              <div className="flex gap-3">
-                <Button variant="outline" asChild>
-                  <a href="/dashboard/commerce/catalogue">
-                    Configure Meta Catalogue
-                  </a>
-                </Button>
-                <Button variant="outline" asChild>
-                  <a
-                    href="https://business.facebook.com/commerce"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open Meta Commerce Manager
-                  </a>
-                </Button>
+          {/* WhatsApp Number Selector */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Connect your Meta Commerce catalogue to enable native WhatsApp product cards and cart experience.
+            </p>
+            <div className="w-72 shrink-0">
+              {loadingAppServices ? (
+                <Skeleton className="h-10 w-full" />
+              ) : appServices.length === 0 ? (
+                <Alert>
+                  <AlertDescription>
+                    No WhatsApp services configured.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Select
+                  value={selectedAppService?.id?.toString() || ''}
+                  onValueChange={(value) => {
+                    const service = appServices.find(
+                      (s) => s.id.toString() === value
+                    );
+                    setSelectedAppService(service || null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a WhatsApp number" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {appServices.map((service) => (
+                      <SelectItem key={service.id} value={service.id.toString()}>
+                        {service.phone_number}
+                        {service.name && ` - ${service.name}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+
+          {selectedAppService && (
+            <>
+              {/* Commerce Settings + Connected Catalogue */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Commerce Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <ShoppingCart className="h-5 w-5" />
+                      Commerce Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {loadingSettings ? (
+                      <div className="space-y-4">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                      </div>
+                    ) : settingsError ? (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{settingsError}</AlertDescription>
+                      </Alert>
+                    ) : commerceSettings ? (
+                      <>
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="flex items-center gap-3">
+                            <Eye className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <Label className="text-sm font-medium">
+                                Catalogue Visible
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Allow customers to view your product catalogue
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={commerceSettings.is_catalog_visible}
+                            onCheckedChange={handleToggleCatalogVisible}
+                            disabled={updatingSettings}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="flex items-center gap-3">
+                            <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <Label className="text-sm font-medium">
+                                Shopping Cart
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Enable customers to add items to cart and checkout
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={commerceSettings.is_cart_enabled}
+                            onCheckedChange={handleToggleCartEnabled}
+                            disabled={updatingSettings}
+                          />
+                        </div>
+                      </>
+                    ) : null}
+                  </CardContent>
+                </Card>
+
+                {/* Connected Catalogue */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Package className="h-5 w-5" />
+                        Connected Catalogue
+                      </CardTitle>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetchCatalogues()}
+                        disabled={loadingCatalogues}
+                      >
+                        <RefreshCw
+                          className={cn(
+                            'h-4 w-4 mr-2',
+                            loadingCatalogues && 'animate-spin'
+                          )}
+                        />
+                        Refresh
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {cataloguesError ? (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{cataloguesError}</AlertDescription>
+                      </Alert>
+                    ) : (
+                      <>
+                        <CatalogueSelector
+                          catalogues={catalogues}
+                          selectedCatalogue={selectedCatalogue}
+                          onSelect={setSelectedCatalogue}
+                          loading={loadingCatalogues}
+                        />
+
+                        {selectedCatalogue && (
+                          <div className="flex items-center justify-between rounded-lg bg-muted p-4">
+                            <div>
+                              <p className="font-medium">
+                                {selectedCatalogue.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {selectedCatalogue.product_count ?? 0} products
+                              </p>
+                            </div>
+                            <Button variant="outline" size="sm" asChild>
+                              <a
+                                href={`https://business.facebook.com/commerce/catalogs/${selectedCatalogue.id}/products`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Manage in Meta
+                              </a>
+                            </Button>
+                          </div>
+                        )}
+
+                        {!loadingCatalogues && catalogues.length === 0 && (
+                          <Alert>
+                            <AlertDescription>
+                              No catalogues found. Create a catalogue in{' '}
+                              <a
+                                href="https://business.facebook.com/commerce"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium underline"
+                              >
+                                Meta Commerce Manager
+                              </a>{' '}
+                              and connect it to your WhatsApp Business Account.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Meta Products Grid */}
+              {selectedCatalogue && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base">Catalogue Products</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Products from your connected Meta catalogue
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <AddMetaProductDialog
+                          appService={selectedAppService}
+                          catalogId={selectedCatalogue.id}
+                          onProductCreated={() => {
+                            refetchMetaProducts();
+                            refetchCatalogues();
+                          }}
+                        />
+                        <Badge variant="secondary">
+                          {selectedCatalogue.product_count ?? 0} total
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ProductGrid
+                      products={metaProducts}
+                      loading={loadingMetaProducts}
+                      error={metaProductsError}
+                      onSearch={searchMetaProducts}
+                      searchQuery={metaSearchQuery}
+                      onClearSearch={clearMetaSearch}
+                      onLoadMore={loadMoreMetaProducts}
+                      hasMore={hasMoreMetaProducts}
+                      onRefresh={refetchMetaProducts}
+                      emptyMessage="No products in this catalogue"
+                      onEditProduct={setEditingMetaProduct}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Edit Meta Product Dialog */}
+              {editingMetaProduct && selectedAppService && (
+                <EditMetaProductDialog
+                  product={editingMetaProduct}
+                  appService={selectedAppService}
+                  open={!!editingMetaProduct}
+                  onOpenChange={(open) => {
+                    if (!open) setEditingMetaProduct(null);
+                  }}
+                  onProductUpdated={() => {
+                    refetchMetaProducts();
+                    refetchCatalogues();
+                    setEditingMetaProduct(null);
+                  }}
+                  onProductDeleted={() => {
+                    refetchMetaProducts();
+                    refetchCatalogues();
+                    setEditingMetaProduct(null);
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {!selectedAppService && !loadingAppServices && appServices.length > 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  Select a WhatsApp number above to manage your Meta catalogue
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
