@@ -82,6 +82,33 @@ export interface ProductSection {
 }
 
 // =============================================================================
+// META PRODUCT CRUD TYPES
+// =============================================================================
+
+/**
+ * Payload for creating a product in a Meta catalogue
+ * Price is in cents (integer). e.g. $19.99 = 1999
+ */
+export interface CreateMetaProductPayload {
+  name: string;
+  retailer_id: string;
+  price: number;
+  currency: string;
+  availability: ProductAvailability;
+  description?: string;
+  image_url?: string;
+  url?: string;
+  brand?: string;
+  category?: string;
+  condition?: 'new' | 'refurbished' | 'used';
+}
+
+/**
+ * Payload for updating a product in a Meta catalogue
+ */
+export type UpdateMetaProductPayload = Partial<CreateMetaProductPayload>;
+
+// =============================================================================
 // PRODUCT MESSAGE TYPES
 // =============================================================================
 
