@@ -1,52 +1,28 @@
 /**
- * Upload an image to Azure Blob Storage via the SAS URL flow.
+ * Upload an image via the backend proxy.
  *
- * Flow:
- * 1. Request a write SAS URL from the backend
- * 2. Upload directly to Azure Blob Storage (bypasses server size limits)
- * 3. Return the publicly accessible blob URL (with read SAS token)
+ * Uses a server-side API route that uploads to Azure Blob Storage,
+ * avoiding CORS issues with direct browser-to-Azure uploads.
  *
  * @param file - Image file to upload
  * @returns Publicly accessible URL for the uploaded image
  */
 export async function uploadImage(file: File): Promise<string> {
-  // Step 1: Get a SAS upload URL from the backend
-  const sasResponse = await fetch('/api/whatsapp/media/get-upload-url', {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/commerce/upload-image', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      file_name: file.name,
-      file_type: file.type,
-      file_size: file.size,
-    }),
+    body: formData,
   });
 
-  if (!sasResponse.ok) {
-    const err = await sasResponse.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to get upload URL');
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to upload image');
   }
 
-  const { upload_url, blob_url } = await sasResponse.json();
-
-  if (!upload_url || !blob_url) {
-    throw new Error('Invalid upload URL response');
-  }
-
-  // Step 2: Upload directly to Azure Blob Storage
-  const uploadResponse = await fetch(upload_url, {
-    method: 'PUT',
-    headers: {
-      'x-ms-blob-type': 'BlockBlob',
-      'Content-Type': file.type,
-    },
-    body: file,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error('Failed to upload image to storage');
-  }
-
-  return blob_url;
+  const data = await response.json();
+  return data.url;
 }
 
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
