@@ -468,7 +468,7 @@ export default function ProductsPage() {
         <div>
           <h1 className="text-3xl font-bold">Products</h1>
           <p className="text-muted-foreground">
-            Manage your product catalogue
+            Manage your product catalogue on Intelli Storefront
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -493,7 +493,7 @@ export default function ProductsPage() {
             My Products
           </TabsTrigger>
           <TabsTrigger value="meta-sync" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
+            <img src="/logos/meta.svg" alt="Meta" className="h-4 w-4" />
             Meta Catalogue
           </TabsTrigger>
         </TabsList>
