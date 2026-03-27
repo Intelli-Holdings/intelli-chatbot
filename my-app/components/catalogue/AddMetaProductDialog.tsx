@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Plus, Loader2, Upload, X, ImageIcon } from 'lucide-react';
+import { Plus, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,7 @@ import {
 import { CatalogueService } from '@/services/catalogue';
 import type { AppService } from '@/services/whatsapp';
 import type { CreateMetaProductPayload, ProductAvailability } from '@/types/ecommerce';
+import { uploadImage, validateImageFile } from '@/lib/upload-image';
 import { toast } from 'sonner';
 
 const CURRENCIES = [
@@ -44,49 +45,6 @@ const AVAILABILITY_OPTIONS: { value: ProductAvailability; label: string }[] = [
   { value: 'out of stock', label: 'Out of Stock' },
   { value: 'available for order', label: 'Available for Order' },
 ];
-
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-
-/**
- * Upload an image to Azure Blob Storage via the existing SAS URL flow.
- * Returns a publicly accessible blob URL.
- */
-async function uploadImageToStorage(file: File): Promise<string> {
-  // Step 1: Get a SAS upload URL from the backend
-  const sasResponse = await fetch('/api/whatsapp/media/get-upload-url', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      file_name: file.name,
-      file_type: file.type,
-      file_size: file.size,
-    }),
-  });
-
-  if (!sasResponse.ok) {
-    const err = await sasResponse.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to get upload URL');
-  }
-
-  const { upload_url, blob_url } = await sasResponse.json();
-
-  // Step 2: Upload directly to Azure Blob Storage
-  const uploadResponse = await fetch(upload_url, {
-    method: 'PUT',
-    headers: {
-      'x-ms-blob-type': 'BlockBlob',
-      'Content-Type': file.type,
-    },
-    body: file,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error('Failed to upload image to storage');
-  }
-
-  return blob_url;
-}
 
 interface AddMetaProductDialogProps {
   appService: AppService;
@@ -108,6 +66,7 @@ export function AddMetaProductDialog({
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState('KES');
   const [availability, setAvailability] = useState<ProductAvailability>('in stock');
+  const [productUrl, setProductUrl] = useState('');
   const [brand, setBrand] = useState('');
   const [category, setCategory] = useState('');
 
@@ -126,6 +85,7 @@ export function AddMetaProductDialog({
     setPrice('');
     setCurrency('KES');
     setAvailability('in stock');
+    setProductUrl('');
     setBrand('');
     setCategory('');
     setImageFile(null);
@@ -138,18 +98,14 @@ export function AddMetaProductDialog({
     if (!files || files.length === 0) return;
     const file = files[0];
 
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast.error('Please select a JPEG, PNG, or WebP image');
-      return;
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      toast.error('Image must be under 5MB');
+    const error = validateImageFile(file);
+    if (error) {
+      toast.error(error);
       return;
     }
 
     setImageFile(file);
-    const url = URL.createObjectURL(file);
-    setImagePreview(url);
+    setImagePreview(URL.createObjectURL(file));
   }, []);
 
   const removeImage = useCallback(() => {
@@ -180,6 +136,14 @@ export function AddMetaProductDialog({
       toast.error('Price must be greater than 0');
       return;
     }
+    if (!imageFile && !imageUrl.trim()) {
+      toast.error('Product image is required for WhatsApp visibility');
+      return;
+    }
+    if (!productUrl.trim()) {
+      toast.error('Product URL is required for WhatsApp visibility');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -189,9 +153,11 @@ export function AddMetaProductDialog({
       if (imageMode === 'upload' && imageFile) {
         setUploading(true);
         try {
-          resolvedImageUrl = await uploadImageToStorage(imageFile);
+          resolvedImageUrl = await uploadImage(imageFile);
         } catch {
-          toast.error('Failed to upload image. Product will be created without an image.');
+          toast.error('Failed to upload image.');
+          setSaving(false);
+          return;
         } finally {
           setUploading(false);
         }
@@ -208,10 +174,11 @@ export function AddMetaProductDialog({
         price: priceInCents,
         currency,
         availability,
+        image_url: resolvedImageUrl,
+        url: productUrl.trim(),
       };
 
       if (description.trim()) payload.description = description.trim();
-      if (resolvedImageUrl) payload.image_url = resolvedImageUrl;
       if (brand.trim()) payload.brand = brand.trim();
       if (category.trim()) payload.category = category.trim();
 
@@ -283,6 +250,21 @@ export function AddMetaProductDialog({
             />
           </div>
 
+          {/* Product URL */}
+          <div className="space-y-2">
+            <Label htmlFor="meta-product-url">Product URL *</Label>
+            <Input
+              id="meta-product-url"
+              type="url"
+              placeholder="https://yourstore.com/products/example"
+              value={productUrl}
+              onChange={(e) => setProductUrl(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Link to the product page — required by Meta for WhatsApp visibility
+            </p>
+          </div>
+
           {/* Price + Currency */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
@@ -337,7 +319,7 @@ export function AddMetaProductDialog({
           {/* Product Image */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Product Image</Label>
+              <Label>Product Image *</Label>
               <div className="flex items-center rounded-md border text-xs">
                 <button
                   type="button"
