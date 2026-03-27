@@ -87,6 +87,14 @@ const nextConfig = {
       protocol: 'https',
       hostname: '**.fbcdn.net',
     },
+    {
+      protocol: 'https',
+      hostname: 'backend.intelliconcierge.com',
+    },
+    {
+      protocol: 'https',
+      hostname: '**.blob.core.windows.net',
+    },
     ],
   },
   experimental: {
