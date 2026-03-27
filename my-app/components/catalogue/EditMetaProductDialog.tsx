@@ -34,6 +34,7 @@ import {
 import { CatalogueService } from '@/services/catalogue';
 import type { AppService } from '@/services/whatsapp';
 import type { MetaProduct, UpdateMetaProductPayload, ProductAvailability } from '@/types/ecommerce';
+import { uploadImage, validateImageFile, ACCEPTED_IMAGE_TYPES } from '@/lib/upload-image';
 import { toast } from 'sonner';
 
 const CURRENCIES = [
@@ -53,49 +54,6 @@ const AVAILABILITY_OPTIONS: { value: ProductAvailability; label: string }[] = [
   { value: 'out of stock', label: 'Out of Stock' },
   { value: 'available for order', label: 'Available for Order' },
 ];
-
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-
-/**
- * Upload an image to Azure Blob Storage via the existing SAS URL flow.
- * Returns a publicly accessible blob URL.
- */
-async function uploadImageToStorage(file: File): Promise<string> {
-  // Step 1: Get a SAS upload URL from the backend
-  const sasResponse = await fetch('/api/whatsapp/media/get-upload-url', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      file_name: file.name,
-      file_type: file.type,
-      file_size: file.size,
-    }),
-  });
-
-  if (!sasResponse.ok) {
-    const err = await sasResponse.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to get upload URL');
-  }
-
-  const { upload_url, blob_url } = await sasResponse.json();
-
-  // Step 2: Upload directly to Azure Blob Storage
-  const uploadResponse = await fetch(upload_url, {
-    method: 'PUT',
-    headers: {
-      'x-ms-blob-type': 'BlockBlob',
-      'Content-Type': file.type,
-    },
-    body: file,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error('Failed to upload image to storage');
-  }
-
-  return blob_url;
-}
 
 interface EditMetaProductDialogProps {
   product: MetaProduct;
@@ -158,12 +116,9 @@ export function EditMetaProductDialog({
     if (!files || files.length === 0) return;
     const file = files[0];
 
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      toast.error('Please select a JPEG, PNG, or WebP image');
-      return;
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      toast.error('Image must be under 5MB');
+    const error = validateImageFile(file);
+    if (error) {
+      toast.error(error);
       return;
     }
 
@@ -218,7 +173,7 @@ export function EditMetaProductDialog({
       if (imageMode === 'upload' && imageFile) {
         setUploading(true);
         try {
-          payload.image_url = await uploadImageToStorage(imageFile);
+          payload.image_url = await uploadImage(imageFile);
         } catch {
           toast.error('Failed to upload image. Other changes will still be saved.');
         } finally {
