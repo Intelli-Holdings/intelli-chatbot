@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import Image from 'next/image';
+// Using <img> instead of next/image — product images come from Azure, Meta CDN,
+// localhost in dev, etc. next/image requires whitelisting every hostname.
 import {
   Search,
   Plus,
@@ -735,12 +736,10 @@ export default function ProductsPage() {
                 {/* Image */}
                 <div className="relative h-48 bg-muted flex items-center justify-center overflow-hidden">
                   {primaryImage ? (
-                    <Image
+                    <img
                       src={primaryImage}
                       alt={product.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
                   ) : (
                     <Package className="h-12 w-12 text-muted-foreground/40" />
@@ -858,12 +857,10 @@ export default function ProductsPage() {
                           <div className="flex items-center gap-3">
                             <div className="relative h-10 w-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">
                               {primaryImage ? (
-                                <Image
+                                <img
                                   src={primaryImage}
                                   alt={product.name}
-                                  fill
-                                  className="object-cover"
-                                  sizes="40px"
+                                  className="absolute inset-0 h-full w-full object-cover"
                                 />
                               ) : (
                                 <Package className="h-5 w-5 text-muted-foreground/40" />
@@ -1445,12 +1442,10 @@ export default function ProductsPage() {
                           key={img.id}
                           className="relative group rounded-md overflow-hidden border aspect-square"
                         >
-                          <Image
+                          <img
                             src={img.image_url}
                             alt={img.alt_text || 'Product image'}
-                            fill
-                            className="object-cover"
-                            sizes="80px"
+                            className="absolute inset-0 h-full w-full object-cover"
                           />
                           {img.is_primary && (
                             <Badge
@@ -1488,12 +1483,10 @@ export default function ProductsPage() {
                         key={idx}
                         className="relative group rounded-md overflow-hidden border aspect-square bg-muted"
                       >
-                        <Image
+                        <img
                           src={URL.createObjectURL(file)}
                           alt={file.name}
-                          fill
-                          className="object-cover"
-                          sizes="80px"
+                          className="absolute inset-0 h-full w-full object-cover"
                         />
                         <button
                           type="button"
