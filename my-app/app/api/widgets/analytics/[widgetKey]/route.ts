@@ -6,7 +6,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { widgetKey: string } }
+  { params }: { params: Promise<{ widgetKey: string }> }
 ) {
   try {
     // Get authentication token from Clerk
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const widgetKey = params.widgetKey
+    const { widgetKey } = await params
 
     if (!widgetKey) {
       return NextResponse.json({ error: "Widget key is required" }, { status: 400 })

@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ScrollToBottomButtonProps {
-  targetRef: React.RefObject<HTMLElement>
+  targetRef: React.RefObject<HTMLElement | null>
   className?: string
   threshold?: number
   alwaysShow?: boolean // New prop to control visibility behavior

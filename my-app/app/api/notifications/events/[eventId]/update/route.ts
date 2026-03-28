@@ -6,8 +6,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
+  const { eventId } = await params;
   const { userId, getToken } = auth();
 
   if (!userId) {
@@ -22,8 +23,6 @@ export async function PUT(
   if (!API_BASE_URL) {
     return NextResponse.json({ error: "API base URL is not configured" }, { status: 500 });
   }
-
-  const { eventId } = params;
   if (!eventId) {
     return NextResponse.json({ error: "Event id is required" }, { status: 400 });
   }
