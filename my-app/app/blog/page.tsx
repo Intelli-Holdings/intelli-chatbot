@@ -19,9 +19,9 @@ export const metadata: Metadata = {
     "customer engagement insights",
   ],
   openGraph: {
-    title: "Intelli Blog – AI & WhatsApp Automation Insights",
+    title: "Intelli Blog – AI native mulitchannel and CX Insights",
     description:
-      "Guides, comparisons, and best practices for AI customer support and WhatsApp automation. By Intelli Holdings Inc.",
+      "Guides, comparisons, and best practices for AI customer support/customer engagement and mulitchannel platforms.",
     url: "https://intelliconcierge.com/blog",
   },
 };
