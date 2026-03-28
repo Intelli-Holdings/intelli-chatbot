@@ -6,11 +6,11 @@ const isProtectedRoute = createRouteMatcher([
    '/chat(.*)',
    '/onboarding(.*)',
    '/feedback(.*)',
-   '/dashboard(.*)', // This will protect all dashboard routes
-   '/organization/(.*)', // This will protect all organization routes
+   '/dashboard(.*)',
+   '/organization/(.*)',
 ]);
 
-export default clerkMiddleware((auth, req) => {
+export const proxy = clerkMiddleware((auth, req) => {
   if (isProtectedRoute(req)) {
     auth().protect()
   }
