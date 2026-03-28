@@ -10,9 +10,9 @@ const isProtectedRoute = createRouteMatcher([
    '/organization/(.*)',
 ]);
 
-export const proxy = clerkMiddleware((auth, req) => {
+export const proxy = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
-    auth().protect()
+    await auth.protect()
   }
 })
 

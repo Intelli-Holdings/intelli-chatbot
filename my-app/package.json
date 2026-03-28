@@ -17,7 +17,7 @@
     "@aptabase/react": "^0.3.5",
     "@azure/openai": "^1.0.0-beta.11",
     "@calcom/embed-react": "^1.5.2",
-    "@clerk/nextjs": "^5.1.5",
+    "@clerk/nextjs": "^7.0.7",
     "@clerk/types": "^4.44.2",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
