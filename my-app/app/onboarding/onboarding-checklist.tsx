@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useOnboarding } from "@/context/onboarding-context"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 
@@ -32,7 +32,7 @@ const checklistItems = [
 ]
 
 export default function OnboardingChecklist() {
-  const [completedTasks, setCompletedTasks] = useState<string[]>([])
+  const { completedTasks, setCompletedTasks } = useOnboarding()
 
   const handleTaskToggle = (taskId: string) => {
     setCompletedTasks((prev) => (prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]))
@@ -64,4 +64,3 @@ export default function OnboardingChecklist() {
     </div>
   )
 }
-
