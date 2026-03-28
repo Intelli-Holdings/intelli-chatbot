@@ -6,10 +6,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { appserviceId: string } }
+  { params }: { params: Promise<{ appserviceId: string }> }
 ) {
   try {
-    const { appserviceId } = params;
+    const { appserviceId } = await params;
 
     // Get authentication token from Clerk
     const { getToken } = await auth();

@@ -7,7 +7,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 // DELETE /api/channels/whatsapp/[id]/delete - Delete a WhatsApp package
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { getToken } = await auth()
@@ -17,7 +17,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     if (!id) {
       return NextResponse.json({ error: "Package ID is required" }, { status: 400 })

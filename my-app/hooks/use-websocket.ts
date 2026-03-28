@@ -37,7 +37,7 @@ export const useWebSocket = (url: string | null, options: Options) => {
   const [isConnected, setIsConnected] = useState<boolean>(false)
   const [error, setError] = useState<Event | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const reconnectCountRef = useRef<number>(0)
 
   const reconnectInterval = options.reconnectInterval || 3000

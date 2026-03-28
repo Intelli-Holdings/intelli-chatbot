@@ -92,7 +92,6 @@ const nextConfig = {
   },
   experimental: {
     mdxRs: true,
-    instrumentationHook: true,
   },
   async redirects() {
     return [

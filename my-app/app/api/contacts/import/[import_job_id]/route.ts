@@ -6,7 +6,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { import_job_id: string } }
+  { params }: { params: Promise<{ import_job_id: string }> }
 ) {
   try {
     // Get authentication token from Clerk
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const importJobId = params.import_job_id
+    const { import_job_id: importJobId } = await params
 
     if (!importJobId) {
       return NextResponse.json({ error: "Import job ID is required" }, { status: 400 })

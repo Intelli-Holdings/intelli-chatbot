@@ -6,10 +6,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { instagramAccountId: string; customerId: string } }
+  { params }: { params: Promise<{ instagramAccountId: string; customerId: string }> }
 ) {
   try {
-    const { instagramAccountId, customerId } = params;
+    const { instagramAccountId, customerId } = await params;
     const { getToken } = await auth();
     const token = await getToken();
 

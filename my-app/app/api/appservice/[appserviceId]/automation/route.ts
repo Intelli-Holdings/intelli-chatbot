@@ -6,10 +6,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { appserviceId: string } }
+  { params }: { params: Promise<{ appserviceId: string }> }
 ) {
   try {
-    const { appserviceId } = params;
+    const { appserviceId } = await params;
 
     // Get authentication token from Clerk
     const { getToken } = await auth();
@@ -51,10 +51,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { appserviceId: string } }
+  { params }: { params: Promise<{ appserviceId: string }> }
 ) {
   try {
-    const { appserviceId } = params;
+    const { appserviceId } = await params;
     const body = await request.json();
 
     // Get authentication token from Clerk

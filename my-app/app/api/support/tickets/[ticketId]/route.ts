@@ -5,9 +5,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { ticketId: string } }
+  { params }: { params: Promise<{ ticketId: string }> }
 ) {
   try {
+    const { ticketId } = await params
     const { getToken } = await auth()
     const token = await getToken()
     if (!token) {
@@ -19,7 +20,7 @@ export async function GET(
       return NextResponse.json({ error: "Organization ID is required" }, { status: 400 })
     }
 
-    const url = `${BASE_URL}/support/org/${organizationId}/tickets/${params.ticketId}/`
+    const url = `${BASE_URL}/support/org/${organizationId}/tickets/${ticketId}/`
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -40,9 +41,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { ticketId: string } }
+  { params }: { params: Promise<{ ticketId: string }> }
 ) {
   try {
+    const { ticketId } = await params
     const { getToken } = await auth()
     const token = await getToken()
     if (!token) {
@@ -55,7 +57,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Organization ID is required" }, { status: 400 })
     }
 
-    const url = `${BASE_URL}/support/org/${organizationId}/tickets/${params.ticketId}/`
+    const url = `${BASE_URL}/support/org/${organizationId}/tickets/${ticketId}/`
     const response = await fetch(url, {
       method: "PATCH",
       headers: {

@@ -6,9 +6,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
-  const { organizationId } = params;
+  const { organizationId } = await params;
   const { userId, orgId: authOrgId, getToken } = auth();
 
   if (!userId) {
