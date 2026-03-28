@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(claude remote-control)"
+      "Bash(claude remote-control)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
