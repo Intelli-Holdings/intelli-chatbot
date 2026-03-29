@@ -5,9 +5,9 @@ import { logger } from "@/lib/logger";
 // GET - List assistants for an organization
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
-  const { organizationId } = params
+  const { organizationId } = await params
   
   try {
     
@@ -58,9 +58,9 @@ export async function GET(
 // POST - Create a new assistant for an organization
 export async function POST(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
-  const { organizationId } = params
+  const { organizationId } = await params
   
   try {
     // Get authentication token from Clerk
@@ -119,9 +119,9 @@ export async function POST(
 // PUT - Update an assistant in an organization
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
-  const { organizationId } = params
+  const { organizationId } = await params
   
   try {
     // Get authentication token from Clerk
@@ -205,9 +205,9 @@ export async function PUT(
 // DELETE - Delete an assistant from an organization
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
-  const { organizationId } = params
+  const { organizationId } = await params
   
   try {
     // Get authentication token from Clerk

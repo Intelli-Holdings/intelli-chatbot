@@ -14,11 +14,11 @@ import { RelatedArticleCard } from "./article-content"
 export const revalidate = 300 // revalidate every 5 minutes (ISR)
 
 interface PageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = params
+  const { slug } = await params
   const feedResult = await fetchMediumPosts()
 
   if (!feedResult.success) {
@@ -59,7 +59,7 @@ export async function generateStaticParams() {
 }
 
 export default async function BlogArticlePage({ params }: PageProps) {
-  const { slug } = params
+  const { slug } = await params
   const feedResult = await fetchMediumPosts()
 
   if (!feedResult.success) {

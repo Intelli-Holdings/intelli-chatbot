@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { widgetKey: string } }
+  { params }: { params: Promise<{ widgetKey: string }> }
 ) {
   // Check authentication and get session token
   const { userId, getToken } = await auth();
@@ -29,7 +29,7 @@ export async function PUT(
   }
 
   try {
-    const { widgetKey } = params;
+    const { widgetKey } = await params;
 
     if (!widgetKey) {
       return NextResponse.json(
@@ -80,7 +80,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { widgetKey: string } }
+  { params }: { params: Promise<{ widgetKey: string }> }
 ) {
   // Check authentication and get session token
   const { userId, getToken } = await auth();
@@ -103,7 +103,7 @@ export async function DELETE(
   }
 
   try {
-    const { widgetKey } = params;
+    const { widgetKey } = await params;
 
     if (!widgetKey) {
       return NextResponse.json(

@@ -16,13 +16,6 @@ import { NotificationIndicator } from "@/components/notification-indicator"
 // Tour — only needed in dashboard
 const TourProviderWrapper = dynamic(() => import('@/components/tour-provider-wrapper'), { ssr: false })
 
-export const viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
-}
-
 function DashboardLayoutContent({
   children,
 }: {

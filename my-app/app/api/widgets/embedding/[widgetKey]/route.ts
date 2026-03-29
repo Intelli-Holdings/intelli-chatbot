@@ -10,7 +10,7 @@ export const revalidate = 0;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { widgetKey: string } }
+  { params }: { params: Promise<{ widgetKey: string }> }
 ) {
   // Check authentication and get session token
   const { userId, getToken } = await auth();
@@ -33,7 +33,7 @@ export async function GET(
   }
 
   try {
-    const { widgetKey } = params;
+    const { widgetKey } = await params;
 
     if (!widgetKey) {
       return NextResponse.json(

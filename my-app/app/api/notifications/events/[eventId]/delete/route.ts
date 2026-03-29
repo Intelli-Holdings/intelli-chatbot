@@ -6,9 +6,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +23,7 @@ export async function DELETE(
     return NextResponse.json({ error: "API base URL is not configured" }, { status: 500 });
   }
 
-  const { eventId } = params;
+  const { eventId } = await params;
   if (!eventId) {
     return NextResponse.json({ error: "Event id is required" }, { status: 400 });
   }

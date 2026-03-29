@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 
 import { logger } from "@/lib/logger";
-export async function GET(request: NextRequest, { params }: { params: { organizationId: string } }) {
-  const { organizationId } = params
+export async function GET(request: NextRequest, { params }: { params: Promise<{ organizationId: string }> }) {
+  const { organizationId } = await params
 
   // Check authentication and get session token
   const { userId, getToken } = await auth()
@@ -55,17 +55,25 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { organizationId: string } }) {
-  const { organizationId } = params
+export async function POST(request: NextRequest, { params }: { params: Promise<{ organizationId: string }> }) {
+  const { organizationId } = await params
 
   try {
     // Get authentication from Clerk
-    const { getToken } = await auth()
+    const { userId, getToken } = await auth()
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const token = await getToken()
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'Unable to get authentication token' },
         { status: 401 }
       )
     }

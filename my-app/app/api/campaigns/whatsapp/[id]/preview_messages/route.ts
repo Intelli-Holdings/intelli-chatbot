@@ -7,8 +7,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 // GET /api/campaigns/whatsapp/[id]/preview_messages - Preview messages for WhatsApp campaign
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { getToken } = await auth()
     const token = await getToken()
@@ -28,7 +29,7 @@ export async function GET(
       )
     }
 
-    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/preview_messages/?organization=${organization}&limit=${limit}`
+    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${id}/preview_messages/?organization=${organization}&limit=${limit}`
 
     const response = await fetch(url, {
       method: "GET",
