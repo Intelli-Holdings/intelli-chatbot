@@ -118,9 +118,11 @@ export function PaymentConfigForm({
           provider: 'mpesa',
           consumer_key: mpesaConsumerKey,
           consumer_secret: mpesaConsumerSecret,
-          business_shortcode: mpesaBusinessShortcode,
-          passkey: mpesaPasskey,
           environment: mpesaEnvironment,
+          ...(mpesaEnvironment === 'production' ? {
+            business_shortcode: mpesaBusinessShortcode,
+            passkey: mpesaPasskey,
+          } : {}),
         };
         break;
       case 'momo':
@@ -138,6 +140,11 @@ export function PaymentConfigForm({
           consumer_key: pesapalConsumerKey,
           consumer_secret: pesapalConsumerSecret,
           environment: pesapalEnvironment,
+        };
+        break;
+      case 'pay_on_delivery':
+        config = {
+          provider: 'pay_on_delivery',
         };
         break;
       default:
@@ -271,6 +278,8 @@ export function PaymentConfigForm({
     </>
   );
 
+  const isMpesaProduction = mpesaEnvironment === 'production';
+
   const renderMpesaFields = () => (
     <>
       <div className="space-y-2">
@@ -284,17 +293,24 @@ export function PaymentConfigForm({
             <SelectItem value="production">Production (Live)</SelectItem>
           </SelectContent>
         </Select>
+        {!isMpesaProduction && (
+          <p className="text-xs text-muted-foreground">
+            Sandbox uses default shortcode (174379) and passkey automatically
+          </p>
+        )}
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="mpesa-shortcode">Business Shortcode</Label>
-        <Input
-          id="mpesa-shortcode"
-          placeholder="174379"
-          value={mpesaBusinessShortcode}
-          onChange={(e) => setMpesaBusinessShortcode(e.target.value)}
-          required
-        />
-      </div>
+      {isMpesaProduction && (
+        <div className="space-y-2">
+          <Label htmlFor="mpesa-shortcode">Business Shortcode</Label>
+          <Input
+            id="mpesa-shortcode"
+            placeholder="Your Lipa Na M-Pesa shortcode"
+            value={mpesaBusinessShortcode}
+            onChange={(e) => setMpesaBusinessShortcode(e.target.value)}
+            required
+          />
+        </div>
+      )}
       <div className="space-y-2">
         <Label htmlFor="mpesa-consumer-key">Consumer Key</Label>
         <Input
@@ -339,26 +355,28 @@ export function PaymentConfigForm({
           </p>
         )}
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="mpesa-passkey">Passkey</Label>
-        <div className="relative">
-          <Input
-            id="mpesa-passkey"
-            type={showSecrets ? 'text' : 'password'}
-            placeholder={isEditing ? '••••••••••••' : 'Lipa na M-Pesa Passkey'}
-            value={mpesaPasskey}
-            onChange={(e) => setMpesaPasskey(e.target.value)}
-            required={!isEditing}
-          />
+      {isMpesaProduction && (
+        <div className="space-y-2">
+          <Label htmlFor="mpesa-passkey">Passkey</Label>
+          <div className="relative">
+            <Input
+              id="mpesa-passkey"
+              type={showSecrets ? 'text' : 'password'}
+              placeholder={isEditing ? '••••••••••••' : 'Lipa na M-Pesa Passkey'}
+              value={mpesaPasskey}
+              onChange={(e) => setMpesaPasskey(e.target.value)}
+              required={!isEditing}
+            />
+          </div>
+          {isEditing && (
+            <p className="text-xs text-muted-foreground">
+              {existingConfig?.has_passkey
+                ? 'Passkey configured — leave blank to keep'
+                : 'No passkey configured'}
+            </p>
+          )}
         </div>
-        {isEditing && (
-          <p className="text-xs text-muted-foreground">
-            {existingConfig?.has_passkey
-              ? 'Passkey configured — leave blank to keep'
-              : 'No passkey configured'}
-          </p>
-        )}
-      </div>
+      )}
     </>
   );
 
@@ -504,6 +522,17 @@ export function PaymentConfigForm({
     </>
   );
 
+  const renderPayOnDeliveryFields = () => (
+    <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+      <p className="font-medium text-foreground mb-1">No API keys required</p>
+      <p>
+        Enabling this option lets customers choose to pay with cash or mobile money
+        when their order is delivered. This option will appear alongside your other
+        payment methods in both the storefront checkout and WhatsApp order messages.
+      </p>
+    </div>
+  );
+
   const renderProviderFields = () => {
     switch (provider) {
       case 'paystack':
@@ -516,6 +545,8 @@ export function PaymentConfigForm({
         return renderMomoFields();
       case 'pesapal':
         return renderPesapalFields();
+      case 'pay_on_delivery':
+        return renderPayOnDeliveryFields();
       default:
         return null;
     }
