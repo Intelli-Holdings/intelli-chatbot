@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { Menu, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -58,13 +59,6 @@ export function Navbar() {
     setDropdownOpen((prev) => !prev)
   }
 
-  const handleNavigate = (href: string) => {
-    if (router) {
-      router.push(href)
-      setDropdownOpen(false)
-    }
-  }
-
   const handleClickOutside = useCallback((event: MouseEvent) => {
     if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
       setDropdownOpen(false)
@@ -110,23 +104,22 @@ export function Navbar() {
     <div className={`flex ${mobile ? "flex-col space-y-4" : "items-center space-x-20"}`}>
       {navItems.map((item) => (
         <div key={item.label} className={`relative ${mobile ? "w-full" : "flex"}`}>
-          <a
-            className={`text-gray-600 hover:text-yellow-500 font-medium ${mobile ? "block py-2" : ""}`}
-            href={item.href}
-            onClick={
-              item.label === "Products"
-                ? (e) => {
-                    e.preventDefault()
-                    handleDropdownToggle()
-                  }
-                : (e) => {
-                    e.preventDefault()
-                    handleNavigate(item.href!)
-                  }
-            }
-          >
-            {item.label}
-          </a>
+          {item.subItems ? (
+            <button
+              type="button"
+              className={`text-gray-600 hover:text-yellow-500 font-medium ${mobile ? "block py-2 w-full text-left" : ""}`}
+              onClick={handleDropdownToggle}
+            >
+              {item.label}
+            </button>
+          ) : (
+            <Link
+              className={`text-gray-600 hover:text-yellow-500 font-medium ${mobile ? "block py-2" : ""}`}
+              href={item.href}
+            >
+              {item.label}
+            </Link>
+          )}
 
           {dropdownOpen && item.label === "Products" && item.subItems && (
             <div
@@ -135,17 +128,14 @@ export function Navbar() {
             >
               <div className="py-2">
                 {item.subItems.map((subItem) => (
-                  <a
+                  <Link
                     key={subItem.label}
                     className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
                     href={subItem.href}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleNavigate(subItem.href)
-                    }}
+                    onClick={() => setDropdownOpen(false)}
                   >
                     {subItem.label}
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -159,10 +149,10 @@ export function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/10 backdrop-blur-md border rounded-xl border-b border-gray-200">
       <div className="container mx-auto mx-auto max-w-[1400px] border-x border-gray-200 flex items-center justify-between p-4">
         <div className="flex items-center">
-          <a className="flex items-center" href="/">
+          <Link className="flex items-center" href="/">
             <Image alt="Intelli Concierge" className="h-8 w-8" src="/Intelli.svg" height={32} width={32} />
             <span className="ml-2 text-2xl font-bold text-gray-900">Intelli</span>
-          </a>
+          </Link>
         </div>
 
         {isMobile ? (
