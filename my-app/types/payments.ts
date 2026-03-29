@@ -11,7 +11,7 @@
 /**
  * Supported payment providers
  */
-export type PaymentProvider = 'paystack' | 'flutterwave' | 'mpesa' | 'momo' | 'pesapal';
+export type PaymentProvider = 'paystack' | 'flutterwave' | 'mpesa' | 'momo' | 'pesapal' | 'pay_on_delivery';
 
 /**
  * Payment status
@@ -166,8 +166,8 @@ export interface CreateMPESAConfigRequest {
   provider: 'mpesa';
   consumer_key: string;
   consumer_secret: string;
-  business_shortcode: string;
-  passkey: string;
+  business_shortcode?: string;
+  passkey?: string;
   environment: 'sandbox' | 'production';
 }
 
@@ -193,6 +193,13 @@ export interface CreatePesapalConfigRequest {
 }
 
 /**
+ * Create Pay on Delivery config request
+ */
+export interface CreatePayOnDeliveryConfigRequest {
+  provider: 'pay_on_delivery';
+}
+
+/**
  * Union type for create config requests
  */
 export type CreatePaymentConfigRequest =
@@ -200,7 +207,8 @@ export type CreatePaymentConfigRequest =
   | CreateFlutterwaveConfigRequest
   | CreateMPESAConfigRequest
   | CreateMOMOConfigRequest
-  | CreatePesapalConfigRequest;
+  | CreatePesapalConfigRequest
+  | CreatePayOnDeliveryConfigRequest;
 
 /**
  * Update payment config request
@@ -487,6 +495,17 @@ export const PAYMENT_PROVIDERS: Record<PaymentProvider, PaymentProviderInfo> = {
     payment_methods: ['M-PESA', 'Card', 'Mobile Money', 'Bank Transfer'],
     features: ['Multi-channel payments', 'Recurring billing', 'Payment links'],
     docs_url: 'https://developer.pesapal.com',
+  },
+  pay_on_delivery: {
+    id: 'pay_on_delivery',
+    name: 'Pay on Delivery',
+    description: 'Let customers pay cash or mobile money when their order is delivered',
+    logo: '',
+    supported_countries: [],
+    supported_currencies: [],
+    payment_methods: ['Cash', 'Mobile Money'],
+    features: ['No integration needed', 'Customer trust', 'Works everywhere'],
+    docs_url: '',
   },
 };
 
