@@ -66,14 +66,14 @@ export default function OnboardingPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink>
-              <Link href="/pre-onboarding">Pre-onboarding</Link>              
-           </BreadcrumbLink>
+              <BreadcrumbLink asChild>
+                <Link href="/pre-onboarding">Pre-onboarding</Link>
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink>
-              <Link href="/onboarding">Onboarding</Link>
+              <BreadcrumbLink asChild>
+                <Link href="/onboarding">Onboarding</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
           </BreadcrumbList>

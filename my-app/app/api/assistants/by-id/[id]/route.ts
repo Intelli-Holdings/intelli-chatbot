@@ -5,9 +5,9 @@ import { logger } from "@/lib/logger";
 // DELETE - Delete an assistant by ID
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params
+  const { id } = await params
 
   // Check authentication and get session token
   const { userId, getToken } = await auth()
@@ -91,9 +91,9 @@ export async function DELETE(
 // PUT - Update an assistant by ID
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params
+  const { id } = await params
 
   // Check authentication and get session token
   const { userId, getToken } = await auth()

@@ -12,10 +12,18 @@ type OnboardingContextType = {
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined)
 
+const defaultContextValue: OnboardingContextType = {
+  completedTasks: [],
+  setCompletedTasks: () => {},
+  isOnboardingComplete: false,
+  setIsOnboardingComplete: () => {},
+}
+
 export const useOnboarding = () => {
   const context = useContext(OnboardingContext)
   if (!context) {
-    throw new Error("useOnboarding must be used within an OnboardingProvider")
+    console.warn("useOnboarding called outside OnboardingProvider, using defaults")
+    return defaultContextValue
   }
   return context
 }

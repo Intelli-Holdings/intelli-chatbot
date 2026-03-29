@@ -7,8 +7,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 // POST /api/whatsapp/templates/[id]/send_test - proxy to backend test send endpoint
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { getToken } = await auth()
     const token = await getToken()
@@ -26,7 +27,7 @@ export async function POST(
       )
     }
 
-    const url = `${BASE_URL}/broadcast/whatsapp/templates/${params.id}/send_test/`
+    const url = `${BASE_URL}/broadcast/whatsapp/templates/${id}/send_test/`
 
     const response = await fetch(url, {
       method: "POST",

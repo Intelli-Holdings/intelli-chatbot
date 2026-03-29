@@ -1,7 +1,8 @@
 import { currentUser, auth } from "@clerk/nextjs/server";
 
 export async function getUserOrganizationMemberships(userId: string) {
-  const token = await auth().getToken();
+  const { getToken } = await auth();
+  const token = await getToken();
   const response = await fetch(`https://api.clerk.dev/v1/users/${userId}/organization_memberships`, {
     headers: {
       'Authorization': `Bearer ${token}`,
