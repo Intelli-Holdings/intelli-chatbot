@@ -4,10 +4,10 @@ import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const { organizationId } = params
+    const { organizationId } = await params
     const searchParams = request.nextUrl.searchParams
     const from = searchParams.get("from") || ""
     const to = searchParams.get("to") || ""

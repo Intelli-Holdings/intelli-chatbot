@@ -44,7 +44,7 @@ export function RelatedArticleCard({ post }: { post: MediumPost }) {
             </div>
           </div>
 
-          <Link href={`/blog/${createSlug(post.title)}`}>
+          <Link href={`/blog/${(post as any).slug || createSlug(post.title)}`}>
             <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
               Read Article
             </Button>

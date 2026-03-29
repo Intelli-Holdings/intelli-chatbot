@@ -6,7 +6,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
     // Get authentication token from Clerk
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const organizationId = params.organizationId
+    const { organizationId } = await params
 
     if (!organizationId) {
       return NextResponse.json({ error: "Organization ID is required" }, { status: 400 })

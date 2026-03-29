@@ -3,30 +3,42 @@ import MediumBlogComponent from "./medium-blog-component";
 import { Navbar } from "@/components/navbar";
 import { FooterComponent } from "@/components/home/Footer";
 import { fetchMediumPosts } from "@/lib/medium-feed";
+import { fetchCmsPosts } from "@/lib/cms-feed";
 
-export const revalidate = 300; // revalidate every 5 minutes (ISR)
+export const revalidate = 60; // revalidate every minute (ISR)
 
 export const metadata: Metadata = {
-  title: "Intelli Blog – AI Customer Support, WhatsApp Automation & Industry Insights",
+  title: "Intelli Blog – AI native multi-channel and CX Insights",
   description:
-    "Read the latest from Intelli Holdings Inc.: guides on AI customer support, WhatsApp Business automation, chatbot best practices, and industry insights for governments, NGOs, universities, and enterprises.",
+    "Read the latest from Intelli Holdings Inc.: guides on AI customer support/customer engagement and customer experience, WhatsApp Business automation, AI Agent and AI assistant best practices, and industry insights for governments, NGOs, universities, and enterprises.",
   keywords: [
     "Intelli blog",
     "AI customer support blog",
+    "AI customer engagement software",
+    "AI customer experience platform",
+    "B2C Customer Engagement Multichannel platform",
     "WhatsApp automation guides",
-    "chatbot best practices",
+    "AI assistant best practices",
+    "AI Agent best practices and guides for your business",
     "customer engagement insights",
+    "Africa's best AI customer engagement platform",
   ],
   openGraph: {
-    title: "Intelli Blog – AI & WhatsApp Automation Insights",
+    title: "Intelli Blog – AI native multi-channel and CX Insights",
     description:
-      "Guides, comparisons, and best practices for AI customer support and WhatsApp automation. By Intelli Holdings Inc.",
+      "Guides, comparisons, and best practices for AI customer support/customer engagement and multi-channel platforms.",
     url: "https://intelliconcierge.com/blog",
   },
 };
 
 export default async function BlogPage() {
-  const feedResult = await fetchMediumPosts();
+  const [feedResult, cmsResult] = await Promise.all([
+    fetchMediumPosts(),
+    fetchCmsPosts(),
+  ]);
+
+  // CMS posts first (newest), then Medium posts
+  const allPosts = [...cmsResult.items, ...feedResult.items];
 
   return (
     <div className="relative">
@@ -34,7 +46,7 @@ export default async function BlogPage() {
 
       <main className="pt-20">
 
-        <MediumBlogComponent initialPosts={feedResult.items} />
+        <MediumBlogComponent initialPosts={allPosts} />
 
         <FooterComponent />
       </main>

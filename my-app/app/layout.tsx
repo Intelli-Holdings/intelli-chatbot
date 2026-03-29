@@ -5,18 +5,11 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import Script from "next/script";
 
 import { PHProvider } from './providers'
-import dynamic from 'next/dynamic'
 import { ClerkProvider } from '@clerk/nextjs';
+import { ClientProviders } from './client-providers';
 
 // AEO: Organization + WebSite JSON-LD structured data (injected globally)
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/JsonLd";
-
-// Dynamically loaded non-critical components (reduces initial JS bundle)
-const PostHogPageView = dynamic(() => import('./PostHogPageView'), { ssr: false })
-const ConsentGate = dynamic(() => import('@/components/consent-gate'), { ssr: false })
-const AttentionBadge = dynamic(() => import('@/components/AttentionBadge'), { ssr: false })
-const PointerEventsFix = dynamic(() => import('@/components/pointer-events-fix'), { ssr: false })
-const ToastProvider = dynamic(() => import('@/components/ToastProvider'), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] });
 const dmSans = DM_Sans({
@@ -118,12 +111,8 @@ export default function RootLayout({
         <PHProvider>
           <SpeedInsights />
           <body className={`${inter.className} ${dmSans.variable}`}>
-            <ConsentGate /> {/* renders MetaPixel only after consent */}
-            <AttentionBadge />
-            <PostHogPageView />
-            <PointerEventsFix />
+            <ClientProviders />
             {children}
-            <ToastProvider />
           </body>
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />

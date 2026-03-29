@@ -15,6 +15,8 @@ import { logger } from "@/lib/logger";
 import WebsiteWidgetCard from "@/components/conversations-website";
 import { useWhatsAppAppServices } from "@/hooks/use-whatsapp-appservices";
 import { useWhatsAppChatSessions } from "@/hooks/use-whatsapp-chat-sessions";
+import { useInstagramAppServices } from "@/hooks/use-instagram-appservices";
+import { useInstagramChatSessions } from "@/hooks/use-instagram-chat-sessions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -32,7 +34,19 @@ function StatsCards() {
     error: sessionsError,
   } = useWhatsAppChatSessions(orgId || undefined, primaryPhoneNumber, 12);
 
-  const isLoading = appServicesLoading || sessionsLoading;
+  const {
+    primaryAccountId,
+    isLoading: igAppServicesLoading,
+    error: igAppServicesError,
+  } = useInstagramAppServices(orgId || undefined);
+
+  const {
+    totalCount: totalInstagramConversations,
+    isLoading: igSessionsLoading,
+    error: igSessionsError,
+  } = useInstagramChatSessions(orgId || undefined, primaryAccountId, 12);
+
+  const isLoading = appServicesLoading || sessionsLoading || igAppServicesLoading || igSessionsLoading;
 
   if (appServicesError) {
     logger.error("Failed to fetch app services", { error: appServicesError });
@@ -40,6 +54,14 @@ function StatsCards() {
 
   if (sessionsError) {
     logger.error("Failed to fetch WhatsApp chat sessions", { error: sessionsError });
+  }
+
+  if (igAppServicesError) {
+    logger.error("Failed to fetch Instagram app services", { error: igAppServicesError });
+  }
+
+  if (igSessionsError) {
+    logger.error("Failed to fetch Instagram chat sessions", { error: igSessionsError });
   }
 
   if (isLoading) {
@@ -51,7 +73,7 @@ function StatsCards() {
      <Link href="/dashboard/conversations/whatsapp">
      <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Whatsapp Conversations</CardTitle>
+          <CardTitle className="text-sm font-medium">Whatsapp </CardTitle>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-md">
             <Image
               src="/whatsapp.png"
@@ -74,7 +96,32 @@ function StatsCards() {
       </Card>
 
      </Link>
-      
+
+      <Link href="/dashboard/conversations/instagram">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Instagram</CardTitle>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-md">
+              <Image
+                src="/instagram.png"
+                alt="Instagram"
+                width={20}
+                height={20}
+                className="object-contain"
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{`${totalInstagramConversations} chats`}</div>
+            <p className="text-xs text-muted-foreground">
+              {primaryAccountId
+                ? "Monitor Instagram DM conversations"
+                : "View Instagram chats"
+              }
+            </p>
+          </CardContent>
+        </Card>
+      </Link>
 
       <WebsiteWidgetCard orgId={orgId} apiBaseUrl={API_BASE_URL} />
     </>

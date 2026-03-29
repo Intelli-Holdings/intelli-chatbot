@@ -56,7 +56,7 @@ export const WebsiteWidgetCard: React.FC<WebsiteWidgetCardProps> = ({ orgId, api
                          <Card className="hover:bg-accent transition-colors duration-200 cursor-pointer">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">
-                                    Website Widget Conversations
+                                    Website Conversations
                                 </CardTitle>
                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-md">
                                     <Globe className="h-4 w-4 text-muted-foreground" />                                    

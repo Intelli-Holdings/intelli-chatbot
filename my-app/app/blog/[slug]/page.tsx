@@ -9,23 +9,35 @@ import { Navbar } from "@/components/navbar"
 import { createSlug, formatDate } from "@/lib/blog-utils"
 import { sanitizeHtml } from "@/lib/sanitize"
 import { fetchMediumPosts } from "@/lib/medium-feed"
+import { fetchCmsPosts } from "@/lib/cms-feed"
 import { RelatedArticleCard } from "./article-content"
 
-export const revalidate = 300 // revalidate every 5 minutes (ISR)
+export const revalidate = 60 // revalidate every minute (ISR)
 
 interface PageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
+}
+
+async function getAllPosts() {
+  const [feedResult, cmsResult] = await Promise.all([
+    fetchMediumPosts(),
+    fetchCmsPosts(),
+  ])
+  return [...cmsResult.items, ...feedResult.items]
+}
+
+function findBySlug(posts: Awaited<ReturnType<typeof getAllPosts>>, slug: string) {
+  // CMS posts use their own slug field; Medium posts derive slug from title
+  return posts.find((post) => {
+    const postSlug = (post as any).slug || createSlug(post.title)
+    return postSlug === slug
+  })
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = params
-  const feedResult = await fetchMediumPosts()
-
-  if (!feedResult.success) {
-    return { title: "Article – Intelli Blog" }
-  }
-
-  const article = feedResult.items.find((post) => createSlug(post.title) === slug)
+  const { slug } = await params
+  const allPosts = await getAllPosts()
+  const article = findBySlug(allPosts, slug)
 
   if (!article) {
     return { title: "Article Not Found – Intelli Blog" }
@@ -47,26 +59,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export async function generateStaticParams() {
-  const feedResult = await fetchMediumPosts()
+  const allPosts = await getAllPosts()
 
-  if (!feedResult.success) {
-    return []
-  }
-
-  return feedResult.items.map((post) => ({
-    slug: createSlug(post.title),
+  return allPosts.map((post) => ({
+    slug: (post as any).slug || createSlug(post.title),
   }))
 }
 
 export default async function BlogArticlePage({ params }: PageProps) {
-  const { slug } = params
-  const feedResult = await fetchMediumPosts()
-
-  if (!feedResult.success) {
-    notFound()
-  }
-
-  const article = feedResult.items.find((post) => createSlug(post.title) === slug)
+  const { slug } = await params
+  const allPosts = await getAllPosts()
+  const article = findBySlug(allPosts, slug)
 
   if (!article) {
     return (
@@ -95,8 +98,11 @@ export default async function BlogArticlePage({ params }: PageProps) {
     )
   }
 
-  const relatedArticles = feedResult.items
-    .filter((post) => createSlug(post.title) !== slug)
+  const relatedArticles = allPosts
+    .filter((post) => {
+      const postSlug = (post as any).slug || createSlug(post.title)
+      return postSlug !== slug
+    })
     .slice(0, 3)
 
   return (

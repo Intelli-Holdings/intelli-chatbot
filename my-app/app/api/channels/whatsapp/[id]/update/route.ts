@@ -7,7 +7,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 // PUT /api/channels/whatsapp/[id]/update - Update a WhatsApp package
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { getToken } = await auth()
@@ -17,7 +17,7 @@ export async function PUT(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
 
     if (!id) {

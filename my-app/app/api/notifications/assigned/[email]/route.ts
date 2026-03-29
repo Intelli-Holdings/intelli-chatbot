@@ -4,9 +4,9 @@ import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { email: string } }
+  { params }: { params: Promise<{ email: string }> }
 ) {
-  const { email } = params
+  const { email } = await params
 
   try {
     // Get authentication token from Clerk

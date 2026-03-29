@@ -82,12 +82,16 @@ const nextConfig = {
       {
       protocol: "https",
       hostname: "res.cloudinary.com",
+    },
+    {
+      protocol: "https",
+      hostname: "*.public.blob.vercel-storage.com",
+      pathname: "/**",
     }
     ],
   },
   experimental: {
     mdxRs: true,
-    instrumentationHook: true,
   },
   async redirects() {
     return [
@@ -144,7 +148,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+            value: 'camera=(self), microphone=(self), geolocation=(), interest-cohort=()',
           },
           {
             key: 'Document-Policy',

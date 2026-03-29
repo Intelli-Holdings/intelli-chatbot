@@ -7,9 +7,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 // POST /api/campaigns/whatsapp/[id]/retry_messages - Retry failed messages in WhatsApp campaign
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { getToken } = await auth()
     const token = await getToken()
 
@@ -27,7 +28,7 @@ export async function POST(
       )
     }
 
-    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/retry_messages/`
+    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${id}/retry_messages/`
 
     const response = await fetch(url, {
       method: "POST",

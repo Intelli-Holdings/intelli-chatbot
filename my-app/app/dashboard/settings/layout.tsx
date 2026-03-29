@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Webhook,
   ChevronLeft,
+  TicketCheck,
 } from "lucide-react"
 
 const settingsNavigation = [
@@ -38,6 +39,11 @@ const settingsNavigation = [
     title: "Webhooks",
     href: "/dashboard/settings/webhooks",
     icon: Webhook,
+  },
+  {
+    title: "Support Tickets",
+    href: "/dashboard/settings/tickets",
+    icon: TicketCheck,
   },
 ]
 

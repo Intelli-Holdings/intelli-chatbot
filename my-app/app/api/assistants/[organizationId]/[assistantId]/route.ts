@@ -4,9 +4,9 @@ import { auth } from "@clerk/nextjs/server"
 import { logger } from "@/lib/logger";
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { organizationId: string; assistantId: string } },
+  { params }: { params: Promise<{ organizationId: string; assistantId: string }> },
 ) {
-  const { organizationId, assistantId } = params
+  const { organizationId, assistantId } = await params
 
   // Check authentication and get session token
   const { userId, getToken } = await auth()
@@ -61,9 +61,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { organizationId: string; assistantId: string } },
+  { params }: { params: Promise<{ organizationId: string; assistantId: string }> },
 ) {
-  const { organizationId, assistantId } = params
+  const { organizationId, assistantId } = await params
 
   // Check authentication and get session token
   const { userId, getToken } = await auth()

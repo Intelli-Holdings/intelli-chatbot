@@ -12,6 +12,7 @@ export interface MediumPost {
   author?: string
   readTime?: string
   guid?: string
+  slug?: string
 }
 
 export interface MediumFeedResult {
