@@ -37,7 +37,7 @@ export function WidgetCommunication({
   const [demoMode, setDemoMode] = useState(Boolean(forceDemoMode));
   const [isTyping, setIsTyping] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
   const connectionAttempts = useRef(0);
   const visitorIdRef = useRef(`preview_${Math.random().toString(36).slice(2, 10)}`);
   const pendingResponsesRef = useRef(0);

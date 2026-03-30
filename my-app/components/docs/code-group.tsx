@@ -21,9 +21,11 @@ const CodeGroup: React.FC<CodeGroupProps> = ({ children }) => {
 
   const renderCodeBlocks = () => {
     return React.Children.map(children, (child) => {
-      if (React.isValidElement(child) && typeof child.props.children === 'string') {
-        const code = child.props.children.trim();
-        const language = child.props.className?.replace('language-', '') || 'text';
+      if (React.isValidElement(child)) {
+        const childProps = child.props as Record<string, unknown>;
+        if (typeof childProps.children !== 'string') return null;
+        const code = (childProps.children as string).trim();
+        const language = (typeof childProps.className === 'string' ? childProps.className : '').replace('language-', '') || 'text';
 
         return (
           <div className="relative group mt-4 mb-6">

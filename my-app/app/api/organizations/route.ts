@@ -6,7 +6,8 @@ export async function POST(request: Request) {
   try {
     const { name, userId } = await request.json();
     
-    const organization = await clerkClient.organizations.createOrganization({
+    const clerk = await clerkClient()
+    const organization = await clerk.organizations.createOrganization({
       name,
       createdBy: userId,
     });
