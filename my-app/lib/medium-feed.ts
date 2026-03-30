@@ -1,5 +1,6 @@
 import Parser from "rss-parser"
 import { extractImageFromContent, calculateReadTime, createContentSnippet } from "@/lib/blog-utils"
+import { fetchCMSPosts } from "@/lib/cms-feed"
 
 export interface MediumPost {
   title: string
@@ -83,5 +84,52 @@ export async function fetchMediumPosts(): Promise<MediumFeedResult> {
       totalItems: 0,
       error: error instanceof Error ? error.message : "Failed to fetch Medium feed",
     }
+  }
+}
+
+/**
+ * Fetches posts from both Medium RSS and the Intelli CMS,
+ * merges them, deduplicates by title, and sorts by date descending.
+ */
+export async function fetchAllPosts(): Promise<MediumFeedResult> {
+  const [mediumResult, cmsResult] = await Promise.allSettled([
+    fetchMediumPosts(),
+    fetchCMSPosts(),
+  ])
+
+  const mediumItems = mediumResult.status === "fulfilled" && mediumResult.value.success
+    ? mediumResult.value.items
+    : []
+
+  const cmsItems = cmsResult.status === "fulfilled" && cmsResult.value.success
+    ? cmsResult.value.items
+    : []
+
+  // Deduplicate by normalized title
+  const seen = new Set<string>()
+  const merged: MediumPost[] = []
+
+  for (const item of [...cmsItems, ...mediumItems]) {
+    const key = item.title.toLowerCase().trim()
+    if (!seen.has(key)) {
+      seen.add(key)
+      merged.push(item)
+    }
+  }
+
+  // Sort by pubDate descending (newest first)
+  merged.sort((a, b) => {
+    const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0
+    const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0
+    return dateB - dateA
+  })
+
+  const feedInfo = mediumResult.status === "fulfilled" ? mediumResult.value.feedInfo : undefined
+
+  return {
+    success: mediumItems.length > 0 || cmsItems.length > 0,
+    items: merged,
+    totalItems: merged.length,
+    feedInfo,
   }
 }
