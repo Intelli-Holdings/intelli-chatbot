@@ -87,6 +87,18 @@ const nextConfig = {
       {
       protocol: "https",
       hostname: "res.cloudinary.com",
+    },
+    {
+      protocol: 'https',
+      hostname: 'cms.intelliconcierge.com',
+      port: '',
+      pathname: '/**',
+    },
+    {
+      protocol: 'https',
+      hostname: '*.public.blob.vercel-storage.com',
+      port: '',
+      pathname: '/**',
     }
     ],
   },
