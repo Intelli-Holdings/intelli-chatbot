@@ -55,6 +55,7 @@ export async function fetchCMSPosts(): Promise<MediumFeedResult> {
       author: item.author || "Intelli",
       readTime: item.readTime,
       guid: item.guid,
+      source: "cms" as const,
     }))
 
     return {
