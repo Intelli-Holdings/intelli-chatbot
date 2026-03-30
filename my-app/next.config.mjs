@@ -21,11 +21,6 @@ const nextConfig = {
     localPatterns: [
       {
         pathname: '/**',
-        search: '',
-      },
-      {
-        pathname: '/**',
-        search: '?height=*&width=*',
       },
     ],
     remotePatterns: [
