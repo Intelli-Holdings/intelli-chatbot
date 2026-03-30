@@ -13,6 +13,7 @@ export interface MediumPost {
   author?: string
   readTime?: string
   guid?: string
+  source?: "medium" | "cms"
 }
 
 export interface MediumFeedResult {
@@ -62,6 +63,7 @@ export async function fetchMediumPosts(): Promise<MediumFeedResult> {
         author: item.creator || item["dc:creator"] || "Intelli",
         readTime: calculateReadTime(fullContent),
         guid: item.guid,
+        source: "medium" as const,
       }
     })
 
@@ -105,17 +107,20 @@ export async function fetchAllPosts(): Promise<MediumFeedResult> {
     ? cmsResult.value.items
     : []
 
-  // Deduplicate by normalized title
-  const seen = new Set<string>()
-  const merged: MediumPost[] = []
-
-  for (const item of [...cmsItems, ...mediumItems]) {
-    const key = item.title.toLowerCase().trim()
-    if (!seen.has(key)) {
+  // Deduplicate within each source only (not across sources)
+  const dedup = (items: MediumPost[]): MediumPost[] => {
+    const seen = new Set<string>()
+    return items.filter((item) => {
+      const key = item.title.toLowerCase().trim()
+      if (seen.has(key)) return false
       seen.add(key)
-      merged.push(item)
-    }
+      return true
+    })
   }
+
+  const dedupedCms = dedup(cmsItems)
+  const dedupedMedium = dedup(mediumItems)
+  const merged = [...dedupedCms, ...dedupedMedium]
 
   // Sort by pubDate descending (newest first)
   merged.sort((a, b) => {
