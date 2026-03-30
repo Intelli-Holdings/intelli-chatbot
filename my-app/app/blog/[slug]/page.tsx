@@ -317,7 +317,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
             {/* Featured Image */}
             {article.thumbnail && (
               <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-12 shadow-2xl">
-                <Image src={article.thumbnail} alt={article.title} fill className="object-cover" priority />
+                <Image src={article.thumbnail} alt={article.title} fill className="object-cover" priority sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 896px" />
               </div>
             )}
 
