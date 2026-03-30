@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import MediumBlogComponent from "./medium-blog-component";
 import { Navbar } from "@/components/navbar";
 import { FooterComponent } from "@/components/home/Footer";
-import { fetchMediumPosts } from "@/lib/medium-feed";
+import { fetchAllPosts } from "@/lib/medium-feed";
 
 export const revalidate = 300; // revalidate every 5 minutes (ISR)
 
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogPage() {
-  const feedResult = await fetchMediumPosts();
+  const feedResult = await fetchAllPosts();
 
   return (
     <div className="relative">
