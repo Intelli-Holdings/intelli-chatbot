@@ -46,6 +46,9 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: 'https://www.intelliconcierge.com',
+    types: {
+      'application/rss+xml': 'https://www.intelliconcierge.com/feed.xml',
+    },
   },
   openGraph: {
     siteName: 'Intelli — AI Customer Engagement Platform',

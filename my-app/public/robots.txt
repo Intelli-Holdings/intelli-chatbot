@@ -1,8 +1,76 @@
+# Default rule
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+Disallow: /onboarding/
+Disallow: /pre-onboarding/
+Disallow: /test-auth/
 
-# Explicitly allow AI crawlers to access llms.txt
+# AI Answer Engine Crawlers — explicitly invited
+User-agent: GPTBot
+Allow: /
+Allow: /blog/
 Allow: /llms.txt
+Allow: /feed.xml
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
 
-# Sitemap location
-Sitemap: https://intelliconcierge.com/sitemap.xml
+User-agent: ChatGPT-User
+Allow: /
+Allow: /blog/
+Allow: /llms.txt
+Allow: /feed.xml
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+
+User-agent: Google-Extended
+Allow: /
+Allow: /blog/
+Allow: /llms.txt
+Allow: /feed.xml
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /blog/
+Allow: /llms.txt
+Allow: /feed.xml
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+
+User-agent: Amazonbot
+Allow: /
+Allow: /blog/
+Allow: /llms.txt
+Allow: /feed.xml
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /blog/
+Allow: /llms.txt
+Allow: /feed.xml
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /blog/
+Allow: /llms.txt
+Allow: /feed.xml
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+
+# Sitemap
+Sitemap: https://www.intelliconcierge.com/sitemap.xml
