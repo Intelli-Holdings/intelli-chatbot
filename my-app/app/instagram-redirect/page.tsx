@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,18 @@ type Assistant = {
  * 4. Redirects to conversations
  */
 export default function InstagramRedirectPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 p-4">
+        <div className="w-10 h-10 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
+      </div>
+    }>
+      <InstagramRedirectContent />
+    </Suspense>
+  )
+}
+
+function InstagramRedirectContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { organization } = useOrganization()

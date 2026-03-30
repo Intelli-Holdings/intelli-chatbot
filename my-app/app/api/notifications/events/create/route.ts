@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function POST(request: NextRequest) {
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

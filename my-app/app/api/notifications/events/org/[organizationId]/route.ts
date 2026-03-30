@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ organizationId: string }> }
 ) {
   const { organizationId } = await params;
-  const { userId, orgId: authOrgId, getToken } = auth();
+  const { userId, orgId: authOrgId, getToken } = await auth();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
