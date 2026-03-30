@@ -1,6 +1,19 @@
+import type { Metadata } from "next";
 import { Navbar } from "@/components/navbar";
 import React from "react";
 import TestimonialSection from "@/components/testimonial-section";
+
+export const metadata: Metadata = {
+  title: "Customer Stories – How Businesses Use Intelli for AI Support",
+  description:
+    "Read real success stories from businesses using Intelli's AI-powered customer engagement platform to automate WhatsApp support, reduce response times, and scale customer service.",
+  alternates: { canonical: "https://www.intelliconcierge.com/customer-stories" },
+  openGraph: {
+    title: "Customer Stories – Intelli AI Platform",
+    description: "See how organizations use Intelli to transform customer engagement with AI across WhatsApp, web chat, and email.",
+    url: "https://www.intelliconcierge.com/customer-stories",
+  },
+};
 
 export default function CustomerStoriesPage() {
   return (
