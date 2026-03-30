@@ -18,6 +18,16 @@ const nextConfig = {
     return config;
   },
   images: {
+    localPatterns: [
+      {
+        pathname: '/**',
+        search: '',
+      },
+      {
+        pathname: '/**',
+        search: '?height=*&width=*',
+      },
+    ],
     remotePatterns: [
       {
         protocol: 'https',

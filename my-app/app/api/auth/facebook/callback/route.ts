@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
   }
 
   const decodedState = decodeState(state)
-  const storedState = cookies().get("meta_oauth_state")?.value
+  const storedState = (await cookies()).get("meta_oauth_state")?.value
   if (!decodedState || !storedState || decodedState.nonce !== storedState) {
     return NextResponse.json({ error: "Invalid OAuth state" }, { status: 400 })
   }
@@ -147,7 +147,8 @@ export async function GET(request: NextRequest) {
     channel,
   })
 
-  cookies().set("meta_oauth_state", "", { maxAge: 0, path: "/" })
+  const cookieStore = await cookies()
+  cookieStore.set("meta_oauth_state", "", { maxAge: 0, path: "/" })
 
   const successRedirect = process.env.NEXT_PUBLIC_META_SUCCESS_REDIRECT || `${appBaseUrl}/dashboard`
   const redirectUrl = new URL(successRedirect)

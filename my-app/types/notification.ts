@@ -80,7 +80,7 @@ export type TeamMember = {
 
 export type ClerkMember = {
   id: string
-  publicUserData: {
+  publicUserData?: {
     firstName?: string | null
     lastName?: string | null
     imageUrl?: string | null

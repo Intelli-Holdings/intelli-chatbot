@@ -59,7 +59,7 @@ export const JoinedOrganizations = () => {
           <tbody>
             {filteredMemberships?.map((mem) => (
               <tr key={mem.id} className="border-b hover:bg-gray-50">
-                <td className="py-2 px-4">{mem.publicUserData.identifier}</td>
+                <td className="py-2 px-4">{mem.publicUserData?.identifier}</td>
                 <td className="py-2 px-4">{mem.organization.name}</td>
                 <td className="py-2 px-4">
                   {new Date(mem.createdAt).toLocaleDateString()}
@@ -106,7 +106,6 @@ export const JoinedOrganizations = () => {
       <CreateOrganization
         afterCreateOrganizationUrl="/dashboard"
         skipInvitationScreen={false}
-        hideSlug={true}
       />
     </div>
   </div>

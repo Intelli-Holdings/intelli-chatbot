@@ -22,7 +22,7 @@ export const useNotifications = () => {
   const [isConnected, setIsConnected] = useState(false);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 50;
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
   const wsRef = useRef<WebSocket | null>(null);
   const toastIdRef = useRef<string | number>('');
   const audioRef = useRef<HTMLAudioElement | null>(null);
