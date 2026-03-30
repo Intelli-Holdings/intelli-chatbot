@@ -9,6 +9,8 @@ import { Navbar } from "@/components/navbar"
 import { createSlug, formatDate } from "@/lib/blog-utils"
 import { sanitizeHtml } from "@/lib/sanitize"
 import { fetchAllPosts } from "@/lib/medium-feed"
+import { getCanonicalUrl } from "@/lib/metadata"
+import { BlogPostingJsonLd } from "@/components/seo/JsonLd"
 import { RelatedArticleCard } from "./article-content"
 
 export const revalidate = 300 // revalidate every 5 minutes (ISR)
@@ -31,13 +33,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Article Not Found – Intelli Blog" }
   }
 
+  const canonicalUrl = getCanonicalUrl(`/blog/${slug}`)
+
   return {
     title: `${article.title} – Intelli Blog`,
     description: article.contentSnippet,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: article.title,
       description: article.contentSnippet,
-      url: `https://intelliconcierge.com/blog/${slug}`,
+      url: canonicalUrl,
       type: "article",
       ...(article.thumbnail && { images: [{ url: article.thumbnail }] }),
       ...(article.pubDate && { publishedTime: article.pubDate }),
@@ -273,6 +280,15 @@ export default async function BlogArticlePage({ params }: PageProps) {
           vertical-align: sub;
         }
       `}</style>
+
+      <BlogPostingJsonLd
+        title={article.title}
+        description={article.contentSnippet}
+        datePublished={article.pubDate || new Date().toISOString()}
+        authorName={article.author || "Intelli"}
+        url={getCanonicalUrl(`/blog/${slug}`)}
+        image={article.thumbnail}
+      />
 
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
