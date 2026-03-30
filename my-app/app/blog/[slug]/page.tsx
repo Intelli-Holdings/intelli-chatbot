@@ -8,7 +8,7 @@ import { ArrowLeft, Calendar, Clock, ExternalLink } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { createSlug, formatDate } from "@/lib/blog-utils"
 import { sanitizeHtml } from "@/lib/sanitize"
-import { fetchMediumPosts } from "@/lib/medium-feed"
+import { fetchAllPosts } from "@/lib/medium-feed"
 import { RelatedArticleCard } from "./article-content"
 
 export const revalidate = 300 // revalidate every 5 minutes (ISR)
@@ -19,7 +19,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
-  const feedResult = await fetchMediumPosts()
+  const feedResult = await fetchAllPosts()
 
   if (!feedResult.success) {
     return { title: "Article – Intelli Blog" }
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export async function generateStaticParams() {
-  const feedResult = await fetchMediumPosts()
+  const feedResult = await fetchAllPosts()
 
   if (!feedResult.success) {
     return []
@@ -60,7 +60,7 @@ export async function generateStaticParams() {
 
 export default async function BlogArticlePage({ params }: PageProps) {
   const { slug } = await params
-  const feedResult = await fetchMediumPosts()
+  const feedResult = await fetchAllPosts()
 
   if (!feedResult.success) {
     notFound()
@@ -214,6 +214,64 @@ export default async function BlogArticlePage({ params }: PageProps) {
           border-radius: 12px;
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
+
+        .article-content table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 2rem 0;
+          font-size: 0.95rem;
+          overflow-x: auto;
+          display: block;
+        }
+
+        .article-content thead {
+          background-color: #f9fafb;
+        }
+
+        .article-content th {
+          padding: 0.75rem 1rem;
+          text-align: left;
+          font-weight: 600;
+          color: #111827;
+          border-bottom: 2px solid #e5e7eb;
+        }
+
+        .article-content td {
+          padding: 0.75rem 1rem;
+          border-bottom: 1px solid #e5e7eb;
+          color: #374151;
+        }
+
+        .article-content tr:hover {
+          background-color: #f9fafb;
+        }
+
+        .article-content mark {
+          background-color: #fef08a;
+          padding: 0.1rem 0.3rem;
+          border-radius: 3px;
+        }
+
+        .article-content del {
+          text-decoration: line-through;
+          color: #9ca3af;
+        }
+
+        .article-content hr {
+          border: none;
+          border-top: 1px solid #e5e7eb;
+          margin: 2.5rem 0;
+        }
+
+        .article-content sup {
+          font-size: 0.75em;
+          vertical-align: super;
+        }
+
+        .article-content sub {
+          font-size: 0.75em;
+          vertical-align: sub;
+        }
       `}</style>
 
       <Navbar />
@@ -269,7 +327,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
             </div>
 
             {/* Original Article Link */}
-            {article.link !== "#" && (
+            {article.link !== "#" && !article.link.includes("cms.intelliconcierge.com") && (
               <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-xl">
                 <p className="text-blue-800 mb-4 font-medium">Want to engage with this article on Medium?</p>
                 <Link href={article.link} target="_blank" rel="noopener noreferrer">
