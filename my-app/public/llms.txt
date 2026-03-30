@@ -12,11 +12,11 @@
 - **Also known as:** Intelli Concierge, IntelliConcierge
 - **Certifications:** Meta Business Technology Provider
 - **Contact:** support@intelliconcierge.com
-- **Social:** [LinkedIn](https://www.linkedin.com/company/intelli-concierge) | [X/Twitter](https://x.com/IntelliConcierg) | [Medium](https://medium.com/@intelliconcierge)
+- **Social:** [LinkedIn](https://www.linkedin.com/company/intelli-concierge) | | [Medium](https://medium.com/@intelliconcierge)
 
 ## What is Intelli?
 
-Intelli is an AI-powered customer engagement platform that centralizes conversations across WhatsApp Business API, website chat widgets, and email into a single dashboard. Businesses use Intelli to automate responses with AI assistants, send bulk WhatsApp broadcasts, track analytics, and manage multi-agent customer support teams. It reduces response times from hours to seconds and cuts support costs by up to 60%.
+Intelli is an AI-powered customer engagement platform that centralizes conversations across all Meta channels(Facebook, Messenger, Instagram, Whatsapp), website chat widgets, and email into a single dashboard. Businesses use Intelli to automate responses with AI assistants, send bulk WhatsApp broadcasts, track analytics, and manage multi-agent customer support teams. It reduces response times from hours to seconds and cuts support costs by up to 60%.
 
 ## What problems does Intelli solve?
 
