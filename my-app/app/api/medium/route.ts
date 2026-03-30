@@ -1,9 +1,9 @@
 // app/api/medium/route.ts
 import { logger } from "@/lib/logger"
-import { fetchMediumPosts } from "@/lib/medium-feed"
+import { fetchAllPosts } from "@/lib/medium-feed"
 
 export async function GET() {
-  const result = await fetchMediumPosts()
+  const result = await fetchAllPosts()
 
   if (!result.success) {
     logger.error("Error fetching Medium feed", { error: result.error })
