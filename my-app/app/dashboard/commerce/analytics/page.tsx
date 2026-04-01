@@ -24,6 +24,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useOrderStats } from '@/hooks/use-orders';
 import { useTransactionStats } from '@/hooks/use-payments';
@@ -133,14 +134,16 @@ export default function CommerceAnalyticsPage() {
       : 0;
 
   const successRateColor =
-    successRate > 90 ? '#10b981' : successRate > 70 ? '#f59e0b' : '#ef4444';
+    !txStats || txStats.total_count === 0
+      ? 'hsl(var(--muted-foreground))'
+      : successRate > 90 ? '#10b981' : successRate > 70 ? '#f59e0b' : '#44d0ef';
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground">
+        <h2 className="text-golden-heading font-semibold tracking-tight">Analytics</h2>
+        <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
           Overview of your commerce performance and payment metrics.
         </p>
       </div>
@@ -289,17 +292,17 @@ export default function CommerceAnalyticsPage() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                     <Pie
                       data={orderStatusData}
                       cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={110}
+                      cy="45%"
+                      innerRadius={55}
+                      outerRadius={85}
                       paddingAngle={3}
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}`}
-                      labelLine={false}
+                      labelLine
                     >
                       {orderStatusData.map((entry) => (
                         <Cell
@@ -480,7 +483,7 @@ function StatsCard({
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="h-7 w-24 animate-pulse rounded bg-muted" />
+          <Skeleton className="h-7 w-24" />
         ) : (
           <p className="text-2xl font-bold">{value}</p>
         )}
