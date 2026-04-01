@@ -7,9 +7,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 // POST /api/campaigns/whatsapp/[id]/add_recipients - Add recipients to WhatsApp campaign
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { getToken } = await auth()
     const token = await getToken()
 
@@ -57,7 +58,7 @@ export async function POST(
       )
     }
 
-    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/add_recipients/`
+    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${id}/add_recipients/`
 
     const response = await fetch(url, {
       method: "POST",

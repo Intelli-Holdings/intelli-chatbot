@@ -19,9 +19,10 @@ interface MessageContentProps {
 
 interface ImagePreviewProps {
   src: string
+  title?: string
 }
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({ src }) => {
+const ImagePreview: React.FC<ImagePreviewProps> = ({ src, title }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
   const [useImgTag, setUseImgTag] = useState(false)
@@ -34,7 +35,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src }) => {
   }
 
   return (
-    <div className="relative rounded-md overflow-hidden my-2 max-w-xs">
+    <div className="relative rounded-md overflow-hidden my-2 max-w-xs" title={title || undefined}>
       {isLoading && <div className="w-full h-40 bg-gray-200 animate-pulse rounded-md"></div>}
 
       {error && !useImgTag ? (
@@ -43,7 +44,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src }) => {
         // Fallback to native img tag for Azure Blob Storage
         <img
           src={src || "/placeholder.svg"}
-          alt="Shared image"
+          alt={title || "Shared image"}
           className={`rounded-md object-cover max-w-xs h-auto ${isLoading ? "invisible" : "visible"}`}
           onLoad={() => setIsLoading(false)}
           onError={handleImageError}
@@ -54,7 +55,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ src }) => {
         <div className={`${isLoading ? "invisible" : "visible"}`}>
           <Image
             src={src || "/placeholder.svg"}
-            alt="Shared image"
+            alt={title || "Shared image"}
             width={300}
             height={200}
             className="rounded-md object-cover max-w-xs h-auto"

@@ -6,22 +6,12 @@ import { usePathname } from "next/navigation"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
 import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
 
 // Notifications
 import ToastProvider from "@/components/ToastProvider"
 import { NotificationProvider } from "@/hooks/use-notification-context"
 import { NotificationIndicator } from "@/components/notification-indicator"
 
-// Tour — only needed in dashboard
-const TourProviderWrapper = dynamic(() => import('@/components/tour-provider-wrapper'), { ssr: false })
-
-export const viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
-}
 
 function DashboardLayoutContent({
   children,
@@ -77,9 +67,7 @@ export default function DashboardLayout({
     <div suppressHydrationWarning>
       <QueryClientProvider client={queryClient}>
         <NotificationProvider>
-          <TourProviderWrapper>
-            <DashboardLayoutContent>{children}</DashboardLayoutContent>
-          </TourProviderWrapper>
+          <DashboardLayoutContent>{children}</DashboardLayoutContent>
           <ToastProvider />
         </NotificationProvider>
       </QueryClientProvider>

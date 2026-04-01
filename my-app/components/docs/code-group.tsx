@@ -21,7 +21,7 @@ const CodeGroup: React.FC<CodeGroupProps> = ({ children }) => {
 
   const renderCodeBlocks = () => {
     return React.Children.map(children, (child) => {
-      if (React.isValidElement(child) && typeof child.props.children === 'string') {
+      if (React.isValidElement<{children?: string; className?: string}>(child) && typeof child.props.children === 'string') {
         const code = child.props.children.trim();
         const language = child.props.className?.replace('language-', '') || 'text';
 

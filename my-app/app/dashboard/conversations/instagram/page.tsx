@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { Suspense, useState, useEffect, useRef, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   Select,
@@ -24,6 +24,8 @@ import { logger } from "@/lib/logger"
 import { ConversationsSkeleton } from "@/components/conversations/conversations-skeleton"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 type ReadConversationsMap = Record<string, string>
 const EMPTY_MESSAGES: Conversation["messages"] = []
@@ -73,6 +75,14 @@ const saveReadConversations = (accountId: string, readConversations: ReadConvers
 }
 
 export default function InstagramConvosPage() {
+  return (
+    <Suspense fallback={<ConversationsSkeleton />}>
+      <InstagramConvosContent />
+    </Suspense>
+  )
+}
+
+function InstagramConvosContent() {
   const searchParams = useSearchParams()
   const customerParam = searchParams.get('customer')
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -89,6 +99,7 @@ export default function InstagramConvosPage() {
   const scrollPositionsRef = useRef<Record<number, number>>({})
   const conversationsRef = useRef<Conversation[]>([])
   const hasAutoSelectedRef = useRef(false)
+  const hasShownErrorToastRef = useRef(false)
 
   const {
     appServices,
@@ -210,7 +221,15 @@ export default function InstagramConvosPage() {
     }
 
     if (appServicesError) {
-      toast.error(appServicesError)
+      if (!hasShownErrorToastRef.current) {
+        toast.error(appServicesError)
+        hasShownErrorToastRef.current = true
+      }
+      setIsInitializing(false)
+      return
+    }
+
+    if (appServices.length === 0) {
       setIsInitializing(false)
       return
     }
@@ -219,7 +238,7 @@ export default function InstagramConvosPage() {
       setLoadingProgress(40)
       setLoadingMessage("Instagram account loaded")
     }
-  }, [activeOrganizationId, appServicesLoading, appServicesError, accountId])
+  }, [activeOrganizationId, appServicesLoading, appServicesError, appServices.length, accountId])
 
   useEffect(() => {
     if (!accountId || !activeOrganizationId) return
@@ -231,7 +250,10 @@ export default function InstagramConvosPage() {
     }
 
     if (sessionsError) {
-      toast.error(sessionsError)
+      if (!hasShownErrorToastRef.current) {
+        toast.error(sessionsError)
+        hasShownErrorToastRef.current = true
+      }
       setIsInitializing(false)
       return
     }
@@ -458,10 +480,15 @@ export default function InstagramConvosPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
             <Image src="/instagram.png" alt="Instagram" width={64} height={64} className="object-contain" />
           </div>
-          <h1 className="text-lg font-semibold text-muted-foreground mb-2">No Instagram Account Connected</h1>
-          <p className="text-sm text-muted-foreground">
-            Connect your Instagram Business account from the Channels page to start receiving direct messages.
+          <h1 className="text-lg font-semibold text-foreground mb-2">No Instagram Account Connected</h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            Connect your Instagram Business account to start receiving and responding to direct messages.
           </p>
+          <Button asChild>
+            <Link href="/dashboard">
+              Connect Instagram
+            </Link>
+          </Button>
         </div>
       </div>
     )

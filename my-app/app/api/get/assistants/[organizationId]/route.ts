@@ -4,9 +4,9 @@ import { logger } from "@/lib/logger";
 // GET - List assistants for an organization
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
-  const { organizationId } = params
+  const { organizationId } = await params
   
   try {
     logger.debug("API route called", { organizationId })

@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
  */
 export async function DELETE() {
   try {
-    const { userId, orgId } = auth();
+    const { userId, orgId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

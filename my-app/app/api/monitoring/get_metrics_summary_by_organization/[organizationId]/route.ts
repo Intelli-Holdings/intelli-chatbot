@@ -23,10 +23,10 @@ interface MetricsSnapshot {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const { organizationId } = params
+    const { organizationId } = await params
     const searchParams = request.nextUrl.searchParams
     const period = searchParams.get("period") || "30"
 

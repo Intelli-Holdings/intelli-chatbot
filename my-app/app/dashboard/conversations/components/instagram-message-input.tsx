@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import { logger } from "@/lib/logger"
 import EmojiPicker from "emoji-picker-react"
 import { Textarea } from "@/components/ui/textarea"
+import { getSupportedAudioMimeType, getAudioExtension, convertWebmToWav } from "@/utils/audioConvert"
 
 interface InstagramMessageInputProps {
   customerNumber: string
@@ -111,50 +112,62 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
     setError(null)
     setIsLoading(true)
 
+    // Capture current state before clearing
+    const currentAnswer = answer
+    const currentFiles = [...files]
+    const currentAudioBlob = audioBlob
+    const currentAudioUrl = audioUrl
+
     let mediaUrl: string | undefined
     let mediaType: string | undefined
 
-    if (files.length > 0) {
-      mediaUrl = URL.createObjectURL(files[0])
-      mediaType = getMediaType(files[0])
-    } else if (audioBlob) {
-      mediaUrl = audioUrl || undefined
+    if (currentFiles.length > 0) {
+      mediaUrl = URL.createObjectURL(currentFiles[0])
+      mediaType = getMediaType(currentFiles[0])
+    } else if (currentAudioBlob) {
+      mediaUrl = currentAudioUrl || undefined
       mediaType = "audio"
     }
 
-    const tempId = onMessageSent ? onMessageSent(answer || "Media", mediaUrl, mediaType) : undefined
+    const tempId = onMessageSent ? onMessageSent(currentAnswer || "Media", mediaUrl, mediaType) : undefined
+
+    // Clear input immediately (Instagram-style optimistic UX)
+    setAnswer("")
+    setFiles([])
+    setAudioBlob(null)
+    setAudioWaveform([])
+    if (currentAudioUrl) {
+      URL.revokeObjectURL(currentAudioUrl)
+      setAudioUrl(null)
+    }
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+    }
 
     try {
       const formData = new FormData()
       formData.append("customer_id", customerNumber)
       formData.append("instagram_business_account_id", instagramBusinessAccountId || "")
 
-      if (answer.trim()) {
-        formData.append("answer", answer)
+      if (currentAnswer.trim()) {
+        formData.append("answer", currentAnswer)
       }
 
-      files.forEach((file) => {
+      currentFiles.forEach((file) => {
         formData.append("file", file)
         formData.append("type", getMediaType(file))
       })
 
-      if (audioBlob) {
-        const audioFile = new File([audioBlob], "voice-message.webm", { type: "audio/webm" })
+      if (currentAudioBlob) {
+        const ext = getAudioExtension(currentAudioBlob.type)
+        const audioFile = new File([currentAudioBlob], `voice-message.${ext}`, { type: currentAudioBlob.type })
         formData.append("file", audioFile)
         formData.append("type", "audio")
       }
 
       const response = await sendInstagramMessage(formData)
       logger.info("Instagram message sent successfully", { data: response })
-
-      setAnswer("")
-      setFiles([])
-      setAudioBlob(null)
-      setAudioWaveform([])
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl)
-        setAudioUrl(null)
-      }
     } catch (e) {
       setError((e as Error).message)
       toast.error("Failed to send message")
@@ -238,7 +251,12 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
     setAudioWaveform([])
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+
+      // Prefer Instagram-compatible format (mp4/aac), fall back to webm
+      const mimeType = getSupportedAudioMimeType()
+      const recorderOptions = mimeType ? { mimeType } : undefined
+      const mediaRecorder = new MediaRecorder(stream, recorderOptions)
+      const recordingMime = mediaRecorder.mimeType
 
       const audioContext = new AudioContext()
       const analyser = audioContext.createAnalyser()
@@ -257,7 +275,7 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
         }
       }
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current)
         }
@@ -267,9 +285,19 @@ const InstagramMessageInput: React.FC<InstagramMessageInputProps> = ({
         }
         analyserRef.current = null
 
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" })
-        setAudioBlob(audioBlob)
-        const url = URL.createObjectURL(audioBlob)
+        let finalBlob = new Blob(audioChunksRef.current, { type: recordingMime })
+
+        // Instagram doesn't support webm audio — convert to wav
+        if (recordingMime.includes("webm")) {
+          try {
+            finalBlob = await convertWebmToWav(finalBlob)
+          } catch (e) {
+            logger.error("Failed to convert audio to wav", { error: e instanceof Error ? e.message : String(e) })
+          }
+        }
+
+        setAudioBlob(finalBlob)
+        const url = URL.createObjectURL(finalBlob)
         setAudioUrl(url)
         setIsRecording(false)
         setAudioWaveform([])

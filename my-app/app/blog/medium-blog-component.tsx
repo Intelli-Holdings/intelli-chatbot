@@ -106,7 +106,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
             contentSnippet: "This is a demo post while we wait for content from Medium.",
             content:
               "<p>This is a demo post while we set up your Medium integration.</p><p>We shall shortly share the blog content with you. The blog component supports rich content including images, formatted text, and more.</p>",
-            thumbnail: "/blogThumbnail.png?height=400&width=600",
+            thumbnail: "/blogThumbnail.png",
             pubDate: new Date().toISOString(),
             categories: ["Demo"],
             author: "Intelli Team",
@@ -191,7 +191,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
     <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
       <div className="relative aspect-[16/10] overflow-hidden">
         <Image
-          src={post.thumbnail || "/blogThumbnail.png?height=400&width=600"}
+          src={post.thumbnail || "/blogThumbnail.png"}
           alt={post.title}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -486,7 +486,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
             <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
               <div className="relative aspect-[16/10] overflow-hidden">
                 <Image
-                  src="/blogThumbnail.png?height=400&width=600"
+                  src="/blogThumbnail.png"
                   alt="7 Essential AI Features Every Organization Should Adopt"
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -527,7 +527,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
             <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
               <div className="relative aspect-[16/10] overflow-hidden">
                 <Image
-                  src="/blogThumbnail.png?height=400&width=600"
+                  src="/blogThumbnail.png"
                   alt="How to Overcome Customer Service Delays with AI automation"
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -568,7 +568,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
             <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
               <div className="relative aspect-[16/10] overflow-hidden">
                 <Image
-                  src="/blogThumbnail.png?height=400&width=600"
+                  src="/blogThumbnail.png"
                   alt="AI Support vs Traditional Help Desks: Which Delivers Faster ROI?"
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
