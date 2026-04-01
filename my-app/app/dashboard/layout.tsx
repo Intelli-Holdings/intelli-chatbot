@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import type React from "react"
 
 import { usePathname } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
 import { useState, useEffect } from "react"
@@ -19,9 +20,16 @@ function DashboardLayoutContent({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const { userId } = useAuth()
+
+  // Force SidebarProvider to fully remount when auth state changes
+  // (e.g. after Clerk soft-navigates from sign-in → dashboard).
+  // This ensures toggleSidebar and isMobile are freshly initialized.
+  const sidebarKey = userId ?? "anonymous"
 
   return (
     <SidebarProvider
+      key={sidebarKey}
       defaultOpen={true}
       style={
         {
@@ -52,16 +60,15 @@ export default function DashboardLayout({
 }) {
   const [queryClient] = useState(() => new QueryClient())
 
-  // Clear stale pointer-events: none left by Radix UI Sheet/Dialog
-  // during page transitions (e.g. sign-in → dashboard).
+  // Clear stale pointer-events: none and scroll-lock left by Radix UI
+  // Sheet/Dialog during page transitions (e.g. sign-in → dashboard).
   useEffect(() => {
     const body = document.body
     if (body.style.pointerEvents === 'none') {
       body.style.pointerEvents = ''
     }
-    // Also remove Radix scroll-lock attributes that may persist
     body.removeAttribute('data-scroll-locked')
-  }, [])
+  })
 
   return (
     <div suppressHydrationWarning>
