@@ -460,15 +460,31 @@ export default function ProductsPage() {
     handleFileSelect(e.dataTransfer.files);
   };
 
+  // ── Image URL helper ─────────────────────────────────────────────
+  const resolveImageUrl = (url: string | null | undefined): string | undefined => {
+    if (!url) return undefined;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const getPrimaryImage = (product: ProductData): string | undefined => {
+    return (
+      resolveImageUrl(product.primary_image) ||
+      resolveImageUrl(product.images?.find((img) => img.is_primary)?.image_url) ||
+      resolveImageUrl(product.images?.[0]?.image_url)
+    );
+  };
+
   // ── Render ────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Products</h1>
-          <p className="text-muted-foreground">
+          <h2 className="text-golden-heading font-semibold tracking-tight">Products</h2>
+          <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
             Manage your product catalogue on Intelli Storefront
           </p>
         </div>
@@ -720,10 +736,7 @@ export default function ProductsPage() {
         /* ── Grid View ─────────────────────────────────────────────── */
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((product) => {
-            const primaryImage =
-              product.primary_image ||
-              product.images?.find((img) => img.is_primary)?.image_url ||
-              product.images?.[0]?.image_url;
+            const primaryImage = getPrimaryImage(product);
             const avail =
               availabilityConfig[product.availability] ||
               availabilityConfig.in_stock;
@@ -842,11 +855,7 @@ export default function ProductsPage() {
                 </TableHeader>
                 <TableBody>
                   {products.map((product) => {
-                    const primaryImage =
-                      product.primary_image ||
-                      product.images?.find((img) => img.is_primary)
-                        ?.image_url ||
-                      product.images?.[0]?.image_url;
+                    const primaryImage = getPrimaryImage(product);
                     const avail =
                       availabilityConfig[product.availability] ||
                       availabilityConfig.in_stock;
