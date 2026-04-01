@@ -28,12 +28,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Package,
   ShoppingCart,
   Eye,
   ExternalLink,
   RefreshCw,
   AlertCircle,
+  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -104,17 +104,14 @@ export default function CataloguePage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Package className="h-8 w-8" />
-          <div>
-            <h1 className="text-3xl font-bold">Catalogue</h1>
-            <p className="text-muted-foreground">
-              Manage your WhatsApp Commerce catalogue and products
-            </p>
-          </div>
+        <div>
+          <h2 className="text-golden-heading font-semibold tracking-tight">Catalogue</h2>
+          <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
+            Manage your WhatsApp Commerce catalogue and products
+          </p>
         </div>
 
         {/* WhatsApp Number Selector */}
