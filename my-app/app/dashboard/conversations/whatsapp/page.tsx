@@ -500,10 +500,10 @@ function WhatsAppConvosContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  {appServices.map((appService) => (
+                  {appServices.filter((s) => s.phone_number).map((appService) => (
                     <SelectItem
                       key={appService.id}
-                      value={appService.phone_number || ""}
+                      value={appService.phone_number!}
                     >
                       {appService.name || appService.phone_number || `AppService ${appService.id}`}
                     </SelectItem>
