@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
 import Link from 'next/link';
 import {
   Search,
@@ -119,6 +121,19 @@ export default function OrdersPage() {
   const [paymentLinkOrder, setPaymentLinkOrder] = useState<WhatsAppOrder | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<PaymentProvider | ''>('');
   const [sendingPaymentLink, setSendingPaymentLink] = useState(false);
+
+  // Date range state
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  // Sync date range to filters
+  useEffect(() => {
+    setFilters({
+      ...filters,
+      date_from: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+      date_to: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+      offset: 0,
+    });
+  }, [dateRange]);
 
   // Bulk selection state
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
@@ -240,21 +255,6 @@ export default function OrdersPage() {
     }
   };
 
-  const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({
-      ...filters,
-      date_from: e.target.value || undefined,
-      offset: 0,
-    });
-  };
-
-  const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters({
-      ...filters,
-      date_to: e.target.value || undefined,
-      offset: 0,
-    });
-  };
 
   const handleExportCSV = () => {
     exportOrdersToCSV(orders);
@@ -316,12 +316,12 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Orders</h1>
-          <p className="text-muted-foreground">
+          <h2 className="text-golden-heading font-semibold tracking-tight">Orders</h2>
+          <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
             Manage your WhatsApp Commerce orders
           </p>
         </div>
@@ -443,22 +443,7 @@ export default function OrdersPage() {
           </SelectContent>
         </Select>
 
-        <Input
-          type="date"
-          placeholder="From"
-          value={filters.date_from || ''}
-          onChange={handleDateFromChange}
-          className="w-[160px]"
-          aria-label="Filter from date"
-        />
-        <Input
-          type="date"
-          placeholder="To"
-          value={filters.date_to || ''}
-          onChange={handleDateToChange}
-          className="w-[160px]"
-          aria-label="Filter to date"
-        />
+        <DatePickerWithRange date={dateRange} setDate={setDateRange} />
       </div>
 
       {/* Bulk Actions Bar */}
@@ -481,10 +466,8 @@ export default function OrdersPage() {
       )}
 
       {/* Orders Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="rounded-md border">
-            <Table>
+      <div className="rounded-md border overflow-auto max-h-[calc(100vh-320px)]">
+        <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[40px]">
@@ -644,10 +627,8 @@ export default function OrdersPage() {
                   })
                 )}
               </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+        </Table>
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
