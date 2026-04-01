@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react'; // Import useAuth hook from Clerk
+import { useAuth } from '@clerk/nextjs';
 import { logger } from "@/lib/logger";
 
 interface Reservation {
