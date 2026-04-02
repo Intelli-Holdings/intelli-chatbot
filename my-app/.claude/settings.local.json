@@ -4,7 +4,10 @@
       "Bash(claude remote-control)",
       "Bash(xargs grep:*)",
       "Bash(bunx tsc:*)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(bun tsc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)"
     ]
   }
 }

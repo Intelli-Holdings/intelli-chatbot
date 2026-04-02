@@ -20,16 +20,19 @@ function DashboardLayoutContent({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const { userId } = useAuth()
+  const { isLoaded } = useAuth()
 
-  // Force SidebarProvider to fully remount when auth state changes
-  // (e.g. after Clerk soft-navigates from sign-in → dashboard).
-  // This ensures toggleSidebar and isMobile are freshly initialized.
-  const sidebarKey = userId ?? "anonymous"
+  // Wait for Clerk to finish loading before rendering.
+  // Without this guard, userId transitions from undefined → real value,
+  // which previously caused SidebarProvider to remount via a key change.
+  // That remount left Radix UI's pointer-events: none stuck on <body>,
+  // making the sidebar toggle (and other elements) unclickable until reload.
+  if (!isLoaded) {
+    return null
+  }
 
   return (
     <SidebarProvider
-      key={sidebarKey}
       defaultOpen={true}
       style={
         {
@@ -62,13 +65,23 @@ export default function DashboardLayout({
 
   // Clear stale pointer-events: none and scroll-lock left by Radix UI
   // Sheet/Dialog during page transitions (e.g. sign-in → dashboard).
+  // Run on mount and after a short delay to catch async Radix cleanup.
   useEffect(() => {
     const body = document.body
-    if (body.style.pointerEvents === 'none') {
-      body.style.pointerEvents = ''
+    const cleanup = () => {
+      if (body.style.pointerEvents === 'none') {
+        body.style.pointerEvents = ''
+      }
+      body.removeAttribute('data-scroll-locked')
     }
-    body.removeAttribute('data-scroll-locked')
-  })
+    cleanup()
+    const raf = requestAnimationFrame(cleanup)
+    const timer = setTimeout(cleanup, 300)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(timer)
+    }
+  }, [])
 
   return (
     <div suppressHydrationWarning>
