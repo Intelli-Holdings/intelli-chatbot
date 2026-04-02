@@ -19,6 +19,9 @@ import {
   SettingsIcon,
   CogIcon,
   Workflow,
+  ShoppingBag,
+  Package,
+  Wallet,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -117,6 +120,11 @@ const data = {
       title: "Templates",
       url: "/dashboard/templates",
       icon: Files,
+    },
+    {
+      title: "Commerce",
+      url: "/dashboard/commerce",
+      icon: ShoppingBag,
     },
     {
       title: "Analytics",

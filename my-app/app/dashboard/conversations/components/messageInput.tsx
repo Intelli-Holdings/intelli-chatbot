@@ -3,7 +3,7 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, useRef, type ChangeEvent, type KeyboardEvent, useEffect } from "react"
-import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, FileText, MessageSquareText } from "lucide-react"
+import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, FileText, MessageSquareText, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { sendMessage } from "@/app/actions"
 import { useUser } from "@clerk/nextjs"
@@ -24,6 +24,7 @@ interface MessageInputProps {
   onMessageSendFailure?: (tempId: number) => void
   onOpenTemplatePicker?: () => void
   onOpenCannedResponses?: () => void
+  onOpenProductComposer?: () => void
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -35,6 +36,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onMessageSendFailure,
   onOpenTemplatePicker,
   onOpenCannedResponses,
+  onOpenProductComposer,
 }) => {
   const [answer, setAnswer] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -492,6 +494,19 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 title="Send template message"
               >
                 <FileText className="h-4 w-4 text-gray-500" />
+              </Button>
+            )}
+            {onOpenProductComposer && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8"
+                onClick={onOpenProductComposer}
+                disabled={isLoading || isRecording}
+                title="Send product"
+              >
+                <ShoppingBag className="h-4 w-4 text-gray-500" />
               </Button>
             )}
 

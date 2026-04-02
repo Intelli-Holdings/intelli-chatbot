@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { Suspense, useState, useEffect, useRef, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   Select,
@@ -75,6 +75,14 @@ const saveReadConversations = (accountId: string, readConversations: ReadConvers
 }
 
 export default function InstagramConvosPage() {
+  return (
+    <Suspense fallback={<ConversationsSkeleton />}>
+      <InstagramConvosContent />
+    </Suspense>
+  )
+}
+
+function InstagramConvosContent() {
   const searchParams = useSearchParams()
   const customerParam = searchParams.get('customer')
   const [conversations, setConversations] = useState<Conversation[]>([])

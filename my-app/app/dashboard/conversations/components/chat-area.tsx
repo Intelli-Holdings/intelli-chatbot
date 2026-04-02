@@ -30,6 +30,9 @@ import { useWhatsAppTemplates } from "@/hooks/use-whatsapp-templates"
 import type { AppService } from "@/services/whatsapp"
 import { SendTemplateDialog } from "./send-template-dialog"
 import { CannedResponsesDialog } from "@/components/canned-responses-dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { ProductMessageComposer } from "@/components/catalogue"
+import { useCatalogues, useProducts, useProductMessages } from "@/hooks/use-catalogue"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
@@ -137,6 +140,27 @@ export default function ChatArea({
   // Template & canned response dialog state
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showCannedResponses, setShowCannedResponses] = useState(false)
+  const [productComposerOpen, setProductComposerOpen] = useState(false)
+
+  // Product catalogue hooks
+  const { catalogues, selectedCatalogue } = useCatalogues(currentAppService as AppService | null)
+  const {
+    products,
+    loading: productsLoading,
+    error: productsError,
+    search: searchProducts,
+    searchQuery,
+    clearSearch: clearProductSearch,
+    loadMore: loadMoreProducts,
+    hasMore: hasMoreProducts,
+    refetch: refetchProducts,
+  } = useProducts(currentAppService as AppService | null, selectedCatalogue?.id || null)
+  const {
+    sendSingleProduct,
+    sendMultipleProducts,
+    sending: productSending,
+    error: productSendError,
+  } = useProductMessages(currentAppService as AppService | null)
 
   // Compute last customer message time for 24h window
   // The window opens when the customer messages the business (any mode) or replies to a template.
@@ -1602,6 +1626,7 @@ export default function ChatArea({
           onMessageSendFailure={handleMessageSendFailure}
           onOpenTemplatePicker={() => setShowTemplatePicker(true)}
           onOpenCannedResponses={() => setShowCannedResponses(true)}
+          onOpenProductComposer={selectedCatalogue ? () => setProductComposerOpen(true) : undefined}
         />
       </div>
 
@@ -1626,6 +1651,45 @@ export default function ChatArea({
         organizationId={organizationId}
         onInsert={handleCannedResponseInsert}
       />
+
+      {/* Product composer sheet */}
+      {selectedCatalogue && (
+        <Sheet open={productComposerOpen} onOpenChange={setProductComposerOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Send Product</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              <ProductMessageComposer
+                catalogId={selectedCatalogue.id}
+                products={products}
+                productsLoading={productsLoading}
+                productsError={productsError}
+                onSearchProducts={searchProducts}
+                searchQuery={searchQuery}
+                onClearSearch={clearProductSearch}
+                onLoadMore={loadMoreProducts}
+                hasMore={hasMoreProducts}
+                onRefreshProducts={refetchProducts}
+                onSendSingleProduct={async (productRetailerId, bodyText, footerText) => {
+                  const customerNumber = conversation?.customer_number || conversation?.recipient_id || ''
+                  await sendSingleProduct(customerNumber, selectedCatalogue.id, productRetailerId, bodyText, footerText)
+                  setProductComposerOpen(false)
+                  toast({ title: 'Product message sent' })
+                }}
+                onSendMultiProduct={async (headerText, bodyText, sections, footerText) => {
+                  const customerNumber = conversation?.customer_number || conversation?.recipient_id || ''
+                  await sendMultipleProducts(customerNumber, selectedCatalogue.id, headerText, bodyText, sections, footerText)
+                  setProductComposerOpen(false)
+                  toast({ title: 'Product list sent' })
+                }}
+                sending={productSending}
+                error={productSendError}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   )
 }

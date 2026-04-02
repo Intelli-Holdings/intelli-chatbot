@@ -5,9 +5,9 @@ import { logger } from "@/lib/logger";
 // POST - Create file version
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params
+  const { id } = await params
 
   try {
     // Get authentication from Clerk
@@ -22,7 +22,8 @@ export async function POST(
     }
 
     // Get user email from Clerk
-    const clerkUser = userId ? await clerkClient.users.getUser(userId) : null
+    const client = await clerkClient()
+    const clerkUser = userId ? await client.users.getUser(userId) : null
     const userEmail = clerkUser?.emailAddresses?.[0]?.emailAddress || 'anonymous@example.com'
 
     const formData = await request.formData()

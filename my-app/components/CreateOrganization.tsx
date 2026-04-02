@@ -26,7 +26,6 @@ export default function CreateOrganizationStep() {
       <CreateOrganization
         afterCreateOrganizationUrl="/onboarding"
         skipInvitationScreen={false}
-        hideSlug={true}
       />
     </div>
   );

@@ -94,10 +94,12 @@ export default function TemplatesPage() {
       const services = await WhatsAppService.fetchAppServices(organizationId);
       setAppServices(services);
 
-      if (services.length > 0 && !selectedAppService) {
-        const defaultService = services.find((s) => s.is_default) || services[0];
-        setSelectedAppService(defaultService);
-      }
+      // Auto-select first service if none is selected
+      setSelectedAppService((prev) => {
+        if (prev) return prev;
+        if (services.length === 0) return null;
+        return services.find((s) => s.is_default) || services[0];
+      });
     } catch (error: any) {
       logger.error("Error fetching app services", { error: error instanceof Error ? error.message : String(error) });
       setServicesError(error.message || "Failed to fetch app services");
@@ -105,7 +107,7 @@ export default function TemplatesPage() {
     } finally {
       setServicesLoading(false);
     }
-  }, [organizationId, selectedAppService]);
+  }, [organizationId]);
 
   // Fetch templates
   const fetchTemplates = useCallback(async () => {
@@ -372,8 +374,8 @@ export default function TemplatesPage() {
                   <SelectValue placeholder="Select WhatsApp Number" />
                 </SelectTrigger>
                 <SelectContent>
-                  {appServices.map((service) => (
-                    <SelectItem key={service.phone_number} value={service.phone_number}>
+                  {appServices.filter((s) => s.phone_number).map((service) => (
+                    <SelectItem key={service.phone_number} value={service.phone_number!}>
                       <div className="flex items-center gap-2">
                         <span>{service.phone_number}</span>
                         {service.is_default && (

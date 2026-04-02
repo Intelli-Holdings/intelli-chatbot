@@ -3,25 +3,16 @@ import { AppSidebar } from "@/components/app-sidebar"
 import type React from "react"
 
 import { usePathname } from "next/navigation"
+import { useAuth } from "@clerk/nextjs"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
 import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
 
 // Notifications
 import ToastProvider from "@/components/ToastProvider"
 import { NotificationProvider } from "@/hooks/use-notification-context"
 import { NotificationIndicator } from "@/components/notification-indicator"
 
-// Tour — only needed in dashboard
-const TourProviderWrapper = dynamic(() => import('@/components/tour-provider-wrapper'), { ssr: false })
-
-export const viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
-}
 
 function DashboardLayoutContent({
   children,
@@ -29,9 +20,16 @@ function DashboardLayoutContent({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const { userId } = useAuth()
+
+  // Force SidebarProvider to fully remount when auth state changes
+  // (e.g. after Clerk soft-navigates from sign-in → dashboard).
+  // This ensures toggleSidebar and isMobile are freshly initialized.
+  const sidebarKey = userId ?? "anonymous"
 
   return (
     <SidebarProvider
+      key={sidebarKey}
       defaultOpen={true}
       style={
         {
@@ -62,24 +60,21 @@ export default function DashboardLayout({
 }) {
   const [queryClient] = useState(() => new QueryClient())
 
-  // Clear stale pointer-events: none left by Radix UI Sheet/Dialog
-  // during page transitions (e.g. sign-in → dashboard).
+  // Clear stale pointer-events: none and scroll-lock left by Radix UI
+  // Sheet/Dialog during page transitions (e.g. sign-in → dashboard).
   useEffect(() => {
     const body = document.body
     if (body.style.pointerEvents === 'none') {
       body.style.pointerEvents = ''
     }
-    // Also remove Radix scroll-lock attributes that may persist
     body.removeAttribute('data-scroll-locked')
-  }, [])
+  })
 
   return (
     <div suppressHydrationWarning>
       <QueryClientProvider client={queryClient}>
         <NotificationProvider>
-          <TourProviderWrapper>
-            <DashboardLayoutContent>{children}</DashboardLayoutContent>
-          </TourProviderWrapper>
+          <DashboardLayoutContent>{children}</DashboardLayoutContent>
           <ToastProvider />
         </NotificationProvider>
       </QueryClientProvider>

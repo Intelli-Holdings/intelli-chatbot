@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { Suspense, useState, useEffect, useRef, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   Select,
@@ -81,6 +81,14 @@ const saveReadConversations = (phoneNumber: string, readConversations: ReadConve
 }
 
 export default function WhatsAppConvosPage() {
+  return (
+    <Suspense fallback={<WhatsAppSkeletonLoader />}>
+      <WhatsAppConvosContent />
+    </Suspense>
+  )
+}
+
+function WhatsAppConvosContent() {
   const searchParams = useSearchParams()
   const customerParam = searchParams.get('customer')
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -492,10 +500,10 @@ export default function WhatsAppConvosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  {appServices.map((appService) => (
+                  {appServices.filter((s) => s.phone_number).map((appService) => (
                     <SelectItem
                       key={appService.id}
-                      value={appService.phone_number || ""}
+                      value={appService.phone_number!}
                     >
                       {appService.name || appService.phone_number || `AppService ${appService.id}`}
                     </SelectItem>

@@ -4,7 +4,7 @@ import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   const { userId, getToken } = await auth();
 
@@ -13,7 +13,7 @@ export async function GET(
   }
 
   try {
-    const { organizationId } = params;
+    const { organizationId } = await params;
 
     if (!organizationId) {
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
