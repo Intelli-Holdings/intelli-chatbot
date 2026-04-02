@@ -29,6 +29,7 @@ const PROVIDER_LABELS: Record<PaymentProvider, string> = {
   mpesa: 'M-PESA',
   momo: 'MTN MoMo',
   pesapal: 'Pesapal',
+  pay_on_delivery: 'Pay on Delivery',
 };
 
 function PaymentNode({ id, data, selected }: PaymentNodeProps) {

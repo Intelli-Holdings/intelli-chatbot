@@ -37,6 +37,11 @@ export const useCatalogues = (appService: AppService | null): UseCataloguesRetur
       return;
     }
 
+    if (!appService.access_token) {
+      setError('No access token available. Please reconnect your WhatsApp account.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -251,6 +256,11 @@ export const useCommerceSettings = (
 
   const fetchSettings = useCallback(async () => {
     if (!appService) {
+      return;
+    }
+
+    if (!appService.access_token) {
+      setError('No access token available. Please reconnect your WhatsApp account.');
       return;
     }
 

@@ -13,7 +13,7 @@ export function RelatedArticleCard({ post }: { post: MediumPost }) {
     <Card className="group overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
       <div className="relative aspect-[16/10] overflow-hidden">
         <Image
-          src={post.thumbnail || "/blogThumbnail.png?height=400&width=600"}
+          src={post.thumbnail || "/blogThumbnail.png"}
           alt={post.title}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"

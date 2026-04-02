@@ -9,8 +9,9 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params }: { params: { version: string } }) {
-  const releaseNote = getReleaseNote(params.version);
+export async function generateMetadata({ params }: { params: Promise<{ version: string }> }) {
+  const { version } = await params;
+  const releaseNote = getReleaseNote(version);
   if (!releaseNote) return {};
 
   return {
@@ -23,12 +24,13 @@ export async function generateMetadata({ params }: { params: { version: string }
   };
 }
 
-export default function ReleaseNotePage({ params }: { params: { version: string } }) {
-  const releaseNote = getReleaseNote(params.version);
-  
+export default async function ReleaseNotePage({ params }: { params: Promise<{ version: string }> }) {
+  const { version } = await params;
+  const releaseNote = getReleaseNote(version);
+
   if (!releaseNote) {
     notFound();
   }
 
-  return <ReleaseNoteContent releaseNote={releaseNote} version={params.version} />;
+  return <ReleaseNoteContent releaseNote={releaseNote} version={version} />;
 }

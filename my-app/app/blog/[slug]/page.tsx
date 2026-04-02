@@ -15,7 +15,7 @@ import { RelatedArticleCard } from "./article-content"
 export const revalidate = 60 // revalidate every minute (ISR)
 
 interface PageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 async function getAllPosts() {
@@ -35,7 +35,7 @@ function findBySlug(posts: Awaited<ReturnType<typeof getAllPosts>>, slug: string
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = params
+  const { slug } = await params
   const allPosts = await getAllPosts()
   const article = findBySlug(allPosts, slug)
 
@@ -67,7 +67,7 @@ export async function generateStaticParams() {
 }
 
 export default async function BlogArticlePage({ params }: PageProps) {
-  const { slug } = params
+  const { slug } = await params
   const allPosts = await getAllPosts()
   const article = findBySlug(allPosts, slug)
 

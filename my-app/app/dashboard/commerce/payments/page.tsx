@@ -23,11 +23,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Wallet,
   CreditCard,
   DollarSign,
   Banknote,
-  TrendingUp,
   AlertCircle,
   CheckCircle2,
   Clock,
@@ -173,18 +171,13 @@ export default function PaymentsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Wallet className="h-8 w-8" />
-          <div>
-            <h1 className="text-3xl font-bold">Payments</h1>
-            <p className="text-muted-foreground">
-              Configure payment providers and manage transactions
-            </p>
-          </div>
-        </div>
+      <div>
+        <h2 className="text-golden-heading font-semibold tracking-tight">Payments</h2>
+        <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
+          Configure payment providers and manage transactions
+        </p>
       </div>
 
       {/* Stats Cards */}

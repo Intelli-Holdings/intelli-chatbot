@@ -434,10 +434,33 @@ export default function InstagramChatArea({
 
     window.addEventListener("websocketConnectionChange", handleConnectionChange as EventListener)
 
+    // Listen for reaction updates from WebSocket
+    const handleReactionUpdate = (event: CustomEvent) => {
+      const { message_id, reaction } = event.detail
+      logger.info("Reaction update event received in Instagram chat area", { message_id, reaction })
+      if (!message_id) return
+
+      updateMessagesAndSync((prev) => {
+        const matched = (prev || []).some(
+          (msg) => msg.whatsapp_message_id === message_id || msg.incoming_whatsapp_message_id === message_id
+        )
+        logger.info("Reaction message match result", { message_id, matched, totalMessages: (prev || []).length })
+        return (prev || []).map((msg) => {
+          if (msg.whatsapp_message_id === message_id || msg.incoming_whatsapp_message_id === message_id) {
+            return { ...msg, reaction }
+          }
+          return msg
+        })
+      })
+    }
+
+    window.addEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
+
     return () => {
       window.removeEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
       window.removeEventListener("messageStatusUpdate", handleStatusUpdate as unknown as EventListener)
       window.removeEventListener("websocketConnectionChange", handleConnectionChange as unknown as EventListener)
+      window.removeEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -935,6 +958,8 @@ export default function InstagramChatArea({
                   {(messages ?? []).map((message, messageIndex) => {
                     const contentMedia = message.content ? extractMedia(message.content) : null
                     const contentHasMedia = contentMedia?.type && contentMedia?.url
+                    const answerMedia = message.answer ? extractMedia(message.answer) : null
+                    const answerHasMedia = answerMedia?.type && answerMedia?.url
                     const messageKey =
                       message.id ??
                       message.whatsapp_message_id ??
@@ -962,7 +987,7 @@ export default function InstagramChatArea({
                                   <>
                                     {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
                                     {contentMedia?.type === "image" && contentMedia?.url && (
-                                      <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
+                                      <ImagePreview src={contentMedia.url || "/placeholder.svg"} title={contentMedia.filename || undefined} />
                                     )}
                                     {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
                                     {contentMedia?.displayText && contentMedia.displayText.trim() && (
@@ -1001,7 +1026,22 @@ export default function InstagramChatArea({
                                   </button>
                                 </div>
                               )}
-                              <div className="text-sm">{formatMessage(message.answer)}</div>
+                              <div className="text-sm">
+                                {answerHasMedia ? (
+                                  <>
+                                    {answerMedia?.type === "audio" && answerMedia?.url && <AudioPlayer src={answerMedia.url} />}
+                                    {answerMedia?.type === "image" && answerMedia?.url && (
+                                      <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
+                                    )}
+                                    {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
+                                    {answerMedia?.displayText && answerMedia.displayText.trim() && (
+                                      <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
+                                    )}
+                                  </>
+                                ) : (
+                                  formatMessage(message.answer)
+                                )}
+                              </div>
                               {message.sender === "human" && message.pending && (
                                 <div className="flex justify-end mt-0.5">
                                   <MessageStatus

@@ -177,16 +177,28 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
                 </div>
                 <div className="p-4 border-t border-[#e9edef]">
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-[12px] text-[#667781]">
-                        Phone number
-                      </label>
-                      <p className="text-[14px] font-normal text-[#111b21]">
-                        +
-                        {conversation.customer_number ||
-                          conversation.recipient_id}
-                      </p>
-                    </div>
+                    {instagramBusinessAccountId ? (
+                      <div>
+                        <label className="text-[12px] text-[#667781]">
+                          Instagram ID
+                        </label>
+                        <p className="text-[14px] font-normal text-[#111b21]">
+                          {conversation.customer_number ||
+                            conversation.recipient_id}
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-[12px] text-[#667781]">
+                          Phone number
+                        </label>
+                        <p className="text-[14px] font-normal text-[#111b21]">
+                          +
+                          {conversation.customer_number ||
+                            conversation.recipient_id}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

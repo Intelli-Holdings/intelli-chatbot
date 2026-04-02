@@ -8,6 +8,11 @@ const useActiveOrganizationId = () => {
   });
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
   const hasSetActiveRef = useRef(false);
+  const setActiveRef = useRef(setActive);
+  setActiveRef.current = setActive;
+
+  // Derive a stable primitive from the memberships data
+  const fallbackOrgId = userMemberships?.data?.[0]?.organization.id ?? null;
 
   useEffect(() => {
     if (organization?.id) {
@@ -18,15 +23,14 @@ const useActiveOrganizationId = () => {
 
     if (!isLoaded || hasSetActiveRef.current) return;
 
-    const fallbackOrgId = userMemberships.data?.[0]?.organization.id;
     if (fallbackOrgId) {
       setActiveOrganizationId(fallbackOrgId);
-      if (setActive) {
-        void setActive({ organization: fallbackOrgId });
+      if (setActiveRef.current) {
+        void setActiveRef.current({ organization: fallbackOrgId });
       }
       hasSetActiveRef.current = true;
     }
-  }, [organization?.id, isLoaded, setActive, userMemberships.data]);
+  }, [organization?.id, isLoaded, fallbackOrgId]);
 
   return activeOrganizationId;
 };

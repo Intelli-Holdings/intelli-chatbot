@@ -6,9 +6,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { widgetKey: string } }
+  { params }: { params: Promise<{ widgetKey: string }> }
 ) {
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,7 +19,7 @@ export async function GET(
     return NextResponse.json({ error: "Unable to get authentication token" }, { status: 401 });
   }
 
-  const { widgetKey } = params;
+  const { widgetKey } = await params;
   if (!widgetKey) {
     return NextResponse.json({ error: "Widget key is required" }, { status: 400 });
   }

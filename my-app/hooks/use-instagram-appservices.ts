@@ -34,6 +34,7 @@ export function useInstagramAppServices(organizationId?: string) {
     {
       enabled: Boolean(organizationId),
       staleTime: 5 * 60 * 1000,
+      retry: false,
     },
   )
 
@@ -45,7 +46,7 @@ export function useInstagramAppServices(organizationId?: string) {
     appServices,
     primaryAccountId,
     primaryPageId,
-    isLoading: query.isLoading,
+    isLoading: query.isLoading && query.isFetching,
     isFetching: query.isFetching,
     error: query.error instanceof Error ? query.error.message : null,
     refetch: query.refetch,

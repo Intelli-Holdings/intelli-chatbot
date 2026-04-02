@@ -4,10 +4,10 @@ import { auth } from '@clerk/nextjs/server';
 import { logger } from "@/lib/logger";
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgId: string } }
+  { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
-    const { orgId } = params;
+    const { orgId } = await params;
     
     // Get authentication token from Clerk
     const { getToken } = await auth();

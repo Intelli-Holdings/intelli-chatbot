@@ -5,9 +5,9 @@ import { logger } from "@/lib/logger";
 // GET - Get file detail
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params
+  const { id } = await params
   
   try {
     // Get authentication from Clerk
@@ -55,9 +55,9 @@ export async function GET(
 // PATCH - Update file metadata
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params
+  const { id } = await params
 
   try {
     // Get authentication from Clerk
@@ -108,9 +108,9 @@ export async function PATCH(
 // DELETE - Delete file
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params
+  const { id } = await params
 
   try {
     // Get authentication from Clerk
