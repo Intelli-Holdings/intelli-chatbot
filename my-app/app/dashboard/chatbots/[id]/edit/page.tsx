@@ -185,13 +185,44 @@ export default function ChatbotEditorPage() {
   const handleToggle = async () => {
     if (!chatbot) return;
 
+    // If activating, validate first
+    if (!chatbot.isActive && !validate()) {
+      toast.error("Please fix validation errors before activating");
+      return;
+    }
+
+    // If there are unsaved changes, save first before toggling
+    if (hasChanges) {
+      setSaving(true);
+      try {
+        await ChatbotAutomationService.updateChatbot(chatbot.id, {
+          name: chatbot.name,
+          description: chatbot.description,
+          triggers: chatbot.triggers,
+          menus: chatbot.menus,
+          settings: chatbot.settings,
+          channels: chatbot.channels,
+          flowLayout: chatbot.flowLayout,
+        });
+        setHasChanges(false);
+      } catch (error) {
+        logger.error("Error saving chatbot before toggle", { error: error instanceof Error ? error.message : String(error) });
+        toast.error("Failed to save chatbot before activating");
+        setSaving(false);
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+
     try {
       await ChatbotAutomationService.toggleChatbot(chatbot.id, !chatbot.isActive);
       setChatbot({ ...chatbot, isActive: !chatbot.isActive });
       toast.success(`Chatbot ${chatbot.isActive ? "paused" : "activated"}`);
     } catch (error) {
-      logger.error("Error toggling chatbot", { error: error instanceof Error ? error.message : String(error) });
-      toast.error("Failed to update status");
+      const message = error instanceof Error ? error.message : "Failed to update status";
+      logger.error("Error toggling chatbot", { error: message });
+      toast.error(message);
     }
   };
 
