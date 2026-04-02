@@ -1299,6 +1299,59 @@ export default function ChatArea({
               })()}
 
               {message.answer && (() => {
+                // Check if this is a media placeholder from file upload (e.g. "[DOCUMENT] Invoice.pdf")
+                const mediaMatch = message.answer.match(/^\[(DOCUMENT|IMAGE|VIDEO|AUDIO)\]\s*(.+?)(?:\s*-\s*https?:\/\/.*)?$/)
+                if (mediaMatch) {
+                  const mediaType = mediaMatch[1].toLowerCase()
+                  const fileName = mediaMatch[2].trim()
+                  return (
+                    <div
+                      className={cn(
+                        "message-bubble group message-human",
+                        message.status === "failed" && "border-2 border-red-400 bg-red-50/50",
+                      )}
+                    >
+                      {message.status === "failed" && (
+                        <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
+                          <span>⚠</span>
+                          <span>Failed to send</span>
+                        </div>
+                      )}
+                      <div className="text-[9px] font-semibold mb-1 text-green-700">
+                        👤 Business
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
+                        {mediaType === "image" ? <FileImage className="h-8 w-8 text-blue-500 shrink-0" /> :
+                         mediaType === "video" ? <Video className="h-8 w-8 text-purple-500 shrink-0" /> :
+                         mediaType === "audio" ? <Music className="h-8 w-8 text-orange-500 shrink-0" /> :
+                         <FileText className="h-8 w-8 text-red-500 shrink-0" />}
+                        <span className="text-sm truncate">{fileName}</span>
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[11px] text-[#667781]">
+                          {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {message.sender === "human" && (
+                          <>
+                            <MessageStatus
+                              status={message.pending ? 'sending' : message.status || 'delivered'}
+                              className="text-[#667781]"
+                            />
+                            {message.status === "failed" && (
+                              <button
+                                onClick={() => handleRetryMessage(message.id)}
+                                className="ml-2 text-[10px] text-red-600 hover:text-red-700 underline"
+                              >
+                                Retry
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+
                 // Check if this is a flow interactive message with buttons
                 const parsedInteractive = message.sender === 'flow'
                   ? parseInteractiveMessage(message.answer)
@@ -1432,7 +1485,7 @@ export default function ChatArea({
                 </div>
                 )
               })()}
-              {message.media && (() => {
+              {message.media && !message.answer?.match(/^\[(DOCUMENT|IMAGE|VIDEO|AUDIO)\]/) && (() => {
                 // Media messages: determine if customer or outgoing
                 const isCustomerMedia = message.content != null
                 return (
