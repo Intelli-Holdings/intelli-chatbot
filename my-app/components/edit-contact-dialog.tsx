@@ -175,7 +175,7 @@ export function EditContactDialog({ open, onOpenChange, contact, tags, onSuccess
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Contact</DialogTitle>
           <DialogDescription>
@@ -183,6 +183,7 @@ export function EditContactDialog({ open, onOpenChange, contact, tags, onSuccess
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto pr-2">
         <Tabs value={editMode} onValueChange={(value) => setEditMode(value as "partial" | "full")} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="partial">Partial Update</TabsTrigger>
@@ -278,6 +279,7 @@ export function EditContactDialog({ open, onOpenChange, contact, tags, onSuccess
             <ContactCustomFields contactId={contact.id.toString()} />
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   )
