@@ -411,6 +411,9 @@ const processTextWithLinks = (text: string): React.ReactNode[] => {
   const documentRegex =
     /\[DOCUMENT\]\s+(.*?)(?:\s+-\s+|\s+)(https?:\/\/[^\s]+\.(pdf|xls|xlsx|csv|doc|docx)(?:\?[^\s]*)?)/gi
 
+  // Matches: [DOCUMENT] filename.pdf (without URL — from chatbot flow media nodes)
+  const documentNoUrlRegex = /\[DOCUMENT\]\s+(.+?\.\w+)$/gim
+
   const urlRegex = /(https?:\/\/[^\s\]]+|\[([^\]]+)\]\s+([^\s\]]+))/g
 
   // Process audio matches first (highest priority for both Firebase and Azure)
@@ -595,6 +598,49 @@ const processTextWithLinks = (text: string): React.ReactNode[] => {
     return result
   }
 
+  // Handle [DOCUMENT] without URL (from chatbot flow media nodes)
+  const documentNoUrlMatches = text.match(documentNoUrlRegex)
+  if (documentNoUrlMatches) {
+    let processedText = text
+    const documentCards = documentNoUrlMatches
+      .map((docPattern, index) => {
+        const match = docPattern.match(/\[DOCUMENT\]\s+(.+?\.\w+)$/i)
+        if (match && match[1]) {
+          const filename = match[1].trim()
+          const fileExtension = filename.split(".").pop()?.toLowerCase() || ""
+
+          const placeholder = `__DOCNOURL_PLACEHOLDER_${index}__`
+          processedText = processedText.replace(docPattern, placeholder)
+
+          return React.createElement(DocumentAttachment, {
+            key: `docnourl-${index}`,
+            url: "",
+            filename: filename,
+            fileType: fileExtension,
+          })
+        }
+        return null
+      })
+      .filter(Boolean)
+
+    if (documentCards.length > 0) {
+      const parts = processedText.split(/(__DOCNOURL_PLACEHOLDER_\d+__)/)
+      const result: (string | React.ReactNode)[] = []
+
+      parts.forEach((part) => {
+        const placeholderMatch = part.match(/__DOCNOURL_PLACEHOLDER_(\d+)__/)
+        if (placeholderMatch) {
+          const docIndex = Number.parseInt(placeholderMatch[1], 10)
+          result.push(documentCards[docIndex])
+        } else if (part.trim()) {
+          result.push(part)
+        }
+      })
+
+      return result
+    }
+  }
+
   // If no media patterns, process as before
   const parts = text.split(urlRegex)
 
@@ -683,17 +729,21 @@ const DocumentAttachment: React.FC<DocumentAttachmentProps> = ({ url, filename, 
     <div className="flex items-center p-3 bg-white rounded-md border border-gray-200 my-2 hover:bg-gray-50 transition-colors">
       {getFileIcon()}
       <div className="ml-3 flex-1">
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium text-gray-900 hover:underline"
-        >
-          {filename}
-        </a>
+        {url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-gray-900 hover:underline"
+          >
+            {filename}
+          </a>
+        ) : (
+          <span className="text-sm font-medium text-gray-900">{filename}</span>
+        )}
         <p className="text-xs text-gray-500">{getFileSize()}</p>
       </div>
-      <a href={url} download className="text-gray-400 hover:text-gray-600">
+      {url && <a href={url} download className="text-gray-400 hover:text-gray-600">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"
@@ -709,7 +759,7 @@ const DocumentAttachment: React.FC<DocumentAttachmentProps> = ({ url, filename, 
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-      </a>
+      </a>}
     </div>
   )
 }
