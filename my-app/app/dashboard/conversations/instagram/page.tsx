@@ -2,14 +2,6 @@
 
 import { Suspense, useState, useEffect, useRef, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import ChatSidebar from "@/app/dashboard/conversations/components/chat-sidebar"
 import InstagramChatArea from "@/app/dashboard/conversations/components/instagram-chat-area"
 import DownloadPage from "@/app/dashboard/conversations/components/download-page"
@@ -26,6 +18,7 @@ import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import ConnectedAccountBanner from "@/components/dashboard/instagram/ConnectedAccountBanner"
 
 type ReadConversationsMap = Record<string, string>
 const EMPTY_MESSAGES: Conversation["messages"] = []
@@ -502,29 +495,6 @@ function InstagramConvosContent() {
     <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
       {/* Left Panel - Account Selector + Conversations */}
       <div className="flex flex-col h-full">
-        {/* Account Selector - only show if multiple accounts exist */}
-        {appServices.length > 1 && (
-          <div className="w-[420px] p-3 border-b border-[#e9edef] bg-[#f0f2f5]">
-            <Select value={selectedAccountId} onValueChange={handleAppServiceChange}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Select an Instagram account" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {appServices.map((appService) => (
-                    <SelectItem
-                      key={appService.id}
-                      value={appService.instagram_business_account_id || ""}
-                    >
-                      {appService.instagram_page_name || appService.instagram_business_account_id || `Instagram ${appService.id}`}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         <div className="flex-1 overflow-hidden">
           <ChatSidebar
             conversations={conversations}
@@ -534,6 +504,14 @@ function InstagramConvosContent() {
             hasMore={listHasMore}
             loadMore={loadMoreConversations}
             isLoadingMore={isFetchingNextPage}
+            headerExtra={
+              <ConnectedAccountBanner
+                appServices={appServices}
+                selectedAccountId={selectedAccountId}
+                onAccountChange={handleAppServiceChange}
+                loading={appServicesLoading}
+              />
+            }
           />
         </div>
       </div>
