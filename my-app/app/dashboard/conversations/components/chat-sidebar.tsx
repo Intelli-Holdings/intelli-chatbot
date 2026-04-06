@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { Search, MessageSquarePlus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,7 @@ interface ChatSidebarProps {
   hasMore?: boolean
   loadMore?: () => void
   isLoadingMore?: boolean
+  headerExtra?: ReactNode
 }
 
 const formatNumber = (number: number): string => {
@@ -70,6 +71,7 @@ export default function ChatSidebar({
   hasMore = false,
   loadMore,
   isLoadingMore = false,
+  headerExtra,
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -118,6 +120,12 @@ export default function ChatSidebar({
       <div className="flex items-center justify-between px-4 py-3 bg-[#f0f2f5] border-b border-[#e9edef]">
         <h1 className="text-[19px] font-semibold text-[#111b21]">Chats</h1>
       </div>
+
+      {headerExtra && (
+        <div className="px-3 py-2 border-b border-[#e9edef] bg-[#f0f2f5]/50">
+          {headerExtra}
+        </div>
+      )}
 
       <div className="px-3 py-2 bg-white">
         <div className="relative">
