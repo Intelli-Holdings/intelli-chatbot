@@ -40,11 +40,11 @@ export function ProductCard({
   const getAvailabilityBadge = () => {
     switch (product.availability) {
       case 'in stock':
-        return <Badge variant="default" className="bg-green-500">In Stock</Badge>;
+        return <Badge variant="default" className="bg-green-500 text-[10px] px-1.5 py-0 rounded-sm font-medium">In Stock</Badge>;
       case 'out of stock':
-        return <Badge variant="destructive">Out of Stock</Badge>;
+        return <Badge variant="destructive" className="text-[10px] px-1.5 py-0 rounded-sm font-medium">Out of Stock</Badge>;
       case 'available for order':
-        return <Badge variant="secondary">Available for Order</Badge>;
+        return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-sm font-medium">Available</Badge>;
       default:
         return null;
     }

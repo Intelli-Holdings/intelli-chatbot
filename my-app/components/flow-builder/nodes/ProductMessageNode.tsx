@@ -48,7 +48,7 @@ const PRODUCT_MESSAGE_CONFIG: Record<
 
 function ProductMessageNode({ id, data, selected }: ProductMessageNodeProps) {
   const { messageType, productName, headerText, sections, bodyText } = data;
-  const config = PRODUCT_MESSAGE_CONFIG[messageType];
+  const config = PRODUCT_MESSAGE_CONFIG[messageType] || PRODUCT_MESSAGE_CONFIG.multi;
   const Icon = config.icon;
   const validationClass = useNodeValidationClass(id);
 

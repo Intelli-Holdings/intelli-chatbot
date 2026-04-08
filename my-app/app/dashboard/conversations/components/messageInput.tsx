@@ -138,7 +138,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     // Create optimistic message BEFORE sending
-    const tempId = onMessageSent ? onMessageSent(currentAnswer || "Media", mediaUrl, mediaType) : undefined
+    let optimisticLabel = currentAnswer || "Media"
+    if (currentFiles.length > 0 && mediaType) {
+      optimisticLabel = `[${mediaType.toUpperCase()}] ${currentFiles[0].name}`
+    } else if (currentAudioBlob && mediaType) {
+      optimisticLabel = `[AUDIO] Voice message`
+    }
+    const tempId = onMessageSent ? onMessageSent(optimisticLabel, mediaUrl, mediaType) : undefined
 
     // Clear input immediately (optimistic UX)
     setAnswer("")
