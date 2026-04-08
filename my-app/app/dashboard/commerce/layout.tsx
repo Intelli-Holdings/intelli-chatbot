@@ -3,11 +3,12 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Package, ShoppingBag, Wallet, BarChart3, ChevronLeft } from 'lucide-react';
+import { Package, ShoppingBag, Wallet, BarChart3, Store, ChevronLeft } from 'lucide-react';
 
 const commerceNavigation = [
   { title: 'Orders', href: '/dashboard/commerce/orders', icon: Package },
   { title: 'Products', href: '/dashboard/commerce/products', icon: ShoppingBag },
+  { title: 'Storefront', href: '/dashboard/commerce/storefront', icon: Store },
   { title: 'Payments', href: '/dashboard/commerce/payments', icon: Wallet },
   { title: 'Analytics', href: '/dashboard/commerce/analytics', icon: BarChart3 },
 ];
