@@ -19,6 +19,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import ConnectedAccountBanner from "@/components/dashboard/instagram/ConnectedAccountBanner"
+import { useInstagramCustomerProfiles } from "@/hooks/use-instagram-customer-profiles"
 
 type ReadConversationsMap = Record<string, string>
 const EMPTY_MESSAGES: Conversation["messages"] = []
@@ -35,6 +36,7 @@ const areConversationsEqual = (left: Conversation[], right: Conversation[]) => {
     if (prev.id !== next.id) return false
     if (prev.updated_at !== next.updated_at) return false
     if ((prev.unread_messages ?? 0) !== (next.unread_messages ?? 0)) return false
+    if (prev.customer_name !== next.customer_name) return false
     if (prev.customer_number !== next.customer_number) return false
     if (prev.recipient_id !== next.recipient_id) return false
     if (prev.messages !== next.messages) return false
@@ -106,6 +108,11 @@ function InstagramConvosContent() {
   const [selectedPageId, setSelectedPageId] = useState<string>("")
   const accountId = selectedAccountId || primaryAccountId
   const pageId = selectedPageId || primaryPageId
+
+  const { resolveProfiles, getDisplayName } = useInstagramCustomerProfiles(
+    activeOrganizationId || undefined,
+    accountId || undefined,
+  )
 
   // Auto-select first AppService when available
   useEffect(() => {
@@ -275,8 +282,12 @@ function InstagramConvosContent() {
             ? fallbackMessages[fallbackMessages.length - 1]?.created_at
             : undefined
 
+        // Use backend customer_name if available, otherwise try resolved profile
+        const resolvedName = conv.customer_name || getDisplayName(customerNumber, "")
+
         return {
           ...conv,
+          customer_name: resolvedName || conv.customer_name,
           messages: fallbackMessages,
           updated_at: resolveUpdatedAt(conv.updated_at, latestCachedTimestamp),
           phone_number: accountId,
@@ -339,9 +350,24 @@ function InstagramConvosContent() {
     sessionsLoading,
     sessionsError,
     resolveUpdatedAt,
+    getDisplayName,
     getCachedMessages,
     setCachedMessages,
   ])
+
+  // Resolve Instagram customer profiles for conversations missing customer_name
+  useEffect(() => {
+    if (conversations.length === 0) return
+
+    const unresolvedIds = conversations
+      .filter((conv) => !conv.customer_name)
+      .map((conv) => conv.customer_number || conv.recipient_id)
+      .filter(Boolean)
+
+    if (unresolvedIds.length > 0) {
+      void resolveProfiles(unresolvedIds)
+    }
+  }, [conversations, resolveProfiles])
 
   const loadMoreConversations = async () => {
     if (!hasNextPage || isFetchingNextPage) return
