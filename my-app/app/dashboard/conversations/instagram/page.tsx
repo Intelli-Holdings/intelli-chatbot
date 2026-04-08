@@ -530,6 +530,7 @@ function InstagramConvosContent() {
             hasMore={listHasMore}
             loadMore={loadMoreConversations}
             isLoadingMore={isFetchingNextPage}
+            variant="instagram"
             headerExtra={
               <ConnectedAccountBanner
                 appServices={appServices}
