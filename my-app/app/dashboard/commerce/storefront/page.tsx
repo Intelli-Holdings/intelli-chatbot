@@ -11,6 +11,7 @@ import {
   Loader2,
   Check,
   Link2,
+  Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useStorefront } from '@/hooks/use-storefront';
+import { API_BASE } from '@/lib/commerce-api';
 import { toast } from 'sonner';
 
 export default function StorefrontSettingsPage() {
@@ -84,8 +86,13 @@ export default function StorefrontSettingsPage() {
   };
 
   const storefrontUrl = storefront?.slug
-    ? `${window.location.origin}/store/${storefront.slug}`
+    ? `${API_BASE}/commerce/store/${storefront.slug}/`
     : null;
+
+  const copyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    toast.success('URL copied to clipboard');
+  };
 
   if (loading) {
     return (
@@ -175,9 +182,19 @@ export default function StorefrontSettingsPage() {
                 <Link2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </div>
               {form.slug && (
-                <p className="text-xs text-muted-foreground">
-                  {window.location.origin}/store/{form.slug}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs text-muted-foreground truncate">
+                    {API_BASE}/commerce/store/{form.slug}/
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => copyUrl(`${API_BASE}/commerce/store/${form.slug}/`)}
+                    className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+                    title="Copy URL"
+                  >
+                    <Copy className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                </div>
               )}
             </div>
           </div>
