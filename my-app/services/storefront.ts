@@ -5,10 +5,17 @@ export interface StorefrontData {
   organization_id: string;
   slug: string;
   name: string;
+  tagline: string;
   description: string;
   logo_url: string;
+  banner_url: string;
   whatsapp_number: string;
   primary_color: string;
+  facebook_url: string;
+  instagram_url: string;
+  twitter_url: string;
+  tiktok_url: string;
+  website_url: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -17,10 +24,17 @@ export interface StorefrontData {
 export interface UpdateStorefrontRequest {
   slug?: string;
   name?: string;
+  tagline?: string;
   description?: string;
   logo_url?: string;
+  banner_url?: string;
   whatsapp_number?: string;
   primary_color?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  twitter_url?: string;
+  tiktok_url?: string;
+  website_url?: string;
   is_active?: boolean;
 }
 
