@@ -112,7 +112,7 @@ export const launchInstagramSignup = (): void => {
   const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
     `${window.location.origin}/instagram-redirect`
 
-  const scope = 'instagram_basic,instagram_manage_messages'
+  const scope = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights'
 
   // Build the Instagram OAuth URL
   const oauthUrl = new URL('https://www.instagram.com/oauth/authorize')
@@ -120,8 +120,7 @@ export const launchInstagramSignup = (): void => {
   oauthUrl.searchParams.set('redirect_uri', redirectUri)
   oauthUrl.searchParams.set('scope', scope)
   oauthUrl.searchParams.set('response_type', 'code')
-  oauthUrl.searchParams.set('enable_fb_login', '0')
-  oauthUrl.searchParams.set('force_authentication', '1')
+  oauthUrl.searchParams.set('force_reauth', 'true')
 
   // Redirect to Instagram OAuth
   window.location.href = oauthUrl.toString()
