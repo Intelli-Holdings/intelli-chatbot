@@ -127,13 +127,13 @@ export default function OrdersPage() {
 
   // Sync date range to filters
   useEffect(() => {
-    setFilters({
-      ...filters,
+    setFilters(prev => ({
+      ...prev,
       date_from: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
       date_to: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
       offset: 0,
-    });
-  }, [dateRange]);
+    }));
+  }, [dateRange, setFilters]);
 
   // Bulk selection state
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
@@ -154,14 +154,14 @@ export default function OrdersPage() {
   // Debounced search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setFilters({
-        ...filters,
+      setFilters(prev => ({
+        ...prev,
         customer_phone: searchQuery || undefined,
         offset: 0,
-      });
+      }));
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, setFilters]);
 
   const handleStatusFilter = useCallback(
     (status: string) => {

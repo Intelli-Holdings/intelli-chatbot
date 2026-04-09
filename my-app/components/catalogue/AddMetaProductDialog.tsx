@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { Plus, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -350,10 +351,13 @@ export function AddMetaProductDialog({
               <>
                 {imagePreview ? (
                   <div className="relative rounded-lg border overflow-hidden">
-                    <img
+                    <Image
                       src={imagePreview}
                       alt="Preview"
                       className="w-full h-48 object-cover"
+                      width={500}
+                      height={500}
+                      unoptimized
                     />
                     <button
                       type="button"

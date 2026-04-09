@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { Package, Check, ShoppingCart, Pencil } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -91,10 +92,13 @@ export function ProductCard({
 
       <div className="aspect-square relative bg-muted">
         {product.image_url ? (
-          <img
+          <Image
             src={product.image_url}
             alt={product.name}
             className="absolute inset-0 h-full w-full object-cover"
+            width={500}
+            height={500}
+            unoptimized
           />
         ) : (
           <div className="flex h-full items-center justify-center">

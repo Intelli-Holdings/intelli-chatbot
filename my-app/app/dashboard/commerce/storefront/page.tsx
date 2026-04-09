@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import {
   Store,
   Globe,
@@ -279,7 +280,7 @@ export default function StorefrontSettingsPage() {
             />
             {form.logo_url && (
               <div className="mt-2 w-20 h-20 rounded-xl border border-border overflow-hidden bg-muted">
-                <img src={form.logo_url} alt="Logo preview" className="w-full h-full object-cover" />
+                <Image src={form.logo_url} alt="Logo preview" className="w-full h-full object-cover" width={80} height={80} unoptimized />
               </div>
             )}
           </div>
@@ -298,7 +299,7 @@ export default function StorefrontSettingsPage() {
             </p>
             {form.banner_url && (
               <div className="mt-2 w-full h-32 rounded-xl border border-border overflow-hidden bg-muted">
-                <img src={form.banner_url} alt="Banner preview" className="w-full h-full object-cover" />
+                <Image src={form.banner_url} alt="Banner preview" className="w-full h-full object-cover" width={1200} height={400} unoptimized />
               </div>
             )}
           </div>

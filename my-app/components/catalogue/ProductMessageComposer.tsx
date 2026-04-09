@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { Send, Plus, X, Loader2, Package, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -254,10 +255,13 @@ export function ProductMessageComposer({
               <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/50">
                 <div className="h-12 w-12 rounded bg-muted flex items-center justify-center">
                   {selectedProduct.image_url ? (
-                    <img
+                    <Image
                       src={selectedProduct.image_url}
                       alt={selectedProduct.name}
                       className="h-full w-full object-cover rounded"
+                      width={500}
+                      height={500}
+                      unoptimized
                     />
                   ) : (
                     <Package className="h-6 w-6 text-muted-foreground" />

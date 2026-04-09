@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -149,7 +150,7 @@ export default function ProductDetailPage() {
 
           <div className="flex items-center gap-3">
             {store.logo_url ? (
-              <img src={store.logo_url} alt={store.name} className="w-8 h-8 rounded-lg object-cover" />
+              <Image src={store.logo_url} alt={store.name} className="w-8 h-8 rounded-lg object-cover" width={32} height={32} unoptimized />
             ) : (
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs"
@@ -170,10 +171,13 @@ export default function ProductDetailPage() {
             <div className="aspect-square relative bg-white rounded-2xl overflow-hidden shadow-sm">
               {images.length > 0 ? (
                 <>
-                  <img
+                  <Image
                     src={images[selectedImageIndex]?.image_url}
                     alt={images[selectedImageIndex]?.alt_text || product.name}
                     className="w-full h-full object-cover"
+                    width={500}
+                    height={500}
+                    unoptimized
                   />
                   {images.length > 1 && (
                     <>
@@ -216,7 +220,7 @@ export default function ProductDetailPage() {
                     }`}
                     style={idx === selectedImageIndex ? { borderColor: primaryColor } : undefined}
                   >
-                    <img src={img.image_url} alt={img.alt_text || ''} className="w-full h-full object-cover" />
+                    <Image src={img.image_url} alt={img.alt_text || ''} className="w-full h-full object-cover" width={64} height={64} unoptimized />
                   </button>
                 ))}
               </div>

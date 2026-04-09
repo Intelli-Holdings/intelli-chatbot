@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import { Loader2, Upload, X, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -318,10 +319,13 @@ export function EditMetaProductDialog({
               {/* Current image */}
               {currentImageUrl && imageMode === 'keep' && (
                 <div className="relative rounded-lg border overflow-hidden">
-                  <img
+                  <Image
                     src={currentImageUrl}
                     alt={product.name}
                     className="w-full h-48 object-cover"
+                    width={500}
+                    height={500}
+                    unoptimized
                   />
                   <div className="absolute bottom-2 right-2 flex gap-1">
                     <button
@@ -383,10 +387,13 @@ export function EditMetaProductDialog({
                     <>
                       {imagePreview ? (
                         <div className="relative rounded-lg border overflow-hidden">
-                          <img
+                          <Image
                             src={imagePreview}
                             alt="Preview"
                             className="w-full h-48 object-cover"
+                            width={500}
+                            height={500}
+                            unoptimized
                           />
                           <button
                             type="button"

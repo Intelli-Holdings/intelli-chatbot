@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import {
   ShoppingBag,
@@ -222,10 +223,13 @@ export default function StorefrontPage() {
           {/* Logo + Name */}
           <div className="flex items-center gap-3 min-w-0">
             {store.logo_url ? (
-              <img
+              <Image
                 src={store.logo_url}
                 alt={store.name}
                 className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+                width={36}
+                height={36}
+                unoptimized
               />
             ) : (
               <div
@@ -303,10 +307,13 @@ export default function StorefrontPage() {
       <div className="relative">
         {store.banner_url ? (
           <div className="h-56 sm:h-72 lg:h-80 overflow-hidden">
-            <img
+            <Image
               src={store.banner_url}
               alt={`${store.name} banner`}
               className="w-full h-full object-cover"
+              width={1200}
+              height={400}
+              unoptimized
             />
             {/* Gradient overlay for readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
@@ -346,10 +353,13 @@ export default function StorefrontPage() {
             <div className="flex-shrink-0">
               {store.logo_url ? (
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-white">
-                  <img
+                  <Image
                     src={store.logo_url}
                     alt={store.name}
                     className="w-full h-full object-cover"
+                    width={112}
+                    height={112}
+                    unoptimized
                   />
                 </div>
               ) : (
@@ -585,10 +595,13 @@ function StorefrontProductCard({
       {/* Image */}
       <div className="aspect-square relative bg-gray-100 overflow-hidden">
         {primaryImage ? (
-          <img
+          <Image
             src={primaryImage}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            width={500}
+            height={500}
+            unoptimized
           />
         ) : (
           <div className="flex items-center justify-center h-full">

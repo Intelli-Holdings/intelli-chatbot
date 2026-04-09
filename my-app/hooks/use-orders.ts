@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { OrdersService } from '@/services/orders';
 import type {
@@ -21,7 +21,7 @@ export interface UseOrdersReturn {
   error: string | null;
   refetch: () => Promise<void>;
   filters: OrderQueryFilters;
-  setFilters: (filters: OrderQueryFilters) => void;
+  setFilters: Dispatch<SetStateAction<OrderQueryFilters>>;
   createOrder: (order: CreateOrderRequest) => Promise<WhatsAppOrder>;
   updateOrder: (orderId: string, updates: UpdateOrderRequest) => Promise<WhatsAppOrder>;
   deleteOrder: (orderId: string) => Promise<void>;

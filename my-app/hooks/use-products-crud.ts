@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { ProductService } from '@/services/product';
 import type { ProductData, CreateProductRequest, UpdateProductRequest, ProductQueryFilters, ProductImageData } from '@/services/product';
@@ -12,7 +12,7 @@ export interface UseProductsReturn {
   error: string | null;
   refetch: () => Promise<void>;
   filters: ProductQueryFilters;
-  setFilters: (filters: ProductQueryFilters) => void;
+  setFilters: Dispatch<SetStateAction<ProductQueryFilters>>;
   createProduct: (data: CreateProductRequest) => Promise<ProductData>;
   updateProduct: (productId: string, data: UpdateProductRequest) => Promise<ProductData>;
   deleteProduct: (productId: string) => Promise<void>;
