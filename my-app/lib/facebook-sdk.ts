@@ -108,7 +108,7 @@ export const launchMessengerEmbeddedSignup = (): void => {
  * Only requires instagram_basic and instagram_manage_messages
  */
 export const launchInstagramSignup = (): void => {
-  const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
+  const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
   const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
     `${window.location.origin}/instagram-redirect`
 
