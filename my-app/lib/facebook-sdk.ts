@@ -112,6 +112,11 @@ export const launchInstagramSignup = (): void => {
   const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
     `${window.location.origin}/instagram-redirect`
 
+  console.log('[InstagramSignup] NEXT_PUBLIC_INSTAGRAM_APP_ID:', process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID)
+  console.log('[InstagramSignup] NEXT_PUBLIC_FACEBOOK_APP_ID:', process.env.NEXT_PUBLIC_FACEBOOK_APP_ID)
+  console.log('[InstagramSignup] appId used:', appId)
+  console.log('[InstagramSignup] redirectUri:', redirectUri)
+
   const scope = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights'
 
   // Build the Instagram OAuth URL
