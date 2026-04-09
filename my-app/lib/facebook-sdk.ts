@@ -103,28 +103,27 @@ export const launchMessengerEmbeddedSignup = (): void => {
 }
 
 /**
- * Launch Facebook Login for Instagram
- * Uses redirect-based OAuth flow
+ * Launch Instagram Login OAuth flow
+ * Uses Instagram's own OAuth endpoint (not Facebook Login)
+ * Only requires instagram_basic and instagram_manage_messages
  */
 export const launchInstagramSignup = (): void => {
   const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
-  const configId = process.env.NEXT_PUBLIC_FACEBOOK_APP_CONFIG_ID_INSTAGRAM
   const redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI ||
     `${window.location.origin}/instagram-redirect`
 
-  const scope = 'instagram_basic,instagram_manage_messages,instagram_manage_comments,instagram_content_publish,instagram_manage_insights,pages_show_list,pages_manage_metadata'
+  const scope = 'instagram_basic,instagram_manage_messages'
 
-  // Build the OAuth URL for redirect-based flow
-  const oauthUrl = new URL('https://www.facebook.com/v22.0/dialog/oauth')
+  // Build the Instagram OAuth URL
+  const oauthUrl = new URL('https://www.instagram.com/oauth/authorize')
   oauthUrl.searchParams.set('client_id', appId!)
   oauthUrl.searchParams.set('redirect_uri', redirectUri)
   oauthUrl.searchParams.set('scope', scope)
   oauthUrl.searchParams.set('response_type', 'code')
-  if (configId) {
-    oauthUrl.searchParams.set('config_id', configId)
-  }
+  oauthUrl.searchParams.set('enable_fb_login', '0')
+  oauthUrl.searchParams.set('force_authentication', '1')
 
-  // Redirect to Facebook OAuth
+  // Redirect to Instagram OAuth
   window.location.href = oauthUrl.toString()
 }
 
