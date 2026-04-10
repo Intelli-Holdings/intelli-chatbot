@@ -9,8 +9,12 @@ import {
   Bell,
   BarChart2,
   Globe,
-  Building2,
   Building,
+  Workflow,
+  Megaphone,
+  Users,
+  Plug,
+  Code,
 } from "lucide-react";
 
 import {
@@ -48,9 +52,19 @@ const navItems = [
     url: "/docs/get-started/connect-whatsapp",
   },
   {
-    title: "Stay Notified",
-    icon: Bell,
-    url: "/docs/get-started/notifications",
+    title: "Chatbot Flows",
+    icon: Workflow,
+    url: "/docs/get-started/chatbot-flows",
+  },
+  {
+    title: "Broadcasts & Campaigns",
+    icon: Megaphone,
+    url: "/docs/get-started/broadcasts",
+  },
+  {
+    title: "Audiences & Contacts",
+    icon: Users,
+    url: "/docs/get-started/audiences",
   },
   {
     title: "Manage Conversations",
@@ -58,7 +72,12 @@ const navItems = [
     url: "/docs/get-started/conversations",
   },
   {
-    title: "Track Your Analytics",
+    title: "Notifications",
+    icon: Bell,
+    url: "/docs/get-started/notifications",
+  },
+  {
+    title: "Analytics",
     icon: BarChart2,
     url: "/docs/get-started/analytics",
   },
@@ -70,13 +89,14 @@ const navItems = [
 ];
 
 const developerDocs = [
-
   {
-    title: "Intelli Onboarding Flow",
-    url: "/docs/onboarding-flow",
+    title: "Channels & Integrations",
+    icon: Plug,
+    url: "/docs/channels",
   },
   {
     title: "API Reference",
+    icon: Code,
     url: "/docs/api-reference",
   },
 ];
