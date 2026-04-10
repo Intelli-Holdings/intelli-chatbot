@@ -1,62 +1,88 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-    title: "Create Assistant | Organization Setup",
-    description: "Learn how to create and manage assistants for your organization",
+  title: "Set Up Your Assistant | Intelli Documentation",
+  description: "Learn how to create, train, and manage an AI assistant for your business on Intelli.",
 }
 
 export default function SetupAssistantPage() {
-    return (
-        <main className="max-w-3xl mx-auto">
-            <h1 className="mb-6 text-4xl font-bold text-[#007fff]">🪄 Creating an Assistant</h1>
-            <p className="text-xl mb-4">
-                Follow these steps to create and manage an assistant for your organization.
-            </p>
+  return (
+    <main className="mx-auto max-w-3xl">
+      <h1 className="mb-6 text-4xl font-bold text-[#007fff]">Set Up Your Assistant</h1>
+      <p className="mb-6 text-lg">
+        Your AI assistant is the core of Intelli. It learns from your business information and
+        handles customer conversations across WhatsApp, your website, and email.
+      </p>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mt-8 mb-4">Step 1: Select Organization</h2>
-                <p className="mb-4">
-                    From the dashboard, locate the organization selector dropdown at the top of the page.
-                    Select your desired organization from the list.
-                </p>
-            </section>
+      <section className="mb-8">
+        <h2 className="mb-4 mt-8 text-2xl font-semibold">Step 1: Go to the Assistants page</h2>
+        <p className="mb-4">
+          From your dashboard, click <strong>Assistants</strong> in the sidebar. Make sure
+          you have the right organization selected at the top of the page.
+        </p>
+      </section>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">Step 2: Access Assistant Creation</h2>
-                <p className="mb-4">
-                    Locate and click the &quot;Create Assistant&quot; card on your dashboard.
-                </p>
-            </section>
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Step 2: Create a new assistant</h2>
+        <p className="mb-4">
+          Click <strong>Create Assistant</strong>. You&apos;ll be asked to provide:
+        </p>
+        <ul className="mb-4 list-disc pl-6 space-y-2">
+          <li><strong>Assistant Name</strong> — A name to identify this assistant (e.g., &quot;Sales Bot&quot; or &quot;Support Agent&quot;).</li>
+          <li><strong>Instructions</strong> — Tell the assistant how to behave. For example: &quot;You are a friendly customer support agent for our company. Answer questions about our products and services. If you don&apos;t know something, offer to connect the customer with a human agent.&quot;</li>
+        </ul>
+      </section>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">Step 3: Fill Assistant Details</h2>
-                <p className="mb-4">In the popup form, you&apos;ll need to fill out the following fields:</p>
-                <ul className="list-disc ml-6 mb-4">
-                    <li className="mb-2">Organization: &quot;heavenly for samson&quot; (pre-selected)</li>
-                    <li className="mb-2">Assistant Name: Enter a descriptive name for your assistant</li>
-                    <li className="mb-2">Assistant Prompt/Instructions: Provide detailed instructions for your assistant</li>
-                </ul>
-                <p className="mb-4">Click the &quot;Create Assistant&quot; button to complete the process.</p>
-            </section>
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Step 3: Train it with your knowledge</h2>
+        <p className="mb-4">
+          Upload documents to give your assistant the knowledge it needs. Supported formats include
+          PDF, DOCX, XLSX, and TXT files. You can upload:
+        </p>
+        <ul className="mb-4 list-disc pl-6 space-y-2">
+          <li>FAQs and help articles</li>
+          <li>Product or service descriptions</li>
+          <li>Company policies and procedures</li>
+          <li>Price lists or catalogs</li>
+        </ul>
+        <p className="mb-4">
+          The assistant processes your documents and uses them to answer customer questions
+          accurately. You can add, replace, or remove documents at any time.
+        </p>
+      </section>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">Step 4: Confirmation</h2>
-                <p className="mb-4">
-                    Once created, you&apos;ll see a success notification and your new assistant will appear in the list.
-                </p>
-            </section>
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Step 4: Test and refine</h2>
+        <p className="mb-4">
+          After creating your assistant, test it by sending it questions. If the answers aren&apos;t
+          quite right, you can:
+        </p>
+        <ul className="mb-4 list-disc pl-6 space-y-2">
+          <li>Update the instructions to be more specific.</li>
+          <li>Upload additional documents to fill knowledge gaps.</li>
+          <li>Remove outdated documents that might cause confusion.</li>
+        </ul>
+      </section>
 
-            <section className="mb-8">
-                <h2 className="text-2xl font-semibold mb-4">Managing Your Assistant</h2>
-                <p className="mb-4">
-                    To manage your assistant:
-                </p>
-                <ul className="list-disc ml-6 mb-4">
-                    <li className="mb-2">Locate your assistant card in the list</li>
-                    <li className="mb-2">Click the three dots (⋮) menu on the assistant card</li>
-                    <li className="mb-2">Select &quot;Edit&quot; to modify settings or &quot;Delete&quot; to remove the assistant</li>
-                </ul>
-            </section>
-        </main>
-    )
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Managing your assistants</h2>
+        <p className="mb-4">
+          From the Assistants page, you can:
+        </p>
+        <ul className="mb-4 list-disc pl-6 space-y-2">
+          <li>Click the three-dot menu on any assistant card to <strong>edit</strong> or <strong>delete</strong> it.</li>
+          <li>Create multiple assistants for different purposes (e.g., one for sales, one for support).</li>
+          <li>Update documents and instructions as your business evolves.</li>
+        </ul>
+      </section>
+
+      <div className="rounded-lg bg-blue-50 p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Tip:</strong> The more specific your instructions and the more complete your uploaded
+          documents, the better your assistant will perform. Start with your most common customer
+          questions and expand from there.
+        </p>
+      </div>
+    </main>
+  )
 }

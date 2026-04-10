@@ -1,74 +1,79 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-    title: "Accessing Conversations | Intelli Documentation",
-    description: "Learn how to access and manage conversations in Intelli",
+  title: "Manage Conversations | Intelli Documentation",
+  description: "Learn how to manage customer conversations across WhatsApp and website chat in Intelli.",
 }
 
 export default function ConversationsGuide() {
-    return (
-        <main className="mx-auto max-w-3xl">
-            <h1 className="mb-6 text-4xl font-bold text-[#007fff]">💬 Accessing Conversations in Intelli</h1>
-            <p className="mb-4">
-                Learn how to access and manage your customer conversations across different channels.
-            </p>
+  return (
+    <main className="mx-auto max-w-3xl">
+      <h1 className="mb-6 text-4xl font-bold text-[#007fff]">Manage Conversations</h1>
+      <p className="mb-6 text-lg">
+        Your conversations inbox is where you see every customer message across all your channels.
+        The AI handles routine questions automatically, and you can jump in whenever you need to.
+      </p>
 
-            <div className="mb-8 space-y-6">
-                <section>
-                    <h2 className="mb-4 text-2xl font-semibold">Accessing the Conversations Page</h2>
-                    <p className="mb-2">There are two ways to access your conversations:</p>
-                    <ul className="list-inside list-disc space-y-2 pl-4">
-                        <li>Click the &quot;💬 View Conversations&quot; card on the dashboard home</li>
-                        <li>Click &quot;Conversations&quot; in the app sidebar</li>
-                    </ul>
-                </section>
+      <section className="mb-8">
+        <h2 className="mb-4 mt-8 text-2xl font-semibold">How to access conversations</h2>
+        <p className="mb-4">
+          Click <strong>Conversations</strong> in the dashboard sidebar. You&apos;ll see your connected
+          channels — select one to view its messages.
+        </p>
+      </section>
 
-                <section>
-                    <h2 className="mb-4 text-2xl font-semibold">Channel-Specific Conversations</h2>
-                    <p className="mb-2">On the Conversations page, you&apos;ll see cards for each channel:</p>
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="mb-2 text-xl font-medium">WhatsApp Interface</h3>
-                            <ul className="list-inside list-disc space-y-1 pl-4">
-                                <li>Similar to WhatsApp Desktop layout</li>
-                                <li>Conversation list with search bar on the left</li>
-                                <li>Click any conversation to view the chat history</li>
-                                <li>Use the takeover button to respond manually</li>
-                                <li>Handover control back to AI when finished</li>
-                            </ul>
-                        </div>
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">WhatsApp conversations</h2>
+        <p className="mb-4">
+          The WhatsApp inbox has a familiar layout similar to WhatsApp Desktop:
+        </p>
+        <ul className="mb-4 list-disc pl-6 space-y-2">
+          <li>A <strong>conversation list</strong> on the left with search and filtering.</li>
+          <li>Click any conversation to see the <strong>full chat history</strong> on the right.</li>
+          <li>If you have multiple WhatsApp numbers, use the selector at the top to switch between them.</li>
+          <li>Unread messages are highlighted so you know what&apos;s new.</li>
+        </ul>
+      </section>
 
-                        <div>
-                            <h3 className="mb-2 text-xl font-medium">Website Widget Interface</h3>
-                            <ul className="list-inside list-disc space-y-1 pl-4">
-                                <li>Select an organization from the dropdown</li>
-                                <li>Choose a website widget</li>
-                                <li>Search visitors using the search bar</li>
-                                <li>Select a visitor to start chatting</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Website widget conversations</h2>
+        <p className="mb-4">
+          For website chat, select your organization and widget to see visitor conversations:
+        </p>
+        <ul className="mb-4 list-disc pl-6 space-y-2">
+          <li>Browse and search through visitor conversations.</li>
+          <li>Click a visitor to see their full chat history.</li>
+          <li>Reply directly to continue the conversation.</li>
+        </ul>
+      </section>
 
-                <section>
-                    <h2 className="mb-4 text-2xl font-semibold">Managing Conversations</h2>
-                    <p>
-                        For both channels, you can:
-                    </p>
-                    <ul className="list-inside list-disc space-y-1 pl-4">
-                        <li>View message history with customers</li>
-                        <li>Take manual control of conversations</li>
-                        <li>Hand control back to the AI assistant</li>
-                        <li>Search through conversations</li>
-                    </ul>
-                </section>
-            </div>
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Taking over from the AI</h2>
+        <p className="mb-4">
+          Sometimes you&apos;ll want to respond personally instead of letting the AI handle it. Here&apos;s how:
+        </p>
+        <ol className="mb-4 list-decimal pl-6 space-y-2">
+          <li>Open the conversation you want to take over.</li>
+          <li>Click the <strong>Takeover</strong> button to pause the AI and start replying manually.</li>
+          <li>Type your messages and send them directly to the customer.</li>
+          <li>When you&apos;re done, click <strong>Hand back to AI</strong> to let the assistant resume.</li>
+        </ol>
+      </section>
 
-            <div className="rounded-lg bg-blue-50 p-4">
-                <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> Each channel displays the number of unread messages directly on their respective icons.
-                </p>
-            </div>
-        </main>
-    )
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Sending media</h2>
+        <p className="mb-4">
+          You can send images, documents, and other files directly in a conversation.
+          Use the attachment button in the message composer to share files with customers.
+        </p>
+      </section>
+
+      <div className="rounded-lg bg-blue-50 p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Tip:</strong> The AI keeps working on other conversations while you&apos;re handling one
+          manually. You only need to take over the specific conversation that needs your personal touch.
+        </p>
+      </div>
+    </main>
+  )
 }

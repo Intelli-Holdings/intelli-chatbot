@@ -1,67 +1,96 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-    title: "Connect WhatsApp | Intelli Documentation",
-    description: "Learn how to connect your WhatsApp Business account to Intelli",
+  title: "Connect WhatsApp | Intelli Documentation",
+  description: "Learn how to connect your WhatsApp Business number to Intelli for AI-powered messaging.",
 }
 
 export default function WhatsAppConnection() {
-    return (
-        <main className="mx-auto max-w-3xl">
-            <h1 className="mb-6 text-4xl font-bold text-[#007fff]">📦 Connect WhatsApp to Intelli</h1>
-            <p className="mb-4">
-                Follow these steps to connect your WhatsApp Business account to your Intelli assistant.
-            </p>
+  return (
+    <main className="mx-auto max-w-3xl">
+      <h1 className="mb-6 text-4xl font-bold text-[#007fff]">Connect WhatsApp</h1>
+      <p className="mb-6 text-lg">
+        Connect your WhatsApp Business number to Intelli so your AI assistant can handle
+        customer conversations on WhatsApp automatically.
+      </p>
 
-            <div className="mb-8 space-y-6">
-                <section>
-                    <h2 className="mb-4 text-2xl font-semibold">Step 1: Access WhatsApp Setup</h2>
-                    <p className="mb-2">There are two ways to access the WhatsApp setup:</p>
-                    <ul className="list-inside list-disc space-y-2 pl-4">
-                        <li>Navigate to the Channels tab in the app sidebar</li>
-                        <li>Click the &quot;📦 Create a WhatsApp Package&quot; card on the dashboard home</li>
-                    </ul>
-                </section>
+      <section className="mb-8">
+        <h2 className="mb-4 mt-8 text-2xl font-semibold">Before you start</h2>
+        <p className="mb-4">You&apos;ll need:</p>
+        <ul className="mb-4 list-disc pl-6 space-y-2">
+          <li>A <strong>Facebook Business account</strong> (also called Meta Business Suite).</li>
+          <li>A <strong>phone number</strong> that isn&apos;t already registered with WhatsApp Business or the regular WhatsApp app.</li>
+          <li>An <strong>AI assistant</strong> already created in Intelli (see &quot;Set Up Your Assistant&quot;).</li>
+        </ul>
+      </section>
 
-                <section>
-                    <h2 className="mb-4 text-2xl font-semibold">Step 2: Choose Connection Method</h2>
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="mb-2 text-xl font-medium">Option A: Manual Setup</h3>
-                            <p className="mb-2">Fill in the following WhatsApp Business Account details:</p>
-                            <ul className="list-inside list-disc space-y-1 pl-4">
-                                <li>Organization (select from dropdown)</li>
-                                <li>Account Name</li>
-                                <li>Phone Number</li>
-                                <li>Access Token</li>
-                                <li>Phone Number ID</li>
-                                <li>Business Account ID</li>
-                                <li>App Secret</li>
-                            </ul>
-                            <p className="mt-2">Click &quot;Create WhatsApp Package&quot; when complete.</p>
-                        </div>
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Step 1: Go to Channels</h2>
+        <p className="mb-4">
+          From your dashboard, click <strong>Channels</strong> in the sidebar. You can also click
+          the <strong>Create a WhatsApp Package</strong> card on the dashboard home page.
+        </p>
+      </section>
 
-                        <div>
-                            <h3 className="mb-2 text-xl font-medium">Option B: Facebook Login (Recommended)</h3>
-                            <p>Click the &quot;Login with Facebook&quot; button to connect through Meta Business Suite for a simplified setup process.</p>
-                        </div>
-                    </div>
-                </section>
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Step 2: Connect your account</h2>
+        <p className="mb-4">You have two options:</p>
 
-                <section>
-                    <h2 className="mb-4 text-2xl font-semibold">Step 3: Package Provisioning</h2>
-                    <p>
-                        Once configured, we&apos;ll automatically provision a package to connect your WhatsApp number with your existing assistant.
-                    </p>
-                </section>
-            </div>
+        <div className="mb-4 rounded-lg border p-4">
+          <h3 className="mb-2 text-lg font-medium">Option A: Login with Facebook (recommended)</h3>
+          <p>
+            Click the <strong>Login with Facebook</strong> button. This walks you through connecting
+            your Meta Business account in a few clicks. It&apos;s the fastest and easiest way.
+          </p>
+        </div>
 
-            <div className="rounded-lg bg-blue-50 p-4">
-                <p className="text-sm text-blue-800">
-                    <strong>Tip:</strong> The Facebook Login method is recommended for most users as it provides a simpler and more
-                    streamlined setup process.
-                </p>
-            </div>
-        </main>
-    )
+        <div className="rounded-lg border p-4">
+          <h3 className="mb-2 text-lg font-medium">Option B: Manual setup</h3>
+          <p className="mb-2">
+            If you prefer, you can enter your WhatsApp Business API credentials manually:
+          </p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>Account Name</li>
+            <li>Phone Number</li>
+            <li>Access Token</li>
+            <li>Phone Number ID</li>
+            <li>Business Account ID</li>
+            <li>App Secret</li>
+          </ul>
+          <p className="mt-2">
+            Click <strong>Create WhatsApp Package</strong> when done.
+          </p>
+        </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Step 3: You&apos;re connected</h2>
+        <p className="mb-4">
+          Once connected, Intelli automatically links your WhatsApp number with your AI assistant.
+          Incoming messages will be handled by the assistant, and you can view all conversations
+          in your dashboard inbox.
+        </p>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-2xl font-semibold">Managing your WhatsApp connection</h2>
+        <p className="mb-4">
+          From the Channels page, you can:
+        </p>
+        <ul className="mb-4 list-disc pl-6 space-y-2">
+          <li>View your connected phone numbers and their status.</li>
+          <li>See messaging limits and quality ratings.</li>
+          <li>Update your access credentials if needed.</li>
+          <li>Connect additional WhatsApp numbers (available on higher plans).</li>
+        </ul>
+      </section>
+
+      <div className="rounded-lg bg-blue-50 p-4">
+        <p className="text-sm text-blue-800">
+          <strong>Tip:</strong> The Facebook Login method is recommended for most users. It handles the
+          technical setup automatically so you can get started faster.
+        </p>
+      </div>
+    </main>
+  )
 }
