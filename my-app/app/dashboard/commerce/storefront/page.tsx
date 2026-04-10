@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Store,
@@ -19,12 +19,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useStorefront } from '@/hooks/use-storefront';
 import { API_BASE } from '@/lib/commerce-api';
 import { toast } from 'sonner';
 
 export default function StorefrontSettingsPage() {
-  const { storefront, loading, saving, updateStorefront, refetch } = useStorefront();
+  const { storefront, loading, saving, updateStorefront } = useStorefront();
 
   // Local form state
   const [form, setForm] = useState({
@@ -97,69 +105,89 @@ export default function StorefrontSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="flex flex-col gap-6">
+        <div>
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="mt-2 h-4 w-64" />
+        </div>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-56" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Storefront</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-golden-heading font-semibold tracking-tight">
+            Storefront
+          </h2>
+          <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
             Customize your public store appearance and branding.
           </p>
         </div>
         <div className="flex items-center gap-2">
           {storefrontUrl && form.is_active && (
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" asChild>
               <a href={storefrontUrl} target="_blank" rel="noopener noreferrer">
-                <Eye className="w-4 h-4 mr-2" />
+                <Eye className="h-4 w-4 mr-2" />
                 Preview
               </a>
             </Button>
           )}
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={!isDirty || saving}
-          >
+          <Button onClick={handleSave} disabled={!isDirty || saving}>
             {saving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : showSaved ? (
-              <Check className="w-4 h-4 mr-2" />
+              <Check className="h-4 w-4 mr-2" />
             ) : (
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="h-4 w-4 mr-2" />
             )}
             {showSaved ? 'Saved' : 'Save Changes'}
           </Button>
         </div>
       </div>
 
-      {/* Active toggle */}
-      <div className="flex items-center justify-between rounded-xl border border-border p-4">
-        <div className="space-y-0.5">
-          <Label className="text-sm font-medium">Publish Storefront</Label>
-          <p className="text-xs text-muted-foreground">
-            Make your store visible to the public.
-          </p>
-        </div>
-        <Switch
-          checked={form.is_active}
-          onCheckedChange={(checked) => handleChange('is_active', checked)}
-        />
-      </div>
+      {/* Publish toggle */}
+      <Card>
+        <CardContent className="flex items-center justify-between gap-4 p-golden-lg">
+          <div className="space-y-0.5">
+            <Label className="text-sm font-medium">Publish Storefront</Label>
+            <p className="text-xs text-muted-foreground">
+              Make your store visible to the public.
+            </p>
+          </div>
+          <Switch
+            checked={form.is_active}
+            onCheckedChange={(checked) => handleChange('is_active', checked)}
+          />
+        </CardContent>
+      </Card>
 
-      {/* ─── Store Identity ───────────────────────────────────── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Store className="w-4 h-4" />
-          Store Identity
-        </div>
-        <div className="rounded-xl border border-border p-5 space-y-4">
+      {/* Store Identity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Store className="h-4 w-4 text-muted-foreground" />
+            Store Identity
+          </CardTitle>
+          <CardDescription>
+            Basic information that appears on your public store.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Store Name</Label>
@@ -176,11 +204,16 @@ export default function StorefrontSettingsPage() {
                 <Input
                   id="slug"
                   value={form.slug}
-                  onChange={(e) => handleChange('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  onChange={(e) =>
+                    handleChange(
+                      'slug',
+                      e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
+                    )
+                  }
                   placeholder="my-store"
                   className="pr-8"
                 />
-                <Link2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Link2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
               {form.slug && (
                 <div className="flex items-center gap-1.5">
@@ -189,11 +222,13 @@ export default function StorefrontSettingsPage() {
                   </p>
                   <button
                     type="button"
-                    onClick={() => copyUrl(`${API_BASE}/commerce/store/${form.slug}/`)}
+                    onClick={() =>
+                      copyUrl(`${API_BASE}/commerce/store/${form.slug}/`)
+                    }
                     className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
                     title="Copy URL"
                   >
-                    <Copy className="w-3 h-3 text-muted-foreground" />
+                    <Copy className="h-3 w-3 text-muted-foreground" />
                   </button>
                 </div>
               )}
@@ -225,25 +260,32 @@ export default function StorefrontSettingsPage() {
               <Input
                 id="whatsapp_number"
                 value={form.whatsapp_number}
-                onChange={(e) => handleChange('whatsapp_number', e.target.value)}
+                onChange={(e) =>
+                  handleChange('whatsapp_number', e.target.value)
+                }
                 placeholder="+254700000000"
               />
-              <MessageCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <MessageCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground">
               Customers can chat and order via WhatsApp.
             </p>
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      {/* ─── Branding ─────────────────────────────────────────── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Palette className="w-4 h-4" />
-          Branding
-        </div>
-        <div className="rounded-xl border border-border p-5 space-y-5">
+      {/* Branding */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Palette className="h-4 w-4 text-muted-foreground" />
+            Branding
+          </CardTitle>
+          <CardDescription>
+            Visual identity of your storefront — colors, logo, and banner.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
           {/* Brand Color */}
           <div className="space-y-2">
             <Label htmlFor="primary_color">Brand Color</Label>
@@ -253,7 +295,7 @@ export default function StorefrontSettingsPage() {
                 id="primary_color"
                 value={form.primary_color}
                 onChange={(e) => handleChange('primary_color', e.target.value)}
-                className="w-10 h-10 rounded-lg border border-border cursor-pointer"
+                className="h-10 w-10 rounded-lg border border-border cursor-pointer"
               />
               <Input
                 value={form.primary_color}
@@ -279,8 +321,15 @@ export default function StorefrontSettingsPage() {
               placeholder="https://example.com/logo.png"
             />
             {form.logo_url && (
-              <div className="mt-2 w-20 h-20 rounded-xl border border-border overflow-hidden bg-muted">
-                <Image src={form.logo_url} alt="Logo preview" className="w-full h-full object-cover" width={80} height={80} unoptimized />
+              <div className="mt-2 h-20 w-20 rounded-xl border border-border overflow-hidden bg-muted">
+                <Image
+                  src={form.logo_url}
+                  alt="Logo preview"
+                  className="h-full w-full object-cover"
+                  width={80}
+                  height={80}
+                  unoptimized
+                />
               </div>
             )}
           </div>
@@ -298,30 +347,59 @@ export default function StorefrontSettingsPage() {
               Recommended: 1200x400px or wider. Displayed as the hero banner.
             </p>
             {form.banner_url && (
-              <div className="mt-2 w-full h-32 rounded-xl border border-border overflow-hidden bg-muted">
-                <Image src={form.banner_url} alt="Banner preview" className="w-full h-full object-cover" width={1200} height={400} unoptimized />
+              <div className="mt-2 h-32 w-full rounded-xl border border-border overflow-hidden bg-muted">
+                <Image
+                  src={form.banner_url}
+                  alt="Banner preview"
+                  className="h-full w-full object-cover"
+                  width={1200}
+                  height={400}
+                  unoptimized
+                />
               </div>
             )}
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      {/* ─── Social Links ─────────────────────────────────────── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Globe className="w-4 h-4" />
-          Social Links
-        </div>
-        <div className="rounded-xl border border-border p-5 space-y-4">
-          <p className="text-xs text-muted-foreground">
+      {/* Social Links */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            Social Links
+          </CardTitle>
+          <CardDescription>
             Add your social media links. They&apos;ll appear on your storefront.
-          </p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {[
-            { key: 'website_url', label: 'Website', placeholder: 'https://yourwebsite.com' },
-            { key: 'facebook_url', label: 'Facebook', placeholder: 'https://facebook.com/yourpage' },
-            { key: 'instagram_url', label: 'Instagram', placeholder: 'https://instagram.com/yourhandle' },
-            { key: 'twitter_url', label: 'X (Twitter)', placeholder: 'https://x.com/yourhandle' },
-            { key: 'tiktok_url', label: 'TikTok', placeholder: 'https://tiktok.com/@yourhandle' },
+            {
+              key: 'website_url',
+              label: 'Website',
+              placeholder: 'https://yourwebsite.com',
+            },
+            {
+              key: 'facebook_url',
+              label: 'Facebook',
+              placeholder: 'https://facebook.com/yourpage',
+            },
+            {
+              key: 'instagram_url',
+              label: 'Instagram',
+              placeholder: 'https://instagram.com/yourhandle',
+            },
+            {
+              key: 'twitter_url',
+              label: 'X (Twitter)',
+              placeholder: 'https://x.com/yourhandle',
+            },
+            {
+              key: 'tiktok_url',
+              label: 'TikTok',
+              placeholder: 'https://tiktok.com/@yourhandle',
+            },
           ].map((field) => (
             <div key={field.key} className="space-y-1.5">
               <Label htmlFor={field.key} className="text-xs">
@@ -335,17 +413,17 @@ export default function StorefrontSettingsPage() {
               />
             </div>
           ))}
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      {/* Bottom save bar for long forms */}
+      {/* Sticky save bar */}
       {isDirty && (
         <div className="sticky bottom-4 flex justify-end">
           <Button onClick={handleSave} disabled={saving} className="shadow-lg">
             {saving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="h-4 w-4 mr-2" />
             )}
             Save Changes
           </Button>
