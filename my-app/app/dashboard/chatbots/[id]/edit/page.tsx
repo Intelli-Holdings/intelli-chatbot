@@ -149,10 +149,23 @@ export default function ChatbotEditorPage() {
     setHasChanges(true);
   };
 
-  // Validate before save
+  // Validate before save.
+  // Prefer the FlowBuilder's live validation (which sees the in-memory
+  // nodes/edges) over validateChatbot which only sees stale flowLayout
+  // data from the last fetch.
   const validate = (): boolean => {
     if (!chatbot) return false;
-    const errors = ChatbotAutomationService.validateChatbot(chatbot);
+
+    // Name is required regardless of flow state
+    const errors: string[] = [];
+    if (!chatbot.name?.trim()) {
+      errors.push("Chatbot name is required");
+    }
+
+    // Ask the FlowBuilder for live flow validation
+    const flowErrors = flowBuilderRef.current?.validate() ?? [];
+    errors.push(...flowErrors);
+
     setValidationErrors(errors);
     return errors.length === 0;
   };
@@ -167,6 +180,11 @@ export default function ChatbotEditorPage() {
 
     setSaving(true);
     try {
+      // Push the live flow first so the metadata save sees the freshest state
+      if (flowBuilderRef.current?.hasUnsavedChanges()) {
+        await flowBuilderRef.current.save();
+      }
+
       // Save chatbot metadata
       await ChatbotAutomationService.updateChatbot(chatbot.id, {
         name: chatbot.name,
@@ -177,11 +195,6 @@ export default function ChatbotEditorPage() {
         channels: chatbot.channels,
         flowLayout: chatbot.flowLayout,
       });
-
-      // Push the live flow (nodes/edges) from the builder if it has unsaved edits
-      if (flowBuilderRef.current?.hasUnsavedChanges()) {
-        await flowBuilderRef.current.save();
-      }
 
       toast.success("Chatbot saved successfully");
       setHasChanges(false);
@@ -203,10 +216,13 @@ export default function ChatbotEditorPage() {
       return;
     }
 
-    // If there are unsaved changes, save first before toggling
-    if (hasChanges) {
+    // If there are unsaved changes (metadata or live flow), save first
+    if (hasChanges || hasFlowChanges) {
       setSaving(true);
       try {
+        if (flowBuilderRef.current?.hasUnsavedChanges()) {
+          await flowBuilderRef.current.save();
+        }
         await ChatbotAutomationService.updateChatbot(chatbot.id, {
           name: chatbot.name,
           description: chatbot.description,

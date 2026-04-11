@@ -39,6 +39,8 @@ export interface FlowBuilderHandle {
   save: () => Promise<void>;
   /** True if there are local changes not yet saved to the backend. */
   hasUnsavedChanges: () => boolean;
+  /** Run validation against the live nodes/edges. Returns the list of error messages (empty when valid). */
+  validate: () => string[];
 }
 
 interface FlowBuilderInnerProps {
@@ -244,14 +246,20 @@ const FlowBuilderInner = forwardRef<FlowBuilderHandle, FlowBuilderInnerProps>(fu
     };
   }, []);
 
-  // Expose imperative save() to the parent (Save button lives outside)
+  // Expose imperative save() and validate() to the parent (Save button lives outside).
+  // validate() runs against the live nodes/edges from the React Flow state — not
+  // chatbot.flowLayout.rawNodes which is stale until save() is called.
   useImperativeHandle(
     ref,
     () => ({
       save: saveToBackend,
       hasUnsavedChanges: () => hasUnsavedChanges,
+      validate: () => {
+        const result = validate()
+        return result.errors.map((e) => e.message)
+      },
     }),
-    [saveToBackend, hasUnsavedChanges]
+    [saveToBackend, hasUnsavedChanges, validate]
   );
 
   // Fit view on initial load
