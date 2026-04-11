@@ -219,7 +219,7 @@ export function AppSidebar({ activePath, ...props }: AppSidebarProps) {
   }, [pathname])
 
   return (
-    <Sidebar variant="floating" {...props}>
+    <Sidebar variant="floating" collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
