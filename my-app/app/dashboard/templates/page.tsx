@@ -94,11 +94,16 @@ export default function TemplatesPage() {
       const services = await WhatsAppService.fetchAppServices(organizationId);
       setAppServices(services);
 
-      // Auto-select first service if none is selected
+      // Auto-select a usable service (must have a phone_number, since the
+      // dropdown filters those out). Keep the previous selection if it's
+      // still in the new list, otherwise pick the default or the first.
+      const selectableServices = services.filter((s) => s.phone_number);
       setSelectedAppService((prev) => {
-        if (prev) return prev;
-        if (services.length === 0) return null;
-        return services.find((s) => s.is_default) || services[0];
+        if (prev && selectableServices.some((s) => s.phone_number === prev.phone_number)) {
+          return prev;
+        }
+        if (selectableServices.length === 0) return null;
+        return selectableServices.find((s) => s.is_default) || selectableServices[0];
       });
     } catch (error: any) {
       logger.error("Error fetching app services", { error: error instanceof Error ? error.message : String(error) });

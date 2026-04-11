@@ -17,9 +17,9 @@ export default function CommerceLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-[calc(100vh-55px)] border border-border/60 rounded-md">
+    <div className="flex min-h-full border border-border/60 rounded-md">
       {/* macOS-style sidebar */}
-      <aside className="hidden md:flex w-[220px] shrink-0 flex-col border-r border-border/60 bg-muted/30">
+      <aside className="flex w-[220px] shrink-0 flex-col border-r border-border/60 bg-muted/30">
         <div className="sticky top-0 flex h-full flex-col">
           {/* Header */}
           <div className="px-golden-lg pt-golden-lg pb-golden-md">
@@ -62,30 +62,6 @@ export default function CommerceLayout({ children }: { children: React.ReactNode
           </nav>
         </div>
       </aside>
-
-      {/* Mobile navigation */}
-      <div className="md:hidden fixed top-[55px] left-0 right-0 z-10 border-b border-border/60 bg-background">
-        <nav className="flex overflow-x-auto px-4 py-2 gap-1">
-          {commerceNavigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-1.5 whitespace-nowrap rounded-squircle-sm px-3 py-1.5 text-sm font-medium transition-colors shrink-0',
-                  pathname === item.href || pathname.startsWith(item.href + '/')
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {item.title}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
 
       {/* Main content area */}
       <div className="flex-1 min-w-0 overflow-y-auto">

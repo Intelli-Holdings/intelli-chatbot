@@ -55,9 +55,9 @@ export default function SettingsLayout({
   const pathname = usePathname()
 
   return (
-    <div className="flex min-h-[calc(100vh-55px)] border border-border/60 rounded-md">
+    <div className="flex min-h-full border border-border/60 rounded-md">
       {/* macOS-style sidebar */}
-      <aside className="hidden md:flex w-[220px] shrink-0 flex-col border-r border-border/60 bg-muted/30">
+      <aside className="flex w-[220px] shrink-0 flex-col border-r border-border/60 bg-muted/30">
         <div className="sticky top-0 flex h-full flex-col">
           {/* Header */}
           <div className="px-golden-lg pt-golden-lg pb-golden-md">

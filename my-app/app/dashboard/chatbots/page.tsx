@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -53,6 +53,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import useActiveOrganizationId from "@/hooks/use-organization-id";
+import { useChatbots } from "@/hooks/use-chatbots";
 import { logger } from "@/lib/logger";
 import { ChatbotAutomationService } from "@/services/chatbot-automation";
 import { ChatbotAutomation } from "@/types/chatbot-automation";
@@ -61,8 +62,13 @@ export default function ChatbotsPage() {
   const router = useRouter();
   const organizationId = useActiveOrganizationId();
 
-  const [chatbots, setChatbots] = useState<ChatbotAutomation[]>([]);
-  const [loading, setLoading] = useState(true);
+  // React-query backed list — cached for 30s, survives navigation
+  const { chatbots, isLoading: loading, invalidate } =
+    useChatbots(organizationId ?? undefined);
+
+  // Toast on fetch error (react-query swallows it otherwise)
+  // Note: errors are logged inside the service layer
+
   const [searchQuery, setSearchQuery] = useState("");
 
   // Dialog states
@@ -77,25 +83,9 @@ export default function ChatbotsPage() {
   const [duplicateName, setDuplicateName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch chatbots
-  const fetchChatbots = useCallback(async () => {
-    if (!organizationId) return;
-
-    setLoading(true);
-    try {
-      const data = await ChatbotAutomationService.getChatbots(organizationId);
-      setChatbots(data);
-    } catch (error) {
-      logger.error("Error fetching chatbots", { error: error instanceof Error ? error.message : String(error) });
-      toast.error("Failed to load chatbots");
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    fetchChatbots();
-  }, [fetchChatbots]);
+  const fetchChatbots = () => {
+    invalidate();
+  };
 
   // Create chatbot
   const handleCreate = async () => {

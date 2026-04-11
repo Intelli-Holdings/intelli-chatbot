@@ -95,6 +95,8 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const pathname = usePathname()
   const [openSub, setOpenSub] = React.useState<string | null>(null)
+  // Tracks which submenu's flyout is open in collapsed mode (click-to-pin).
+  const [pinnedFlyout, setPinnedFlyout] = React.useState<string | null>(null)
 
   // Auto-expand the submenu containing the current pathname
   React.useEffect(() => {
@@ -108,6 +110,24 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       setOpenSub(matching.title)
     }
   }, [pathname])
+
+  // Close any pinned flyout when sidebar expands
+  React.useEffect(() => {
+    if (!collapsed) setPinnedFlyout(null)
+  }, [collapsed])
+
+  // Close pinned flyout on outside click
+  React.useEffect(() => {
+    if (!pinnedFlyout) return
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Element
+      if (!target.closest("[data-flyout-root]")) {
+        setPinnedFlyout(null)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [pinnedFlyout])
 
   return (
     <aside
@@ -167,13 +187,24 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           const isOpen = openSub === item.title
 
           if (item.hasSubmenu) {
+            const flyoutOpen = pinnedFlyout === item.title
             return (
-              <div key={item.title} className="group/item relative">
+              <div
+                key={item.title}
+                data-flyout-root
+                className="group/item relative"
+              >
                 <button
                   type="button"
                   onClick={() => {
-                    if (!collapsed) {
-                      setOpenSub((prev) => (prev === item.title ? null : item.title))
+                    if (collapsed) {
+                      setPinnedFlyout((prev) =>
+                        prev === item.title ? null : item.title
+                      )
+                    } else {
+                      setOpenSub((prev) =>
+                        prev === item.title ? null : item.title
+                      )
                     }
                   }}
                   className={cn(
@@ -222,9 +253,16 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                   </div>
                 )}
 
-                {/* Flyout popover when collapsed: shows on hover, contains clickable sub-items */}
+                {/* Flyout popover when collapsed — shown on hover OR when pinned by click */}
                 {collapsed && item.submenuItems && (
-                  <div className="absolute left-full top-0 z-50 ml-2 hidden min-w-[12rem] rounded-md border border-border bg-card p-2 shadow-md group-hover/item:block">
+                  <div
+                    className={cn(
+                      "absolute left-full top-0 z-50 ml-2 min-w-[12rem] rounded-md border border-border bg-card p-2 shadow-md",
+                      flyoutOpen
+                        ? "block"
+                        : "hidden group-hover/item:block"
+                    )}
+                  >
                     <div className="mb-1 px-2 py-1 text-xs font-semibold text-muted-foreground">
                       {item.title}
                     </div>
@@ -236,6 +274,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                           <Link
                             key={sub.url}
                             href={sub.url}
+                            onClick={() => setPinnedFlyout(null)}
                             className={cn(
                               "flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors",
                               subActive
