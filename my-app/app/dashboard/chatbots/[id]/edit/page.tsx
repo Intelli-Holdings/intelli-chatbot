@@ -68,6 +68,8 @@ import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import dynamic from "next/dynamic";
 import { useAppServices } from "@/hooks/use-app-services";
 
+import type { FlowBuilderHandle } from "@/components/flow-builder/FlowBuilder";
+
 const FlowBuilder = dynamic(
   () => import("@/components/flow-builder/FlowBuilder"),
   { ssr: false, loading: () => <div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div> }
@@ -83,6 +85,8 @@ export default function ChatbotEditorPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [hasFlowChanges, setHasFlowChanges] = useState(false);
+  const flowBuilderRef = useRef<FlowBuilderHandle>(null);
 
   // Settings sheet
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -153,7 +157,8 @@ export default function ChatbotEditorPage() {
     return errors.length === 0;
   };
 
-  // Save chatbot
+  // Save chatbot — pushes both metadata (settings, channels, etc.) AND
+  // the live flow builder state (nodes/edges) in a single user action.
   const handleSave = async () => {
     if (!chatbot || !validate()) {
       toast.error("Please fix validation errors before saving");
@@ -162,6 +167,7 @@ export default function ChatbotEditorPage() {
 
     setSaving(true);
     try {
+      // Save chatbot metadata
       await ChatbotAutomationService.updateChatbot(chatbot.id, {
         name: chatbot.name,
         description: chatbot.description,
@@ -171,6 +177,12 @@ export default function ChatbotEditorPage() {
         channels: chatbot.channels,
         flowLayout: chatbot.flowLayout,
       });
+
+      // Push the live flow (nodes/edges) from the builder if it has unsaved edits
+      if (flowBuilderRef.current?.hasUnsavedChanges()) {
+        await flowBuilderRef.current.save();
+      }
+
       toast.success("Chatbot saved successfully");
       setHasChanges(false);
     } catch (error) {
@@ -393,7 +405,7 @@ export default function ChatbotEditorPage() {
               </>
             )}
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving || !hasChanges}>
+          <Button size="sm" onClick={handleSave} disabled={saving || (!hasChanges && !hasFlowChanges)}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? "Saving..." : "Save"}
           </Button>
@@ -418,7 +430,12 @@ export default function ChatbotEditorPage() {
 
       {/* Flow Builder Canvas */}
       <div className="flex-1 relative">
-        <FlowBuilder chatbot={chatbot} onUpdate={updateChatbot} />
+        <FlowBuilder
+          ref={flowBuilderRef}
+          chatbot={chatbot}
+          onUpdate={updateChatbot}
+          onDirtyChange={setHasFlowChanges}
+        />
       </div>
 
       {/* Settings Sheet */}

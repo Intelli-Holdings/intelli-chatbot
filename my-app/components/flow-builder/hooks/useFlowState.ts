@@ -81,7 +81,7 @@ interface UseFlowStateReturn {
   deleteEdge: (edgeId: string) => void;
   updateNodeData: (nodeId: string, data: Partial<ExtendedFlowNode['data']>) => void;
   autoLayout: () => void;
-  syncToChatbot: () => void;
+  syncToChatbot: (signal?: AbortSignal) => Promise<void>;
 }
 
 export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowStateReturn {
@@ -119,7 +119,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
   const [pendingConnection, setPendingConnection] = useState<ConnectionState | null>(null);
 
   // Sync to chatbot when nodes/edges change
-  const syncToChatbot = useCallback(async () => {
+  const syncToChatbot = useCallback(async (signal?: AbortSignal) => {
     try {
       // Validate nodes and edges before conversion
       if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
@@ -151,18 +151,19 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
             edges as ChatbotFlowEdge[]
           );
 
-          logger.debug('=== Syncing to backend ===');
-          logger.debug('Backend nodes:', { data: backendNodes });
-          logger.debug('Backend edges:', { data: backendEdges });
-
-          // Update backend
+          // Update backend (cancellable)
           await ChatbotAutomationService.updateFlowNodes(
             chatbot.id,
             backendNodes,
-            backendEdges
+            backendEdges,
+            signal
           );
           logger.info('Flow synced to backend successfully');
         } catch (backendError) {
+          if (backendError instanceof Error && backendError.name === 'AbortError') {
+            // Superseded by a newer save — silent skip
+            return;
+          }
           logger.warn('Failed to sync to backend (will retry on next save):', { data: backendError });
           // Don't throw - local state is still updated
         }
