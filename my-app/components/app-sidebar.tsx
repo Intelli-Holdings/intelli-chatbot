@@ -48,7 +48,7 @@ type IconComponent = React.ComponentType<{ className?: string }>
 type SubItem = {
   title: string
   url: string
-  icon?: string | IconComponent
+  icon?: IconComponent
 }
 
 type NavItem = {
@@ -168,15 +168,16 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
           if (item.hasSubmenu) {
             return (
-              <div key={item.title}>
+              <div key={item.title} className="group/item relative">
                 <button
                   type="button"
-                  onClick={() =>
-                    setOpenSub((prev) => (prev === item.title ? null : item.title))
-                  }
-                  title={collapsed ? item.title : undefined}
+                  onClick={() => {
+                    if (!collapsed) {
+                      setOpenSub((prev) => (prev === item.title ? null : item.title))
+                    }
+                  }}
                   className={cn(
-                    "group/item relative flex h-10 w-full items-center rounded-lg text-sm font-medium transition-colors",
+                    "flex h-10 w-full items-center rounded-lg text-sm font-medium transition-colors",
                     isActive
                       ? "bg-blue-500 text-white hover:bg-blue-600"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -194,18 +195,13 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                       )}
                     </>
                   )}
-                  {collapsed && (
-                    <span className="pointer-events-none absolute left-full ml-2 z-50 hidden whitespace-nowrap rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground shadow-md group-hover/item:block">
-                      {item.title}
-                    </span>
-                  )}
                 </button>
 
-                {/* Sub-items: only inline when expanded */}
+                {/* Inline sub-items when expanded */}
                 {!collapsed && isOpen && item.submenuItems && (
                   <div className="ml-7 mt-1 space-y-1 border-l border-border pl-2">
                     {item.submenuItems.map((sub) => {
-                      const SubIcon = typeof sub.icon === "function" ? sub.icon : null
+                      const SubIcon = sub.icon
                       const subActive = pathname === sub.url
                       return (
                         <Link
@@ -223,6 +219,36 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                         </Link>
                       )
                     })}
+                  </div>
+                )}
+
+                {/* Flyout popover when collapsed: shows on hover, contains clickable sub-items */}
+                {collapsed && item.submenuItems && (
+                  <div className="absolute left-full top-0 z-50 ml-2 hidden min-w-[12rem] rounded-md border border-border bg-card p-2 shadow-md group-hover/item:block">
+                    <div className="mb-1 px-2 py-1 text-xs font-semibold text-muted-foreground">
+                      {item.title}
+                    </div>
+                    <div className="space-y-1">
+                      {item.submenuItems.map((sub) => {
+                        const SubIcon = sub.icon
+                        const subActive = pathname === sub.url
+                        return (
+                          <Link
+                            key={sub.url}
+                            href={sub.url}
+                            className={cn(
+                              "flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors",
+                              subActive
+                                ? "bg-blue-500 text-white hover:bg-blue-600"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                          >
+                            {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
+                            <span className="whitespace-nowrap">{sub.title}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
