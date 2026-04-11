@@ -117,17 +117,15 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         collapsed ? "w-[70px]" : "w-64"
       )}
     >
-      {/* Floating toggle button — visible on hover when expanded, always when collapsed */}
+      {/* Floating toggle button — always visible */}
       <button
         type="button"
         onClick={onToggle}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         className={cn(
-          "absolute -right-3 top-6 z-20 hidden h-6 w-6 items-center justify-center",
+          "absolute -right-3 top-6 z-20 flex h-6 w-6 items-center justify-center",
           "rounded-full border border-border bg-card shadow-md",
-          "transition-opacity hover:bg-accent",
-          "group-hover/sidebar:flex",
-          collapsed && "flex"
+          "transition-colors hover:bg-accent"
         )}
       >
         <ChevronLeft
