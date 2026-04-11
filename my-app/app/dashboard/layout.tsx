@@ -1,75 +1,43 @@
 "use client"
-import { AppSidebar } from "@/components/app-sidebar"
+
 import type React from "react"
-
-import { usePathname } from "next/navigation"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { useState } from "react"
+import { AppSidebar } from "@/components/app-sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
-import { useState, useEffect } from "react"
 
-// Notifications
 import ToastProvider from "@/components/ToastProvider"
 import { NotificationProvider } from "@/hooks/use-notification-context"
 import { NotificationIndicator } from "@/components/notification-indicator"
 
-
-function DashboardLayoutContent({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const pathname = usePathname()
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+  // Single source of truth for sidebar visibility — no context, no library.
+  const [collapsed, setCollapsed] = useState(false)
+  const toggle = () => setCollapsed((prev) => !prev)
 
   return (
-    <SidebarProvider
-      defaultOpen={true}
-      style={
-        {
-          "--sidebar-width": "17rem",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar activePath={pathname} />
-      <SidebarInset>
-        <header className="flex h-[55px] shrink-0 items-center gap-golden-sm px-golden-lg">
-          <SidebarTrigger className="-ml-1" />
+    <div className="flex h-svh w-full bg-background">
+      <AppSidebar collapsed={collapsed} onToggle={toggle} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-[55px] shrink-0 items-center gap-golden-sm border-b border-border px-golden-lg">
           <div className="ml-auto">
             <NotificationIndicator />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-golden-lg p-golden-lg pt-0">
-          <main>{children}</main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        <main className="flex-1 overflow-y-auto p-golden-lg">{children}</main>
+      </div>
+    </div>
   )
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
 
-  // Clear stale pointer-events: none and scroll-lock left by Radix UI
-  // Sheet/Dialog during page transitions (e.g. sign-in → dashboard).
-  useEffect(() => {
-    const body = document.body
-    if (body.style.pointerEvents === 'none') {
-      body.style.pointerEvents = ''
-    }
-    body.removeAttribute('data-scroll-locked')
-  })
-
   return (
-    <div suppressHydrationWarning>
-      <QueryClientProvider client={queryClient}>
-        <NotificationProvider>
-          <DashboardLayoutContent>{children}</DashboardLayoutContent>
-          <ToastProvider />
-        </NotificationProvider>
-      </QueryClientProvider>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <NotificationProvider>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+        <ToastProvider />
+      </NotificationProvider>
+    </QueryClientProvider>
   )
 }
