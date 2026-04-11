@@ -177,8 +177,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         </Link>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden p-2">
+      {/* Nav — overflow-x-visible so the collapsed-mode flyout popover
+          (positioned at left-full) isn't clipped */}
+      <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-visible p-2">
         {navMain.map((item) => {
           const Icon = item.icon
           const isActive =
