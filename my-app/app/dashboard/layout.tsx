@@ -3,7 +3,6 @@ import { AppSidebar } from "@/components/app-sidebar"
 import type React from "react"
 
 import { usePathname } from "next/navigation"
-import { useAuth } from "@clerk/nextjs"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
 import { useState, useEffect } from "react"
@@ -20,18 +19,6 @@ function DashboardLayoutContent({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const { isLoaded } = useAuth()
-
-  // Don't mount SidebarProvider until Clerk has resolved the auth state.
-  // Previously we used `key={userId}` to force a remount when userId
-  // resolved from undefined → real, but that unmount/remount cycle
-  // raced with useIsMobile()'s hasMounted gate and the sidebar's CSS
-  // transition, leaving the menu off-canvas (left: -16rem) on first
-  // navigation. Mounting once, with auth already resolved, avoids the
-  // race entirely.
-  if (!isLoaded) {
-    return <div className="min-h-svh w-full bg-background" />
-  }
 
   return (
     <SidebarProvider
