@@ -87,15 +87,22 @@ const SidebarProvider = React.forwardRef<
     }, [openProp])
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
-        const openState = typeof value === "function" ? value(open) : value
+        // Use the functional updater form so we always operate on the
+        // latest state — calling `value(open)` from the closure could
+        // see a stale `open` if the user clicks the toggle twice quickly.
         if (setOpenProp) {
+          // Controlled mode: parent owns state. Best we can do is read
+          // the closed-over `open`, but at least the cookie reflects it.
+          const openState = typeof value === "function" ? value(open) : value
           setOpenProp(openState)
-        } else {
-          _setOpen(openState)
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+          return
         }
-
-        // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        _setOpen((prev) => {
+          const next = typeof value === "function" ? value(prev) : value
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${next}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+          return next
+        })
       },
       [setOpenProp, open]
     )
