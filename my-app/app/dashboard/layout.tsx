@@ -20,16 +20,21 @@ function DashboardLayoutContent({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const { userId } = useAuth()
+  const { isLoaded } = useAuth()
 
-  // Force SidebarProvider to fully remount when auth state changes
-  // (e.g. after Clerk soft-navigates from sign-in → dashboard).
-  // This ensures toggleSidebar and isMobile are freshly initialized.
-  const sidebarKey = userId ?? "anonymous"
+  // Don't mount SidebarProvider until Clerk has resolved the auth state.
+  // Previously we used `key={userId}` to force a remount when userId
+  // resolved from undefined → real, but that unmount/remount cycle
+  // raced with useIsMobile()'s hasMounted gate and the sidebar's CSS
+  // transition, leaving the menu off-canvas (left: -16rem) on first
+  // navigation. Mounting once, with auth already resolved, avoids the
+  // race entirely.
+  if (!isLoaded) {
+    return <div className="min-h-svh w-full bg-background" />
+  }
 
   return (
     <SidebarProvider
-      key={sidebarKey}
       defaultOpen={true}
       style={
         {
