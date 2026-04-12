@@ -56,7 +56,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
   return (
     <div
-      className={`relative border p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ${
+      className={`relative border p-8 rounded-xl shadow-lg transition-all duration-300 ${
         isRecommended ? 'border-2 border-green-500 bg-green-50 scale-105' : 'border-gray-200'
       }`}
     >

@@ -51,7 +51,7 @@ const services: Service[] = [
 
 function ServiceCard({ service }: { service: Service }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col shadow-sm">
       <h4 className="text-lg font-semibold text-gray-900 mb-1">
         {service.name}
       </h4>

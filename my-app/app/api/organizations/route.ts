@@ -1,11 +1,10 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
     const { name, userId } = await request.json();
-    
+
     const client = await clerkClient()
     const organization = await client.organizations.createOrganization({
       name,
@@ -14,7 +13,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(organization);
   } catch (error) {
-    logger.error("Failed to create organization", { error: error instanceof Error ? error.message : String(error) });
+    console.error("Failed to create organization", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to create organization" },
       { status: 500 }

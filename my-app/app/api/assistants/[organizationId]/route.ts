@@ -60,12 +60,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   try {
     // Get authentication from Clerk
-    const { getToken } = await auth()
+    const { userId, getToken } = await auth()
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const token = await getToken()
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'Unable to get authentication token' },
         { status: 401 }
       )
     }

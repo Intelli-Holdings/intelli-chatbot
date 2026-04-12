@@ -52,5 +52,6 @@ next-env.d.ts
 .idea/*.xml
 /idea
 .vscode
+.claude
 .env
 ../.env

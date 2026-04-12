@@ -252,15 +252,15 @@ export default function SimpleCarouselCreator({
         return;
       }
 
-      if (!cards[i].buttons || cards[i].buttons.length === 0) {
-        toast.error(`Card ${i + 1}: At least one button is required`);
+      // Validate card body text length
+      if (cards[i].bodyText && cards[i].bodyText!.trim().length > 160) {
+        toast.error(`Card ${i + 1}: Body text exceeds 160 character limit`);
         setCurrentCardIndex(i);
         return;
       }
 
-      // Validate card body text length
-      if (cards[i].bodyText && cards[i].bodyText!.trim().length > 160) {
-        toast.error(`Card ${i + 1}: Body text exceeds 160 character limit`);
+      if (!cards[i].buttons || cards[i].buttons.length === 0) {
+        toast.error(`Card ${i + 1}: At least one button is required`);
         setCurrentCardIndex(i);
         return;
       }

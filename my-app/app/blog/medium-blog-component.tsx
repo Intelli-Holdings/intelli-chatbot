@@ -25,6 +25,7 @@ interface MediumPost {
   readTime?: string
   guid?: string
   slug?: string
+  source?: "medium" | "cms"
 }
 
 interface FeedInfo {
@@ -178,6 +179,9 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
     })
   }, [posts, searchQuery, selectedTags])
 
+  const cmsPosts = useMemo(() => filteredPosts.filter((p) => p.source === "cms"), [filteredPosts])
+  const mediumPosts = useMemo(() => filteredPosts.filter((p) => p.source === "medium"), [filteredPosts])
+
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
   }
@@ -187,68 +191,73 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
     setSelectedTags([])
   }
 
-  const PostCard = ({ post }: { post: MediumPost }) => (
-    <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
-      <div className="relative aspect-[16/10] overflow-hidden">
-        <Image
-          src={post.thumbnail || "/blogThumbnail.png"}
-          alt={post.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-          {post.categories?.slice(0, 2).map((category, index) => (
-            <Badge key={index} variant="secondary" className="text-xs bg-white/90 text-gray-800">
-              {category}
-            </Badge>
-          ))}
-          {post.content && <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Full Article</Badge>}
-        </div>
-      </div>
-
-      <CardContent className="p-6 space-y-4">
-        <div className="space-y-2">
-          <h3 className="text-xl font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
-            {post.title}
-          </h3>
-          <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">{post.contentSnippet}</p>
+  const PostCard = ({ post, priority = false }: { post: MediumPost; priority?: boolean }) => (
+    <Link href={`/blog/${post.slug || createSlug(post.title)}`} className="cursor-pointer">
+      <Card className="group overflow-hidden border-2 border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm h-full">
+        <div className="relative aspect-[16/10] overflow-hidden">
+          <Image
+            src={post.thumbnail || "/blogThumbnail.png"}
+            alt={post.title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            {...(priority ? { priority: true, loading: "eager" as const } : { loading: "lazy" as const })}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+            {post.categories?.slice(0, 2).map((category, index) => (
+              <Badge key={index} variant="secondary" className="text-xs bg-white/90 text-gray-800">
+                {category}
+              </Badge>
+            ))}
+            {post.content && <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Full Article</Badge>}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-4 text-xs text-gray-500">
-            {post.pubDate && (
-              <div className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                <span>{formatDate(post.pubDate)}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{post.readTime}</span>
-            </div>
+        <CardContent className="p-6 space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+              {post.title}
+            </h3>
+            <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">{post.contentSnippet}</p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Link href={`/blog/${post.slug || createSlug(post.title)}`}>
-              <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-4 text-xs text-gray-500">
+              {post.pubDate && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  <span>{formatDate(post.pubDate)}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{post.readTime}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center text-sm text-blue-600 font-medium">
                 {post.content ? "Read Article" : "Read More"}
                 <ArrowRight className="w-3 h-3 ml-1" />
-              </Button>
-            </Link>
+              </span>
 
-            {post.link !== "#" && (
-              <Link href={post.link} target="_blank" rel="noopener noreferrer">
-                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+              {post.link !== "#" && (
+                <span
+                  className="inline-flex items-center text-gray-500 hover:text-gray-700"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.open(post.link, "_blank", "noopener,noreferrer")
+                  }}
+                >
                   <ExternalLink className="w-3 h-3" />
-                </Button>
-              </Link>
-            )}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   )
 
   const PostSkeleton = () => (
@@ -275,12 +284,12 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           line-height: 1.8;
           font-size: 16px;
         }
-        
+
         .article-content p {
           margin-bottom: 1.5rem;
           color: #374151;
         }
-        
+
         .article-content h1,
         .article-content h2,
         .article-content h3,
@@ -292,14 +301,14 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           font-weight: 700;
           color: #111827;
         }
-        
+
         .article-content img {
           max-width: 100%;
           height: auto;
           border-radius: 8px;
           margin: 1.5rem 0;
         }
-        
+
         .article-content blockquote {
           border-left: 4px solid #e5e7eb;
           padding-left: 1rem;
@@ -307,30 +316,30 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           font-style: italic;
           color: #6b7280;
         }
-        
+
         .article-content ul,
         .article-content ol {
           margin: 1rem 0;
           padding-left: 1.5rem;
         }
-        
+
         .article-content li {
           margin-bottom: 0.5rem;
         }
-        
+
         .article-content a {
           color: #2563eb;
           text-decoration: underline;
         }
-        
+
         .article-content a:hover {
           color: #1d4ed8;
         }
-        
+
         .article-content strong {
           font-weight: 600;
         }
-        
+
         .article-content code {
           background-color: #f3f4f6;
           padding: 0.25rem 0.5rem;
@@ -338,7 +347,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           font-family: ui-monospace, SFMono-Regular, monospace;
           font-size: 0.875rem;
         }
-        
+
         .article-content pre {
           background-color: #f3f4f6;
           padding: 1rem;
@@ -346,7 +355,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           overflow-x: auto;
           margin: 1.5rem 0;
         }
-        
+
         .article-content pre code {
           background-color: transparent;
           padding: 0;
@@ -440,37 +449,72 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
                 <p>
                   Showing <span className="font-semibold text-gray-900">{filteredPosts.length}</span> of{" "}
                   <span className="font-semibold text-gray-900">{posts.length}</span> articles
+                  {cmsPosts.length > 0 && mediumPosts.length > 0 && (
+                    <span className="text-gray-400">
+                      {" "}({cmsPosts.length} latest, {mediumPosts.length} from Medium)
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
           )}
 
-          <div className="grid gap-6 sm:gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-            {loading ? (
-              Array.from({ length: 6 }).map((_, index) => <PostSkeleton key={index} />)
-            ) : filteredPosts.length > 0 ? (
-              filteredPosts.map((post, index) => <PostCard key={`${post.link}-${index}`} post={post} />)
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <div className="max-w-md mx-auto space-y-4">
-                  <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
-                    <Search className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800">No articles found</h3>
-                  <p className="text-gray-600">
-                    {searchQuery || selectedTags.length > 0
-                      ? "Try adjusting your search or filters to find what you're looking for."
-                      : "Check back later for new content!"}
-                  </p>
-                  {(searchQuery || selectedTags.length > 0) && (
-                    <Button onClick={clearFilters} variant="outline" className="mt-4 bg-transparent">
-                      Clear Filters
-                    </Button>
-                  )}
+          {loading ? (
+            <div className="grid gap-6 sm:gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => <PostSkeleton key={index} />)}
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                  <Search className="w-8 h-8 text-gray-400" />
                 </div>
+                <h3 className="text-xl font-semibold text-gray-800">No articles found</h3>
+                <p className="text-gray-600">
+                  {searchQuery || selectedTags.length > 0
+                    ? "Try adjusting your search or filters to find what you're looking for."
+                    : "Check back later for new content!"}
+                </p>
+                {(searchQuery || selectedTags.length > 0) && (
+                  <Button onClick={clearFilters} variant="outline" className="mt-4 bg-transparent">
+                    Clear Filters
+                  </Button>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <>
+              {/* CMS Articles - Latest */}
+              {cmsPosts.length > 0 && (
+                <div className="mb-12">
+                  <div className="mb-6">
+                    <Badge variant="outline" className="mb-3 text-green-600 border-green-200">
+                      Latest
+                    </Badge>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Latest from Intelli</h2>
+                  </div>
+                  <div className="grid gap-6 sm:gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                    {cmsPosts.map((post, index) => <PostCard key={`cms-${post.link}-${index}`} post={post} priority={index < 3} />)}
+                  </div>
+                </div>
+              )}
+
+              {/* Medium Articles */}
+              {mediumPosts.length > 0 && (
+                <div className="mb-12">
+                  <div className="mb-6">
+                    <Badge variant="outline" className="mb-3 text-purple-600 border-purple-200">
+                      Authored on Medium
+                    </Badge>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">From Our Medium Publication</h2>
+                  </div>
+                  <div className="grid gap-6 sm:gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                    {mediumPosts.map((post, index) => <PostCard key={`medium-${post.link}-${index}`} post={post} />)}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
@@ -483,128 +527,128 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
             </h2>
           </div>
           <div className="grid gap-6 sm:gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-            <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
-              <div className="relative aspect-[16/10] overflow-hidden">
-                <Image
-                  src="/blogThumbnail.png"
-                  alt="7 Essential AI Features Every Organization Should Adopt"
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="text-xs bg-white/90 text-gray-800">AI</Badge>
-                  <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Full Article</Badge>
-                </div>
-              </div>
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
-                    7 Essential AI Features Every Organization Should Adopt
-                  </h3>
-                  <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
-                    The seven AI features that deliver the highest ROI for governments, NGOs, and enterprises — from natural language processing to automated escalation.
-                  </p>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>5 min read</span>
-                    </div>
+            <Link href="/blog/ai-features-organizations" className="cursor-pointer">
+              <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm h-full">
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  <Image
+                    src="/blogThumbnail.png"
+                    alt="7 Essential AI Features Every Organization Should Adopt"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="text-xs bg-white/90 text-gray-800">AI</Badge>
+                    <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Full Article</Badge>
                   </div>
-                  <Link href="/blog/ai-features-organizations">
-                    <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                </div>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+                      7 Essential AI Features Every Organization Should Adopt
+                    </h3>
+                    <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+                      The seven AI features that deliver the highest ROI for governments, NGOs, and enterprises — from natural language processing to automated escalation.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>5 min read</span>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center text-sm text-blue-600 font-medium">
                       Read Article
                       <ArrowRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
-              <div className="relative aspect-[16/10] overflow-hidden">
-                <Image
-                  src="/blogThumbnail.png"
-                  alt="How to Overcome Customer Service Delays with AI automation"
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="text-xs bg-white/90 text-gray-800">Automation</Badge>
-                  <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Full Article</Badge>
-                </div>
-              </div>
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
-                    How to Overcome Customer Service Delays with AI automation
-                  </h3>
-                  <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
-                    A practical guide to eliminating response delays using AI assistants, automated routing, and proactive messaging across WhatsApp and web channels.
-                  </p>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>6 min read</span>
-                    </div>
+            <Link href="/blog/overcome-customer-service-delays" className="cursor-pointer">
+              <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm h-full">
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  <Image
+                    src="/blogThumbnail.png"
+                    alt="How to Overcome Customer Service Delays with AI automation"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="text-xs bg-white/90 text-gray-800">Automation</Badge>
+                    <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Full Article</Badge>
                   </div>
-                  <Link href="/blog/overcome-customer-service-delays">
-                    <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                </div>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+                      How to Overcome Customer Service Delays with AI automation
+                    </h3>
+                    <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+                      A practical guide to eliminating response delays using AI assistants, automated routing, and proactive messaging across WhatsApp and web channels.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>6 min read</span>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center text-sm text-blue-600 font-medium">
                       Read Article
                       <ArrowRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm">
-              <div className="relative aspect-[16/10] overflow-hidden">
-                <Image
-                  src="/blogThumbnail.png"
-                  alt="AI Support vs Traditional Help Desks: Which Delivers Faster ROI?"
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="text-xs bg-white/90 text-gray-800">Comparison</Badge>
-                  <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Full Article</Badge>
-                </div>
-              </div>
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
-                    AI Support vs Traditional Help Desks: Which Delivers Faster ROI?
-                  </h3>
-                  <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
-                    A side-by-side comparison of AI-powered platforms like Intelli versus traditional help desk software on cost, speed, and scalability.
-                  </p>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>7 min read</span>
-                    </div>
+            <Link href="/blog/ai-support-vs-traditional-helpdesks" className="cursor-pointer">
+              <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm h-full">
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  <Image
+                    src="/blogThumbnail.png"
+                    alt="AI Support vs Traditional Help Desks: Which Delivers Faster ROI?"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="text-xs bg-white/90 text-gray-800">Comparison</Badge>
+                    <Badge className="text-xs bg-green-100 text-green-800 border-green-200">Full Article</Badge>
                   </div>
-                  <Link href="/blog/ai-support-vs-traditional-helpdesks">
-                    <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                </div>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+                      AI Support vs Traditional Help Desks: Which Delivers Faster ROI?
+                    </h3>
+                    <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+                      A side-by-side comparison of AI-powered platforms like Intelli versus traditional help desk software on cost, speed, and scalability.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>7 min read</span>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center text-sm text-blue-600 font-medium">
                       Read Article
                       <ArrowRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </section>
       </div>

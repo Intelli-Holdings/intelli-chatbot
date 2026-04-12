@@ -17,13 +17,15 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
   weight: ['400', '500', '600', '700'],
 });
-<><link
-  rel="icon"
-  href="/Intelli.svg"
-  type="image/svg"
-  sizes="16x16, 32x32, 64x64, 128x128, 256x256, 512x512, 1024x1024" /><link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" /><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" /><link rel="icon" type="image/svg+xml" href="/icon.svg" /></>
 
 export const metadata: Metadata = {
+  icons: {
+    icon: [
+      { url: '/Intelli.svg', type: 'image/svg+xml' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+  },
   title: 'Intelli — AI-Powered WhatsApp & Multi-Channel Customer Engagement Platform',
   description:
     'Intelli is an AI-powered platform that helps businesses manage customer conversations across WhatsApp, Instagram, Messenger, email, and web chat. Automate support, run campaigns, and engage customers at scale.',
@@ -42,6 +44,9 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: 'https://www.intelliconcierge.com',
+    types: {
+      'application/rss+xml': 'https://www.intelliconcierge.com/feed.xml',
+    },
   },
   openGraph: {
     siteName: 'Intelli — AI Customer Engagement Platform',

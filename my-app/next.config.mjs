@@ -18,6 +18,11 @@ const nextConfig = {
     return config;
   },
   images: {
+    localPatterns: [
+      {
+        pathname: '/**',
+      },
+    ],
     remotePatterns: [
       {
         protocol: 'https',
@@ -96,9 +101,16 @@ const nextConfig = {
       hostname: '**.blob.core.windows.net',
     },
     {
-      protocol: "https",
-      hostname: "*.public.blob.vercel-storage.com",
-      pathname: "/**",
+      protocol: 'https',
+      hostname: 'cms.intelliconcierge.com',
+      port: '',
+      pathname: '/**',
+    },
+    {
+      protocol: 'https',
+      hostname: '*.public.blob.vercel-storage.com',
+      port: '',
+      pathname: '/**',
     }
     ],
   },

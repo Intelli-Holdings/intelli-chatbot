@@ -76,7 +76,7 @@ function AddOnCard({ addon }: { addon: AddOn }) {
   );
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col justify-between shadow-sm">
       <div>
         <h4 className="text-lg font-semibold text-gray-900 mb-2">
           {addon.name}
