@@ -92,67 +92,69 @@ interface AppSidebarProps {
   onToggle: () => void
 }
 
-/**
- * Flyout submenu rendered with fixed positioning so it escapes the
- * nav's overflow-y:auto clipping context.
- */
-function CollapsedFlyout({
+function SubmenuItem({
   item,
+  icon: Icon,
+  isActive,
+  isOpen,
+  collapsed,
   flyoutOpen,
   pathname,
+  onToggle,
   onNavigate,
 }: {
   item: NavItem
+  icon: IconComponent
+  isActive: boolean
+  isOpen: boolean
+  collapsed: boolean
   flyoutOpen: boolean
   pathname: string
+  onToggle: () => void
   onNavigate: () => void
 }) {
-  const ref = React.useRef<HTMLDivElement>(null)
-  const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null)
-
-  React.useEffect(() => {
-    const el = ref.current?.parentElement // the group/item wrapper
-    if (!el) return
-    const update = () => {
-      const rect = el.getBoundingClientRect()
-      setPos({ top: rect.top, left: rect.right + 8 })
-    }
-    update()
-    // Recalculate on scroll (the nav scrolls) and resize
-    const nav = el.closest("nav")
-    nav?.addEventListener("scroll", update)
-    window.addEventListener("resize", update)
-    return () => {
-      nav?.removeEventListener("scroll", update)
-      window.removeEventListener("resize", update)
-    }
-  }, [flyoutOpen])
+  const wrapperRef = React.useRef<HTMLDivElement>(null)
 
   return (
-    <>
-      {/* Hidden ref anchor */}
-      <div ref={ref} className="hidden" />
-      <div
-        style={pos ? { top: pos.top, left: pos.left } : undefined}
+    <div
+      ref={wrapperRef}
+      data-flyout-root
+      className="group/item relative"
+    >
+      <button
+        type="button"
+        onClick={onToggle}
         className={cn(
-          "fixed z-50 min-w-[12rem] rounded-md border border-border bg-card p-2 shadow-md",
-          flyoutOpen
-            ? "block"
-            : "hidden group-hover/item:block"
+          "flex h-10 w-full items-center rounded-lg text-sm font-medium transition-colors",
+          isActive
+            ? "bg-blue-500 text-white hover:bg-blue-600"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          collapsed ? "justify-center px-0" : "gap-3 px-3"
         )}
       >
-        <div className="mb-1 px-2 py-1 text-xs font-semibold text-muted-foreground">
-          {item.title}
-        </div>
-        <div className="space-y-1">
-          {item.submenuItems?.map((sub) => {
+        <Icon className="h-4 w-4 shrink-0" />
+        {!collapsed && (
+          <>
+            <span className="flex-1 whitespace-nowrap text-left">{item.title}</span>
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 shrink-0" />
+            ) : (
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            )}
+          </>
+        )}
+      </button>
+
+      {/* Inline sub-items when expanded */}
+      {!collapsed && isOpen && item.submenuItems && (
+        <div className="ml-7 mt-1 space-y-1 border-l border-border pl-2">
+          {item.submenuItems.map((sub) => {
             const SubIcon = sub.icon
             const subActive = pathname === sub.url
             return (
               <Link
                 key={sub.url}
                 href={sub.url}
-                onClick={onNavigate}
                 className={cn(
                   "flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors",
                   subActive
@@ -166,8 +168,94 @@ function CollapsedFlyout({
             )
           })}
         </div>
+      )}
+
+      {/* Flyout popover when collapsed */}
+      {collapsed && item.submenuItems && (
+        <CollapsedFlyout
+          item={item}
+          anchorRef={wrapperRef}
+          flyoutOpen={flyoutOpen}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * Flyout submenu rendered with fixed positioning so it escapes the
+ * nav's overflow-y:auto clipping context.
+ */
+function CollapsedFlyout({
+  item,
+  anchorRef,
+  flyoutOpen,
+  pathname,
+  onNavigate,
+}: {
+  item: NavItem
+  anchorRef: React.RefObject<HTMLDivElement | null>
+  flyoutOpen: boolean
+  pathname: string
+  onNavigate: () => void
+}) {
+  const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null)
+
+  React.useEffect(() => {
+    const el = anchorRef.current
+    if (!el) return
+    const update = () => {
+      const rect = el.getBoundingClientRect()
+      setPos({ top: rect.top, left: rect.right + 8 })
+    }
+    update()
+    const nav = el.closest("nav")
+    nav?.addEventListener("scroll", update)
+    window.addEventListener("resize", update)
+    return () => {
+      nav?.removeEventListener("scroll", update)
+      window.removeEventListener("resize", update)
+    }
+  }, [anchorRef, flyoutOpen])
+
+  return (
+    <div
+      style={pos ? { top: pos.top, left: pos.left } : undefined}
+      className={cn(
+        "fixed z-50 min-w-[12rem] rounded-md border border-border bg-card p-2 shadow-md",
+        flyoutOpen
+          ? "block"
+          : "hidden group-hover/item:block"
+      )}
+    >
+      <div className="mb-1 px-2 py-1 text-xs font-semibold text-muted-foreground">
+        {item.title}
       </div>
-    </>
+      <div className="space-y-1">
+        {item.submenuItems?.map((sub) => {
+          const SubIcon = sub.icon
+          const subActive = pathname === sub.url
+          return (
+            <Link
+              key={sub.url}
+              href={sub.url}
+              onClick={onNavigate}
+              className={cn(
+                "flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors",
+                subActive
+                  ? "bg-blue-500 text-white hover:bg-blue-600"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
+              <span className="whitespace-nowrap">{sub.title}</span>
+            </Link>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -268,81 +356,28 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           if (item.hasSubmenu) {
             const flyoutOpen = pinnedFlyout === item.title
             return (
-              <div
+              <SubmenuItem
                 key={item.title}
-                data-flyout-root
-                className="group/item relative"
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (collapsed) {
-                      setPinnedFlyout((prev) =>
-                        prev === item.title ? null : item.title
-                      )
-                    } else {
-                      setOpenSub((prev) =>
-                        prev === item.title ? null : item.title
-                      )
-                    }
-                  }}
-                  className={cn(
-                    "flex h-10 w-full items-center rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    collapsed ? "justify-center px-0" : "gap-3 px-3"
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 whitespace-nowrap text-left">{item.title}</span>
-                      {isOpen ? (
-                        <ChevronDown className="h-4 w-4 shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0" />
-                      )}
-                    </>
-                  )}
-                </button>
-
-                {/* Inline sub-items when expanded */}
-                {!collapsed && isOpen && item.submenuItems && (
-                  <div className="ml-7 mt-1 space-y-1 border-l border-border pl-2">
-                    {item.submenuItems.map((sub) => {
-                      const SubIcon = sub.icon
-                      const subActive = pathname === sub.url
-                      return (
-                        <Link
-                          key={sub.url}
-                          href={sub.url}
-                          className={cn(
-                            "flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors",
-                            subActive
-                              ? "bg-blue-500 text-white hover:bg-blue-600"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                          )}
-                        >
-                          {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
-                          <span className="whitespace-nowrap">{sub.title}</span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Flyout popover when collapsed — uses fixed positioning
-                    to escape the nav's overflow-y:auto clipping */}
-                {collapsed && item.submenuItems && (
-                  <CollapsedFlyout
-                    item={item}
-                    flyoutOpen={flyoutOpen}
-                    pathname={pathname}
-                    onNavigate={() => setPinnedFlyout(null)}
-                  />
-                )}
-              </div>
+                item={item}
+                icon={Icon}
+                isActive={!!isActive}
+                isOpen={isOpen}
+                collapsed={collapsed}
+                flyoutOpen={flyoutOpen}
+                pathname={pathname}
+                onToggle={() => {
+                  if (collapsed) {
+                    setPinnedFlyout((prev) =>
+                      prev === item.title ? null : item.title
+                    )
+                  } else {
+                    setOpenSub((prev) =>
+                      prev === item.title ? null : item.title
+                    )
+                  }
+                }}
+                onNavigate={() => setPinnedFlyout(null)}
+              />
             )
           }
 
