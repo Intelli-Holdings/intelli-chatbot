@@ -9,9 +9,11 @@ import {
   ChevronsUpDown,
   LogOut,
   BadgeCheck,
+  Bell,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSidebar, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { useNotificationContext } from "@/hooks/use-notification-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +36,7 @@ export function UserNav() {
   const { isLoaded, isSignedIn, user } = useUser()
   const { signOut, openUserProfile } = useClerk()
   const { isMobile } = useSidebar()
+  const { unreadCount } = useNotificationContext()
   const router = useRouter()
 
   if (!isLoaded || !isSignedIn) return null
@@ -104,6 +107,15 @@ export function UserNav() {
                 <BadgeCheck className="mr-2 size-4" />
                 Profile
                 <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="rounded-xl" onSelect={() => router.push("/dashboard/notifications")}>
+                <Bell className="mr-2 size-4" />
+                Notifications
+                {unreadCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
