@@ -203,13 +203,13 @@ function hasActiveChild(item: SidebarItem, pathname: string) {
 // ---------------------------------------------------------------------------
 
 const primaryActiveClass =
-  "!bg-blue-600 !text-white hover:!bg-blue-700 hover:!text-white"
+  "!bg-[#007fff] !text-white hover:!bg-[#006ee6] hover:!text-white"
 const primaryDefaultClass =
-  "text-foreground/80 hover:bg-blue-600/10 hover:text-blue-600 active:bg-blue-600/20"
+  "text-foreground/80 hover:bg-[#007fff]/10 hover:text-[#007fff] active:bg-[#007fff]/20"
 const secondaryActiveClass =
-  "!bg-blue-600/10 !text-blue-600 hover:!bg-blue-600/15"
+  "!bg-[#007fff]/10 !text-[#007fff] hover:!bg-[#007fff]/15"
 const secondaryDefaultClass =
-  "text-foreground/80 hover:bg-blue-600/10 hover:text-blue-600 active:bg-blue-600/20"
+  "text-foreground/80 hover:bg-[#007fff]/10 hover:text-[#007fff] active:bg-[#007fff]/20"
 
 // ---------------------------------------------------------------------------
 // AppSidebar
@@ -351,7 +351,7 @@ export function AppSidebar() {
             <button
               type="button"
               onClick={() => setOpenPanel(null)}
-              className="h-6 w-6 p-0 rounded-md hover:bg-blue-600/10 flex items-center justify-center transition-colors"
+              className="h-6 w-6 p-0 rounded-md hover:bg-[#007fff]/10 flex items-center justify-center transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
@@ -379,12 +379,12 @@ export function AppSidebar() {
                         >
                           <SubIcon className={cn(
                             "h-5 w-5 shrink-0 self-start mt-0.5",
-                            isSelected && "text-blue-600"
+                            isSelected && "text-[#007fff]"
                           )} />
                           <div className="flex-1 text-left min-w-0">
                             <div className={cn(
                               "font-medium",
-                              isSelected && "text-blue-600"
+                              isSelected && "text-[#007fff]"
                             )}>
                               {subItem.label}
                             </div>
@@ -392,7 +392,7 @@ export function AppSidebar() {
                               <div className={cn(
                                 "text-xs mt-0.5",
                                 isSelected
-                                  ? "text-blue-600/70"
+                                  ? "text-[#007fff]/70"
                                   : "text-muted-foreground"
                               )}>
                                 {subItem.description}
