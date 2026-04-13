@@ -23,7 +23,7 @@ const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
+const SIDEBAR_WIDTH_ICON = "4rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContext = {
@@ -250,10 +250,10 @@ const Sidebar = React.forwardRef<
           style={{
             width:
               state === "expanded"
-                ? "16rem"
+                ? "var(--sidebar-width)"
                 : collapsible === "offcanvas"
                   ? 0
-                  : "3rem",
+                  : "var(--sidebar-width-icon)",
           }}
           className={cn(
             "duration-200 relative h-svh bg-transparent transition-[width] ease-linear",
@@ -268,20 +268,20 @@ const Sidebar = React.forwardRef<
           style={{
             width:
               state === "expanded"
-                ? "16rem"
+                ? "var(--sidebar-width)"
                 : collapsible === "offcanvas"
                   ? 0
-                  : "3rem",
+                  : "var(--sidebar-width-icon)",
             left:
               side === "left"
                 ? state === "collapsed" && collapsible === "offcanvas"
-                  ? "-16rem"
+                  ? "calc(var(--sidebar-width) * -1)"
                   : "0"
                 : undefined,
             right:
               side === "right"
                 ? state === "collapsed" && collapsible === "offcanvas"
-                  ? "-16rem"
+                  ? "calc(var(--sidebar-width) * -1)"
                   : "0"
                 : undefined,
           }}
@@ -564,11 +564,11 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-golden-sm overflow-hidden rounded-squircle-sm p-golden-sm text-left text-golden-body-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-golden-sm overflow-hidden rounded-squircle-sm p-golden-sm text-left text-golden-body-sm outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground",
         outline:
           "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
