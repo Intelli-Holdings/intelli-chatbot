@@ -335,11 +335,17 @@ export class ChatbotAutomationService {
 
   /**
    * Update flow nodes and edges (for flow builder)
+   *
+   * Accepts an optional AbortSignal so the caller can cancel an in-flight
+   * autosave when a newer one supersedes it. This prevents stacking
+   * concurrent PATCH requests against the backend (which holds row-level
+   * locks on chatbot_automation_chatbotflow and exhausts the DB pool).
    */
   static async updateFlowNodes(
     id: string,
     nodes: BackendFlowNode[],
-    edges: BackendFlowEdge[]
+    edges: BackendFlowEdge[],
+    signal?: AbortSignal
   ): Promise<ChatbotAutomation> {
     try {
       const headers = await getAuthHeaders();
@@ -355,6 +361,7 @@ export class ChatbotAutomationService {
           method: 'PATCH',
           headers,
           body: JSON.stringify(requestData),
+          signal,
         }
       );
 
@@ -366,6 +373,10 @@ export class ChatbotAutomationService {
       const flow: ChatbotFlowBackend = await response.json();
       return toFrontendFormat(flow);
     } catch (error) {
+      // Don't log AbortError as an error — it means a newer save superseded this one
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
       logger.error('Error updating flow nodes', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }

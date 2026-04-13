@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-// Using <img> instead of next/image — product images come from Azure, Meta CDN,
-// localhost in dev, etc. next/image requires whitelisting every hostname.
+import Image from 'next/image';
 import {
   Search,
   Plus,
@@ -269,13 +268,13 @@ export default function ProductsPage() {
   // Debounced search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setFilters({
-        ...filters,
+      setFilters(prev => ({
+        ...prev,
         search: searchQuery || undefined,
-      });
+      }));
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, setFilters]);
 
   // ── Filter handlers ──────────────────────────────────────────────
 
@@ -510,7 +509,7 @@ export default function ProductsPage() {
             My Products
           </TabsTrigger>
           <TabsTrigger value="meta-sync" className="gap-2">
-            <img src="/logos/meta.svg" alt="Meta" className="h-4 w-4" />
+            <Image src="/logos/meta.svg" alt="Meta" className="h-4 w-4" width={16} height={16} />
             Meta Catalogue
           </TabsTrigger>
         </TabsList>
@@ -749,10 +748,13 @@ export default function ProductsPage() {
                 {/* Image */}
                 <div className="relative h-48 bg-muted flex items-center justify-center overflow-hidden">
                   {primaryImage ? (
-                    <img
+                    <Image
                       src={primaryImage}
                       alt={product.name}
                       className="absolute inset-0 h-full w-full object-cover"
+                      width={500}
+                      height={500}
+                      unoptimized
                     />
                   ) : (
                     <Package className="h-12 w-12 text-muted-foreground/40" />
@@ -866,10 +868,13 @@ export default function ProductsPage() {
                           <div className="flex items-center gap-3">
                             <div className="relative h-10 w-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0">
                               {primaryImage ? (
-                                <img
+                                <Image
                                   src={primaryImage}
                                   alt={product.name}
                                   className="absolute inset-0 h-full w-full object-cover"
+                                  width={40}
+                                  height={40}
+                                  unoptimized
                                 />
                               ) : (
                                 <Package className="h-5 w-5 text-muted-foreground/40" />
@@ -1451,10 +1456,13 @@ export default function ProductsPage() {
                           key={img.id}
                           className="relative group rounded-md overflow-hidden border aspect-square"
                         >
-                          <img
+                          <Image
                             src={img.image_url}
                             alt={img.alt_text || 'Product image'}
                             className="absolute inset-0 h-full w-full object-cover"
+                            width={500}
+                            height={500}
+                            unoptimized
                           />
                           {img.is_primary && (
                             <Badge
@@ -1492,10 +1500,13 @@ export default function ProductsPage() {
                         key={idx}
                         className="relative group rounded-md overflow-hidden border aspect-square bg-muted"
                       >
-                        <img
+                        <Image
                           src={URL.createObjectURL(file)}
                           alt={file.name}
                           className="absolute inset-0 h-full w-full object-cover"
+                          width={500}
+                          height={500}
+                          unoptimized
                         />
                         <button
                           type="button"

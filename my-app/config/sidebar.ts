@@ -16,6 +16,8 @@ import {
   Bot,
   MessageSquareCode,
   Layout,
+  Building2,
+  Settings,
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { InstagramIcon } from '@/components/icons/instagram-icon';
@@ -35,10 +37,21 @@ export const coreItems: SidebarItem[] = [
   },
   {
     type: 'link',
-    label: 'Notifications',
-    icon: Bell,
-    href: '/dashboard/notifications',
-    badge: 0, // dynamic — overridden at runtime
+    label: 'Assistants',
+    icon: Bot,
+    href: '/dashboard/assistants',
+  },
+  {
+    type: 'link',
+    label: 'Chatbots',
+    icon: MessageSquareCode,
+    href: '/dashboard/chatbots',
+  },
+  {
+    type: 'link',
+    label: 'Widgets',
+    icon: Layout,
+    href: '/dashboard/widgets',
   },
   {
     type: 'group',
@@ -46,6 +59,12 @@ export const coreItems: SidebarItem[] = [
     icon: MessageSquare,
     defaultOpen: true,
     children: [
+      {
+        type: 'link',
+        label: 'Website',
+        icon: Globe,
+        href: '/dashboard/conversations/website',
+      },
       {
         type: 'link',
         label: 'WhatsApp',
@@ -64,72 +83,38 @@ export const coreItems: SidebarItem[] = [
         icon: MessengerIcon,
         href: '/dashboard/conversations/messenger',
       },
-      {
-        type: 'link',
-        label: 'Website',
-        icon: Globe,
-        href: '/dashboard/conversations/website',
-      },
-    ],
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Section 2 — Workspace (labeled "Workspace")
-// ---------------------------------------------------------------------------
-
-export const workspaceItems: SidebarItem[] = [
-  {
-    type: 'group',
-    label: 'Audiences',
-    icon: Users,
-    defaultOpen: false,
-    children: [
-      {
-        type: 'link',
-        label: 'Contacts',
-        icon: Contact,
-        href: '/dashboard/contacts',
-      },
-      {
-        type: 'link',
-        label: 'Campaigns',
-        icon: Megaphone,
-        href: '/dashboard/campaigns',
-      },
-      {
-        type: 'link',
-        label: 'Templates',
-        icon: FileText,
-        href: '/dashboard/templates',
-      },
     ],
   },
   {
-    type: 'group',
+    type: 'link',
+    label: 'Notifications',
+    icon: Bell,
+    href: '/dashboard/notifications',
+    badge: 0, // dynamic — overridden at runtime
+  },
+  {
+    type: 'link',
+    label: 'Contacts',
+    icon: Contact,
+    href: '/dashboard/contacts',
+  },
+  {
+    type: 'link',
+    label: 'Campaigns',
+    icon: Megaphone,
+    href: '/dashboard/campaigns',
+  },
+  {
+    type: 'link',
+    label: 'Templates',
+    icon: FileText,
+    href: '/dashboard/templates',
+  },
+  {
+    type: 'link',
     label: 'Commerce',
     icon: ShoppingBag,
-    defaultOpen: false,
-    children: [
-      {
-        type: 'link',
-        label: 'Orders',
-        icon: ShoppingCart,
-        href: '/dashboard/commerce/orders',
-      },
-      {
-        type: 'link',
-        label: 'Products',
-        icon: Package,
-        href: '/dashboard/commerce/products',
-      },
-      {
-        type: 'link',
-        label: 'Payments',
-        icon: CreditCard,
-        href: '/dashboard/commerce/payments',
-      },
-    ],
+    href: '/dashboard/commerce',
   },
   {
     type: 'link',
@@ -138,28 +123,27 @@ export const workspaceItems: SidebarItem[] = [
     href: '/dashboard/analytics',
   },
   {
-    type: 'more',
-    label: 'More',
-    icon: MoreHorizontal,
-    children: [
-      {
-        type: 'link',
-        label: 'Assistants',
-        icon: Bot,
-        href: '/dashboard/assistants',
-      },
-      {
-        type: 'link',
-        label: 'Chatbots',
-        icon: MessageSquareCode,
-        href: '/dashboard/chatbots',
-      },
-      {
-        type: 'link',
-        label: 'Widgets',
-        icon: Layout,
-        href: '/dashboard/widgets',
-      },
-    ],
+    type: 'link',
+    label: 'Organization',
+    icon: Building2,
+    href: '/dashboard/organization',
+  },
+  {
+    type: 'link',
+    label: 'Billing',
+    icon: CreditCard,
+    href: '/dashboard/billing',
+  },
+  {
+    type: 'link',
+    label: 'Settings',
+    icon: Settings,
+    href: '/dashboard/settings',
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Section 2 — Workspace (labeled "Workspace")
+// ---------------------------------------------------------------------------
+
+export const workspaceItems: SidebarItem[] = [];

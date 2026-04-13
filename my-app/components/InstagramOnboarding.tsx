@@ -22,25 +22,19 @@ const InstagramOnboarding = () => {
             <div className="flex items-start gap-3">
               <span className="text-pink-600 font-bold">1.</span>
               <p className="text-sm text-gray-700">
-                <strong>Instagram Business or Creator Account</strong> for direct messaging.
+                <strong>Instagram Professional Account</strong> (Business or Creator) for direct messaging.
               </p>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-pink-600 font-bold">2.</span>
               <p className="text-sm text-gray-700">
-                <strong>Facebook Page Link</strong> required — your Instagram must be linked to a Facebook Page.
+                <strong>Business Messaging Enabled</strong> in your Instagram account settings.
               </p>
             </div>
             <div className="flex items-start gap-3">
               <span className="text-pink-600 font-bold">3.</span>
               <p className="text-sm text-gray-700">
-                <strong>Business Messaging Enabled</strong> for the Instagram account.
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="text-pink-600 font-bold">4.</span>
-              <p className="text-sm text-gray-700">
-                <strong>Required Permissions</strong> granted during signup process.
+                <strong>Grant Permissions</strong> for messaging access during the signup process.
               </p>
             </div>
           </CardContent>

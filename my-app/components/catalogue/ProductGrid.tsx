@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import { Search, X, Loader2, Package, RefreshCw, LayoutGrid, List, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -378,10 +379,13 @@ export function ProductGrid({
               {/* Thumbnail */}
               <div className="h-12 w-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
                 {product.image_url ? (
-                  <img
+                  <Image
                     src={product.image_url}
                     alt={product.name}
                     className="h-full w-full object-cover"
+                    width={500}
+                    height={500}
+                    unoptimized
                   />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center">

@@ -1,14 +1,10 @@
 "use client"
-import { AppSidebar } from "@/components/app-sidebar"
+
 import type React from "react"
-
-import { usePathname } from "next/navigation"
-import { useAuth } from "@clerk/nextjs"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { useState } from "react"
+import { AppSidebar } from "@/components/app-sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
-import { useState, useEffect } from "react"
 
-// Notifications
 import ToastProvider from "@/components/ToastProvider"
 import { NotificationProvider } from "@/hooks/use-notification-context"
 import { NotificationIndicator } from "@/components/notification-indicator"
@@ -20,19 +16,16 @@ function DashboardLayoutContent({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const { isLoaded } = useAuth()
+  const { userId } = useAuth()
 
-  // Wait for Clerk to finish loading before rendering.
-  // Without this guard, userId transitions from undefined → real value,
-  // which previously caused SidebarProvider to remount via a key change.
-  // That remount left Radix UI's pointer-events: none stuck on <body>,
-  // making the sidebar toggle (and other elements) unclickable until reload.
-  if (!isLoaded) {
-    return null
-  }
+  // Force SidebarProvider to fully remount when auth state changes
+  // (e.g. after Clerk soft-navigates from sign-in → dashboard).
+  // This ensures toggleSidebar and isMobile are freshly initialized.
+  const sidebarKey = userId ?? "anonymous"
 
   return (
     <SidebarProvider
+      key={sidebarKey}
       defaultOpen={true}
       style={
         {
@@ -48,49 +41,31 @@ function DashboardLayoutContent({
             <NotificationIndicator />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-golden-lg p-golden-lg pt-0">
-          <main>{children}</main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        <main className="flex-1 overflow-y-auto p-golden-lg">{children}</main>
+      </div>
+    </div>
   )
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
 
   // Clear stale pointer-events: none and scroll-lock left by Radix UI
   // Sheet/Dialog during page transitions (e.g. sign-in → dashboard).
-  // Run on mount and after a short delay to catch async Radix cleanup.
   useEffect(() => {
     const body = document.body
-    const cleanup = () => {
-      if (body.style.pointerEvents === 'none') {
-        body.style.pointerEvents = ''
-      }
-      body.removeAttribute('data-scroll-locked')
+    if (body.style.pointerEvents === 'none') {
+      body.style.pointerEvents = ''
     }
-    cleanup()
-    const raf = requestAnimationFrame(cleanup)
-    const timer = setTimeout(cleanup, 300)
-    return () => {
-      cancelAnimationFrame(raf)
-      clearTimeout(timer)
-    }
-  }, [])
+    body.removeAttribute('data-scroll-locked')
+  })
 
   return (
-    <div suppressHydrationWarning>
-      <QueryClientProvider client={queryClient}>
-        <NotificationProvider>
-          <DashboardLayoutContent>{children}</DashboardLayoutContent>
-          <ToastProvider />
-        </NotificationProvider>
-      </QueryClientProvider>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <NotificationProvider>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+        <ToastProvider />
+      </NotificationProvider>
+    </QueryClientProvider>
   )
 }
