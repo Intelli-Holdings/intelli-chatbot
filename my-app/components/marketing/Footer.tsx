@@ -22,6 +22,8 @@ const footerLinks = {
     { label: "Careers", href: "/company#careers" },
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms-of-service" },
+    { label: "Subprocessors", href: "/subprocessors" },
+    { label: "DPA", href: "/data-processing-agreement" },
   ],
 };
 
