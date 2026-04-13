@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { logger } from "@/lib/logger";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not defined. Please add your Stripe secret key to the environment variables.');
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-07-30.basil',
+  apiVersion: '2025-08-27.basil',
 });
 
 export async function POST(request: NextRequest) {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in payment method API:', error);
+    logger.error('Error in payment method API', { error: error instanceof Error ? error.message : String(error) });
     
     return NextResponse.json(
       { 
@@ -61,24 +62,66 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Retrieve customer's payment methods
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: customerId,
-      type: 'card',
-    });
+    // Retrieve customer's payment methods and default
+    const [paymentMethods, customer] = await Promise.all([
+      stripe.paymentMethods.list({ customer: customerId, type: "card" }),
+      stripe.customers.retrieve(customerId),
+    ]);
+
+    const defaultPaymentMethod =
+      customer && !("deleted" in customer && customer.deleted)
+        ? (customer.invoice_settings?.default_payment_method as string | null)
+        : null;
 
     return NextResponse.json({
       success: true,
       paymentMethods: paymentMethods.data,
+      defaultPaymentMethod,
     });
 
   } catch (error) {
-    console.error('Error retrieving payment methods:', error);
+    logger.error('Error retrieving payment methods', { error: error instanceof Error ? error.message : String(error) });
     
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Internal server error',
         success: false 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { paymentMethodId, customerId } = body;
+
+    if (!paymentMethodId || !customerId) {
+      return NextResponse.json(
+        { error: "Payment method ID and customer ID are required" },
+        { status: 400 }
+      );
+    }
+
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Default payment method updated",
+    });
+  } catch (error) {
+    logger.error("Error setting default payment method", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Internal server error",
+        success: false,
       },
       { status: 500 }
     );
@@ -106,7 +149,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error removing payment method:', error);
+    logger.error('Error removing payment method', { error: error instanceof Error ? error.message : String(error) });
     
     return NextResponse.json(
       { 

@@ -31,14 +31,19 @@ import {
   createQuestionInputNode,
   createCTAButtonNode,
   createHttpApiNode,
+  createProductMessageNode,
+  createPaymentNode,
+  createSequenceNode,
   createNodeFromAction,
   cloneNode,
   ExtendedFlowNode,
 } from '../utils/node-factories';
+import { ProductMessageType } from '../nodes/ProductMessageNode';
 import { MediaType } from '../nodes/MediaNode';
 import { ContextMenuPosition } from '../ContextMenu';
 import { ConnectionMenuPosition } from '../ConnectionMenu';
 
+import { logger } from "@/lib/logger";
 interface UseFlowStateProps {
   chatbot: ChatbotAutomation;
   onUpdate: (updates: Partial<ChatbotAutomation>) => void;
@@ -53,7 +58,7 @@ interface UseFlowStateReturn {
   nodes: Node[];
   edges: Edge[];
   selectedNode: Node | null;
-  contextMenu: { position: ContextMenuPosition; nodeId: string | null } | null;
+  contextMenu: { position: ContextMenuPosition; nodeId: string | null; edgeId: string | null } | null;
   connectionMenu: ConnectionMenuPosition | null;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -63,18 +68,20 @@ interface UseFlowStateReturn {
   onPaneClick: () => void;
   onPaneContextMenu: (event: React.MouseEvent) => void;
   onNodeContextMenu: (event: React.MouseEvent, node: Node) => void;
+  onEdgeContextMenu: (event: React.MouseEvent, edge: Edge) => void;
   onDrop: (event: React.DragEvent) => void;
   onDragOver: (event: React.DragEvent) => void;
   onConnectStart: (event: React.MouseEvent | React.TouchEvent, params: { nodeId: string | null; handleId: string | null }) => void;
   onConnectEnd: (event: MouseEvent | TouchEvent) => void;
   handleContextMenuAction: (action: string, position: ContextMenuPosition) => void;
-  handleConnectionMenuSelect: (nodeType: string, actionType?: string, mediaType?: string) => void;
+  handleConnectionMenuSelect: (nodeType: string, actionType?: string, mediaType?: string, productMessageType?: string) => void;
   closeContextMenu: () => void;
   closeConnectionMenu: () => void;
   deleteNode: (nodeId: string) => void;
+  deleteEdge: (edgeId: string) => void;
   updateNodeData: (nodeId: string, data: Partial<ExtendedFlowNode['data']>) => void;
   autoLayout: () => void;
-  syncToChatbot: () => void;
+  syncToChatbot: (signal?: AbortSignal) => Promise<void>;
 }
 
 export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowStateReturn {
@@ -86,41 +93,41 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     const rawNodes = chatbot.flowLayout?.rawNodes;
     const rawEdges = chatbot.flowLayout?.rawEdges;
 
-    console.log('=== useFlowState initialFlow ===');
-    console.log('chatbot.flowLayout:', chatbot.flowLayout);
-    console.log('rawNodes:', rawNodes?.length, rawNodes);
-    console.log('rawEdges:', rawEdges?.length, rawEdges);
+    logger.debug('=== useFlowState initialFlow ===');
+    logger.info('chatbot.flowLayout:', { data: chatbot.flowLayout });
+    logger.debug('rawNodes:', { arg0: rawNodes?.length, rawNodes: rawNodes });
+    logger.debug('rawEdges:', { arg0: rawEdges?.length, rawEdges: rawEdges });
 
     if (rawNodes && rawNodes.length > 0) {
       // Use the direct backend format conversion
-      console.log('Loading flow from raw backend data:', rawNodes.length, 'nodes,', rawEdges?.length || 0, 'edges');
+      logger.debug('Loading flow from raw backend data:', { length: rawNodes.length, arg1: 'nodes,', arg2: rawEdges?.length || 0, arg3: 'edges' });
       const result = backendNodesToFlow(rawNodes, rawEdges || []);
-      console.log('Converted result - nodes:', result.nodes.length, 'edges:', result.edges.length);
+      logger.debug('Converted result', { nodeCount: result.nodes.length, edgeCount: result.edges.length });
       return result;
     }
 
     // Fall back to legacy menu-based format
-    console.log('Loading flow from legacy format (no rawNodes)');
+    logger.debug('Loading flow from legacy format (no rawNodes)');
     return chatbotToFlow(chatbot);
   })();
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow.nodes as Node[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges as Edge[]);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ position: ContextMenuPosition; nodeId: string | null } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ position: ContextMenuPosition; nodeId: string | null; edgeId: string | null } | null>(null);
   const [connectionMenu, setConnectionMenu] = useState<ConnectionMenuPosition | null>(null);
   const [pendingConnection, setPendingConnection] = useState<ConnectionState | null>(null);
 
   // Sync to chatbot when nodes/edges change
-  const syncToChatbot = useCallback(async () => {
+  const syncToChatbot = useCallback(async (signal?: AbortSignal) => {
     try {
       // Validate nodes and edges before conversion
       if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
-        console.warn('syncToChatbot: Invalid or empty nodes array');
+        logger.warn('syncToChatbot: Invalid or empty nodes array');
         return;
       }
       if (!edges || !Array.isArray(edges)) {
-        console.warn('syncToChatbot: Invalid edges array');
+        logger.warn('syncToChatbot: Invalid edges array');
         return;
       }
 
@@ -144,24 +151,25 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
             edges as ChatbotFlowEdge[]
           );
 
-          console.log('=== Syncing to backend ===');
-          console.log('Backend nodes:', backendNodes);
-          console.log('Backend edges:', backendEdges);
-
-          // Update backend
+          // Update backend (cancellable)
           await ChatbotAutomationService.updateFlowNodes(
             chatbot.id,
             backendNodes,
-            backendEdges
+            backendEdges,
+            signal
           );
-          console.log('Flow synced to backend successfully');
+          logger.info('Flow synced to backend successfully');
         } catch (backendError) {
-          console.warn('Failed to sync to backend (will retry on next save):', backendError);
+          if (backendError instanceof Error && backendError.name === 'AbortError') {
+            // Superseded by a newer save — silent skip
+            return;
+          }
+          logger.warn('Failed to sync to backend (will retry on next save):', { data: backendError });
           // Don't throw - local state is still updated
         }
       }
     } catch (error) {
-      console.error('syncToChatbot: Error converting flow to chatbot:', error);
+      logger.error('syncToChatbot: Error converting flow to chatbot:', { error: error instanceof Error ? error.message : String(error) });
     }
   }, [nodes, edges, chatbot, onUpdate]);
 
@@ -234,6 +242,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           flowPosition,
         },
         nodeId: null,
+        edgeId: null,
       });
     },
     [screenToFlowPosition]
@@ -254,8 +263,30 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
           flowPosition,
         },
         nodeId: node.id,
+        edgeId: null,
       });
       setSelectedNode(node);
+    },
+    [screenToFlowPosition]
+  );
+
+  // Handle edge right-click for context menu
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      const flowPosition = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      setContextMenu({
+        position: {
+          x: event.clientX,
+          y: event.clientY,
+          flowPosition,
+        },
+        nodeId: null,
+        edgeId: edge.id,
+      });
     },
     [screenToFlowPosition]
   );
@@ -307,9 +338,9 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
 
   // Handle connection menu selection - create node and connect
   const handleConnectionMenuSelect = useCallback(
-    (nodeType: string, actionType?: string, mediaType?: string) => {
+    (nodeType: string, actionType?: string, mediaType?: string, productMessageType?: string) => {
       if (!connectionMenu || !connectionMenu.flowPosition) {
-        console.warn('handleConnectionMenuSelect: Invalid connection menu state');
+        logger.warn('handleConnectionMenuSelect: Invalid connection menu state');
         closeConnectionMenu();
         return;
       }
@@ -354,6 +385,19 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
         case 'http_api':
           newNode = createHttpApiNode(position);
           break;
+        case 'product_message':
+          if (productMessageType && ['single', 'multi'].includes(productMessageType)) {
+            newNode = createProductMessageNode(position, productMessageType as ProductMessageType);
+          } else {
+            newNode = createProductMessageNode(position, 'single');
+          }
+          break;
+        case 'payment':
+          newNode = createPaymentNode(position);
+          break;
+        case 'sequence':
+          newNode = createSequenceNode(position);
+          break;
       }
 
       if (newNode && connectionMenu.sourceNodeId) {
@@ -392,6 +436,8 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
         }
       } else if (action === 'delete' && contextMenu?.nodeId) {
         deleteNode(contextMenu.nodeId);
+      } else if (action === 'delete-edge' && contextMenu?.edgeId) {
+        deleteEdge(contextMenu.edgeId);
       } else if (action.startsWith('add-')) {
         const newNode = createNodeFromAction(action, position.flowPosition);
         if (newNode) {
@@ -400,6 +446,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
       }
       setContextMenu(null);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [contextMenu, nodes, setNodes]
   );
 
@@ -411,10 +458,11 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
       const data = event.dataTransfer.getData('application/reactflow');
       if (!data) return;
 
-      const { type, actionType, mediaType } = JSON.parse(data) as {
+      const { type, actionType, mediaType, productMessageType } = JSON.parse(data) as {
         type: string;
         actionType?: ActionNodeData['actionType'];
         mediaType?: MediaType;
+        productMessageType?: ProductMessageType;
       };
 
       const position = screenToFlowPosition({
@@ -459,6 +507,19 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
         case 'http_api':
           newNode = createHttpApiNode(position);
           break;
+        case 'product_message':
+          if (productMessageType) {
+            newNode = createProductMessageNode(position, productMessageType);
+          } else {
+            newNode = createProductMessageNode(position, 'single');
+          }
+          break;
+        case 'payment':
+          newNode = createPaymentNode(position);
+          break;
+        case 'sequence':
+          newNode = createSequenceNode(position);
+          break;
       }
 
       if (newNode) {
@@ -484,6 +545,14 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
       }
     },
     [setNodes, setEdges, selectedNode]
+  );
+
+  // Delete an edge
+  const deleteEdge = useCallback(
+    (edgeId: string) => {
+      setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+    },
+    [setEdges]
   );
 
   // Update node data
@@ -534,6 +603,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     onPaneClick,
     onPaneContextMenu,
     onNodeContextMenu,
+    onEdgeContextMenu,
     onDrop,
     onDragOver,
     onConnectStart,
@@ -543,6 +613,7 @@ export function useFlowState({ chatbot, onUpdate }: UseFlowStateProps): UseFlowS
     closeContextMenu,
     closeConnectionMenu,
     deleteNode,
+    deleteEdge,
     updateNodeData,
     autoLayout,
     syncToChatbot,

@@ -1,10 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     // Get authentication token from Clerk
     const { getToken } = await auth()
     const token = await getToken()
@@ -13,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const response = await fetch(`${BASE_URL}/contacts/tags/${params.id}/`, {
+    const response = await fetch(`${BASE_URL}/contacts/tags/${id}/`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -30,8 +32,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     // Get authentication token from Clerk
     const { getToken } = await auth()
     const token = await getToken()
@@ -42,7 +45,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const body = await request.json()
 
-    const response = await fetch(`${BASE_URL}/contacts/tags/${params.id}/`, {
+    const response = await fetch(`${BASE_URL}/contacts/tags/${id}/`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -59,13 +62,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error updating tag:", error)
+    logger.error("Error updating tag", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     // Get authentication token from Clerk
     const { getToken } = await auth()
     const token = await getToken()
@@ -74,7 +78,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const response = await fetch(`${BASE_URL}/contacts/tags/${params.id}/`, {
+    const response = await fetch(`${BASE_URL}/contacts/tags/${id}/`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -88,7 +92,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting tag:", error)
+    logger.error("Error deleting tag", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

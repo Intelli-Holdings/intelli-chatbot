@@ -1,5 +1,14 @@
 import { NavItem, SidebarNavItem } from "@/types";
 import { Icon, allIcons } from "@/components/component/icons";
+
+export const privateRoutes = [
+  "/dashboard",
+  "/demo",
+  "/chat",
+  "/onboarding",
+  "/feedback",
+  "/organization",
+];
 export type User = {
   id: number;
   name: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -34,12 +34,25 @@ const edgeTypes = {
   custom: CustomEdge,
 };
 
+export interface FlowBuilderHandle {
+  /** Persist the current flow to the backend. Returns once the request resolves. */
+  save: () => Promise<void>;
+  /** True if there are local changes not yet saved to the backend. */
+  hasUnsavedChanges: () => boolean;
+  /** Run validation against the live nodes/edges. Returns the list of error messages (empty when valid). */
+  validate: () => string[];
+}
+
 interface FlowBuilderInnerProps {
   chatbot: ChatbotAutomation;
   onUpdate: (updates: Partial<ChatbotAutomation>) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
+const FlowBuilderInner = forwardRef<FlowBuilderHandle, FlowBuilderInnerProps>(function FlowBuilderInner(
+  { chatbot, onUpdate, onDirtyChange },
+  ref
+) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { fitView, setCenter } = useReactFlow();
   const [showValidationPanel, setShowValidationPanel] = useState(false);
@@ -59,6 +72,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     onPaneClick,
     onPaneContextMenu,
     onNodeContextMenu,
+    onEdgeContextMenu,
     onDrop,
     onDragOver,
     onConnectStart,
@@ -68,6 +82,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     closeContextMenu,
     closeConnectionMenu,
     deleteNode,
+    deleteEdge,
     updateNodeData,
     autoLayout,
     syncToChatbot,
@@ -131,23 +146,121 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
     isSimulating: isSimulationOpen,
   };
 
-  // Sync changes to chatbot after interactions
-  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // ===========================================================================
+  // Local-first persistence: draft to localStorage on every change.
+  // Backend sync only happens when the user clicks Save (or navigates away
+  // with unsaved changes — the unmount handler flushes once). This protects
+  // the Postgres connection pool from being hammered by PATCH /flows/{id}/.
+  // ===========================================================================
+  const draftKey = chatbot.id ? `flow-draft:${chatbot.id}` : null;
+  const draftTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncAbortRef = useRef<AbortController | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const initialLoadRef = useRef(true);
 
+  // Notify parent whenever the dirty flag flips
   useEffect(() => {
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
+    if (onDirtyChange) onDirtyChange(hasUnsavedChanges);
+  }, [hasUnsavedChanges, onDirtyChange]);
+
+  // Persist draft to localStorage (debounced 500ms — purely client-side, fast)
+  useEffect(() => {
+    // Skip the very first render so opening a flow doesn't mark it dirty
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
     }
-    syncTimeoutRef.current = setTimeout(() => {
-      syncToChatbot();
+    if (!draftKey) return;
+
+    setHasUnsavedChanges(true);
+
+    if (draftTimeoutRef.current) {
+      clearTimeout(draftTimeoutRef.current);
+    }
+    draftTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          draftKey,
+          JSON.stringify({ nodes, edges, savedAt: Date.now() })
+        );
+      } catch (e) {
+        // localStorage may be full or disabled — fail silently
+      }
     }, 500);
 
     return () => {
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
+      if (draftTimeoutRef.current) {
+        clearTimeout(draftTimeoutRef.current);
       }
     };
-  }, [nodes, edges, syncToChatbot]);
+  }, [nodes, edges, draftKey]);
+
+  // Explicit save to backend (called by Save button or keyboard shortcut)
+  const saveToBackend = useCallback(async () => {
+    if (!chatbot.id || isSaving) return;
+    if (syncAbortRef.current) {
+      syncAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    syncAbortRef.current = controller;
+    setIsSaving(true);
+    try {
+      await syncToChatbot(controller.signal);
+      setHasUnsavedChanges(false);
+      // Clear the draft once it's safely on the backend
+      if (draftKey) {
+        try {
+          localStorage.removeItem(draftKey);
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (e) {
+      // syncToChatbot logs internally; keep dirty flag so user can retry
+    } finally {
+      setIsSaving(false);
+    }
+  }, [chatbot.id, isSaving, syncToChatbot, draftKey]);
+
+  // Warn the user before leaving the page with unsaved changes
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // On unmount: flush draft to backend if there are unsaved changes
+  useEffect(() => {
+    return () => {
+      if (draftTimeoutRef.current) {
+        clearTimeout(draftTimeoutRef.current);
+      }
+      if (syncAbortRef.current) {
+        syncAbortRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Expose imperative save() and validate() to the parent (Save button lives outside).
+  // validate() runs against the live nodes/edges from the React Flow state — not
+  // chatbot.flowLayout.rawNodes which is stale until save() is called.
+  useImperativeHandle(
+    ref,
+    () => ({
+      save: saveToBackend,
+      hasUnsavedChanges: () => hasUnsavedChanges,
+      validate: () => {
+        const result = validate()
+        return result.errors.map((e) => e.message)
+      },
+    }),
+    [saveToBackend, hasUnsavedChanges, validate]
+  );
 
   // Fit view on initial load
   useEffect(() => {
@@ -225,6 +338,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onConnectStart={onConnectStart}
@@ -280,6 +394,12 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
                 return '#f97316';
               case 'http_api':
                 return '#8b5cf6';
+              case 'product_message':
+                return '#10b981';
+              case 'payment':
+                return '#8b5cf6';
+              case 'sequence':
+                return '#10b981';
               default:
                 return '#94a3b8';
             }
@@ -306,6 +426,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
       <ContextMenu
         position={contextMenu?.position || null}
         nodeId={contextMenu?.nodeId}
+        edgeId={contextMenu?.edgeId}
         onAction={handleContextMenuAction}
         onClose={closeContextMenu}
       />
@@ -313,7 +434,7 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
       {/* Connection Menu - appears when dragging from output handle */}
       <ConnectionMenu
         position={connectionMenu}
-        onSelect={(item) => handleConnectionMenuSelect(item.type, item.actionType, item.mediaType)}
+        onSelect={(item) => handleConnectionMenuSelect(item.type, item.actionType, item.mediaType, item.productMessageType)}
         onClose={closeConnectionMenu}
       />
 
@@ -358,17 +479,28 @@ function FlowBuilderInner({ chatbot, onUpdate }: FlowBuilderInnerProps) {
       />
     </div>
   );
-}
+});
 
 interface FlowBuilderProps {
   chatbot: ChatbotAutomation;
   onUpdate: (updates: Partial<ChatbotAutomation>) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export default function FlowBuilder({ chatbot, onUpdate }: FlowBuilderProps) {
+const FlowBuilder = forwardRef<FlowBuilderHandle, FlowBuilderProps>(function FlowBuilder(
+  { chatbot, onUpdate, onDirtyChange },
+  ref
+) {
   return (
     <ReactFlowProvider>
-      <FlowBuilderInner chatbot={chatbot} onUpdate={onUpdate} />
+      <FlowBuilderInner
+        chatbot={chatbot}
+        onUpdate={onUpdate}
+        onDirtyChange={onDirtyChange}
+        ref={ref}
+      />
     </ReactFlowProvider>
   );
-}
+});
+
+export default FlowBuilder;

@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 interface AppService {
   id: number;
   phone_number: string;
@@ -10,6 +12,9 @@ interface AppService {
   name?: string;
   status?: string;
   is_default?: boolean;
+  channel?: 'whatsapp' | 'instagram' | 'messenger';
+  instagram_business_account_id?: string;
+  instagram_page_name?: string;
 }
 
 interface WhatsAppTemplate {
@@ -666,7 +671,7 @@ static formatTemplateComponents(components: any[]): any[] {
         throw new Error('Organization ID is required');
       }
 
-      const apiUrl = `/api/channels/whatsapp/org/${organizationId}`;
+      const apiUrl = `/api/appservice/paginated/org/${organizationId}/appservices/`;
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -680,11 +685,11 @@ static formatTemplateComponents(components: any[]): any[] {
       }
 
       const data = await response.json();
-      const services = Array.isArray(data) ? data : (data.appServices || data || []);
+      const services = Array.isArray(data) ? data : (data.results || data.appServices || data || []);
 
       return services;
     } catch (error) {
-      console.error('Error fetching app services:', error);
+      logger.error('Error fetching app services', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -804,7 +809,7 @@ static formatTemplateComponents(components: any[]): any[] {
       this.writeTemplatesCache(organizationId, appService, normalizedTemplates);
       return normalizedTemplates;
     } catch (error) {
-      console.error('Error fetching WhatsApp templates:', error);
+      logger.error('Error fetching WhatsApp templates', { error: error instanceof Error ? error.message : String(error) });
       if (shouldUseCache && cacheEntry) {
         return cacheEntry.templates;
       }
@@ -906,7 +911,7 @@ static formatTemplateComponents(components: any[]): any[] {
       this.clearTemplatesCache(organizationId, appService);
       return responseData;
     } catch (error) {
-      console.error('Error updating WhatsApp template:', error);
+      logger.error('Error updating WhatsApp template', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -954,7 +959,7 @@ static formatTemplateComponents(components: any[]): any[] {
       this.clearTemplatesCache(organizationId, appService);
       return responseData;
     } catch (error) {
-      console.error('Error deleting WhatsApp template:', error);
+      logger.error('Error deleting WhatsApp template', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1023,7 +1028,7 @@ static formatTemplateComponents(components: any[]): any[] {
         throw new Error(`Failed to send message: ${lastError instanceof Error ? lastError.message : 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error sending WhatsApp message:', error);
+      logger.error('Error sending WhatsApp message', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1096,7 +1101,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching messaging analytics:', error);
+      logger.error('Error fetching messaging analytics', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1137,7 +1142,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching conversation analytics:', error);
+      logger.error('Error fetching conversation analytics', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1179,7 +1184,7 @@ static formatTemplateComponents(components: any[]): any[] {
         limit: 250
       })) || [];
     } catch (error) {
-      console.error('Error fetching phone number limits:', error);
+      logger.error('Error fetching phone number limits', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1244,7 +1249,7 @@ static formatTemplateComponents(components: any[]): any[] {
       const data = await response.json();
       return data.data || [];
     } catch (error) {
-      console.error('Error fetching phone numbers:', error);
+      logger.error('Error fetching phone numbers', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1313,7 +1318,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching WABA info:', error);
+      logger.error('Error fetching WABA info', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1350,7 +1355,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching template details:', error);
+      logger.error('Error fetching template details', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1417,7 +1422,7 @@ static formatTemplateComponents(components: any[]): any[] {
         fileType: data.fileType || data.file_type
       };
     } catch (error) {
-      console.error('Error uploading media:', error);
+      logger.error('Error uploading media', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1517,7 +1522,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching message status:', error);
+      logger.error('Error fetching message status', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1551,7 +1556,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching phone number quality:', error);
+      logger.error('Error fetching phone number quality', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1594,7 +1599,7 @@ static formatTemplateComponents(components: any[]): any[] {
       const data = await response.json();
       return data.data || [];
     } catch (error) {
-      console.error('Error fetching WhatsApp Flows:', error);
+      logger.error('Error fetching WhatsApp Flows', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1648,14 +1653,14 @@ static formatTemplateComponents(components: any[]): any[] {
             }));
           }
         } catch (e) {
-          console.error('Error parsing flow preview:', e);
-          console.error('Preview data:', data.preview?.preview);
+          logger.error('Error parsing flow preview', { error: e instanceof Error ? e.message : String(e) });
+          logger.error('Preview data', { data: data.preview?.preview });
         }
       }
 
       // If no screens found from preview, try fetching from assets endpoint
       if (screens.length === 0) {
-        console.warn('No preview data found, trying assets endpoint for flow:', flowId);
+        logger.warn('No preview data found, trying assets endpoint for flow', { flowId });
 
         try {
           const flowJSON = await this.getFlowJSON(appService, flowId);
@@ -1667,10 +1672,10 @@ static formatTemplateComponents(components: any[]): any[] {
               success: screen.success,
               data: screen.data
             }));
-            console.log(`Found ${screens.length} screens from assets endpoint`);
+            logger.debug(`Found ${screens.length} screens from assets endpoint`);
           }
         } catch (assetError) {
-          console.error('Error fetching from assets endpoint:', assetError);
+          logger.error('Error fetching from assets endpoint', { error: assetError instanceof Error ? assetError.message : String(assetError) });
         }
       }
 
@@ -1683,7 +1688,7 @@ static formatTemplateComponents(components: any[]): any[] {
         screens
       };
     } catch (error) {
-      console.error('Error fetching flow details:', error);
+      logger.error('Error fetching flow details', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1799,7 +1804,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return responseData;
     } catch (error) {
-      console.error('Error creating flow template:', error);
+      logger.error('Error creating flow template', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -1891,7 +1896,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return responseData;
     } catch (error) {
-      console.error('Error sending flow template:', error);
+      logger.error('Error sending flow template', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -2015,7 +2020,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return responseData;
     } catch (error) {
-      console.error('Error sending interactive flow message:', error);
+      logger.error('Error sending interactive flow message', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -2050,7 +2055,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return await response.json();
     } catch (error) {
-      console.error('Error publishing flow:', error);
+      logger.error('Error publishing flow', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -2085,7 +2090,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return await response.json();
     } catch (error) {
-      console.error('Error deprecating flow:', error);
+      logger.error('Error deprecating flow', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -2128,13 +2133,13 @@ static formatTemplateComponents(components: any[]): any[] {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('Typing indicator error:', data);
+        logger.error('Typing indicator error', { data });
         return { success: false, message: data.error || 'Failed to send typing indicator' };
       }
 
       return { success: true, message: data.message };
     } catch (error) {
-      console.error('Error sending typing indicator:', error);
+      logger.error('Error sending typing indicator', { error: error instanceof Error ? error.message : String(error) });
       return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -2177,7 +2182,7 @@ static formatTemplateComponents(components: any[]): any[] {
 
       return null;
     } catch (error) {
-      console.error('Error fetching flow JSON:', error);
+      logger.error('Error fetching flow JSON', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

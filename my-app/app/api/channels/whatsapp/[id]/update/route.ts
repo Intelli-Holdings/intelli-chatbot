@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // PUT /api/channels/whatsapp/[id]/update - Update a WhatsApp package
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { getToken } = await auth()
@@ -16,7 +17,7 @@ export async function PUT(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
 
     if (!id) {
@@ -45,7 +46,7 @@ export async function PUT(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error updating WhatsApp package:", error)
+    logger.error("Error updating WhatsApp package", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

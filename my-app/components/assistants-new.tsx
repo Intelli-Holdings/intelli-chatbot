@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DeleteAssistantDialog } from "@/components/delete-dialog-assistant"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
+import { logger } from "@/lib/logger";
 
 interface Assistant {
   id: number
@@ -57,7 +58,7 @@ export default function Assistants() {
       const data: Assistant[] = await response.json()
 
       if (!Array.isArray(data)) {
-        console.error("[v0] API response is not an array:", data)
+        logger.error("[v0] API response is not an array", { data })
         throw new Error("Invalid response format: expected array of assistants")
       }
 
@@ -71,7 +72,7 @@ export default function Assistants() {
           typeof assistant.prompt === "string"
 
         if (!isValid) {
-          console.warn("[v0] Invalid assistant object:", assistant)
+          logger.warn("[v0] Invalid assistant object", { data: assistant })
         }
 
         return isValid
@@ -83,7 +84,7 @@ export default function Assistants() {
         toast.info("No valid assistants found. Create one to get started.")
       }
     } catch (error) {
-      console.error("[v0] Error fetching assistants:", error)
+      logger.error("[v0] Error fetching assistants", { error: error instanceof Error ? error.message : String(error) })
       toast.error(`Failed to fetch assistants: ${error instanceof Error ? error.message : "Unknown error"}`)
       setAssistants([])
     } finally {
@@ -110,7 +111,7 @@ export default function Assistants() {
       // Full page reload after successful deletion
       window.location.reload()
     } catch (error) {
-      console.error("Error deleting assistant:", error)
+      logger.error("Error deleting assistant", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to delete assistant. Please try again.")
     } finally {
       setIsDeleting(false)

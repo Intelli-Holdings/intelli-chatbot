@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { WhatsAppService, type AppService } from '@/services/whatsapp';
 import useActiveOrganizationId from './use-organization-id';
+import { logger } from "@/lib/logger";
 
 export interface UseAppServicesReturn {
   appServices: AppService[];
@@ -12,7 +13,7 @@ export interface UseAppServicesReturn {
 }
 
 /**
- * Custom hook to fetch and manage WhatsApp app services for an organization
+ * Custom hook to fetch and manage app services (WhatsApp, Instagram) for an organization
  */
 export const useAppServices = (): UseAppServicesReturn => {
   const organizationId = useActiveOrganizationId();
@@ -33,13 +34,13 @@ export const useAppServices = (): UseAppServicesReturn => {
     try {
       const services = await WhatsAppService.fetchAppServices(organizationId);
       setAppServices(services);
-      
+
       // Auto-select the first app service if available and none is selected
-      if (services.length > 0 && !selectedAppService) {
-        setSelectedAppService(services[0]);
-      } else if (services.length === 0) {
+      if (services.length > 0) {
+        setSelectedAppService((prev) => prev ?? services[0]);
+      } else {
         // Provide helpful message when no services are found
-        setError('No WhatsApp services found for this organization. Please configure a WhatsApp Business account first.');
+        setError('No services found for this organization. Please configure a WhatsApp or Instagram account first.');
       }
     } catch (err) {
       let errorMessage = 'Failed to fetch app services';
@@ -53,7 +54,7 @@ export const useAppServices = (): UseAppServicesReturn => {
       }
       
       setError(errorMessage);
-      console.error('Error fetching app services:', err);
+      logger.error('Error fetching app services', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

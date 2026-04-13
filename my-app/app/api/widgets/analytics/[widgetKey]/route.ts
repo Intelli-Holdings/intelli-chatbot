@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { widgetKey: string } }
+  { params }: { params: Promise<{ widgetKey: string }> }
 ) {
   try {
     // Get authentication token from Clerk
@@ -16,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const widgetKey = params.widgetKey
+    const { widgetKey } = await params
 
     if (!widgetKey) {
       return NextResponse.json({ error: "Widget key is required" }, { status: 400 })
@@ -53,7 +54,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Widget analytics error:", error)
+    logger.error("Widget analytics error", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: "Failed to fetch widget analytics" },
       { status: 500 }

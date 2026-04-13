@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import type React from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { Search, MessageSquarePlus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
@@ -10,6 +11,46 @@ import { format, parseISO, isToday, isYesterday, isThisWeek, differenceInHours }
 import type { Conversation } from "./types"
 import { ChatListSkeleton, LoadMoreIndicator } from "@/components/loading-progress"
 
+type SidebarVariant = "whatsapp" | "instagram"
+
+/** Accent colors per channel variant */
+const VARIANT_COLORS: Record<SidebarVariant, {
+  /** Solid accent (unread badge, timestamp) */
+  accent: string
+  /** Background class for the unread badge */
+  badgeBg: string
+  /** Left-edge unread indicator – can be a class or gradient style */
+  indicatorClass: string
+  /** Inline style override for the indicator (used for gradients) */
+  indicatorStyle?: React.CSSProperties
+  /** Unread dot on the avatar */
+  dotClass: string
+  dotStyle?: React.CSSProperties
+  /** Search focus ring */
+  searchRing: string
+  /** Avatar fallback bg */
+  avatarBg: string
+}> = {
+  whatsapp: {
+    accent: "text-[#25d366]",
+    badgeBg: "bg-[#25d366]",
+    indicatorClass: "bg-[#25d366]",
+    dotClass: "bg-[#25d366]",
+    searchRing: "focus-visible:ring-[#00a884]",
+    avatarBg: "bg-[#6b7c85]",
+  },
+  instagram: {
+    accent: "text-[#E1306C]",
+    badgeBg: "",
+    indicatorClass: "",
+    indicatorStyle: { background: "linear-gradient(180deg, #833AB4, #E1306C, #F77737)" },
+    dotClass: "",
+    dotStyle: { background: "linear-gradient(135deg, #833AB4, #E1306C, #F77737)" },
+    searchRing: "focus-visible:ring-[#E1306C]",
+    avatarBg: "bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737]",
+  },
+}
+
 interface ChatSidebarProps {
   conversations: Conversation[]
   onSelectConversation: (conversation: Conversation) => void
@@ -18,6 +59,8 @@ interface ChatSidebarProps {
   hasMore?: boolean
   loadMore?: () => void
   isLoadingMore?: boolean
+  headerExtra?: ReactNode
+  variant?: SidebarVariant
 }
 
 const formatNumber = (number: number): string => {
@@ -70,7 +113,10 @@ export default function ChatSidebar({
   hasMore = false,
   loadMore,
   isLoadingMore = false,
+  headerExtra,
+  variant = "whatsapp",
 }: ChatSidebarProps) {
+  const colors = VARIANT_COLORS[variant]
   const [searchTerm, setSearchTerm] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -119,12 +165,18 @@ export default function ChatSidebar({
         <h1 className="text-[19px] font-semibold text-[#111b21]">Chats</h1>
       </div>
 
+      {headerExtra && (
+        <div className="px-3 py-2 border-b border-[#e9edef] bg-[#f0f2f5]/50">
+          {headerExtra}
+        </div>
+      )}
+
       <div className="px-3 py-2 bg-white">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-[15px] w-[15px] text-[#667781]" />
           <Input
             placeholder="Search or start new chat"
-            className="pl-10 pr-4 py-2 bg-[#f0f2f5] border-none rounded-lg text-[14px] text-[#111b21] placeholder:text-[#667781] focus-visible:ring-1 focus-visible:ring-[#00a884] h-9"
+            className={cn("pl-10 pr-4 py-2 bg-[#f0f2f5] border-none rounded-lg text-[14px] text-[#111b21] placeholder:text-[#667781] focus-visible:ring-1 h-9", colors.searchRing)}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -173,21 +225,27 @@ export default function ChatSidebar({
                       : "hover:bg-[#f5f6f6] active:bg-[#e9edef]",
                   )}
                 >
-                  {/* WhatsApp-style green indicator for unread */}
+                  {/* Unread indicator bar */}
                   {hasUnread && !isSelected && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#25d366]" />
+                    <div
+                      className={cn("absolute left-0 top-0 bottom-0 w-1", colors.indicatorClass)}
+                      style={colors.indicatorStyle}
+                    />
                   )}
 
                   <div className="relative">
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={`/generic-placeholder-graphic.png?height=40&width=40`} alt={displayName} />
-                      <AvatarFallback className="bg-[#6b7c85] text-white text-base">
+                      <AvatarFallback className={cn("text-white text-base", colors.avatarBg)}>
                         {displayName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    {/* Green dot for unread messages - WhatsApp style */}
+                    {/* Unread count dot on avatar */}
                     {hasUnread && (
-                      <div className="absolute -top-0.5 -right-0.5 h-5 w-5 bg-[#25d366] rounded-full border-2 border-white flex items-center justify-center">
+                      <div
+                        className={cn("absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full border-2 border-white flex items-center justify-center", colors.dotClass)}
+                        style={colors.dotStyle}
+                      >
                         <span className="text-[9px] text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
                       </div>
                     )}
@@ -206,7 +264,7 @@ export default function ChatSidebar({
                       <span
                         className={cn(
                           "text-[11px] ml-2 shrink-0",
-                          hasUnread ? "text-[#25d366] font-semibold" : "text-[#667781]"
+                          hasUnread ? cn(colors.accent, "font-semibold") : "text-[#667781]"
                         )}
                       >
                         {time}
@@ -224,7 +282,8 @@ export default function ChatSidebar({
                       {unreadCount > 0 && (
                         <Badge
                           variant="outline"
-                          className="ml-1 h-5 min-w-[20px] px-1.5 rounded-full flex items-center justify-center bg-[#25d366] text-white text-[11px] font-semibold border-0 shrink-0"
+                          className={cn("ml-1 h-5 min-w-[20px] px-1.5 rounded-full flex items-center justify-center text-white text-[11px] font-semibold border-0 shrink-0", colors.badgeBg)}
+                          style={colors.dotStyle}
                         >
                           {formatNumber(unreadCount)}
                         </Badge>

@@ -46,6 +46,9 @@ next-env.d.ts
 .idea
 *.iml
 *.xml
+!app/feed.xml/
+!app/sitemap.xml/
+!app/robots.txt/
 .idea/*.xml
 /idea
 .vscode

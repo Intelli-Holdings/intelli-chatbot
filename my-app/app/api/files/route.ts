@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
+import { logger } from "@/lib/logger";
 
 // GET - List assistant files
 export async function GET(request: NextRequest) {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to fetch files' }, 
         { status: response.status }
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching files:', error)
+    logger.error("Error fetching files", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }
@@ -71,7 +72,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user email from Clerk
-    const clerkUser = userId ? await clerkClient.users.getUser(userId) : null
+    const client = await clerkClient()
+    const clerkUser = userId ? await client.users.getUser(userId) : null
     const userEmail = clerkUser?.emailAddresses?.[0]?.emailAddress || 'anonymous@example.com'
 
     const formData = await request.formData()
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to upload file' }, 
         { status: response.status }
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error uploading file:', error)
+    logger.error("Error uploading file", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

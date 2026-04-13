@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 
-export async function GET(request: NextRequest, { params }: { params: { organizationId: string } }) {
-  const { organizationId } = params
+import { logger } from "@/lib/logger";
+export async function GET(request: NextRequest, { params }: { params: Promise<{ organizationId: string }> }) {
+  const { organizationId } = await params
 
   // Check authentication and get session token
   const { userId, getToken } = await auth()
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
     )
 
     if (!response.ok) {
-      console.error(` Backend error: ${response.status} ${response.statusText}`)
+      logger.error(` Backend error: ${response.status} ${response.statusText}`)
       return NextResponse.json(
         { error: `Backend error: ${response.status} ${response.statusText}` },
         { status: response.status },
@@ -49,13 +50,13 @@ export async function GET(request: NextRequest, { params }: { params: { organiza
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error(" Proxy error:", error)
+    logger.error(" Proxy error:", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Failed to fetch assistants from backend" }, { status: 500 })
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { organizationId: string } }) {
-  const { organizationId } = params
+export async function POST(request: NextRequest, { params }: { params: Promise<{ organizationId: string }> }) {
+  const { organizationId } = await params
 
   try {
     // Get authentication from Clerk
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest, { params }: { params: { organiz
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error(` Backend error:`, errorData)
+      logger.error(` Backend error:`, { error: errorData instanceof Error ? errorData.message : String(errorData) })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to create assistant' },
         { status: response.status },
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest, { params }: { params: { organiz
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error(" Error creating assistant:", error)
+    logger.error(" Error creating assistant:", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useOrganization } from "@clerk/nextjs";
@@ -31,8 +31,9 @@ import { NewAssistantFiles } from "@/components/new-assistant-files";
 export default function OrganizationDetails({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("joined");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -56,7 +57,7 @@ export default function OrganizationDetails({
     );
   }
 
-  if (!organization || organization.id !== params.id) {
+  if (!organization || organization.id !== id) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-4">
@@ -163,7 +164,7 @@ export default function OrganizationDetails({
           <MembersTable
             searchQuery={searchQuery}
             sortBy={sortBy}
-            organizationId={params.id}
+            organizationId={id}
           />
         </TabsContent>
         <TabsContent value="settings">
@@ -183,7 +184,7 @@ export default function OrganizationDetails({
               <CardTitle>Add files for your assistant</CardTitle>
             </CardHeader>
             <CardContent>
-              <NewAssistantFiles organizationId={params.id} />
+              <NewAssistantFiles organizationId={id} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -192,13 +193,13 @@ export default function OrganizationDetails({
       <DeleteOrgDialog
         open={showDeleteDialog}
         onOpenChange={() => setShowDeleteDialog(false)}
-        organizationId={params.id}
+        organizationId={id}
       />
 
       <InviteModal
         isOpen={showInviteDialog}
         onClose={() => setShowInviteDialog(false)}
-        organizationId={params.id}
+        organizationId={id}
       />
     </div>
   );

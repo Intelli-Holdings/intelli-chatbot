@@ -7,20 +7,60 @@ const config = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
-    "*.{js,ts,jsx,tsx,mdx}",
-     './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}',
+    './node_modules/onborda/dist/**/*.{js,ts,jsx,tsx}',
     './node_modules/nextstepjs/dist/**/*.{js,ts,jsx,tsx}'
   ],
   prefix: "",
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "var(--space-xl, 2rem)",
       screens: {
         "2xl": "1400px",
       },
     },
     extend: {
+      /* ── Golden Ratio Spacing Scale ────────────────── */
+      spacing: {
+        'golden-3xs': 'var(--space-3xs)',   // 2px
+        'golden-2xs': 'var(--space-2xs)',   // 3px
+        'golden-xs': 'var(--space-xs)',     // 5px
+        'golden-sm': 'var(--space-sm)',     // 8px
+        'golden-md': 'var(--space-md)',     // 13px
+        'golden-lg': 'var(--space-lg)',     // 21px
+        'golden-xl': 'var(--space-xl)',     // 34px
+        'golden-2xl': 'var(--space-2xl)',   // 55px
+        'golden-3xl': 'var(--space-3xl)',   // 89px
+      },
+      /* ── Golden Ratio Typography Scale ─────────────── */
+      fontSize: {
+        'golden-caption': ['var(--text-caption)', { lineHeight: 'var(--leading-tight)' }],
+        'golden-label': ['var(--text-label)', { lineHeight: 'var(--leading-normal)' }],
+        'golden-body-sm': ['var(--text-body-sm)', { lineHeight: 'var(--leading-golden)' }],
+        'golden-body': ['var(--text-body)', { lineHeight: 'var(--leading-golden)' }],
+        'golden-subheading': ['var(--text-subheading)', { lineHeight: 'var(--leading-normal)' }],
+        'golden-heading': ['var(--text-heading)', { lineHeight: 'var(--leading-tight)' }],
+        'golden-display': ['var(--text-display)', { lineHeight: '1.1' }],
+        'golden-display-lg': ['var(--text-display-lg)', { lineHeight: '1.05' }],
+        'golden-hero': ['var(--text-hero)', { lineHeight: '1' }],
+      },
+      /* ── Line Heights ──────────────────────────────── */
+      lineHeight: {
+        'golden': 'var(--leading-golden)',   // 1.618 — the golden ratio
+        'golden-tight': 'var(--leading-tight)',
+        'golden-normal': 'var(--leading-normal)',
+      },
+      /* ── Letter Spacing ────────────────────────────── */
+      letterSpacing: {
+        'golden-tight': 'var(--tracking-tight)',
+        'golden-normal': 'var(--tracking-normal)',
+        'golden-wide': 'var(--tracking-wide)',
+        'golden-wider': 'var(--tracking-wider)',
+      },
+      /* ── Layout ────────────────────────────────────── */
+      maxWidth: {
+        'golden-content': 'var(--content-max)',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -73,10 +113,21 @@ const config = {
   			'color-5': 'hsl(var(--color-5))',
   			'color-6': 'hsl(var(--color-6))',
       },
+      fontFamily: {
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        body: ['var(--font-dm-sans)', 'Segoe UI', 'sans-serif'],
+      },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        'squircle-xs': 'var(--radius-xs)',    // 6px  — badges, chips
+        'squircle-sm': 'var(--radius-sm)',    // 8px  — buttons, inputs
+        'squircle-md': 'var(--radius-md)',    // 12px — cards, dropdowns
+        'squircle-lg': 'var(--radius-lg)',    // 16px — dialogs, panels
+        'squircle-xl': 'var(--radius-xl)',    // 20px — large containers
+        'squircle-2xl': 'var(--radius-2xl)', // 24px — hero sections
+        // Legacy aliases (shadcn compat)
+        lg: "var(--radius-lg)",
+        md: "var(--radius-md)",
+        sm: "var(--radius-sm)",
       },
       keyframes: {
         meteor: {
@@ -163,7 +214,7 @@ const config = {
 			},
   			pulse: {
   				'0%, 100%': {
-  					boxShadow: '0 0 10px 2px rgba(56, 189, 248, 0.6)'
+  					boxShadow: '0 0 10px 2px rgba(199, 232, 247, 0.6)'
   				},
   				'50%': {
   					boxShadow: '0 0 15px 5px rgba(56, 189, 248, 0.8)'
@@ -192,7 +243,15 @@ const config = {
   				'100%': {
   					'background-position': '200%'
   				}
-  			}
+  			},
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(30px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'pulse-glow-blue': {
+          '0%, 100%': { boxShadow: '0 0 20px 0 rgba(0,127,255,0.15)' },
+          '50%': { boxShadow: '0 0 40px 8px rgba(0,127,255,0.3)' },
+        },
       },
 	  animation: {
 		meteor: 'meteor 5s linear infinite',
@@ -210,6 +269,8 @@ const config = {
 			rainbow: 'rainbow var(--speed, 2s) infinite linear',
 		float: "float 6s ease-in-out infinite",
 		"pulse-light": "pulse-light 4s ease-in-out infinite",
+    'fade-in-up': 'fade-in-up 0.8s ease forwards',
+    'pulse-glow-blue': 'pulse-glow-blue 4s ease-in-out infinite',
 	  },
     },
   },

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 interface MetricsSnapshot {
   id: number
@@ -22,10 +23,10 @@ interface MetricsSnapshot {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const { organizationId } = params
+    const { organizationId } = await params
     const searchParams = request.nextUrl.searchParams
     const period = searchParams.get("period") || "30"
 
@@ -115,7 +116,7 @@ export async function GET(
 
     return NextResponse.json(responseData)
   } catch (error) {
-    console.error("Error fetching metrics summary by organization:", error)
+    logger.error("Error fetching metrics summary by organization", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

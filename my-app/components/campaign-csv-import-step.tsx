@@ -13,6 +13,7 @@ import { CampaignService } from '@/services/campaign';
 import { useImportMappings } from '@/hooks/use-import-mappings';
 import ImportMappingDialog from '@/components/import-mapping-dialog';
 import Papa from 'papaparse';
+import { logger } from "@/lib/logger";
 
 interface CampaignCSVImportStepProps {
   campaignId: string;
@@ -73,7 +74,7 @@ export default function CampaignCSVImportStep({
           }
         },
         error: (error) => {
-          console.error('Error parsing CSV:', error);
+          logger.error("Error parsing CSV", { error: error instanceof Error ? error.message : String(error) });
           toast.error('Failed to parse CSV file');
         },
       });
@@ -103,7 +104,7 @@ export default function CampaignCSVImportStep({
 
       toast.success('Template downloaded successfully');
     } catch (error) {
-      console.error('Error exporting template:', error);
+      logger.error("Error exporting template", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to export template');
     } finally {
       setExportingTemplate(false);
@@ -132,13 +133,13 @@ export default function CampaignCSVImportStep({
       );
 
       if (result.errors && result.errors.length > 0) {
-        console.warn('Import errors:', result.errors);
+        logger.warn("Import errors", { errors: result.errors });
         toast.warning(`${result.errors.length} row(s) had errors. Check console for details.`);
       }
 
       onImportSuccess(result);
     } catch (error) {
-      console.error('Error importing CSV:', error);
+      logger.error("Error importing CSV", { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to import CSV');
     } finally {
       setUploading(false);

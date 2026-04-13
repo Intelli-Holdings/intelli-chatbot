@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
+import { logger } from "@/lib/logger";
 
 // POST - Bulk upload files
 export async function POST(request: NextRequest) {
@@ -16,7 +17,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user email from Clerk
-    const clerkUser = userId ? await clerkClient.users.getUser(userId) : null
+    const client = await clerkClient()
+    const clerkUser = userId ? await client.users.getUser(userId) : null
     const userEmail = clerkUser?.emailAddresses?.[0]?.emailAddress || 'anonymous@email.com'
 
     const formData = await request.formData()
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error during bulk upload", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to bulk upload files' }, 
         { status: response.status }
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error bulk uploading files:', error)
+    logger.error("Error bulk uploading files", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

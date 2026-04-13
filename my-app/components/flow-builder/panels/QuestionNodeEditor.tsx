@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, GripVertical, Image, Video, FileText, Type, X, Check, Upload, Loader2, Clock } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Image as ImageIcon, Video, FileText, Type, X, Check, Upload, Loader2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { useAppServices } from '@/hooks/use-app-services';
 import { uploadMediaViaAzure, shouldUseAzureUpload } from '@/lib/azure-media-upload';
 
+import { logger } from "@/lib/logger";
 interface QuestionNodeEditorProps {
   data: QuestionNodeData;
   onUpdate: (data: Partial<QuestionNodeData>) => void;
@@ -53,7 +54,7 @@ export default function QuestionNodeEditor({
 
   // Debug: log app service state
   useEffect(() => {
-    console.log('[FlowBuilder] AppService state:', {
+    logger.info('[FlowBuilder] AppService state:', {
       loading: appServiceLoading,
       error: appServiceError,
       hasService: !!selectedAppService,
@@ -67,6 +68,7 @@ export default function QuestionNodeEditor({
     setDelaySeconds(data.delaySeconds || 0);
     setHasChanges(false);
     setUploadedFileName('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.menu.id, data.delaySeconds]);
 
   const currentHeaderType: HeaderType = localMenu.header?.type || 'none';
@@ -108,7 +110,7 @@ export default function QuestionNodeEditor({
           },
           (progress) => {
             // Could add progress UI here if needed
-            console.log('Upload progress:', progress.message);
+            logger.debug('Upload progress:', { data: progress.message });
           }
         );
 
@@ -168,7 +170,7 @@ export default function QuestionNodeEditor({
       setUploadedFileName(file.name);
       toast.success('File uploaded successfully');
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', { error: error instanceof Error ? error.message : String(error) });
       toast.error(error instanceof Error ? error.message : 'Failed to upload file');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -318,7 +320,7 @@ export default function QuestionNodeEditor({
               <Type className="h-3 w-3" />
             </TabsTrigger>
             <TabsTrigger value="image" className="text-xs px-2">
-              <Image className="h-3 w-3" />
+              <ImageIcon className="h-3 w-3" />
             </TabsTrigger>
             <TabsTrigger value="video" className="text-xs px-2">
               <Video className="h-3 w-3" />

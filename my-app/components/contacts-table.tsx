@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, MoreHorizontal, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger";
 
 interface Tag {
   id: number
@@ -101,7 +102,7 @@ export function ContactsTable({ contacts, isLoading, isFetching, searchTerm, tag
       toast.success("Contact deleted successfully")
       onContactsChange()
     } catch (error) {
-      console.error("Failed to delete contact:", error)
+      logger.error("Failed to delete contact", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to delete contact")
     } finally {
       setDeleteDialogOpen(false)
@@ -177,10 +178,10 @@ export function ContactsTable({ contacts, isLoading, isFetching, searchTerm, tag
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarImage src={`https://avatar.vercel.sh/${contact.fullname}.png`} />
-                        <AvatarFallback>{contact.fullname.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(contact.fullname || "??").slice(0, 2).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{contact.fullname}</div>
+                        <div className="font-medium">{contact.fullname || "Unknown"}</div>
                         <div className="text-xs text-muted-foreground">{contact.phone}</div>
                       </div>
                     </div>

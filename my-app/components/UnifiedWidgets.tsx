@@ -43,6 +43,7 @@ import { WidgetCommunication } from "@/components/widget-communication"
 import { DeploymentDialog } from "@/components/deployment-dialog"
 import Widgets from "@/components/Widgets"
 
+import { logger } from "@/lib/logger";
 interface Assistant {
   id: number
   name: string
@@ -139,7 +140,7 @@ export default function UnifiedWidgets() {
           typeof assistant.prompt === "string"
 
         if (!isValid) {
-          console.warn("[UnifiedWidgets] Invalid assistant object:", assistant)
+          logger.warn("[UnifiedWidgets] Invalid assistant object:", { data: assistant })
         }
 
         return isValid
@@ -156,7 +157,7 @@ export default function UnifiedWidgets() {
         toast.info("No valid assistants found. Create one to get started.")
       }
     } catch (error) {
-      console.error("[UnifiedWidgets] Error fetching assistants:", error)
+      logger.error("[UnifiedWidgets] Error fetching assistants:", { error: error instanceof Error ? error.message : String(error) })
       toast.error(`Failed to fetch assistants: ${error instanceof Error ? error.message : "Unknown error"}`)
       setAssistants([])
     } finally {
@@ -253,7 +254,7 @@ export default function UnifiedWidgets() {
       // Switch to live preview mode
       setPreviewMode("live")
     } catch (error) {
-      console.error("[UnifiedWidgets] Error submitting widget:", error)
+      logger.error("[UnifiedWidgets] Error submitting widget:", { error: error instanceof Error ? error.message : String(error) })
       toast.error(`Failed to create widget: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setLoading(false)

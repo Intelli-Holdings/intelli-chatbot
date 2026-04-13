@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
+import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
-  const { organizationId } = params
+  const { organizationId } = await params
 
   try {
     // Get authentication token from Clerk
@@ -35,8 +36,14 @@ export async function GET(
     )
     
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      logger.error('Backend error fetching org notifications', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      })
       return NextResponse.json(
-        { error: 'Failed to fetch org notifications' }, 
+        { error: errorData.detail || 'Failed to fetch org notifications' },
         { status: response.status }
       )
     }
@@ -44,7 +51,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching org notifications:', error)
+    logger.error('Error fetching org notifications', { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

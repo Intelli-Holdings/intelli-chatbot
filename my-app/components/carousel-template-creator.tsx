@@ -15,6 +15,7 @@ import {
   Info, Image as ImageIcon, Video, Trash2, AlertCircle, Loader2 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from "@/lib/logger";
 
 interface CarouselCard {
   id: string;
@@ -163,7 +164,7 @@ export default function CarouselTemplateCreator({
       }
       return data.handle;
     } catch (error) {
-      console.error('Backend upload error:', error);
+      logger.error("Backend upload error", { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       setIsUploadingMedia(false);
@@ -320,6 +321,15 @@ export default function CarouselTemplateCreator({
       // Validate media handle format
       if (!cards[i].headerMediaHandle.includes(':')) {
         toast.error(`Card ${i + 1}: Invalid media handle format`);
+        setCurrentCardIndex(i);
+        return false;
+      }
+    }
+
+    // Validate card body text length
+    for (let i = 0; i < cards.length; i++) {
+      if (cards[i].bodyText.length > 160) {
+        toast.error(`Card ${i + 1}: Body text exceeds 160 character limit (${cards[i].bodyText.length}/160)`);
         setCurrentCardIndex(i);
         return false;
       }

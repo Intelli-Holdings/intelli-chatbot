@@ -56,7 +56,7 @@ const AttentionBadge: React.FC = () => {
   }, [isMounted]);
 
   const pushNotification = useCallback((): void => {
-    if (!isMounted) return;
+    if (!isMounted || typeof Notification === "undefined") return;
     if (Notification.permission === "granted") {
       new Notification("New Message", {
         body: "You've got a new incoming message!",

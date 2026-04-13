@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { widgetKey: string } }
+  { params }: { params: Promise<{ widgetKey: string }> }
 ) {
-  const { userId, getToken } = auth();
+  const { userId, getToken } = await auth();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,7 +19,7 @@ export async function GET(
     return NextResponse.json({ error: "Unable to get authentication token" }, { status: 401 });
   }
 
-  const { widgetKey } = params;
+  const { widgetKey } = await params;
   if (!widgetKey) {
     return NextResponse.json({ error: "Widget key is required" }, { status: 400 });
   }
@@ -54,7 +55,7 @@ export async function GET(
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[API] Error fetching widget visitors:", error);
+    logger.error("Error fetching widget visitors", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

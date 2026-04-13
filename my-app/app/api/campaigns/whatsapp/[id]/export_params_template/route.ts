@@ -1,14 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // POST /api/campaigns/whatsapp/[id]/export_params_template - Download CSV template for campaign parameters
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { getToken } = await auth()
     const token = await getToken()
 
@@ -26,7 +28,7 @@ export async function POST(
       )
     }
 
-    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/export_params_template/`
+    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${id}/export_params_template/`
 
     const response = await fetch(url, {
       method: "POST",
@@ -53,11 +55,11 @@ export async function POST(
       status: 200,
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="campaign-${params.id}-params-template.csv"`,
+        'Content-Disposition': `attachment; filename="campaign-${id}-params-template.csv"`,
       },
     })
   } catch (error) {
-    console.error("Error exporting params template:", error)
+    logger.error("Error exporting params template", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -10,15 +10,15 @@ This is **Intelli** - a Next.js 14 application providing WhatsApp Business API i
 
 ```bash
 # Development
-npm run dev          # Start development server (http://localhost:3000)
+bun run dev          # Start development server (http://localhost:3000)
 
 # Build & Production
-npm run build        # Build for production
-npm start            # Start production server
+bun run build        # Build for production
+bun run start        # Start production server
 
 # Code Quality
-npm run lint         # Run ESLint
-npx tsc --noEmit     # Type-check without emitting files
+bun run lint         # Run ESLint
+bunx tsc --noEmit    # Type-check without emitting files
 ```
 
 ## Architecture & Code Organization

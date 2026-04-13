@@ -40,6 +40,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BaseSyntheticEvent } from "react";
+import { logger } from "@/lib/logger";
 import {
   FormState,
   FieldValues,
@@ -118,12 +119,12 @@ export default function HotelInfo() {
     };
   
     // Here, you can send the formData object to your server or perform any other necessary operations
-    console.log(formData);
+    logger.info("Data", { data: formData });
   
     toast({
       title: "You submitted the following values:",
       description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+        <pre className="mt-2 max-w-full w-[340px] rounded-md bg-slate-950 p-4 overflow-x-auto">
           <code className="text-white">{JSON.stringify(formData, null, 2)}</code>
         </pre>
       ),

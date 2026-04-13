@@ -15,6 +15,7 @@ import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { toast } from "sonner"
 import { CreateAssistantDialog } from "@/components/create-assistant-dialog"
+import { logger } from "@/lib/logger"
 
 interface FormData {
   organization_id: string
@@ -163,7 +164,7 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
       // Automatically proceed to next step after successful creation
       handleNext()
     } catch (error) {
-      console.error("Error creating assistant:", error)
+      logger.error("Error creating assistant", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to create assistant")
     } finally {
       setIsCreatingAssistant(false)
@@ -263,7 +264,7 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
     if (currentStep === 7) {
       try {
         if (!user || !activeOrganizationId) {
-          console.warn("Missing user or organization data")
+          logger.warn("Missing user or organization data")
           toast.warning("Proceeding with limited functionality")
         } else {
           // Update organization_id from the active organization
@@ -273,7 +274,7 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
             user_id: user.id,
           }
   
-          console.log("Submitting onboarding data:", updatedFormData)
+          logger.info("Submitting onboarding data", { data: updatedFormData })
   
           let response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/onboarding/`, {
             method: "POST",
@@ -286,8 +287,8 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
           // If we get a 400 with message about onboarding info already existing, try PUT instead
           if (response.status === 400) {
             const errorText = await response.text()
-            console.error("API error response:", errorText)
-  
+            logger.error("API error response", { error: errorText })
+
             if (errorText.includes("Onboarding information already exists")) {
               toast.info("Updating existing onboarding information...")
   
@@ -304,7 +305,7 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
   
           if (!response.ok) {
             const errorText = await response.text()
-            console.error("API error response:", errorText)
+            logger.error("API error response", { error: errorText })
             throw new Error(`Failed to submit onboarding data: ${response.statusText}`)
           }
   
@@ -322,7 +323,7 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
           }
         }
       } catch (error) {
-        console.error("Error submitting onboarding data:", error)
+        logger.error("Error submitting onboarding data", { error: error instanceof Error ? error.message : String(error) })
         toast.info("Failed to complete onboarding, but you can still proceed")
       }
     }

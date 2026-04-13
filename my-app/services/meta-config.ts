@@ -1,4 +1,5 @@
 import { env } from "../env.mjs";
+import { logger } from "@/lib/logger";
 
 interface MetaAppDetails {
   appId: string;
@@ -52,7 +53,7 @@ export class MetaConfigService {
       
       return appDetails;
     } catch (error) {
-      console.error('Error fetching app details from Meta:', error);
+      logger.error('Error fetching app details from Meta', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -71,7 +72,7 @@ export class MetaConfigService {
       this.configs.set(organizationId, config);
       return config;
     } catch (error) {
-      console.error('Error loading tenant config:', error);
+      logger.error('Error loading tenant config', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -96,10 +97,10 @@ export class MetaConfigService {
       return data;
     } catch (error) {
       // Fallback to environment variables for development
-      console.warn('Falling back to environment variables for Meta config');
+      logger.warn('Falling back to environment variables for Meta config');
       return {
         facebook_app_id: env.NEXT_PUBLIC_FACEBOOK_APP_ID || '',
-        facebook_app_secret: env.NEXT_PUBLIC_FACEBOOK_APP_SECRET || '',
+        facebook_app_secret: process.env.FACEBOOK_APP_SECRET || '',
         whatsapp_business_account_id: '', // This should come from appService
         access_token: '', // This should come from appService
       };
@@ -131,7 +132,7 @@ export class MetaConfigService {
 
       throw new Error('App ID not available in config and no access token provided');
     } catch (error) {
-      console.error('Error getting App ID:', error);
+      logger.error('Error getting App ID', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -159,7 +160,7 @@ export class MetaConfigService {
 
       throw new Error('Unable to determine App ID from service configuration');
     } catch (error) {
-      console.error('Error getting App ID from service:', error);
+      logger.error('Error getting App ID from service', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -192,7 +193,7 @@ export class MetaConfigService {
         wabaId
       };
     } catch (error) {
-      console.error('Error getting config for app service:', error);
+      logger.error('Error getting config for app service', { error: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -222,7 +223,7 @@ export class MetaConfigService {
       const missingFields = requiredFields.filter(field => !config[field as keyof TenantMetaConfig]);
       
       if (missingFields.length > 0) {
-        console.warn(`Missing Meta config fields for org ${organizationId}:`, missingFields);
+        logger.warn(`Missing Meta config fields for org ${organizationId}`, { missingFields });
         return false;
       }
 
@@ -232,14 +233,14 @@ export class MetaConfigService {
           await this.getAppDetailsFromMeta(config.access_token);
           return true;
         } catch (error) {
-          console.warn('Meta config validation failed:', error);
+          logger.warn('Meta config validation failed', { error: error instanceof Error ? error.message : String(error) });
           return false;
         }
       }
 
       return true;
     } catch (error) {
-      console.error('Error validating Meta config:', error);
+      logger.error('Error validating Meta config', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }

@@ -1,4 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { whatsappMessageSchema, validateBody } from "@/lib/validations/api"
+import { apiLimiter } from "@/lib/rate-limit"
+import { logger } from "@/lib/logger";
 
 // API version
 const API_VERSION = "v22.0"
@@ -24,10 +27,27 @@ function getPhoneNumberId(request: NextRequest): string {
 // POST /api/whatsapp/messages - Send a test message
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ?? "anonymous"
+    const rateLimitResult = apiLimiter(ip)
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    }
+
     const accessToken = getAccessToken(request)
     const phoneNumberId = getPhoneNumberId(request)
 
     const messageData = await request.json()
+
+    // Zod validation
+    const validation = validateBody(whatsappMessageSchema, {
+      ...messageData,
+      phoneNumberId,
+      accessToken,
+    })
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
 
     // Validate required fields
     if (!messageData.to || !messageData.template || !messageData.template.name) {
@@ -59,7 +79,7 @@ export async function POST(request: NextRequest) {
       },
     }
 
-    console.log("Sending to WhatsApp API:", JSON.stringify(requestBody, null, 2))
+    logger.debug("Sending to WhatsApp API", { requestBody })
 
     const response = await fetch(`https://graph.facebook.com/${API_VERSION}/${phoneNumberId}/messages`, {
       method: "POST",
@@ -73,7 +93,7 @@ export async function POST(request: NextRequest) {
     const responseData = await response.json()
 
     if (!response.ok) {
-      console.error("WhatsApp API Error:", responseData)
+      logger.error("WhatsApp API Error", { data: responseData })
       return NextResponse.json(
         {
           error: responseData.error?.message || "Failed to send message",
@@ -83,10 +103,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("WhatsApp API Success:", responseData)
+    logger.info("WhatsApp API Success", { data: responseData })
     return NextResponse.json(responseData)
   } catch (error) {
-    console.error("Error in POST /api/whatsapp/messages:", error)
+    logger.error("Error in POST /api/whatsapp/messages", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 },

@@ -4,6 +4,7 @@ import { useOrganization } from "@clerk/nextjs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { logger } from "@/lib/logger"
 import React from "react"
 
 interface MembersTableProps {
@@ -25,7 +26,7 @@ export function MembersTable({ searchQuery, sortBy }: MembersTableProps) {
           const membersList = await organization.getMemberships()
           setMembers(membersList.data)
         } catch (error) {
-          console.error("Failed to fetch members:", error)
+          logger.error("Failed to fetch members", { error: error instanceof Error ? error.message : String(error) })
         } finally {
           setLoading(false)
         }
@@ -62,7 +63,7 @@ export function MembersTable({ searchQuery, sortBy }: MembersTableProps) {
         await member.update({ role: newRole })
       }
     } catch (error) {
-      console.error("Failed to update role:", error)
+      logger.error("Failed to update role", { error: error instanceof Error ? error.message : String(error) })
     }
   }
 

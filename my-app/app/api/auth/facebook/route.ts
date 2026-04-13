@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
   }
   const encodedState = Buffer.from(JSON.stringify(statePayload)).toString("base64url")
 
-  cookies().set("meta_oauth_state", nonce, {
+  const cookieStore = await cookies()
+  cookieStore.set("meta_oauth_state", nonce, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

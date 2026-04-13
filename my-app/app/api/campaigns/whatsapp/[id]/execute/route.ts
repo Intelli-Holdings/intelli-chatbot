@@ -1,14 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // POST /api/campaigns/whatsapp/[id]/execute - Execute WhatsApp campaign
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { getToken } = await auth()
     const token = await getToken()
 
@@ -33,7 +35,7 @@ export async function POST(
       )
     }
 
-    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/execute/`
+    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${id}/execute/`
 
     const response = await fetch(url, {
       method: "POST",
@@ -68,7 +70,7 @@ export async function POST(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error executing campaign:", error)
+    logger.error("Error executing campaign", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

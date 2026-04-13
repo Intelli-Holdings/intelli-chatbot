@@ -63,9 +63,17 @@ import {
 } from "@/components/flow-builder/simulation/flow-simulator";
 import { backendNodesToFlow, chatbotToFlow } from "@/components/flow-builder/utils/flow-converters";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import FlowBuilder from "@/components/flow-builder/FlowBuilder";
+import dynamic from "next/dynamic";
 import { useAppServices } from "@/hooks/use-app-services";
+
+import type { FlowBuilderHandle } from "@/components/flow-builder/FlowBuilder";
+
+const FlowBuilder = dynamic(
+  () => import("@/components/flow-builder/FlowBuilder"),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div> }
+);
 
 // Main Page Component
 export default function ChatbotEditorPage() {
@@ -77,6 +85,8 @@ export default function ChatbotEditorPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [hasFlowChanges, setHasFlowChanges] = useState(false);
+  const flowBuilderRef = useRef<FlowBuilderHandle>(null);
 
   // Settings sheet
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -109,7 +119,7 @@ export default function ChatbotEditorPage() {
   const fetchChatbot = useCallback(async () => {
     // Validate chatbot ID before making request
     if (!chatbotId || chatbotId === 'undefined' || chatbotId === 'null') {
-      console.warn("Invalid chatbot ID:", chatbotId);
+      logger.warn("Invalid chatbot ID", { chatbotId });
       toast.error("Invalid chatbot ID");
       router.push("/dashboard/chatbots");
       return;
@@ -120,7 +130,7 @@ export default function ChatbotEditorPage() {
       const data = await ChatbotAutomationService.getChatbot(chatbotId);
       setChatbot(data);
     } catch (error) {
-      console.error("Error fetching chatbot:", error);
+      logger.error("Error fetching chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to load chatbot");
       router.push("/dashboard/chatbots");
     } finally {
@@ -139,15 +149,29 @@ export default function ChatbotEditorPage() {
     setHasChanges(true);
   };
 
-  // Validate before save
+  // Validate before save.
+  // Prefer the FlowBuilder's live validation (which sees the in-memory
+  // nodes/edges) over validateChatbot which only sees stale flowLayout
+  // data from the last fetch.
   const validate = (): boolean => {
     if (!chatbot) return false;
-    const errors = ChatbotAutomationService.validateChatbot(chatbot);
+
+    // Name is required regardless of flow state
+    const errors: string[] = [];
+    if (!chatbot.name?.trim()) {
+      errors.push("Chatbot name is required");
+    }
+
+    // Ask the FlowBuilder for live flow validation
+    const flowErrors = flowBuilderRef.current?.validate() ?? [];
+    errors.push(...flowErrors);
+
     setValidationErrors(errors);
     return errors.length === 0;
   };
 
-  // Save chatbot
+  // Save chatbot — pushes both metadata (settings, channels, etc.) AND
+  // the live flow builder state (nodes/edges) in a single user action.
   const handleSave = async () => {
     if (!chatbot || !validate()) {
       toast.error("Please fix validation errors before saving");
@@ -156,6 +180,12 @@ export default function ChatbotEditorPage() {
 
     setSaving(true);
     try {
+      // Push the live flow first so the metadata save sees the freshest state
+      if (flowBuilderRef.current?.hasUnsavedChanges()) {
+        await flowBuilderRef.current.save();
+      }
+
+      // Save chatbot metadata
       await ChatbotAutomationService.updateChatbot(chatbot.id, {
         name: chatbot.name,
         description: chatbot.description,
@@ -165,10 +195,11 @@ export default function ChatbotEditorPage() {
         channels: chatbot.channels,
         flowLayout: chatbot.flowLayout,
       });
+
       toast.success("Chatbot saved successfully");
       setHasChanges(false);
     } catch (error) {
-      console.error("Error saving chatbot:", error);
+      logger.error("Error saving chatbot", { error: error instanceof Error ? error.message : String(error) });
       toast.error("Failed to save chatbot");
     } finally {
       setSaving(false);
@@ -179,13 +210,47 @@ export default function ChatbotEditorPage() {
   const handleToggle = async () => {
     if (!chatbot) return;
 
+    // If activating, validate first
+    if (!chatbot.isActive && !validate()) {
+      toast.error("Please fix validation errors before activating");
+      return;
+    }
+
+    // If there are unsaved changes (metadata or live flow), save first
+    if (hasChanges || hasFlowChanges) {
+      setSaving(true);
+      try {
+        if (flowBuilderRef.current?.hasUnsavedChanges()) {
+          await flowBuilderRef.current.save();
+        }
+        await ChatbotAutomationService.updateChatbot(chatbot.id, {
+          name: chatbot.name,
+          description: chatbot.description,
+          triggers: chatbot.triggers,
+          menus: chatbot.menus,
+          settings: chatbot.settings,
+          channels: chatbot.channels,
+          flowLayout: chatbot.flowLayout,
+        });
+        setHasChanges(false);
+      } catch (error) {
+        logger.error("Error saving chatbot before toggle", { error: error instanceof Error ? error.message : String(error) });
+        toast.error("Failed to save chatbot before activating");
+        setSaving(false);
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+
     try {
       await ChatbotAutomationService.toggleChatbot(chatbot.id, !chatbot.isActive);
       setChatbot({ ...chatbot, isActive: !chatbot.isActive });
       toast.success(`Chatbot ${chatbot.isActive ? "paused" : "activated"}`);
     } catch (error) {
-      console.error("Error toggling chatbot:", error);
-      toast.error("Failed to update status");
+      const message = error instanceof Error ? error.message : "Failed to update status";
+      logger.error("Error toggling chatbot", { error: message });
+      toast.error(message);
     }
   };
 
@@ -356,7 +421,7 @@ export default function ChatbotEditorPage() {
               </>
             )}
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving || !hasChanges}>
+          <Button size="sm" onClick={handleSave} disabled={saving || (!hasChanges && !hasFlowChanges)}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? "Saving..." : "Save"}
           </Button>
@@ -381,7 +446,12 @@ export default function ChatbotEditorPage() {
 
       {/* Flow Builder Canvas */}
       <div className="flex-1 relative">
-        <FlowBuilder chatbot={chatbot} onUpdate={updateChatbot} />
+        <FlowBuilder
+          ref={flowBuilderRef}
+          chatbot={chatbot}
+          onUpdate={updateChatbot}
+          onDirtyChange={setHasFlowChanges}
+        />
       </div>
 
       {/* Settings Sheet */}

@@ -16,7 +16,11 @@ import { UserInputFlowNodeData } from '../nodes/UserInputFlowNode';
 import { QuestionInputNodeData } from '../nodes/QuestionInputNode';
 import { CTAButtonNodeData } from '../nodes/CTAButtonNode';
 import { HttpApiNodeData } from '../nodes/HttpApiNode';
+import { ProductMessageNodeData, ProductMessageType } from '../nodes/ProductMessageNode';
+import { PaymentNodeData } from '../nodes/PaymentNode';
+import { SequenceNodeData } from '../nodes/SequenceNode';
 
+import { logger } from "@/lib/logger";
 // Extended node data type
 export type ExtendedFlowNodeData =
   | StartNodeData
@@ -28,11 +32,14 @@ export type ExtendedFlowNodeData =
   | UserInputFlowNodeData
   | QuestionInputNodeData
   | CTAButtonNodeData
-  | HttpApiNodeData;
+  | HttpApiNodeData
+  | ProductMessageNodeData
+  | PaymentNodeData
+  | SequenceNodeData;
 
 export interface ExtendedFlowNode {
   id: string;
-  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button' | 'http_api';
+  type: 'start' | 'question' | 'action' | 'text' | 'condition' | 'media' | 'user_input_flow' | 'question_input' | 'cta_button' | 'http_api' | 'product_message' | 'payment' | 'sequence';
   position: NodePosition;
   data: ExtendedFlowNodeData;
 }
@@ -294,6 +301,76 @@ export function createHttpApiNode(position: NodePosition): ExtendedFlowNode {
 }
 
 /**
+ * Create a new Product Message node
+ */
+export function createProductMessageNode(
+  position: NodePosition,
+  messageType: ProductMessageType = 'single'
+): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const labels: Record<ProductMessageType, string> = {
+    single: 'Single Product',
+    multi: 'Product List',
+  };
+
+  const data: ProductMessageNodeData = {
+    type: 'product_message',
+    label: labels[messageType],
+    messageType,
+    sections: messageType === 'multi' ? [] : undefined,
+  };
+
+  return {
+    id: `product_message-${nodeId}`,
+    type: 'product_message',
+    position,
+    data,
+  };
+}
+
+/**
+ * Create a new Payment node
+ */
+export function createPaymentNode(position: NodePosition): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const data: PaymentNodeData = {
+    type: 'payment',
+    label: 'Payment',
+    successMessage: 'Payment successful! Your order has been confirmed.',
+    failureMessage: 'Payment failed. Please try again or contact support.',
+  };
+
+  return {
+    id: `payment-${nodeId}`,
+    type: 'payment',
+    position,
+    data,
+  };
+}
+
+/**
+ * Create a new Sequence node
+ */
+export function createSequenceNode(position: NodePosition): ExtendedFlowNode {
+  const nodeId = generateId();
+
+  const data: SequenceNodeData = {
+    type: 'sequence',
+    label: 'Sequence',
+    steps: [],
+  };
+
+  return {
+    id: `sequence-${nodeId}`,
+    type: 'sequence',
+    position,
+    data,
+  };
+}
+
+/**
  * Create node from context menu action
  */
 export function createNodeFromAction(
@@ -331,6 +408,14 @@ export function createNodeFromAction(
       return createCTAButtonNode(position);
     case 'add-http-api':
       return createHttpApiNode(position);
+    case 'add-product-single':
+      return createProductMessageNode(position, 'single');
+    case 'add-product-multi':
+      return createProductMessageNode(position, 'multi');
+    case 'add-payment':
+      return createPaymentNode(position);
+    case 'add-sequence':
+      return createSequenceNode(position);
     default:
       return null;
   }
@@ -354,14 +439,14 @@ export function cloneNode(
   try {
     clonedData = JSON.parse(JSON.stringify(node.data)) as ExtendedFlowNodeData;
   } catch (error) {
-    console.error('Failed to clone node data:', error);
+    logger.error('Failed to clone node data:', { error: error instanceof Error ? error.message : String(error) });
     // Return a copy with the original data reference as fallback
     clonedData = { ...node.data } as ExtendedFlowNodeData;
   }
 
   // Validate cloned data has required type property
   if (!clonedData || typeof clonedData !== 'object' || !('type' in clonedData)) {
-    console.error('Invalid cloned data structure');
+    logger.error('Invalid cloned data structure');
     clonedData = { ...node.data } as ExtendedFlowNodeData;
   }
 
@@ -458,6 +543,34 @@ export function getToolbarItems() {
       label: 'HTTP API',
       description: 'Call external APIs',
       color: 'bg-violet-500',
+    },
+    {
+      type: 'sequence',
+      label: 'Sequence',
+      description: 'Schedule follow-up messages',
+      color: 'bg-emerald-500',
+    },
+    // Ecommerce nodes
+    {
+      type: 'product-single',
+      label: 'Product',
+      description: 'Send single product message',
+      color: 'bg-emerald-500',
+      category: 'ecommerce',
+    },
+    {
+      type: 'product-multi',
+      label: 'Product List',
+      description: 'Send multi-product message',
+      color: 'bg-teal-500',
+      category: 'ecommerce',
+    },
+    {
+      type: 'payment',
+      label: 'Payment',
+      description: 'Request payment from customer',
+      color: 'bg-violet-500',
+      category: 'ecommerce',
     },
   ];
 }

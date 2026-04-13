@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
+import { logger } from "@/lib/logger";
 
 // POST - Retry failed/pending file upload
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params
+  const { id } = await params
 
   try {
     // Get authentication from Clerk
@@ -33,7 +34,7 @@ export async function POST(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('Backend error:', errorData)
+      logger.error("Backend error retrying upload", { error: errorData })
       return NextResponse.json(
         { error: errorData.detail || 'Failed to retry upload' },
         { status: response.status }
@@ -43,7 +44,7 @@ export async function POST(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error retrying upload:', error)
+    logger.error("Error retrying upload", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

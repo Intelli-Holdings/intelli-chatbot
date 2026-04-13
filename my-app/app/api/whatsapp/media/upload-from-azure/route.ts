@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
         rawText ||
         'Failed to upload from Azure';
 
-      console.error('Backend upload_from_azure failed:', message);
+      logger.error('Backend upload_from_azure failed', { message });
       return NextResponse.json(
         { error: message },
         { status: response.status }
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error uploading from Azure:', error);
+    logger.error('Error uploading from Azure', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

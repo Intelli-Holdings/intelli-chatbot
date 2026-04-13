@@ -21,6 +21,7 @@ interface TimeRemaining {
 }
 
 const calculateTimeRemaining = (lastMessageTime: string | undefined): TimeRemaining => {
+  // No customer message yet — show full 24h available
   if (!lastMessageTime) {
     return { hours: 24, minutes: 0, seconds: 0, isExpired: false, isWarning: false };
   }

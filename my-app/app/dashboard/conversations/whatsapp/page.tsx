@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { Suspense, useState, useEffect, useRef, useCallback } from "react"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   Select,
@@ -22,6 +22,7 @@ import { AutomationStatusIndicator } from "@/components/automation-status-indica
 import { useMediaQuery } from "@/app/hooks/use-media-query"
 import type { Conversation } from "@/app/dashboard/conversations/components/types"
 import { toast } from "sonner"
+import { logger } from "@/lib/logger"
 import { WhatsAppSkeletonLoader } from "@/app/dashboard/conversations/components/whatsapp-skeleton-loader"
 import { useSearchParams } from "next/navigation"
 
@@ -75,11 +76,19 @@ const saveReadConversations = (phoneNumber: string, readConversations: ReadConve
   try {
     localStorage.setItem(`readConversations_${phoneNumber}`, JSON.stringify(readConversations))
   } catch (error) {
-    console.error("Failed to save read conversations to localStorage:", error)
+    logger.error("Failed to save read conversations to localStorage", { error: error instanceof Error ? error.message : String(error) })
   }
 }
 
 export default function WhatsAppConvosPage() {
+  return (
+    <Suspense fallback={<WhatsAppSkeletonLoader />}>
+      <WhatsAppConvosContent />
+    </Suspense>
+  )
+}
+
+function WhatsAppConvosContent() {
   const searchParams = useSearchParams()
   const customerParam = searchParams.get('customer')
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -202,7 +211,10 @@ export default function WhatsAppConvosPage() {
   )
 
   useEffect(() => {
-    if (!activeOrganizationId) return
+    if (!activeOrganizationId) {
+      logger.info("WhatsApp page: waiting for organization ID")
+      return
+    }
 
     if (appServicesLoading) {
       setLoadingMessage("Fetching phone configuration...")
@@ -219,8 +231,12 @@ export default function WhatsAppConvosPage() {
     if (phoneNumber) {
       setLoadingProgress(40)
       setLoadingMessage("Phone configuration loaded")
+    } else {
+      // No WhatsApp phone number available — stop loading
+      logger.info("WhatsApp page: no phone number found", { appServicesCount: appServices.length })
+      setIsInitializing(false)
     }
-  }, [activeOrganizationId, appServicesLoading, appServicesError, phoneNumber])
+  }, [activeOrganizationId, appServicesLoading, appServicesError, phoneNumber, appServices.length])
 
   useEffect(() => {
     if (!phoneNumber || !activeOrganizationId) return
@@ -290,7 +306,7 @@ export default function WhatsAppConvosPage() {
             })
             conv.unread_messages = 0
           } catch (error) {
-            console.error(`Failed to reset unread messages for ${conv.customer_number}:`, error)
+            logger.error("Failed to reset unread messages", { customerNumber: conv.customer_number, error: error instanceof Error ? error.message : String(error) })
           }
         })
 
@@ -312,7 +328,7 @@ export default function WhatsAppConvosPage() {
     }
 
     syncConversations().catch((error) => {
-      console.error("Failed to sync conversations:", error)
+      logger.error("Failed to sync conversations", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to fetch conversations")
       setIsInitializing(false)
     })
@@ -336,7 +352,7 @@ export default function WhatsAppConvosPage() {
     try {
       await fetchNextPage()
     } catch (error) {
-      console.error("Failed to load more conversations:", error)
+      logger.error("Failed to load more conversations", { error: error instanceof Error ? error.message : String(error) })
       toast.error("Failed to load more conversations")
     }
   }
@@ -348,7 +364,7 @@ export default function WhatsAppConvosPage() {
       try {
         return await fetchMessages(customerNumber)
       } catch (error) {
-        console.error(`Failed to fetch messages for customer ${customerNumber}:`, error)
+        logger.error("Failed to fetch messages for customer", { customerNumber, error: error instanceof Error ? error.message : String(error) })
         return []
       }
     },
@@ -394,7 +410,7 @@ export default function WhatsAppConvosPage() {
             } as Conversation)
         }
       } catch (error) {
-        console.error("Failed to fetch messages for selected conversation:", error)
+        logger.error("Failed to fetch messages for selected conversation", { error: error instanceof Error ? error.message : String(error) })
         toast.error("Failed to load messages")
       } finally {
         if (selectedConversationRef.current === conversation.id) {
@@ -461,6 +477,13 @@ export default function WhatsAppConvosPage() {
 
   // Show professional skeleton loader during initialization
   if (isInitializing) {
+    logger.info("WhatsApp page: still initializing", {
+      activeOrganizationId,
+      appServicesLoading,
+      appServicesCount: appServices.length,
+      phoneNumber,
+      sessionsLoading,
+    })
     return <WhatsAppSkeletonLoader />
   }
 
@@ -477,10 +500,10 @@ export default function WhatsAppConvosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  {appServices.map((appService) => (
+                  {appServices.filter((s) => s.phone_number).map((appService) => (
                     <SelectItem
                       key={appService.id}
-                      value={appService.phone_number || ""}
+                      value={appService.phone_number!}
                     >
                       {appService.name || appService.phone_number || `AppService ${appService.id}`}
                     </SelectItem>

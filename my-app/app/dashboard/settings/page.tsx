@@ -1,157 +1,90 @@
 "use client"
 
-import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { cn } from "@/lib/utils"
-import { List, Building2, BellDot, ShieldQuestion, Bot, Webhook } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { SettingsSearch } from "@/components/settings-search"
+import { Bot, List, ShieldAlert, Webhook } from "lucide-react"
 
-const settingsNavigation = [
-  {
-    title: "General",
-    href: "/dashboard/settings",
-  },
+const settingsCards = [
   {
     title: "Automation",
+    description: "Configure chatbot and AI assistant modes",
     href: "/dashboard/settings/automation",
+    icon: Bot,
   },
   {
     title: "Custom Fields",
+    description: "Manage custom fields for contacts & campaigns",
     href: "/dashboard/settings/custom-fields",
+    icon: List,
   },
   {
     title: "Escalation Events",
+    description: "Manage escalation rules for your business",
     href: "/dashboard/settings/escalation-events",
+    icon: ShieldAlert,
   },
   {
     title: "Webhooks",
+    description: "Configure outbound & inbound webhooks",
     href: "/dashboard/settings/webhooks",
+    icon: Webhook,
   },
 ]
 
 export default function SettingsPage() {
-  const pathname = usePathname()
-
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Left Sidebar Navigation */}
-      <aside className="w-64 border-r border-border bg-card">
-        <div className="sticky top-0 flex h-screen flex-col">
-          {/* Header */}
-          <div className="border-b border-border p-6">
-            <h1 className="text-2xl font-bold">Settings</h1>
+    <>
+      {/* Page header */}
+      <div className="mb-golden-xl ">
+        <h2 className="text-golden-heading font-semibold tracking-tight">
+          General
+        </h2>
+        <p className="mt-golden-3xs text-golden-body-sm text-muted-foreground">
+          Configure your application settings and preferences
+        </p>
+      </div>
+
+      {/* Application settings group — macOS-style inset group */}
+      <section className="mb-golden-xl">
+        <h3 className="mb-golden-sm px-golden-3xs text-golden-label font-medium uppercase tracking-wide text-muted-foreground">
+          Application
+        </h3>
+        <div className="rounded-squircle-md border border-border/60 bg-card">
+          <div className="px-golden-lg py-golden-md">
+            <p className="text-golden-body-sm font-medium">Application Settings</p>
+            <p className="mt-golden-3xs text-golden-label text-muted-foreground">
+              Manage your general application settings here.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick access grid */}
+      <section>
+        <h3 className="mb-golden-sm px-golden-3xs text-golden-label font-medium uppercase tracking-wide text-muted-foreground">
+          Configure
+        </h3>
+        <div className="grid gap-golden-sm sm:grid-cols-2">
+          {settingsCards.map((card) => (
             <Link
-              href="/dashboard"
-              className="mt-2 flex items-center text-sm text-muted-foreground hover:text-foreground"
+              key={card.href}
+              href={card.href}
+              className="group flex items-start gap-golden-md rounded-squircle-md border border-border/60 bg-card p-golden-lg transition-all hover:border-primary/40 hover:shadow-sm"
             >
-              <span>← Go to Dashboard</span>
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-squircle-sm bg-primary/8">
+                <card.icon className="size-[18px] text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-golden-body-sm font-medium group-hover:text-primary transition-colors">
+                  {card.title}
+                </p>
+                <p className="mt-golden-3xs text-golden-label text-muted-foreground">
+                  {card.description}
+                </p>
+              </div>
             </Link>
-          </div>
-
-          {/* Search */}
-          <div className="border-b border-border p-4">
-            <SettingsSearch />
-          </div>
-
-          {/* Navigation Items */}
-          <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-            {settingsNavigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground",
-                )}
-              >
-                {item.title}
-              </Link>
-            ))}
-          </nav>
+          ))}
         </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold">General Settings</h2>
-            <p className="mt-2 text-muted-foreground">Configure your application settings and preferences</p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="rounded-lg border border-border bg-card p-6">
-              <h3 className="text-lg font-semibold">Application Settings</h3>
-              <p className="mt-2 text-sm text-muted-foreground">Manage your general application settings here.</p>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <Link
-                href="/dashboard/settings/automation"
-                className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-md bg-primary/10 p-2">
-                    <Bot className="size-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold group-hover:text-primary">Automation</h3>
-                    <p className="text-sm text-muted-foreground">Configure chatbot and AI assistant modes</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Link
-                href="/dashboard/settings/custom-fields"
-                className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-md bg-primary/10 p-2">
-                    <List className="size-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold group-hover:text-primary">Custom Fields</h3>
-                    <p className="text-sm text-muted-foreground">Manage custom fields for contacts & campaigns</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Link
-                href="/dashboard/settings/escalation-events"
-                className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-md bg-primary/10 p-2">
-                    <ShieldQuestion className="size-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold group-hover:text-primary">Escalation Events</h3>
-                    <p className="text-sm text-muted-foreground">Manage escalation events for your business</p>
-                  </div>
-                </div>
-              </Link>
-
-              <Link
-                href="/dashboard/settings/webhooks"
-                className="group rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-md bg-primary/10 p-2">
-                    <Webhook className="size-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold group-hover:text-primary">Webhooks</h3>
-                    <p className="text-sm text-muted-foreground">Configure outbound & inbound webhooks</p>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+      </section>
+    </>
   )
 }

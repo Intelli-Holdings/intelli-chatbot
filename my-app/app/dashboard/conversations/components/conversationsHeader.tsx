@@ -14,18 +14,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { useCall } from "@/hooks/use-call";
 import { CallUI } from "@/components/call-ui";
 
 interface ConversationHeaderProps {
   conversation: Conversation | null;
   phoneNumber: string;
+  instagramBusinessAccountId?: string;
   onAiSupportChange?: (isActive: boolean) => void;
 }
 
 const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   conversation,
   phoneNumber,
+  instagramBusinessAccountId,
   onAiSupportChange,
 }) => {
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +44,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
     if (conversation) {
       setIsAiSupport(!conversation.is_handle_by_human);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation?.id, conversation?.is_handle_by_human]);
 
   const handleToggleAISupport = async () => {
@@ -50,10 +54,13 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
       const formData = new FormData();
       formData.append("phoneNumber", phoneNumber);
       formData.append("customerNumber", conversation.customer_number || conversation.recipient_id);
+      if (instagramBusinessAccountId) {
+        formData.append("instagramBusinessAccountId", instagramBusinessAccountId);
+      }
 
       if (isAiSupport) {
         const result = await takeoverConversation(formData);
-        console.log("Takeover result:", result);
+        logger.info("Takeover result", { data: result });
         
         // Dispatch WebSocket control event here on client-side
         window.dispatchEvent(
@@ -67,7 +74,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
         );
       } else {
         const result = await handoverConversation(formData);
-        console.log("Handover result:", result);
+        logger.info("Handover result", { data: result });
         
         // Optionally trigger WebSocket disconnect
         window.dispatchEvent(
@@ -170,16 +177,28 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
                 </div>
                 <div className="p-4 border-t border-[#e9edef]">
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-[12px] text-[#667781]">
-                        Phone number
-                      </label>
-                      <p className="text-[14px] font-normal text-[#111b21]">
-                        +
-                        {conversation.customer_number ||
-                          conversation.recipient_id}
-                      </p>
-                    </div>
+                    {instagramBusinessAccountId ? (
+                      <div>
+                        <label className="text-[12px] text-[#667781]">
+                          Instagram ID
+                        </label>
+                        <p className="text-[14px] font-normal text-[#111b21]">
+                          {conversation.customer_number ||
+                            conversation.recipient_id}
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-[12px] text-[#667781]">
+                          Phone number
+                        </label>
+                        <p className="text-[14px] font-normal text-[#111b21]">
+                          +
+                          {conversation.customer_number ||
+                            conversation.recipient_id}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

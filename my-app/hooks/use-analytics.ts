@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { logger } from "@/lib/logger";
 import { AnalyticsService } from '@/services/analytics';
 import type {
   HourlyAnalyticsResponse,
@@ -70,7 +71,7 @@ export function useHourlyAnalytics(
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch hourly analytics');
-      console.error('Error fetching hourly analytics:', err);
+      logger.error('Error fetching hourly analytics', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
@@ -131,7 +132,7 @@ export function useCostBreakdown(
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch cost breakdown');
-      console.error('Error fetching cost breakdown:', err);
+      logger.error('Error fetching cost breakdown', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
@@ -180,7 +181,7 @@ export function useChannelComparison(
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch channel comparison');
-      console.error('Error fetching channel comparison:', err);
+      logger.error('Error fetching channel comparison', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
@@ -229,7 +230,7 @@ export function useCustomerInsights(
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch customer insights');
-      console.error('Error fetching customer insights:', err);
+      logger.error('Error fetching customer insights', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
@@ -282,7 +283,7 @@ export function useRealTimeMetrics(
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch real-time metrics');
-      console.error('Error fetching real-time metrics:', err);
+      logger.error('Error fetching real-time metrics', { error: err instanceof Error ? err.message : String(err) });
       setLoading(false);
     }
   }, [organizationId, getToken]);
@@ -344,7 +345,7 @@ export function useDailyMetrics(
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch daily metrics');
-      console.error('Error fetching daily metrics:', err);
+      logger.error('Error fetching daily metrics', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
@@ -393,7 +394,7 @@ export function useMonthlyMetrics(
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch monthly metrics');
-      console.error('Error fetching monthly metrics:', err);
+      logger.error('Error fetching monthly metrics', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
@@ -459,7 +460,7 @@ export function useCombinedAnalytics(
       setData({ hourly, cost, channels, insights, realTime });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
-      console.error('Error fetching combined analytics:', err);
+      logger.error('Error fetching combined analytics', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

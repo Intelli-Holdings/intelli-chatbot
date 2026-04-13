@@ -1,14 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // GET /api/campaigns/whatsapp/[id] - Get WhatsApp campaign by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { getToken } = await auth()
     const token = await getToken()
 
@@ -23,7 +25,7 @@ export async function GET(
       return NextResponse.json({ error: "Organization ID is required" }, { status: 400 })
     }
 
-    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/?organization=${organization}`
+    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${id}/?organization=${organization}`
 
     const response = await fetch(url, {
       headers: {
@@ -42,7 +44,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error fetching WhatsApp campaign:", error)
+    logger.error("Error fetching WhatsApp campaign", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

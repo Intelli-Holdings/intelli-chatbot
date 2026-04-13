@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   const { userId, getToken } = await auth();
 
@@ -12,7 +13,7 @@ export async function GET(
   }
 
   try {
-    const { organizationId } = params;
+    const { organizationId } = await params;
 
     if (!organizationId) {
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
@@ -38,7 +39,7 @@ export async function GET(
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error fetching WhatsApp app services:', error);
+    logger.error("Error fetching WhatsApp app services", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to fetch app services' },
       { status: 500 }

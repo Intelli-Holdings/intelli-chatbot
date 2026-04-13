@@ -3,6 +3,8 @@
  * Handles all interactions with Facebook/Meta Graph API for WhatsApp Business
  */
 
+import { logger } from "@/lib/logger";
+
 const GRAPH_API_VERSION = 'v21.0';
 const GRAPH_API_BASE = 'https://graph.facebook.com';
 
@@ -122,15 +124,15 @@ export async function fetchPhoneNumbers(
     const data: PhoneNumbersListResponse = await response.json();
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('📱 Phone Numbers List Response:', data);
+      logger.debug('Phone Numbers List Response', { data });
       if (data.data && data.data.length > 0) {
-        console.log('📋 Available fields in first phone number:', Object.keys(data.data[0]));
+        logger.debug('Available fields in first phone number', { fields: Object.keys(data.data[0]) });
       }
     }
     
     return data.data || [];
   } catch (error) {
-    console.error('Error fetching phone numbers:', error);
+    logger.error('Error fetching phone numbers', { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }
@@ -157,7 +159,7 @@ export async function fetchPhoneNumberDetails(
 
     // Fallback: If specific fields fail (400 error), use fields=* to get everything
     if (!response.ok && response.status === 400) {
-      console.warn('⚠️ Specific fields request failed, falling back to fields=*');
+      logger.warn('Specific fields request failed, falling back to fields=*');
       url = `${GRAPH_API_BASE}/${GRAPH_API_VERSION}/${phoneNumberId}?fields=*`;
       
       response = await fetch(url, {
@@ -189,9 +191,9 @@ export async function fetchPhoneNumberDetails(
     
     // Log available fields in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('📱 Phone Number Details Response:', data);
-      console.log('📋 Available fields:', Object.keys(data));
-      console.log('✅ Retrieved values:', {
+      logger.debug('Phone Number Details Response', { data });
+      logger.debug('Available fields', { fields: Object.keys(data) });
+      logger.debug('Retrieved values', {
         id: data.id,
         display_name: data.display_name,
         verified_name: data.verified_name,
@@ -203,7 +205,7 @@ export async function fetchPhoneNumberDetails(
     
     return data;
   } catch (error) {
-    console.error('❌ Error fetching phone number details:', error);
+    logger.error('Error fetching phone number details', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -244,7 +246,7 @@ export async function fetchWABADetails(
 
     return await response.json();
   } catch (error) {
-    console.error('Error fetching WABA details:', error);
+    logger.error('Error fetching WABA details', { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }

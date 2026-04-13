@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
+import { logger } from "@/lib/logger";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { phoneNumber: string; customerNumber: string } }
+  { params }: { params: Promise<{ phoneNumber: string; customerNumber: string }> }
 ) {
   try {
-    const { phoneNumber, customerNumber } = params;
+    const { phoneNumber, customerNumber } = await params;
 
     // Get authentication token from Clerk
     const { getToken } = await auth();
@@ -37,7 +38,7 @@ export async function POST(
     
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Failed to reset unread messages:', error);
+    logger.error('Failed to reset unread messages:', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Failed to reset unread messages' },
       { status: 500 }

@@ -17,6 +17,7 @@ import {
 import { PiechartChart } from '@/components/charts/piecharts';
 
 
+import { logger } from "@/lib/logger";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 type Business = {
@@ -94,7 +95,7 @@ export function OldDashComponent() {
           totalLeads
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        logger.error('Error fetching stats:', { error: error instanceof Error ? error.message : String(error) });
         setStats(null);
       } finally {
         setIsLoading(false);

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '../../../../../env.mjs';
+import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    const { tenantId } = params;
+    const { tenantId } = await params;
 
     // In a real application, you would query your database here
     // For now, we'll return the environment variables as a fallback
@@ -19,7 +20,7 @@ export async function GET(
     if (env.NEXT_PUBLIC_FACEBOOK_APP_ID) {
       return NextResponse.json({
         appId: env.NEXT_PUBLIC_FACEBOOK_APP_ID,
-        appSecret: env.NEXT_PUBLIC_FACEBOOK_APP_SECRET,
+        appSecret: process.env.FACEBOOK_APP_SECRET,
         // Note: For production, access tokens and WABA IDs should be stored securely per tenant
         // These values should come from your database based on the tenantId
         accessToken: '', // This should be fetched from your backend/database
@@ -32,7 +33,7 @@ export async function GET(
       { status: 404 }
     );
   } catch (error) {
-    console.error('Error fetching Meta config:', error);
+    logger.error('Error fetching Meta config', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

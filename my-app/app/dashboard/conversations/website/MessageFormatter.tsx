@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { marked } from 'marked';
 import type { Tokens } from 'marked';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface MessageFormatterProps {
   content: string;
@@ -80,7 +81,7 @@ export const MessageFormatter: React.FC<MessageFormatterProps> = ({ content }) =
   return (
     <div
       className="message-content prose prose-sm max-w-none space-y-4"
-      dangerouslySetInnerHTML={{ __html: formattedContent }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(formattedContent) }}
     />
   );
 };

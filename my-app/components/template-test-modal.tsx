@@ -35,6 +35,7 @@ import { useOrganization } from "@clerk/nextjs"
 import { ChatbotAutomationService, TemplateButtonFlowMapping } from "@/services/chatbot-automation"
 import { ChatbotAutomation } from "@/types/chatbot-automation"
 
+import { logger } from "@/lib/logger";
 interface TemplateTestModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -159,7 +160,7 @@ export function TemplateTestModal({
       setFlowMappings(initialMappings)
       setHasFlowChanges(false)
     } catch (error) {
-      console.error("Error fetching flows and mappings:", error)
+      logger.error("Error fetching flows and mappings:", { error: error instanceof Error ? error.message : String(error) })
     } finally {
       setLoadingFlows(false)
     }
@@ -200,7 +201,7 @@ export function TemplateTestModal({
       })
       setHasFlowChanges(false)
     } catch (error) {
-      console.error("Error saving flow mappings:", error)
+      logger.error("Error saving flow mappings:", { error: error instanceof Error ? error.message : String(error) })
       toast({
         title: "Failed to save",
         description: "Could not save flow mappings. Please try again.",
@@ -449,7 +450,7 @@ export function TemplateTestModal({
         description: "Your header media is ready to send.",
       })
     } catch (error: any) {
-      console.error("File upload error:", error)
+      logger.error("File upload error:", { error: error instanceof Error ? error.message : String(error) })
       toast({
         title: "Upload failed",
         description: error.message || "Please try again",
@@ -503,7 +504,7 @@ export function TemplateTestModal({
         description: `Card ${cardIndex + 1} image is ready to send.`,
       })
     } catch (error: any) {
-      console.error("Carousel file upload error:", error)
+      logger.error("Carousel file upload error:", { error: error instanceof Error ? error.message : String(error) })
       toast({
         title: "Upload failed",
         description: error.message || "Please try again",
@@ -693,7 +694,7 @@ export function TemplateTestModal({
         onOpenChange(false)
       }, 1500)
     } catch (error: any) {
-      console.error("Error sending test:", error)
+      logger.error("Error sending test:", { error: error instanceof Error ? error.message : String(error) })
       setTestResult("error")
       toast({
         title: "Failed to send test",
@@ -1092,6 +1093,7 @@ export function TemplateTestModal({
                         {/* Preview if available */}
                         {cardMedia?.previewUrl && (
                           <div className="relative h-20 w-full overflow-hidden rounded-md bg-gray-100">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={cardMedia.previewUrl}
                               alt={`Card ${cardIndex + 1} preview`}

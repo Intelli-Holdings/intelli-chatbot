@@ -1,11 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { import_job_id: string } }
+  { params }: { params: Promise<{ import_job_id: string }> }
 ) {
   try {
     // Get authentication token from Clerk
@@ -16,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const importJobId = params.import_job_id
+    const { import_job_id: importJobId } = await params
 
     if (!importJobId) {
       return NextResponse.json({ error: "Import job ID is required" }, { status: 400 })
@@ -42,7 +43,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Import status check error:", error)
+    logger.error("Error checking import status", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
       { error: "Failed to check import status" },
       { status: 500 }

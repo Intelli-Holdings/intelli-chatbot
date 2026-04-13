@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { logger } from "@/lib/logger"
 
 // Export this type so it can be imported elsewhere
 export type WebSocketMessage = {
@@ -11,7 +12,14 @@ export type WebSocketMessage = {
   // Properties for status updates
   message_id?: string
   status?: string
-  // Add any other properties that might be in your WebSocket messages
+  // Media fields from backend WebSocket payload
+  media?: string
+  media_url?: string
+  // Channel identifier (e.g. "whatsapp", "instagram")
+  channel?: string
+  // Reaction update fields
+  reaction?: { emoji: string; reactor_id?: string; created_at?: string } | null
+  reactor_type?: string
 }
 
 // Update the Options interface to include the enabled property
@@ -29,7 +37,7 @@ export const useWebSocket = (url: string | null, options: Options) => {
   const [isConnected, setIsConnected] = useState<boolean>(false)
   const [error, setError] = useState<Event | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const reconnectCountRef = useRef<number>(0)
 
   const reconnectInterval = options.reconnectInterval || 3000
@@ -74,7 +82,7 @@ export const useWebSocket = (url: string | null, options: Options) => {
           const data: WebSocketMessage = JSON.parse(event.data)
           options.onMessage(data)
         } catch (e) {
-          console.error("Error parsing WebSocket message:", e)
+          logger.error("Error parsing WebSocket message", { error: e instanceof Error ? e.message : String(e) })
           options.onMessage({
             content: event.data,
             type: "unknown",
@@ -89,9 +97,9 @@ export const useWebSocket = (url: string | null, options: Options) => {
         if (event.code === 1000) {
    
         } else if (event.code === 1006) {
-          console.error("Abnormal closure - possible network issue or server unavailable")
+          logger.error("Abnormal closure - possible network issue or server unavailable")
         } else if (event.code === 1008 || event.code === 1011) {
-          console.error("Policy violation or internal server error")
+          logger.error("Policy violation or internal server error")
         }
         if (enabled && reconnectCountRef.current < reconnectAttempts) {
       
@@ -102,12 +110,12 @@ export const useWebSocket = (url: string | null, options: Options) => {
       }
 
       socket.onerror = (event) => {
-        console.error("WebSocket error:", event)
+        logger.error("WebSocket error", { data: String(event) })
         setError(event)
         if (options.onError) options.onError(event)
       }
     } catch (e) {
-      console.error("Error creating WebSocket connection:", e)
+      logger.error("Error creating WebSocket connection", { error: e instanceof Error ? e.message : String(e) })
       setError(e as Event)
       if (enabled && reconnectCountRef.current < reconnectAttempts) {
         reconnectCountRef.current += 1
@@ -131,7 +139,7 @@ export const useWebSocket = (url: string | null, options: Options) => {
         socketRef.current.send(data)
         return true
       } else {
-        console.error("Cannot send message: WebSocket is not connected")
+        logger.error("Cannot send message: WebSocket is not connected")
         return false
       }
     },

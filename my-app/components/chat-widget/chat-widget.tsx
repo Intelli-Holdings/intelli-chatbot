@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { ArrowUp, XIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { logger } from "@/lib/logger";
 
 // Configure marked to be synchronous
 marked.setOptions({ async: false });
@@ -79,7 +81,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
 
       socketRef.current = new WebSocket(websocketUrl);
 
-      socketRef.current.onopen = () => console.log('WebSocket connection established');
+      socketRef.current.onopen = () => logger.info("WebSocket connection established");
 
       socketRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -91,7 +93,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
       };
 
       socketRef.current.onclose = () => {
-        console.log('WebSocket connection closed');
+        logger.info("WebSocket connection closed");
         setTimeout(connectWebSocket, 2000);
       };
     };
@@ -131,7 +133,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
           setIsLoading(false);
         })
         .catch(error => {
-          console.error('Error:', error);
+          logger.error("Chat widget error", { error: error instanceof Error ? error.message : String(error) });
           const errorMessage: Message = { type: 'assistant', content: 'Sorry, there was an error processing your message.' };
           setMessages(prev => [...prev, errorMessage]);
           setIsLoading(false);
@@ -199,7 +201,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ widgetKey, backendUrl }) => {
               <div key={index} className={`message ${message.type}-message`}>
                 {/* eslint-disable-next-line react/no-danger */}
                 <div className={`message-bubble ${message.type}-bubble`}
-                   dangerouslySetInnerHTML={{ __html: marked(message.content) as string }}>
+                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(marked(message.content) as string) }}>
                 </div>
               </div>
             ))}

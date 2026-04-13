@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -12,9 +12,10 @@ import { format, parseISO, isToday, isYesterday } from "date-fns"
 import ConversationHeader from "./conversationsHeader"
 import { ScrollToBottomButton } from "@/app/dashboard/conversations/components/scroll-to-bottom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Download, FolderDown, File, FileImage, Music, Video, FileText } from "lucide-react"
+import { Download, FolderDown, File, FileImage, Music, Video, FileText, AlertTriangle, CornerDownLeft, Send } from "lucide-react"
 import { exportToPDF, exportToCSV, exportContactsToPDF, exportContactsToCSV } from "@/utils/exportUtils"
 import "./message-bubble.css"
+import { logger } from "@/lib/logger"
 import ResolveReminder from "@/components/resolve-reminder"
 import { WebSocketHandler } from "@/components/websocket-handler"
 import { useToast } from "@/components/ui/use-toast"
@@ -22,6 +23,16 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { ReactionPicker } from "@/components/reaction-picker"
 import { MessageStatus } from "@/app/dashboard/conversations/components/message-status"
+import { parseInteractiveMessage, parseCtaMessage, parseTemplateMessage } from "./parse-interactive-message"
+import { InteractiveFlowMessage, CtaFlowMessage, TemplateMessage } from "./interactive-flow-message"
+import { useWhatsAppAppServices } from "@/hooks/use-whatsapp-appservices"
+import { useWhatsAppTemplates } from "@/hooks/use-whatsapp-templates"
+import type { AppService } from "@/services/whatsapp"
+import { SendTemplateDialog } from "./send-template-dialog"
+import { CannedResponsesDialog } from "@/components/canned-responses-dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { ProductMessageComposer } from "@/components/catalogue"
+import { useCatalogues, useProducts, useProductMessages } from "@/hooks/use-catalogue"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
@@ -97,6 +108,101 @@ export default function ChatArea({
   const conversationMessages = conversation?.messages
   const conversationCustomerNumber = conversation?.customer_number || conversation?.recipient_id
 
+  // Template lookup: resolve [Template: name] to actual template content
+  const { appServices } = useWhatsAppAppServices(organizationId)
+  const currentAppService = useMemo(() =>
+    appServices.find(s => s.phone_number === phoneNumber) || null,
+    [appServices, phoneNumber]
+  )
+  const { templates } = useWhatsAppTemplates(currentAppService as AppService | null)
+  const templateMap = useMemo(() => {
+    const map = new Map<string, { body: string; buttons: string[]; header?: { format: string; text?: string } }>()
+    for (const t of templates) {
+      let body = ''
+      const buttons: string[] = []
+      let header: { format: string; text?: string } | undefined
+      for (const comp of t.components || []) {
+        if (comp.type === 'HEADER' && comp.format) {
+          header = { format: comp.format, text: comp.text }
+        }
+        if (comp.type === 'BODY') body = (comp as any).text || ''
+        if (comp.type === 'BUTTONS') {
+          for (const btn of (comp as any).buttons || []) {
+            buttons.push(btn.text || '')
+          }
+        }
+      }
+      if (body) map.set(t.name, { body, buttons, header })
+    }
+    return map
+  }, [templates])
+
+  // Template & canned response dialog state
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [showCannedResponses, setShowCannedResponses] = useState(false)
+  const [productComposerOpen, setProductComposerOpen] = useState(false)
+
+  // Product catalogue hooks
+  const { catalogues, selectedCatalogue } = useCatalogues(currentAppService as AppService | null)
+  const {
+    products,
+    loading: productsLoading,
+    error: productsError,
+    search: searchProducts,
+    searchQuery,
+    clearSearch: clearProductSearch,
+    loadMore: loadMoreProducts,
+    hasMore: hasMoreProducts,
+    refetch: refetchProducts,
+  } = useProducts(currentAppService as AppService | null, selectedCatalogue?.id || null)
+  const {
+    sendSingleProduct,
+    sendMultipleProducts,
+    sending: productSending,
+    error: productSendError,
+  } = useProductMessages(currentAppService as AppService | null)
+
+  // Compute last customer message time for 24h window
+  // The window opens when the customer messages the business (any mode) or replies to a template.
+  // Detection layers:
+  //   1. content field set (backend stores customer text here)
+  //   2. incoming_whatsapp_message_id set (incoming WhatsApp message)
+  //   3. sender === 'customer' (WebSocket real-time messages)
+  //   4. Fallback: recent flow message within 24h (flow implies customer triggered it)
+  const lastCustomerMessageTime = useMemo(() => {
+    if (!currentMessages || currentMessages.length === 0) return undefined
+
+    const reversed = [...currentMessages].reverse()
+    const now = new Date()
+
+    // Primary: find last message with explicit customer indicators
+    const customerMsg = reversed.find((msg) =>
+      (msg.content != null && msg.content.trim() !== '') ||
+      msg.incoming_whatsapp_message_id != null ||
+      msg.sender === 'customer'
+    )
+    if (customerMsg) return customerMsg.created_at
+
+    // Fallback: if a RECENT flow message exists (within 24h), customer must have triggered it
+    // Don't use old flow messages from previous expired windows
+    const lastFlowMsg = reversed.find((msg) => msg.sender === 'flow')
+    if (lastFlowMsg) {
+      const flowAge = now.getTime() - new Date(lastFlowMsg.created_at).getTime()
+      if (flowAge <= 24 * 60 * 60 * 1000) {
+        return lastFlowMsg.created_at
+      }
+    }
+
+    return undefined
+  }, [currentMessages])
+
+  const isWindowExpired = useMemo(() => {
+    if (!lastCustomerMessageTime) return false
+    const lastMsg = new Date(lastCustomerMessageTime)
+    const now = new Date()
+    return now.getTime() - lastMsg.getTime() > 24 * 60 * 60 * 1000
+  }, [lastCustomerMessageTime])
+
   // Update refs when props change
   useEffect(() => {
     conversationIdRef.current = conversation?.id ?? null
@@ -168,6 +274,35 @@ export default function ChatArea({
     { align: "left", width: "w-[55%]" },
   ]
 
+  const handleTemplateSent = useCallback(
+    (templateName: string, templateBody: string) => {
+      if (!conversation) return
+      const tempId = -(Date.now() + Math.random() * 1000)
+      const optimisticMessage = {
+        id: tempId,
+        answer: `[Template: ${templateName}]`,
+        sender: "human",
+        created_at: new Date().toISOString(),
+        read: false,
+        content: null,
+        media: null,
+        type: "text",
+        status: "sent" as const,
+        pending: false,
+      }
+      updateMessagesAndSync((prev) => [...(prev || []), optimisticMessage])
+      setShouldAutoScroll(true)
+    },
+    [conversation, updateMessagesAndSync],
+  )
+
+  const handleCannedResponseInsert = useCallback((content: string) => {
+    window.dispatchEvent(
+      new CustomEvent("setCannedResponse", { detail: { content } }),
+    )
+    setShowCannedResponses(false)
+  }, [])
+
   const handleReactionSelect = async (message: ChatMessage, emoji: string, currentReaction?: string, isCustomerMessage: boolean = false) => {
     if (!conversation) return
 
@@ -232,7 +367,7 @@ export default function ChatArea({
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("WhatsApp API error:", errorData)
+        logger.error("WhatsApp API error", { data: errorData })
         throw new Error(errorData.error || "Failed to send reaction")
       }
 
@@ -241,7 +376,7 @@ export default function ChatArea({
         duration: 2000,
       })
     } catch (error) {
-      console.error("Failed to send reaction:", error)
+      logger.error("Failed to send reaction", { error: error instanceof Error ? error.message : String(error) })
 
       // Revert optimistic update on error
       updateMessagesAndSync((prev) => {
@@ -324,7 +459,7 @@ export default function ChatArea({
           setLastMessageId((messages?.length ?? 0) > 0 ? Math.max(...(messages ?? []).map((msg) => msg.id)) : null)
         } catch (error) {
           if (!isActive) return
-          console.error("Failed to fetch messages for conversation:", error)
+          logger.error("Failed to fetch messages for conversation", { error: error instanceof Error ? error.message : String(error) })
           setMessagesState([])
           setLastMessageId(null)
         } finally {
@@ -405,7 +540,7 @@ export default function ChatArea({
             }),
           )
         } catch (error) {
-          console.error("Failed to reset unread messages:", error)
+          logger.error("Failed to reset unread messages", { error: error instanceof Error ? error.message : String(error) })
         }
       }, 1000) // 1 second delay to ensure user has viewed the chat
 
@@ -417,7 +552,7 @@ export default function ChatArea({
   useEffect(() => {
     const handleAiSupportChange = (event: CustomEvent) => {
       const newIsAiSupport = event.detail.isAiSupport
-      console.log(`AI Support changed to: ${newIsAiSupport}`)
+      logger.debug("AI Support changed", { isAiSupport: newIsAiSupport })
       setIsAiSupport(newIsAiSupport)
 
       // WebSocket connection is now handled by the WebSocketHandler component
@@ -480,7 +615,7 @@ export default function ChatArea({
             pending: false,
             status: newMessage.status || "sent",
           }
-          console.log("Replaced optimistic message with real message")
+          logger.debug("Replaced optimistic message with real message")
           return updated
         }
 
@@ -516,12 +651,12 @@ export default function ChatArea({
       })
 
       if (isDuplicate) {
-        console.log("Duplicate message detected, skipping")
+        logger.debug("Duplicate message detected, skipping")
         return
       }
 
       if (!matchedPending) {
-        console.log("New message received:", newMessage)
+        logger.debug("New message received", { data: newMessage })
       }
 
       setLastMessageId(newMessage.id)
@@ -532,7 +667,7 @@ export default function ChatArea({
     // Listen for message status updates from WebSocketHandler
     const handleStatusUpdate = (event: CustomEvent) => {
       const { message_id, status } = event.detail
-      console.log("Status update received:", { message_id, status })
+      logger.debug("Status update received", { message_id, status })
 
       if (message_id && status) {
         updateMessagesAndSync((prev) => {
@@ -561,11 +696,30 @@ export default function ChatArea({
 
     window.addEventListener("websocketConnectionChange", handleConnectionChange as EventListener)
 
+    // Listen for reaction updates from WebSocket
+    const handleReactionUpdate = (event: CustomEvent) => {
+      const { message_id, reaction } = event.detail
+      if (!message_id) return
+
+      updateMessagesAndSync((prev) =>
+        (prev || []).map((msg) => {
+          if (msg.whatsapp_message_id === message_id || msg.incoming_whatsapp_message_id === message_id) {
+            return { ...msg, reaction }
+          }
+          return msg
+        })
+      )
+    }
+
+    window.addEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
+
     return () => {
       window.removeEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
       window.removeEventListener("messageStatusUpdate", handleStatusUpdate as unknown as EventListener)
       window.removeEventListener("websocketConnectionChange", handleConnectionChange as unknown as EventListener)
+      window.removeEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Scroll to bottom when messages update
@@ -606,7 +760,7 @@ export default function ChatArea({
         })
       }
     } catch (error) {
-      console.error("Failed to load older messages:", error)
+      logger.error("Failed to load older messages", { error: error instanceof Error ? error.message : String(error) })
       toast({
         description: "Failed to load older messages",
         variant: "destructive",
@@ -700,7 +854,7 @@ export default function ChatArea({
                     pending: false,
                     status: newMessage.status || "sent",
                   }
-                  console.log("Replaced pending message with real message from polling")
+                  logger.debug("Replaced pending message with real message from polling")
                 } else {
                   // Add as new message only if it's not a duplicate
                   const isDuplicate = updatedMessages.some(msg =>
@@ -720,7 +874,7 @@ export default function ChatArea({
         }
       }
     } catch (error) {
-      console.error("Error fetching new messages:", error)
+      logger.error("Error fetching new messages", { error: error instanceof Error ? error.message : String(error) })
       toast({
         description: "Failed to fetch new messages",
         variant: "destructive",
@@ -845,6 +999,47 @@ export default function ChatArea({
     [currentMessages, updateMessagesAndSync],
   )
 
+  // Flat sorted messages for button reply detection
+  const flatSortedMessages = useMemo(() => {
+    return [...(currentMessages ?? [])].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }, [currentMessages])
+
+  /**
+   * Strip WhatsApp interactive reply payload IDs from button text.
+   * e.g. "Book Demo (1769465424952-wobfkcdv3)" → "Book Demo"
+   */
+  const stripButtonPayload = useCallback((text: string): string => {
+    return text.replace(/\s*\([a-zA-Z0-9_-]{8,}\)$/, '').trim()
+  }, [])
+
+  /**
+   * Check if a customer message is a button reply to a preceding flow interactive message.
+   * Searches backward to find the nearest flow message with [Options: ...].
+   */
+  const isButtonReply = useCallback((content: string, messageId: number): boolean => {
+    const trimmedContent = stripButtonPayload(content.trim())
+    if (!trimmedContent || trimmedContent.length > 50) return false
+
+    const msgIndex = flatSortedMessages.findIndex(m => m.id === messageId)
+    if (msgIndex < 0) return false
+
+    for (let i = msgIndex - 1; i >= Math.max(0, msgIndex - 5); i--) {
+      const prevMsg = flatSortedMessages[i]
+      if (prevMsg.answer && prevMsg.sender === 'flow') {
+        const parsed = parseInteractiveMessage(prevMsg.answer)
+        if (parsed && parsed.options.some(opt =>
+          opt.toLowerCase() === trimmedContent.toLowerCase()
+        )) {
+          return true
+        }
+        break
+      }
+    }
+    return false
+  }, [flatSortedMessages, stripButtonPayload])
+
   if (!conversation) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 ">
@@ -958,14 +1153,7 @@ export default function ChatArea({
         )}
 
         <ResolveReminder
-          lastCustomerMessageTime={
-            currentMessages && currentMessages.length > 0
-              ? [...currentMessages]
-                  .reverse()
-                  .find((msg) => msg.sender === 'customer')
-                  ?.created_at
-              : undefined
-          }
+          lastCustomerMessageTime={lastCustomerMessageTime}
         />
 
         <DropdownMenu>
@@ -1056,9 +1244,11 @@ export default function ChatArea({
                 <div className="" key={date}>
                   {renderDateSeparator(date)}
                   {(messages ?? []).map((message, messageIndex) => {
-                    // Extract media from content if it exists
+                    // Extract media from content (customer) and answer (business) fields
                     const contentMedia = message.content ? extractMedia(message.content) : null
                     const contentHasMedia = contentMedia?.type && contentMedia?.url
+                    const answerMedia = message.answer ? extractMedia(message.answer) : null
+                    const answerHasMedia = answerMedia?.type && answerMedia?.url
                     const messageKey =
                       message.id ??
                       message.whatsapp_message_id ??
@@ -1066,7 +1256,23 @@ export default function ChatArea({
 
                     return (
                       <div key={messageKey} className="flex flex-col mb-4">
-              {message.content && (
+              {message.content && (() => {
+                // Check if this is a button reply to a flow interactive message
+                if (!contentHasMedia && isButtonReply(message.content, message.id)) {
+                  return (
+                    <div className="flex justify-start mb-1">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm text-gray-700 shadow-sm">
+                        <CornerDownLeft className="h-3 w-3 text-gray-400 shrink-0" />
+                        {stripButtonPayload(message.content)}
+                      </div>
+                      <span className="text-[10px] text-[#667781] ml-2 self-end">
+                        {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  )
+                }
+
+                return (
                 <div
                   className={cn(
                     "message-bubble message-customer group",
@@ -1076,7 +1282,6 @@ export default function ChatArea({
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div className="message-tail message-tail-left" />
                   {/* Customer badge */}
                   <div className="text-[9px] font-semibold text-gray-600 mb-1">
                     Customer
@@ -1086,7 +1291,7 @@ export default function ChatArea({
                       <>
                         {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
                         {contentMedia?.type === "image" && contentMedia?.url && (
-                          <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
+                          <ImagePreview src={contentMedia.url || "/placeholder.svg"} title={contentMedia.filename || undefined} />
                         )}
                         {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
                         {/* Display remaining text if any */}
@@ -1095,7 +1300,7 @@ export default function ChatArea({
                         )}
                       </>
                     ) : (
-                      formatMessage(message.content)
+                      formatMessage(stripButtonPayload(message.content))
                     )}
                   </div>
                   <span className="text-[11px] text-[#667781] mt-1 block">
@@ -1114,9 +1319,118 @@ export default function ChatArea({
                     </div>
                   )}
                 </div>
-              )}
+                )
+              })()}
 
-              {message.answer && (
+              {message.answer && (() => {
+                // Check if this is a media placeholder from file upload (e.g. "[DOCUMENT] Invoice.pdf")
+                const mediaMatch = message.answer.match(/^\[(DOCUMENT|IMAGE|VIDEO|AUDIO)\]\s*(.+?)(?:\s*-\s*https?:\/\/.*)?$/)
+                if (mediaMatch) {
+                  const mediaType = mediaMatch[1].toLowerCase()
+                  const fileName = mediaMatch[2].trim()
+                  return (
+                    <div
+                      className={cn(
+                        "message-bubble group message-human",
+                        message.status === "failed" && "border-2 border-red-400 bg-red-50/50",
+                      )}
+                    >
+                      {message.status === "failed" && (
+                        <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
+                          <span>⚠</span>
+                          <span>Failed to send</span>
+                        </div>
+                      )}
+                      <div className="text-[9px] font-semibold mb-1 text-green-700">
+                        👤 Business
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
+                        {mediaType === "image" ? <FileImage className="h-8 w-8 text-blue-500 shrink-0" /> :
+                         mediaType === "video" ? <Video className="h-8 w-8 text-purple-500 shrink-0" /> :
+                         mediaType === "audio" ? <Music className="h-8 w-8 text-orange-500 shrink-0" /> :
+                         <FileText className="h-8 w-8 text-red-500 shrink-0" />}
+                        <span className="text-sm truncate">{fileName}</span>
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[11px] text-[#667781]">
+                          {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {message.sender === "human" && (
+                          <>
+                            <MessageStatus
+                              status={message.pending ? 'sending' : message.status || 'delivered'}
+                              className="text-[#667781]"
+                            />
+                            {message.status === "failed" && (
+                              <button
+                                onClick={() => handleRetryMessage(message.id)}
+                                className="ml-2 text-[10px] text-red-600 hover:text-red-700 underline"
+                              >
+                                Retry
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+
+                // Check if this is a flow interactive message with buttons
+                const parsedInteractive = message.sender === 'flow'
+                  ? parseInteractiveMessage(message.answer)
+                  : null
+
+                if (parsedInteractive) {
+                  return (
+                    <InteractiveFlowMessage
+                      parsed={parsedInteractive}
+                      timestamp={message.created_at}
+                    />
+                  )
+                }
+
+                // Check if this message has CTA buttons (template messages)
+                const parsedCta = parseCtaMessage(message.answer)
+                if (parsedCta) {
+                  return (
+                    <CtaFlowMessage
+                      parsed={parsedCta}
+                      timestamp={message.created_at}
+                    />
+                  )
+                }
+
+                // Check if this is a [Template: name] placeholder — resolve to actual content
+                const templateName = parseTemplateMessage(message.answer)
+                if (templateName) {
+                  const templateData = templateMap.get(message.answer.trim().match(/\[Template:\s*(.+)\]/)?.[1] || '')
+                  if (templateData) {
+                    // Render actual template content
+                    return templateData.buttons.length > 0 ? (
+                      <InteractiveFlowMessage
+                        parsed={{ body: templateData.body, options: templateData.buttons }}
+                        timestamp={message.created_at}
+                        header={templateData.header}
+                      />
+                    ) : (
+                      <TemplateMessage
+                        templateName={templateName}
+                        body={templateData.body}
+                        timestamp={message.created_at}
+                        header={templateData.header}
+                      />
+                    )
+                  }
+                  return (
+                    <TemplateMessage
+                      templateName={templateName}
+                      timestamp={message.created_at}
+                    />
+                  )
+                }
+
+                return (
                 <div
                   className={cn(
                     "message-bubble group",
@@ -1127,25 +1441,35 @@ export default function ChatArea({
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div
-                    className={`message-tail ${
-                      message.sender === "ai" ? "message-tail-right-assistant" : "message-tail-right-human"
-                    }`}
-                  />
                   {message.status === "failed" && (
                     <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
                       <span>⚠</span>
                       <span>Failed to send</span>
                     </div>
                   )}
-                  {/* Sender badge - AI or Human */}
+                  {/* Sender badge - AI or Human/Flow */}
                   <div className={cn(
                     "text-[9px] font-semibold mb-1",
                     message.sender === "ai" ? "text-purple-600" : "text-green-700"
                   )}>
                     {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
                   </div>
-                  <div className="text-sm">{formatMessage(message.answer)}</div>
+                  <div className="text-sm">
+                    {answerHasMedia ? (
+                      <>
+                        {answerMedia?.type === "audio" && answerMedia?.url && <AudioPlayer src={answerMedia.url} />}
+                        {answerMedia?.type === "image" && answerMedia?.url && (
+                          <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
+                        )}
+                        {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
+                        {answerMedia?.displayText && answerMedia.displayText.trim() && (
+                          <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
+                        )}
+                      </>
+                    ) : (
+                      formatMessage(message.answer)
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-[11px] text-[#667781]">
                       {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -1169,7 +1493,6 @@ export default function ChatArea({
                         )}
                       </>
                     )}
-                    {/* AI messages don't need status indicators since they're auto-sent */}
                   </div>
                   {message.reaction?.emoji && (
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
@@ -1184,12 +1507,16 @@ export default function ChatArea({
                     </div>
                   )}
                 </div>
-              )}
-              {message.media && (
+                )
+              })()}
+              {message.media && !message.answer?.match(/^\[(DOCUMENT|IMAGE|VIDEO|AUDIO)\]/) && (() => {
+                // Media messages: determine if customer or outgoing
+                const isCustomerMedia = message.content != null
+                return (
                 <div
                   className={cn(
                     "message-bubble group",
-                    message.sender === "customer"
+                    isCustomerMedia
                       ? "message-customer"
                       : message.sender === "ai"
                         ? "message-assistant"
@@ -1199,17 +1526,8 @@ export default function ChatArea({
                   onMouseEnter={() => setHoveredMessageId(message.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div
-                    className={
-                      message.sender === "customer"
-                        ? "message-tail message-tail-left"
-                        : message.sender === "ai"
-                          ? "message-tail message-tail-right-assistant"
-                          : "message-tail message-tail-right-human"
-                    }
-                  />
                   {/* Sender badge */}
-                  {message.sender === "customer" ? (
+                  {isCustomerMedia ? (
                     <div className="text-[9px] font-semibold text-gray-600 mb-1">
                       Customer
                     </div>
@@ -1253,16 +1571,17 @@ export default function ChatArea({
                     <span className="text-[11px] text-[#667781] mt-1 block">{message.reaction.emoji}</span>
                   )}
                   {/* For media messages, use incoming_whatsapp_message_id for customer media, whatsapp_message_id for our media */}
-                  {(message.sender === "customer" ? message.incoming_whatsapp_message_id : message.whatsapp_message_id) && (
+                  {(isCustomerMedia ? message.incoming_whatsapp_message_id : message.whatsapp_message_id) && (
                     <div className="absolute -top-3 right-2">
                       <ReactionPicker
-                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji, message.sender === "customer")}
+                        onReactionSelect={(emoji) => handleReactionSelect(message, emoji, message.reaction?.emoji, isCustomerMedia)}
                         currentReaction={message.reaction?.emoji}
                       />
                     </div>
                   )}
                 </div>
-              )}
+                )
+              })()}
             </div>
                     )
                   })}
@@ -1280,15 +1599,97 @@ export default function ChatArea({
           </div>
         )}
       </div>
+      {isWindowExpired && (
+        <div className="px-3 py-2 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+          <span className="text-xs text-amber-800 flex-1">
+            24-hour window expired. Send a template message to reopen the conversation.
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs shrink-0"
+            onClick={() => setShowTemplatePicker(true)}
+          >
+            <Send className="mr-1.5 h-3 w-3" />
+            Send Template
+          </Button>
+        </div>
+      )}
       <div className="p-2 bg-[#f0f2f5] border-t border-[#e9edef]">
         <MessageInput
           customerNumber={conversation.customer_number || conversation.recipient_id}
           phoneNumber={phoneNumber}
+          organizationId={organizationId}
           onMessageSent={handleMessageSent}
           onMessageSendSuccess={handleMessageSendSuccess}
           onMessageSendFailure={handleMessageSendFailure}
+          onOpenTemplatePicker={() => setShowTemplatePicker(true)}
+          onOpenCannedResponses={() => setShowCannedResponses(true)}
+          onOpenProductComposer={selectedCatalogue ? () => setProductComposerOpen(true) : undefined}
         />
       </div>
+
+      {/* Template picker dialog */}
+      {currentAppService && (
+        <SendTemplateDialog
+          open={showTemplatePicker}
+          onOpenChange={setShowTemplatePicker}
+          templates={templates}
+          appService={currentAppService as AppService}
+          customerNumber={conversation.customer_number || conversation.recipient_id}
+          phoneNumber={phoneNumber}
+          organizationId={organizationId}
+          onSend={handleTemplateSent}
+        />
+      )}
+
+      {/* Canned responses dialog */}
+      <CannedResponsesDialog
+        open={showCannedResponses}
+        onOpenChange={setShowCannedResponses}
+        organizationId={organizationId}
+        onInsert={handleCannedResponseInsert}
+      />
+
+      {/* Product composer sheet */}
+      {selectedCatalogue && (
+        <Sheet open={productComposerOpen} onOpenChange={setProductComposerOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Send Product</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              <ProductMessageComposer
+                catalogId={selectedCatalogue.id}
+                products={products}
+                productsLoading={productsLoading}
+                productsError={productsError}
+                onSearchProducts={searchProducts}
+                searchQuery={searchQuery}
+                onClearSearch={clearProductSearch}
+                onLoadMore={loadMoreProducts}
+                hasMore={hasMoreProducts}
+                onRefreshProducts={refetchProducts}
+                onSendSingleProduct={async (productRetailerId, bodyText, footerText) => {
+                  const customerNumber = conversation?.customer_number || conversation?.recipient_id || ''
+                  await sendSingleProduct(customerNumber, selectedCatalogue.id, productRetailerId, bodyText, footerText)
+                  setProductComposerOpen(false)
+                  toast({ title: 'Product message sent' })
+                }}
+                onSendMultiProduct={async (headerText, bodyText, sections, footerText) => {
+                  const customerNumber = conversation?.customer_number || conversation?.recipient_id || ''
+                  await sendMultipleProducts(customerNumber, selectedCatalogue.id, headerText, bodyText, sections, footerText)
+                  setProductComposerOpen(false)
+                  toast({ title: 'Product list sent' })
+                }}
+                sending={productSending}
+                error={productSendError}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   )
 }

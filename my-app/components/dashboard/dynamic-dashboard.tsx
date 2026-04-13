@@ -286,12 +286,14 @@ export const DynamicDashboard: React.FC = () => {
           userName={organization?.name || "there"}
           onWhatsAppSetup={handleWhatsAppSetup}
           onWebsiteSetup={handleWebsiteSetup}
+          onInstagramSetup={handleInstagramSetup}
+          onMessengerSetup={handleFacebookSetup}
           stats={emptyStateStats}
         />
 
         {/* Dialogs */}
         <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
             <WhatsappOnboarding />
           </DialogContent>
         </Dialog>
@@ -321,12 +323,91 @@ export const DynamicDashboard: React.FC = () => {
   if (loading && !stats) {
     return (
       <div className="space-y-8">
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-64 w-full rounded-xl" />
+        {/* Header row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+          <div className="inline-flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+            <Skeleton className="h-7 w-16 rounded-md" />
+            <Skeleton className="h-7 w-20 rounded-md" />
+            <Skeleton className="h-7 w-24 rounded-md" />
+            <Skeleton className="h-7 w-18 rounded-md" />
+          </div>
+        </div>
+
+        {/* Performance Metrics Card */}
+        <Card className="rounded-xl border border-gray-200 p-5 shadow-sm">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-start gap-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            </div>
+            <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-3 w-28" />
+                    </div>
+                    <Skeleton className="h-4 w-4 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* Charts Row */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i} className="rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="space-y-2 mb-4">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+              <Skeleton className="h-[200px] w-full rounded-lg" />
+            </Card>
+          ))}
+        </div>
+
+        {/* Bottom Row Cards */}
         <div className="grid gap-5 lg:grid-cols-3">
-          <Skeleton className="h-64 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="flex items-start gap-3 mb-4">
+                <Skeleton className="h-9 w-9 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-40" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-3 w-5/6" />
+                <Skeleton className="h-3 w-2/3" />
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Channels Section */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -361,7 +442,7 @@ export const DynamicDashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Metrics Section */}
-      <section id="tour-step-live-insights" className="space-y-4">
+      <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Live Insights</h2>
@@ -722,7 +803,7 @@ export const DynamicDashboard: React.FC = () => {
 
       {/* Dialogs */}
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
           <WhatsappOnboarding />
         </DialogContent>
       </Dialog>

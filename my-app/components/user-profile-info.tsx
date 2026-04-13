@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useAuthApi, type UserInfo } from '@/lib/auth-api-client';
 import { useUser } from '@clerk/nextjs';
 
+import { logger } from "@/lib/logger";
 export function UserProfileInfo() {
   const { isSignedIn } = useUser();
   const { get } = useAuthApi();
@@ -35,7 +36,7 @@ export function UserProfileInfo() {
         const data = await get<UserInfo>('/auth/whoami/');
         setUserInfo(data);
       } catch (err) {
-        console.error('Failed to fetch user info:', err);
+        logger.error('Failed to fetch user info:', { error: err instanceof Error ? err.message : String(err) });
         setError(err instanceof Error ? err.message : 'Failed to fetch user info');
       } finally {
         setLoading(false);

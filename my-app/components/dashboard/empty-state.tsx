@@ -4,19 +4,24 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import {
   Sparkles,
   MessageSquare,
   Users,
   BarChart3,
   ArrowRight,
-  Rocket
+  Rocket,
+  Globe
 } from 'lucide-react';
+import Image from 'next/image';
 
 interface EmptyStateProps {
   userName?: string;
   onWhatsAppSetup?: () => void;
   onWebsiteSetup?: () => void;
+  onInstagramSetup?: () => void;
+  onMessengerSetup?: () => void;
   stats?: {
     totalConversations?: number;
     totalMessages?: number;
@@ -33,12 +38,14 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
   userName = "there",
   onWhatsAppSetup,
   onWebsiteSetup,
+  onInstagramSetup,
+  onMessengerSetup,
   stats
 }) => {
   const router = useRouter();
 
   // Debug: Log the stats being passed
-  console.log('[EmptyState] Received stats:', stats);
+  logger.info('[EmptyState] Received stats:', { data: stats });
 
   return (
     <div className="space-y-6">
@@ -67,7 +74,6 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
         <div className="grid gap-4 md:grid-cols-3">
           {/* Step 1 */}
           <Card
-            id="tour-step-connect-channel"
             className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
@@ -84,29 +90,54 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
                 </p>
               </div>
             </div>
-            {onWhatsAppSetup && (
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {onWhatsAppSetup && (
+                <Button
+                  onClick={onWhatsAppSetup}
+                  variant="outline"
+                  className="flex items-center justify-center gap-2 h-10"
+                  size="sm"
+                >
+                  <Image src="/whatsapp.png" alt="WhatsApp" width={20} height={20} className="object-contain" />
+                  WhatsApp
+                </Button>
+              )}
+              {onInstagramSetup && (
+                <Button
+                  onClick={onInstagramSetup}
+                  variant="outline"
+                  className="flex items-center justify-center gap-2 h-10"
+                  size="sm"
+                >
+                  <Image src="/instagram.png" alt="Instagram" width={20} height={20} className="object-contain" />
+                  Instagram
+                </Button>
+              )}
+              {onMessengerSetup && (
+                <Button
+                  onClick={onMessengerSetup}
+                  variant="outline"
+                  className="flex items-center justify-center gap-2 h-10"
+                  size="sm"
+                >
+                  <Image src="/messenger.png" alt="Messenger" width={20} height={20} className="object-contain" />
+                  Messenger
+                </Button>
+              )}
               <Button
-                onClick={onWhatsAppSetup}
+                onClick={() => router.push('/dashboard/widgets')}
                 variant="outline"
-                className="w-full mt-4"
+                className="flex items-center justify-center gap-2 h-10"
                 size="sm"
               >
-                Setup WhatsApp <ArrowRight className="ml-2 h-4 w-4" />
+                <Globe className="h-4 w-4 text-blue-600" />
+                Website Widget
               </Button>
-            )}
-            <Button
-              onClick={() => router.push('/dashboard/widgets')}
-              variant="outline"
-              className="w-full mt-2"
-              size="sm"
-            >
-              Setup Website Widget <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            </div>
           </Card>
 
           {/* Step 2 */}
           <Card
-            id="tour-step-create-assistant"
             className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
@@ -135,7 +166,6 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
 
           {/* Step 3 */}
           <Card
-            id="tour-step-engage-customers"
             className="rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-[#007fff] mb-4">
@@ -265,7 +295,7 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900">Need Help Getting Started?</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Check out our documentation or click the &quot;Take Tour&quot; button above to learn about all features.
+              Check out our documentation to learn about all features.
             </p>
           </div>
         </div>

@@ -1,14 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 // GET /api/campaigns/whatsapp/[id]/recipients - Get campaign recipients with optional status filter
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { getToken } = await auth()
     const token = await getToken()
 
@@ -39,7 +41,7 @@ export async function GET(
     if (page) queryParams.append("page", page)
     if (pageSize) queryParams.append("page_size", pageSize)
 
-    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${params.id}/recipients/?${queryParams.toString()}`
+    const url = `${BASE_URL}/broadcast/whatsapp/campaigns/${id}/recipients/?${queryParams.toString()}`
 
     const response = await fetch(url, {
       headers: {
@@ -58,7 +60,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error fetching recipients:", error)
+    logger.error("Error fetching recipients", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

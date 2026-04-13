@@ -30,14 +30,10 @@ export const MyMemberships = () => {
                 Select
               </button>
               <button
-                onClick={() =>
-                  setActive({
-                    organization: mem.organization.id,
-                    beforeEmit: () => {
-                      push("/organization")
-                    },
-                  })
-                }
+                onClick={async () => {
+                  await setActive({ organization: mem.organization.id })
+                  push("/organization")
+                }}
               >
                 Redirect
               </button>

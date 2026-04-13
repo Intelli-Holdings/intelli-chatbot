@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
-    const { organizationId } = params
+    const { organizationId } = await params
     const searchParams = request.nextUrl.searchParams
     const from = searchParams.get("from") || ""
     const to = searchParams.get("to") || ""
@@ -55,7 +56,7 @@ export async function GET(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error("Error fetching metrics by organization:", error)
+    logger.error("Error fetching metrics by organization", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
