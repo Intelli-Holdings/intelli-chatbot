@@ -1,432 +1,414 @@
 "use client"
 
-import * as React from "react"
+import { useState } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { useRouter, usePathname } from "next/navigation"
 import {
   Home,
-  Building2,
-  Bot,
-  BarChart,
-  MessageSquareDot,
-  BellDot,
+  MessageSquare,
   Globe,
+  Users,
   Contact,
-  ChevronDown,
-  Files,
-  ChevronRight,
-  ChevronLeft,
-  RadioTower,
-  CreditCard,
-  SettingsIcon,
-  Workflow,
+  Import,
+  SlidersHorizontal,
+  Megaphone,
+  FileText,
   ShoppingBag,
-  Calendar,
-  BadgeCheck,
-  LogOut,
+  BarChart3,
+  Bot,
+  MessageSquareCode,
+  Layout,
+  ChevronRight,
+  X,
 } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { usePathname } from "next/navigation"
-import { useUser, useClerk } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
+import { UserNav } from "@/components/user-nav"
+import { SidebarCTA } from "@/components/dashboard/sidebar/SidebarCTA"
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon"
-import { MessengerIcon } from "@/components/icons/messenger-icon"
 import { InstagramIcon } from "@/components/icons/instagram-icon"
+import { MessengerIcon } from "@/components/icons/messenger-icon"
+import type React from "react"
 
-type IconComponent = React.ComponentType<{ className?: string }>
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-type SubItem = {
-  title: string
-  url: string
-  icon?: IconComponent
+interface SubItem {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  description?: string
+  route: string
 }
 
-type NavItem = {
-  title: string
-  url: string
-  icon: IconComponent
-  hasSubmenu?: boolean
-  submenuItems?: SubItem[]
+interface SidebarItem {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  badge?: string
+  hasSubItems?: boolean
+  route?: string
+  subItems?: SubItem[]
 }
 
-const navMain: NavItem[] = [
-  { title: "Home", url: "/dashboard", icon: Home },
-  { title: "Assistants", url: "/dashboard/assistants", icon: Bot },
-  { title: "Chatbots", url: "/dashboard/chatbots", icon: Workflow },
-  { title: "Widgets", url: "/dashboard/widgets", icon: Globe },
+// ---------------------------------------------------------------------------
+// Menu items — single source of truth
+// ---------------------------------------------------------------------------
+
+const sidebarItems: SidebarItem[] = [
   {
-    title: "Conversations",
-    url: "/dashboard/conversations",
-    icon: MessageSquareDot,
-    hasSubmenu: true,
-    submenuItems: [
-      { title: "Website", url: "/dashboard/conversations/website", icon: Globe },
-      { title: "WhatsApp", url: "/dashboard/conversations/whatsapp", icon: WhatsAppIcon },
-      { title: "Instagram", url: "/dashboard/conversations/instagram", icon: InstagramIcon },
-      { title: "Messenger", url: "/dashboard/conversations/messenger", icon: MessengerIcon },
+    id: "home",
+    label: "Home",
+    icon: Home,
+    route: "/dashboard",
+  },
+  {
+    id: "assistants",
+    label: "Assistants",
+    icon: Bot,
+    route: "/dashboard/assistants",
+  },
+  {
+    id: "chatbots",
+    label: "Chatbots",
+    icon: MessageSquareCode,
+    route: "/dashboard/chatbots",
+  },
+  {
+    id: "widgets",
+    label: "Widgets",
+    icon: Layout,
+    route: "/dashboard/widgets",
+  },
+  {
+    id: "conversations",
+    label: "Conversations",
+    icon: MessageSquare,
+    hasSubItems: true,
+    subItems: [
+      {
+        id: "website",
+        label: "Website",
+        icon: Globe,
+        description: "Website chat conversations",
+        route: "/dashboard/conversations/website",
+      },
+      {
+        id: "whatsapp",
+        label: "WhatsApp",
+        icon: WhatsAppIcon,
+        description: "WhatsApp Business messages",
+        route: "/dashboard/conversations/whatsapp",
+      },
+      {
+        id: "instagram",
+        label: "Instagram",
+        icon: InstagramIcon,
+        description: "Instagram direct messages",
+        route: "/dashboard/conversations/instagram",
+      },
+      {
+        id: "messenger",
+        label: "Messenger",
+        icon: MessengerIcon,
+        description: "Facebook Messenger chats",
+        route: "/dashboard/conversations/messenger",
+      },
     ],
   },
-  { title: "Notifications", url: "/dashboard/notifications", icon: BellDot },
-  { title: "Contacts", url: "/dashboard/contacts", icon: Contact },
-  { title: "Campaigns", url: "/dashboard/campaigns", icon: RadioTower },
-  { title: "Templates", url: "/dashboard/templates", icon: Files },
-  { title: "Commerce", url: "/dashboard/commerce", icon: ShoppingBag },
-  { title: "Analytics", url: "/dashboard/analytics", icon: BarChart },
-  { title: "Organization", url: "/dashboard/organization", icon: Building2 },
-  { title: "Billing", url: "/dashboard/billing", icon: CreditCard },
-  { title: "Settings", url: "/dashboard/settings", icon: SettingsIcon },
+  {
+    id: "audiences",
+    label: "Audiences",
+    icon: Users,
+    hasSubItems: true,
+    subItems: [
+      {
+        id: "contacts",
+        label: "Contacts",
+        icon: Contact,
+        description: "Manage your contacts",
+        route: "/dashboard/audiences/contacts",
+      },
+      {
+        id: "segments",
+        label: "Segments",
+        icon: SlidersHorizontal,
+        description: "Audience segments and filters",
+        route: "/dashboard/audiences/segments",
+      },
+      {
+        id: "campaigns",
+        label: "Campaigns",
+        icon: Megaphone,
+        description: "Create and manage campaigns",
+        route: "/dashboard/campaigns",
+      },
+      {
+        id: "templates",
+        label: "Templates",
+        icon: FileText,
+        description: "Message templates",
+        route: "/dashboard/templates",
+      },
+    ],
+  },
+  {
+    id: "commerce",
+    label: "Commerce",
+    icon: ShoppingBag,
+    route: "/dashboard/commerce",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    route: "/dashboard/analytics",
+  },
 ]
 
-interface AppSidebarProps {
-  collapsed: boolean
-  onToggle: () => void
+// ---------------------------------------------------------------------------
+// AppSidebar
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Check if a route matches the current pathname */
+function isRouteActive(route: string, pathname: string) {
+  if (route === "/dashboard") return pathname === "/dashboard"
+  return pathname === route || pathname.startsWith(route + "/")
 }
 
-export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
+/** Check if any sub-item of a group matches the current pathname */
+function hasActiveChild(item: SidebarItem, pathname: string) {
+  return item.subItems?.some((sub) => isRouteActive(sub.route, pathname)) ?? false
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
+const primaryActiveClass =
+  "!bg-[#007fff] !text-white hover:!bg-[#006ee6] hover:!text-white"
+const primaryDefaultClass =
+  "text-foreground/80 hover:bg-[#007fff]/10 hover:text-[#007fff] active:bg-[#007fff]/20"
+const secondaryActiveClass =
+  "!bg-[#007fff]/10 !text-[#007fff] hover:!bg-[#007fff]/15"
+const secondaryDefaultClass =
+  "text-foreground/80 hover:bg-[#007fff]/10 hover:text-[#007fff] active:bg-[#007fff]/20"
+
+// ---------------------------------------------------------------------------
+// AppSidebar
+// ---------------------------------------------------------------------------
+
+export function AppSidebar() {
+  const router = useRouter()
   const pathname = usePathname()
-  const [openSub, setOpenSub] = React.useState<string | null>(null)
-  // Tracks which submenu's flyout is open in collapsed mode (click-to-pin).
-  const [pinnedFlyout, setPinnedFlyout] = React.useState<string | null>(null)
+  const [openPanel, setOpenPanel] = useState<string | null>(null)
 
-  // Auto-expand the submenu containing the current pathname
-  React.useEffect(() => {
-    const matching = navMain.find(
-      (item) =>
-        item.hasSubmenu &&
-        (pathname === item.url ||
-          item.submenuItems?.some((sub) => pathname === sub.url))
-    )
-    if (matching) {
-      setOpenSub(matching.title)
+  const openPanelData = sidebarItems.find((item) => item.id === openPanel)
+
+  const handleItemClick = (item: SidebarItem) => {
+    if (item.hasSubItems) {
+      setOpenPanel(openPanel === item.id ? null : item.id)
+    } else if (item.route) {
+      setOpenPanel(null)
+      router.push(item.route)
     }
-  }, [pathname])
+  }
 
-  // Close any pinned flyout when sidebar expands
-  React.useEffect(() => {
-    if (!collapsed) setPinnedFlyout(null)
-  }, [collapsed])
-
-  // Close pinned flyout on outside click
-  React.useEffect(() => {
-    if (!pinnedFlyout) return
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as Element
-      if (!target.closest("[data-flyout-root]")) {
-        setPinnedFlyout(null)
-      }
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [pinnedFlyout])
+  const handleSubItemClick = (subItem: SubItem) => {
+    router.push(subItem.route)
+  }
 
   return (
-    <aside
-      className={cn(
-        "group/sidebar relative flex h-svh shrink-0 flex-col border-r border-border bg-card",
-        "transition-[width] duration-300 ease-in-out",
-        collapsed ? "w-[70px]" : "w-64"
-      )}
-    >
-      {/* Floating toggle button — always visible */}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className={cn(
-          "absolute -right-3 top-6 z-20 flex h-6 w-6 items-center justify-center",
-          "rounded-full border border-border bg-card shadow-md",
-          "transition-colors hover:bg-accent"
-        )}
+    <div className="flex h-dvh">
+      {/* Primary sidebar */}
+      <Sidebar
+        side="left"
+        variant="sidebar"
+        collapsible="none"
+        className="w-64 border-r"
       >
-        <ChevronLeft
-          className={cn(
-            "h-3.5 w-3.5 transition-transform duration-300",
-            collapsed && "rotate-180"
-          )}
-        />
-      </button>
-
-      {/* Logo header — fixed height */}
-      <div
-        className={cn(
-          "flex h-[4.5rem] items-center overflow-hidden whitespace-nowrap border-b border-border",
-          collapsed ? "justify-center px-0" : "px-6"
-        )}
-      >
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-gray-900">
-            <Image
-              alt="Intelli Logo"
-              src="/Intelli.svg"
-              height={20}
-              width={20}
-              className="size-5"
-            />
-          </div>
-          {!collapsed && <span className="font-bold">Intelli</span>}
-        </Link>
-      </div>
-
-      {/* Nav — overflow-x-visible so the collapsed-mode flyout popover
-          (positioned at left-full) isn't clipped */}
-      <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-visible p-2">
-        {navMain.map((item) => {
-          const Icon = item.icon
-          const isActive =
-            pathname === item.url ||
-            item.submenuItems?.some((sub) => pathname === sub.url)
-          const isOpen = openSub === item.title
-
-          if (item.hasSubmenu) {
-            const flyoutOpen = pinnedFlyout === item.title
-            return (
-              <div
-                key={item.title}
-                data-flyout-root
-                className="group/item relative"
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (collapsed) {
-                      setPinnedFlyout((prev) =>
-                        prev === item.title ? null : item.title
-                      )
-                    } else {
-                      setOpenSub((prev) =>
-                        prev === item.title ? null : item.title
-                      )
-                    }
-                  }}
-                  className={cn(
-                    "flex h-10 w-full items-center rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    collapsed ? "justify-center px-0" : "gap-3 px-3"
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 whitespace-nowrap text-left">{item.title}</span>
-                      {isOpen ? (
-                        <ChevronDown className="h-4 w-4 shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0" />
-                      )}
-                    </>
-                  )}
-                </button>
-
-                {/* Inline sub-items when expanded */}
-                {!collapsed && isOpen && item.submenuItems && (
-                  <div className="ml-7 mt-1 space-y-1 border-l border-border pl-2">
-                    {item.submenuItems.map((sub) => {
-                      const SubIcon = sub.icon
-                      const subActive = pathname === sub.url
-                      return (
-                        <Link
-                          key={sub.url}
-                          href={sub.url}
-                          className={cn(
-                            "flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors",
-                            subActive
-                              ? "bg-blue-500 text-white hover:bg-blue-600"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                          )}
-                        >
-                          {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
-                          <span className="whitespace-nowrap">{sub.title}</span>
-                        </Link>
-                      )
-                    })}
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <Link href="/dashboard">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-gray-900 text-sidebar-primary-foreground">
+                    <Image
+                      alt="Intelli Logo"
+                      className="size-4"
+                      src="/Intelli.svg"
+                      height={25}
+                      width={25}
+                    />
                   </div>
-                )}
-
-                {/* Flyout popover when collapsed — shown on hover OR when pinned by click */}
-                {collapsed && item.submenuItems && (
-                  <div
-                    className={cn(
-                      "absolute left-full top-0 z-50 ml-2 min-w-[12rem] rounded-md border border-border bg-card p-2 shadow-md",
-                      flyoutOpen
-                        ? "block"
-                        : "hidden group-hover/item:block"
-                    )}
-                  >
-                    <div className="mb-1 px-2 py-1 text-xs font-semibold text-muted-foreground">
-                      {item.title}
-                    </div>
-                    <div className="space-y-1">
-                      {item.submenuItems.map((sub) => {
-                        const SubIcon = sub.icon
-                        const subActive = pathname === sub.url
-                        return (
-                          <Link
-                            key={sub.url}
-                            href={sub.url}
-                            onClick={() => setPinnedFlyout(null)}
-                            className={cn(
-                              "flex h-8 items-center gap-2 rounded-md px-2 text-sm transition-colors",
-                              subActive
-                                ? "bg-blue-500 text-white hover:bg-blue-600"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                            )}
-                          >
-                            {SubIcon && <SubIcon className="h-4 w-4 shrink-0" />}
-                            <span className="whitespace-nowrap">{sub.title}</span>
-                          </Link>
-                        )
-                      })}
-                    </div>
+                  <div className="flex flex-col gap-0.5 leading-none">
+                    <span className="font-bold">Intelli</span>
                   </div>
-                )}
-              </div>
-            )
-          }
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
 
-          return (
-            <Link
-              key={item.title}
-              href={item.url}
-              title={collapsed ? item.title : undefined}
-              className={cn(
-                "group/item relative flex h-10 items-center rounded-lg text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-blue-500 text-white hover:bg-blue-600"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                collapsed ? "justify-center px-0" : "gap-3 px-3"
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && (
-                <span className="whitespace-nowrap">{item.title}</span>
-              )}
-              {collapsed && (
-                <span className="pointer-events-none absolute left-full ml-2 z-50 hidden whitespace-nowrap rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground shadow-md group-hover/item:block">
-                  {item.title}
-                </span>
-              )}
-            </Link>
-          )
-        })}
-      </nav>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {sidebarItems.map((item) => {
+                  const Icon = item.icon
+                  // Active = direct route match OR any child matches
+                  const isActive = item.route
+                    ? isRouteActive(item.route, pathname)
+                    : hasActiveChild(item, pathname)
+                  const isPanelOpen = openPanel === item.id
 
-      {/* Footer */}
-      <div className="space-y-2 border-t border-border p-2">
-        {!collapsed && (
-          <a
-            href="https://cal.com/intelli-demo/30min"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 rounded-xl border border-indigo-300 bg-indigo-200 px-3 py-1.5 text-xs shadow-sm transition-colors hover:bg-indigo-300"
-          >
-            <div className="rounded-full border border-blue-300 bg-white p-1">
-              <Calendar className="h-3 w-3 text-black" />
-            </div>
-            <div className="leading-tight">
-              <strong className="text-white">Talk to our Team</strong>
-              <br />
-              <span className="font-normal text-white">30 min call</span>
-            </div>
-          </a>
-        )}
-        <UserNav collapsed={collapsed} />
-      </div>
-    </aside>
-  )
-}
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        isActive={isActive || isPanelOpen}
+                        className={cn(
+                          "w-full h-10 px-3 transition-colors",
+                          isActive || isPanelOpen
+                            ? primaryActiveClass
+                            : primaryDefaultClass
+                        )}
+                        onClick={() => handleItemClick(item)}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 ml-auto min-w-fit">
+                          {(item.badge || item.hasSubItems) &&
+                            (item.badge ? (
+                              <SidebarMenuBadge
+                                className={cn(
+                                  "min-w-fit",
+                                  item.hasSubItems && "gap-x-3"
+                                )}
+                              >
+                                {item.badge}
+                                {item.hasSubItems && (
+                                  <ChevronRight
+                                    className={cn(
+                                      "h-4 w-4 transition-transform shrink-0",
+                                      isPanelOpen && "rotate-90"
+                                    )}
+                                  />
+                                )}
+                              </SidebarMenuBadge>
+                            ) : (
+                              <ChevronRight
+                                className={cn(
+                                  "h-4 w-4 transition-transform shrink-0",
+                                  isPanelOpen && "rotate-90"
+                                )}
+                              />
+                            ))}
+                        </div>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
 
-function UserNav({ collapsed }: { collapsed: boolean }) {
-  const { isLoaded, isSignedIn, user } = useUser()
-  const { signOut, openUserProfile } = useClerk()
+        <SidebarFooter className="px-2">
+          <SidebarCTA />
+          <UserNav />
+        </SidebarFooter>
+      </Sidebar>
 
-  if (!isLoaded || !isSignedIn) return null
-
-  const imageUrl = user?.imageUrl
-  const params = new URLSearchParams()
-  params.set("width", "32")
-  params.set("height", "32")
-  params.set("fit", "cover")
-  const optimizedImageUrl = imageUrl ? `${imageUrl}?${params.toString()}` : undefined
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "flex w-full items-center rounded-lg p-2 transition-colors hover:bg-muted",
-            collapsed ? "justify-center" : "gap-2"
-          )}
+      {/* Secondary sidebar — sub-items panel */}
+      {openPanel && openPanelData?.subItems && (
+        <Sidebar
+          side="left"
+          variant="sidebar"
+          collapsible="none"
+          className="w-72 animate-in slide-in-from-left-5 duration-200 border-r"
         >
-          <Avatar className="h-8 w-8 shrink-0 rounded-lg">
-            {optimizedImageUrl && (
-              <AvatarImage src={optimizedImageUrl} alt={user?.firstName ?? "User"} />
-            )}
-            <AvatarFallback className="rounded-lg">
-              {user?.firstName?.[0] ?? "?"}
-            </AvatarFallback>
-          </Avatar>
-          {!collapsed && (
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold">{user?.firstName}</span>
-              <span className="truncate text-xs text-muted-foreground">
-                {user?.emailAddresses[0]?.emailAddress}
-              </span>
-            </div>
-          )}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-56 rounded-lg"
-        side="right"
-        align="end"
-        sideOffset={8}
-      >
-        <DropdownMenuLabel className="p-0 font-normal">
-          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <Avatar className="h-8 w-8 rounded-lg">
-              {optimizedImageUrl && (
-                <AvatarImage src={optimizedImageUrl} alt={user?.firstName ?? "User"} />
-              )}
-              <AvatarFallback className="rounded-lg">
-                {user?.firstName?.[0] ?? "?"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold">{user?.firstName}</span>
-              <span className="truncate text-xs">
-                {user?.emailAddresses[0]?.emailAddress}
-              </span>
-            </div>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem onSelect={() => openUserProfile()}>
-            <BadgeCheck className="mr-2 size-4" />
-            Profile
-            <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => signOut()}>
-          <LogOut className="mr-2 size-4" />
-          Log out
-          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <SidebarHeader className="flex flex-row items-center justify-between border-b px-4">
+            <h3 className="font-medium">{openPanelData.label}</h3>
+            <button
+              type="button"
+              onClick={() => setOpenPanel(null)}
+              className="h-6 w-6 p-0 rounded-md hover:bg-[#007fff]/10 flex items-center justify-center transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </SidebarHeader>
+
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {openPanelData.subItems.map((subItem) => {
+                    const SubIcon = subItem.icon
+                    const isSelected = isRouteActive(subItem.route, pathname)
+
+                    return (
+                      <SidebarMenuItem key={subItem.id}>
+                        <SidebarMenuButton
+                          isActive={isSelected}
+                          className={cn(
+                            "w-full justify-start gap-3 h-auto py-2 px-3 transition-colors",
+                            isSelected
+                              ? secondaryActiveClass
+                              : secondaryDefaultClass
+                          )}
+                          onClick={() => handleSubItemClick(subItem)}
+                        >
+                          <SubIcon className={cn(
+                            "h-5 w-5 shrink-0 self-start mt-0.5",
+                            isSelected && "text-[#007fff]"
+                          )} />
+                          <div className="flex-1 text-left min-w-0">
+                            <div className={cn(
+                              "font-medium",
+                              isSelected && "text-[#007fff]"
+                            )}>
+                              {subItem.label}
+                            </div>
+                            {subItem.description && (
+                              <div className={cn(
+                                "text-xs mt-0.5",
+                                isSelected
+                                  ? "text-[#007fff]/70"
+                                  : "text-muted-foreground"
+                              )}>
+                                {subItem.description}
+                              </div>
+                            )}
+                          </div>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
+      )}
+    </div>
   )
 }
