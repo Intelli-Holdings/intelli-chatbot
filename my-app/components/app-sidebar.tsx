@@ -205,11 +205,11 @@ function hasActiveChild(item: SidebarItem, pathname: string) {
 const primaryActiveClass =
   "!bg-blue-600 !text-white hover:!bg-blue-700 hover:!text-white"
 const primaryDefaultClass =
-  "text-foreground/80 hover:bg-blue-600/10 hover:text-blue-600"
+  "text-foreground/80 hover:bg-blue-600/10 hover:text-blue-600 active:bg-blue-600/20"
 const secondaryActiveClass =
   "!bg-blue-600/10 !text-blue-600 hover:!bg-blue-600/15"
 const secondaryDefaultClass =
-  "text-foreground/80 hover:bg-blue-600/10 hover:text-blue-600"
+  "text-foreground/80 hover:bg-blue-600/10 hover:text-blue-600 active:bg-blue-600/20"
 
 // ---------------------------------------------------------------------------
 // AppSidebar
