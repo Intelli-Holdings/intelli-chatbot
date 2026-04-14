@@ -19,7 +19,7 @@ export default function DataProcessingAgreementPage() {
                 Data Processing Agreement
               </h1>
               <p className="text-lg text-gray-600">
-                Last updated April 13, 2026
+                Last updated April 14, 2026
               </p>
             </div>
 
@@ -1016,7 +1016,7 @@ export default function DataProcessingAgreementPage() {
                       <td className="px-4 py-3">
                         Company uses AES-256-GCM for field-level encryption of
                         sensitive data at rest. All data in transit is encrypted
-                        using TLS 1.2+. Database storage uses AWS transparent
+                        using TLS 1.2+. Database storage uses Azure transparent
                         disk encryption with AES-256.
                       </td>
                     </tr>
@@ -1080,7 +1080,7 @@ export default function DataProcessingAgreementPage() {
                         Protection of data during storage
                       </td>
                       <td className="px-4 py-3">
-                        Encryption-at-rest using AWS transparent disk encryption
+                        Encryption-at-rest using Azure transparent disk encryption
                         (AES-256). Field-level encryption using AES-256-GCM for
                         sensitive fields. Sensitive data is redacted from
                         application logs.
@@ -1092,7 +1092,7 @@ export default function DataProcessingAgreementPage() {
                       </td>
                       <td className="px-4 py-3">
                         All processing occurs in physical data centers managed by
-                        Amazon Web Services (AWS) and Vercel, which maintain
+                        Microsoft Azure and Vercel, which maintain
                         industry-standard physical security controls.
                       </td>
                     </tr>
