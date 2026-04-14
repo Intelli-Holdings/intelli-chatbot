@@ -102,6 +102,10 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
                 message_id: message.message_id,
                 status: message.status,
                 timestamp: message.timestamp,
+                error_code: message.error_code,
+                error_title: message.error_title,
+                error_message: message.error_message,
+                error_details: message.error_details,
               },
             }),
           )

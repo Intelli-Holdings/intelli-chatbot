@@ -20,6 +20,11 @@ export type WebSocketMessage = {
   // Reaction update fields
   reaction?: { emoji: string; reactor_id?: string; created_at?: string } | null
   reactor_type?: string
+  // Error fields for failed message status updates
+  error_code?: number
+  error_title?: string
+  error_message?: string
+  error_details?: string
 }
 
 // Update the Options interface to include the enabled property

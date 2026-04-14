@@ -666,19 +666,21 @@ export default function ChatArea({
 
     // Listen for message status updates from WebSocketHandler
     const handleStatusUpdate = (event: CustomEvent) => {
-      const { message_id, status } = event.detail
+      const { message_id, status, error_details, error_message } = event.detail
       logger.debug("Status update received", { message_id, status })
 
       if (message_id && status) {
         updateMessagesAndSync((prev) => {
-          const updated = (prev || []).map((msg) => {
+          return (prev || []).map((msg) => {
             if (msg.whatsapp_message_id === message_id) {
-              return { ...msg, status: status }
+              const updated = { ...msg, status }
+              if (status === "failed" && (error_details || error_message)) {
+                (updated as any).error_details = error_details || error_message
+              }
+              return updated
             }
             return msg
           })
-
-          return updated
         })
       }
     }
@@ -1343,9 +1345,14 @@ export default function ChatArea({
                       )}
                     >
                       {message.status === "failed" && (
-                        <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
-                          <span>⚠</span>
-                          <span>Failed to send</span>
+                        <div className="text-[10px] text-red-600 font-medium mb-1">
+                          <div className="flex items-center gap-1">
+                            <span>⚠</span>
+                            <span>Failed to send</span>
+                          </div>
+                          {message.error_details && (
+                            <div className="text-[9px] text-red-500 mt-0.5">{message.error_details}</div>
+                          )}
                         </div>
                       )}
                       <div className="text-[9px] font-semibold mb-1 text-green-700">
@@ -1456,9 +1463,14 @@ export default function ChatArea({
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
                   {message.status === "failed" && (
-                    <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
-                      <span>⚠</span>
-                      <span>Failed to send</span>
+                    <div className="text-[10px] text-red-600 font-medium mb-1">
+                      <div className="flex items-center gap-1">
+                        <span>⚠</span>
+                        <span>Failed to send</span>
+                      </div>
+                      {message.error_details && (
+                        <div className="text-[9px] text-red-500 mt-0.5">{message.error_details}</div>
+                      )}
                     </div>
                   )}
                   {/* Sender badge - AI or Human/Flow */}
