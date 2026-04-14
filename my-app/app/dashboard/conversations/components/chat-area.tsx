@@ -1294,7 +1294,15 @@ export default function ChatArea({
                           <ImagePreview src={contentMedia.url || "/placeholder.svg"} title={contentMedia.filename || undefined} />
                         )}
                         {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
-                        {/* Display remaining text if any */}
+                        {contentMedia?.type === "document" && contentMedia?.url && (
+                          <a href={contentMedia.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                            <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm truncate block">{contentMedia.filename || "Document"}</span>
+                              <span className="text-xs text-[#667781]">Tap to open</span>
+                            </div>
+                          </a>
+                        )}
                         {contentMedia?.displayText && contentMedia.displayText.trim() && (
                           <div className="mt-2">{formatMessage(contentMedia.displayText)}</div>
                         )}
@@ -1323,11 +1331,10 @@ export default function ChatArea({
               })()}
 
               {message.answer && (() => {
-                // Check if this is a media placeholder from file upload (e.g. "[DOCUMENT] Invoice.pdf")
-                const mediaMatch = message.answer.match(/^\[(DOCUMENT|IMAGE|VIDEO|AUDIO)\]\s*(.+?)(?:\s*-\s*https?:\/\/.*)?$/)
-                if (mediaMatch) {
-                  const mediaType = mediaMatch[1].toLowerCase()
-                  const fileName = mediaMatch[2].trim()
+                // Check if this is a media placeholder from file upload (e.g. "[DOCUMENT] Invoice.pdf - https://...")
+                const placeholderMedia = extractMedia(message.answer)
+                const placeholderHasMedia = placeholderMedia?.type && placeholderMedia?.url
+                if (placeholderHasMedia) {
                   return (
                     <div
                       className={cn(
@@ -1344,12 +1351,19 @@ export default function ChatArea({
                       <div className="text-[9px] font-semibold mb-1 text-green-700">
                         👤 Business
                       </div>
-                      <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
-                        {mediaType === "image" ? <FileImage className="h-8 w-8 text-blue-500 shrink-0" /> :
-                         mediaType === "video" ? <Video className="h-8 w-8 text-purple-500 shrink-0" /> :
-                         mediaType === "audio" ? <Music className="h-8 w-8 text-orange-500 shrink-0" /> :
-                         <FileText className="h-8 w-8 text-red-500 shrink-0" />}
-                        <span className="text-sm truncate">{fileName}</span>
+                      <div className="text-sm">
+                        {placeholderMedia.type === "audio" && <AudioPlayer src={placeholderMedia.url!} />}
+                        {placeholderMedia.type === "image" && <ImagePreview src={placeholderMedia.url!} title={placeholderMedia.filename || undefined} />}
+                        {placeholderMedia.type === "video" && <VideoPlayer src={placeholderMedia.url!} />}
+                        {placeholderMedia.type === "document" && (
+                          <a href={placeholderMedia.url!} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                            <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm truncate block">{placeholderMedia.filename || "Document"}</span>
+                              <span className="text-xs text-[#667781]">Tap to open</span>
+                            </div>
+                          </a>
+                        )}
                       </div>
                       <div className="flex items-center gap-1 mt-1">
                         <span className="text-[11px] text-[#667781]">
@@ -1462,6 +1476,15 @@ export default function ChatArea({
                           <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
                         )}
                         {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
+                        {answerMedia?.type === "document" && answerMedia?.url && (
+                          <a href={answerMedia.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                            <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm truncate block">{answerMedia.filename || "Document"}</span>
+                              <span className="text-xs text-[#667781]">Tap to open</span>
+                            </div>
+                          </a>
+                        )}
                         {answerMedia?.displayText && answerMedia.displayText.trim() && (
                           <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
                         )}
@@ -1539,19 +1562,22 @@ export default function ChatArea({
                       {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
                     </div>
                   )}
-                  <div className="text-sm cursor-pointer" onClick={() => {}}>
-                    <div className="max-w-xs rounded-lg overflow-hidden shadow">
-                      {message.type === "image" ? (
-                        <Image
-                          src={message.media || "/placeholder.svg"}
-                          alt="Image"
-                          className="w-full h-auto rounded-lg"
-                        />
+                  <div className="text-sm">
+                    <div className="max-w-xs rounded-lg overflow-hidden">
+                      {(message.type === "image" || message.type?.startsWith("image/")) ? (
+                        <ImagePreview src={message.media || "/placeholder.svg"} />
+                      ) : (message.type === "video" || message.type?.startsWith("video/")) ? (
+                        <VideoPlayer src={message.media!} />
+                      ) : (message.type === "audio" || message.type?.startsWith("audio/")) ? (
+                        <AudioPlayer src={message.media!} />
                       ) : (
-                        <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
+                        <a href={message.media!} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                           {getFileIcon(message.type)}
-                          <span className="text-sm truncate">Attachment</span>
-                        </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm truncate block">Document</span>
+                            <span className="text-xs text-[#667781]">Tap to open</span>
+                          </div>
+                        </a>
                       )}
                     </div>
                   </div>
