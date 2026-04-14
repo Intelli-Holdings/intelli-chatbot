@@ -63,24 +63,29 @@ export default function DataProcessingAgreementPage() {
                   pursuant to or in connection with the Terms;
                 </li>
                 <li>
-                  <strong>&ldquo;Data Protection Laws&rdquo;</strong> means any
-                  applicable laws and regulations in any relevant jurisdiction
-                  where Services are provided relating to the use or processing
-                  of Personal Data, which may include depending on the
-                  circumstances (but is not limited to): (i) the California
+                  <strong>&ldquo;CCPA&rdquo;</strong> means the California
                   Consumer Privacy Act (Cal. Civ. Code &sect;&sect; 1798.100 et
-                  seq.), as amended by the California Privacy Rights Act of 2020
-                  (&ldquo;CCPA&rdquo;); (ii) the General Data Protection
-                  Regulation (Regulation (EU) 2016/679) (&ldquo;EU GDPR&rdquo;);
-                  (iii) the UK Data Protection Act 2018 and the EU GDPR as it
-                  forms part of the law of England and Wales by virtue of section
-                  3 of the European Union (Withdrawal) Act 2018 (the &ldquo;UK
-                  GDPR&rdquo;) (together with the EU GDPR, collectively, the
-                  &ldquo;GDPR&rdquo;); and (iv) the Swiss Federal Act on Data
-                  Protection (&ldquo;FADP&rdquo;); (v) the Data Protection Act,
-                  2012 (Act 843) of Ghana; and (vi) the Data Protection Act, 2019
-                  of Kenya; in each case, as updated, amended or replaced from
-                  time to time;
+                  seq.), as amended by the California Privacy Rights Act of 2020;
+                </li>
+                <li>
+                  <strong>&ldquo;Data Protection Laws&rdquo;</strong> means the
+                  CCPA and any other applicable laws and regulations in any
+                  relevant jurisdiction where Services are provided relating to
+                  the use or processing of Personal Data. The CCPA shall serve
+                  as the primary governing data protection framework for this
+                  DPA. To the extent that Customer Personal Data is subject to
+                  the laws of other jurisdictions, Data Protection Laws shall
+                  also include (but is not limited to): (i) the General Data
+                  Protection Regulation (Regulation (EU) 2016/679) (&ldquo;EU
+                  GDPR&rdquo;); (ii) the UK Data Protection Act 2018 and the EU
+                  GDPR as it forms part of the law of England and Wales by
+                  virtue of section 3 of the European Union (Withdrawal) Act
+                  2018 (the &ldquo;UK GDPR&rdquo;) (together with the EU GDPR,
+                  collectively, the &ldquo;GDPR&rdquo;); (iii) the Swiss Federal
+                  Act on Data Protection (&ldquo;FADP&rdquo;); (iv) the Data
+                  Protection Act, 2012 (Act 843) of Ghana; and (v) the Data
+                  Protection Act, 2019 of Kenya; in each case, as updated,
+                  amended or replaced from time to time;
                 </li>
                 <li>
                   <strong>&ldquo;EEA&rdquo;</strong> means the European Economic
@@ -179,7 +184,11 @@ export default function DataProcessingAgreementPage() {
                 &ldquo;Member State&rdquo;, &ldquo;Processor&rdquo;,
                 &ldquo;Processing&rdquo;, &ldquo;Service Provider&rdquo;,
                 &ldquo;Supervisory Authority&rdquo; shall have the same meaning
-                ascribed by relevant Data Protection Laws.
+                ascribed by relevant Data Protection Laws. Under the CCPA,
+                &ldquo;Business&rdquo; refers to Customer, and &ldquo;Service
+                Provider&rdquo; refers to Company. Company is a
+                &ldquo;Service Provider&rdquo; as defined under the CCPA with
+                respect to Customer Personal Data.
               </p>
 
               {/* Section 2 */}
@@ -462,14 +471,16 @@ export default function DataProcessingAgreementPage() {
               </h2>
               <p>
                 Processor shall provide reasonable assistance to the Controller
-                with any data protection impact assessments, and prior
-                consultations with Supervising Authorities or other competent
-                data privacy authorities, which Controller reasonably considers
-                to be required by article 35 or 36 of the GDPR or equivalent
-                provisions of any other Data Protection Law, in each case solely
-                in relation to Processing of Customer Personal Data by, and
-                taking into account the nature of the Processing and information
-                available to, the Processor.
+                with any data protection impact assessments or risk assessments,
+                and prior consultations with the California Attorney General,
+                other Supervising Authorities, or other competent data privacy
+                authorities, which Controller reasonably considers to be
+                required by the CCPA (including Cal. Civ. Code &sect; 1798.185),
+                article 35 or 36 of the GDPR, or equivalent provisions of any
+                other Data Protection Law, in each case solely in relation to
+                Processing of Customer Personal Data by, and taking into account
+                the nature of the Processing and information available to, the
+                Processor.
               </p>
 
               {/* Section 10 */}
@@ -568,11 +579,11 @@ export default function DataProcessingAgreementPage() {
                 </li>
                 <li>
                   In Clause 17 (Option 1), the EU SCCs will be governed by the
-                  laws of the Republic of Ireland.
+                  laws of the State of Delaware, United States of America.
                 </li>
                 <li>
                   In Clause 18(b), disputes will be resolved before the courts of
-                  Ireland.
+                  the State of Delaware, United States of America.
                 </li>
                 <li>
                   Exhibit B to this DPA contains the information required in
@@ -733,6 +744,23 @@ export default function DataProcessingAgreementPage() {
                 personally, sent by post, sent by email, or sent to the address
                 or email address as notified from time to time by the Parties in
                 writing.
+              </p>
+              <p>
+                <strong>Governing Law.</strong> This DPA shall be governed by and
+                construed in accordance with the laws of the State of Delaware,
+                United States of America, without regard to its conflict of law
+                principles, and the CCPA to the extent applicable. Company is
+                incorporated in the State of Delaware as Intelli Holdings Inc.
+              </p>
+              <p>
+                <strong>Dispute Resolution.</strong> Any dispute, claim, or
+                controversy arising out of or relating to this DPA shall be
+                resolved exclusively through binding arbitration administered in
+                the State of Delaware, United States of America. Each party
+                irrevocably submits to the jurisdiction of the state and federal
+                courts located in the State of Delaware for any proceedings
+                ancillary to arbitration, including applications for interim
+                relief or enforcement of arbitral awards.
               </p>
               <p>
                 Any claims brought in connection with this DPA will be subject to
@@ -982,10 +1010,15 @@ export default function DataProcessingAgreementPage() {
                 3. Competent Supervisory Authority
               </h3>
               <p>
-                The supervisory authority shall be the supervisory authority of
-                the Data Exporter, as determined in accordance with Clause 13 of
-                the EU SCCs. The supervisory authority for the purposes of the UK
-                Addendum shall be the UK Information Commissioner&rsquo;s Office.
+                The primary supervisory authority for the purposes of this DPA
+                shall be the California Attorney General and the California
+                Privacy Protection Agency, as applicable under the CCPA. To the
+                extent that Restricted Transfers under the EU SCCs are
+                implicated, the supervisory authority shall be the supervisory
+                authority of the Data Exporter, as determined in accordance with
+                Clause 13 of the EU SCCs. The supervisory authority for the
+                purposes of the UK Addendum shall be the UK Information
+                Commissioner&rsquo;s Office.
               </p>
 
               {/* Exhibit C */}
