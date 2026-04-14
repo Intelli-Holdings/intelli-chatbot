@@ -3,7 +3,7 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, useRef, type ChangeEvent, type KeyboardEvent, useEffect } from "react"
-import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, FileText, MessageSquareText } from "lucide-react"
+import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, FileText, MessageSquareText, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { sendMessage } from "@/app/actions"
 import { useUser } from "@clerk/nextjs"
@@ -24,6 +24,7 @@ interface MessageInputProps {
   onMessageSendFailure?: (tempId: number) => void
   onOpenTemplatePicker?: () => void
   onOpenCannedResponses?: () => void
+  onOpenProductComposer?: () => void
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -35,6 +36,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onMessageSendFailure,
   onOpenTemplatePicker,
   onOpenCannedResponses,
+  onOpenProductComposer,
 }) => {
   const [answer, setAnswer] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -117,56 +119,69 @@ const MessageInput: React.FC<MessageInputProps> = ({
     setError(null)
     setIsLoading(true)
 
+    // Capture current state before clearing
+    const currentAnswer = answer
+    const currentFiles = [...files]
+    const currentAudioBlob = audioBlob
+    const currentAudioUrl = audioUrl
+
     // Determine media info for optimistic update
     let mediaUrl: string | undefined
     let mediaType: string | undefined
 
-    if (files.length > 0) {
-      mediaUrl = URL.createObjectURL(files[0])
-      mediaType = getMediaType(files[0])
-    } else if (audioBlob) {
-      mediaUrl = audioUrl || undefined
+    if (currentFiles.length > 0) {
+      mediaUrl = URL.createObjectURL(currentFiles[0])
+      mediaType = getMediaType(currentFiles[0])
+    } else if (currentAudioBlob) {
+      mediaUrl = currentAudioUrl || undefined
       mediaType = "audio"
     }
 
     // Create optimistic message BEFORE sending
-    const tempId = onMessageSent ? onMessageSent(answer || "Media", mediaUrl, mediaType) : undefined
+    let optimisticLabel = currentAnswer || "Media"
+    if (currentFiles.length > 0 && mediaType) {
+      optimisticLabel = `[${mediaType.toUpperCase()}] ${currentFiles[0].name}`
+    } else if (currentAudioBlob && mediaType) {
+      optimisticLabel = `[AUDIO] Voice message`
+    }
+    const tempId = onMessageSent ? onMessageSent(optimisticLabel, mediaUrl, mediaType) : undefined
+
+    // Clear input immediately (optimistic UX)
+    setAnswer("")
+    setFiles([])
+    setAudioBlob(null)
+    setAudioWaveform([])
+    if (currentAudioUrl) {
+      URL.revokeObjectURL(currentAudioUrl)
+      setAudioUrl(null)
+    }
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+    }
 
     try {
       const formData = new FormData()
       formData.append("customer_number", customerNumber)
       formData.append("phone_number", phoneNumber || "")
 
-      if (answer.trim()) {
-        formData.append("answer", answer)
+      if (currentAnswer.trim()) {
+        formData.append("answer", currentAnswer)
       }
 
-      files.forEach((file) => {
+      currentFiles.forEach((file) => {
         formData.append("file", file)
         formData.append("type", getMediaType(file))
       })
 
       // Add audio file if exists
-      if (audioBlob) {
-        const audioFile = new File([audioBlob], "voice-message.webm", { type: "audio/webm" })
+      if (currentAudioBlob) {
+        const audioFile = new File([currentAudioBlob], "voice-message.webm", { type: "audio/webm" })
         formData.append("file", audioFile)
         formData.append("type", "audio")
       }
 
       const response = await sendMessage(formData)
       logger.info("Message sent successfully", { data: response })
-
-      // Note: The real message will come via WebSocket, which will replace the optimistic one
-      // We don't need to manually call onMessageSendSuccess here
-
-      setAnswer("")
-      setFiles([])
-      setAudioBlob(null)
-      setAudioWaveform([])
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl)
-        setAudioUrl(null)
-      }
     } catch (e) {
       setError((e as Error).message)
       toast.error("Failed to send message")
@@ -479,6 +494,19 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 title="Send template message"
               >
                 <FileText className="h-4 w-4 text-gray-500" />
+              </Button>
+            )}
+            {onOpenProductComposer && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8"
+                onClick={onOpenProductComposer}
+                disabled={isLoading || isRecording}
+                title="Send product"
+              >
+                <ShoppingBag className="h-4 w-4 text-gray-500" />
               </Button>
             )}
 

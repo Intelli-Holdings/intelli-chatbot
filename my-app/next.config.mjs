@@ -90,6 +90,18 @@ const nextConfig = {
     },
     {
       protocol: 'https',
+      hostname: '**.fbcdn.net',
+    },
+    {
+      protocol: 'https',
+      hostname: 'backend.intelliconcierge.com',
+    },
+    {
+      protocol: 'https',
+      hostname: '**.blob.core.windows.net',
+    },
+    {
+      protocol: 'https',
       hostname: 'cms.intelliconcierge.com',
       port: '',
       pathname: '/**',
@@ -160,7 +172,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+            value: 'camera=(self), microphone=(self), geolocation=(), interest-cohort=()',
           },
           {
             key: 'Document-Policy',

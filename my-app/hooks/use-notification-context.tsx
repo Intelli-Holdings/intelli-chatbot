@@ -38,7 +38,7 @@ const LAST_READ_PREFIX = "org_last_read_"
 
 // Add type definitions for channel icons
 type ChannelIcon = {
-  icon: string | JSX.Element;
+  icon: string | React.ReactElement;
   bgColor: string;
   textColor: string;
 }

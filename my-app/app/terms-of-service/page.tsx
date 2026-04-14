@@ -1,14 +1,18 @@
 import { Navbar } from "@/components/navbar";
 import TermsOfService from "@/components/terms-of-service";
-import React from "react";
-// import { Separator } from "@/components/ui/separator";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service | Intelli",
+  description: "Terms of Service for Intelli Holdings Inc.",
+};
 
 export default function TermsOfServicePage() {
   return (
     <div className="relative">
       <main className="pt-16">
         <Navbar />
-        <section className="container mx-auto mt-8 px-4 lg:2/4 xl:w-2/3 ml-22.5 sm:w-3/4">
+        <section className="container mx-auto mt-8 px-4 max-w-4xl">
           <TermsOfService />
         </section>
       </main>

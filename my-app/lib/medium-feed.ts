@@ -1,6 +1,6 @@
 import Parser from "rss-parser"
 import { extractImageFromContent, calculateReadTime, createContentSnippet } from "@/lib/blog-utils"
-import { fetchCMSPosts } from "@/lib/cms-feed"
+import { fetchCmsPosts } from "@/lib/cms-feed"
 
 export interface MediumPost {
   title: string
@@ -13,6 +13,7 @@ export interface MediumPost {
   author?: string
   readTime?: string
   guid?: string
+  slug?: string
   source?: "medium" | "cms"
 }
 
@@ -96,7 +97,7 @@ export async function fetchMediumPosts(): Promise<MediumFeedResult> {
 export async function fetchAllPosts(): Promise<MediumFeedResult> {
   const [mediumResult, cmsResult] = await Promise.allSettled([
     fetchMediumPosts(),
-    fetchCMSPosts(),
+    fetchCmsPosts(),
   ])
 
   const mediumItems = mediumResult.status === "fulfilled" && mediumResult.value.success

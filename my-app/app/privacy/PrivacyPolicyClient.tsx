@@ -21,11 +21,11 @@ export default function PrivacyPolicyClient({ initialPolicies }: PrivacyPolicyCl
       <div className="max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold tracking-tight text-gray-900 mb-4">
+          <h1 className="text-5xl font-bold tracking-tight text-gray-900 mb-4">
             Privacy Policy
           </h1>
           <p className="text-lg text-gray-600">
-            Last updated: June 20, 2024
+            Last updated: April 13, 2026
           </p>
         </div>
 
@@ -53,71 +53,75 @@ export default function PrivacyPolicyClient({ initialPolicies }: PrivacyPolicyCl
             <CardContent className="p-8">
               <style jsx global>{`
                 .policy-content h1 {
-                  font-size: 2.25rem;
+                  font-size: 1.875rem;
                   font-weight: 700;
-                  color: #1a1a1a;
+                  color: #111827;
                   margin-bottom: 1.5rem;
+                  margin-top: 2.5rem;
                   line-height: 1.2;
                 }
 
                 .policy-content h2 {
-                  font-size: 1.75rem;
-                  font-weight: 600;
-                  color: #2a2a2a;
-                  margin-top: 2rem;
+                  font-size: 1.5rem;
+                  font-weight: 700;
+                  color: #111827;
+                  margin-top: 2.5rem;
                   margin-bottom: 1rem;
                   line-height: 1.3;
                 }
 
                 .policy-content h3 {
-                  font-size: 1.5rem;
-                  font-weight: 600;
-                  color: #3a3a3a;
+                  font-size: 1.25rem;
+                  font-weight: 700;
+                  color: #111827;
                   margin-top: 1.5rem;
                   margin-bottom: 0.75rem;
                 }
 
                 .policy-content p {
                   font-size: 1.125rem;
-                  line-height: 1.7;
-                  color: #4a4a4a;
-                  margin-bottom: 1.25rem;
+                  line-height: 1.75;
+                  color: #374151;
+                  margin-bottom: 1.5rem;
                 }
 
                 .policy-content ul, .policy-content ol {
                   margin-left: 1.5rem;
-                  margin-bottom: 1.25rem;
+                  margin-bottom: 1.5rem;
+                  list-style-type: disc;
+                  padding-left: 0.5rem;
+                }
+
+                .policy-content ol {
+                  list-style-type: decimal;
                 }
 
                 .policy-content li {
                   font-size: 1.125rem;
-                  line-height: 1.7;
-                  color: #4a4a4a;
+                  line-height: 1.75;
+                  color: #374151;
                   margin-bottom: 0.5rem;
                 }
 
                 .policy-content a {
-                  color: #007fff;
+                  color: #2563eb;
                   text-decoration: none;
                   transition: color 0.2s ease;
                 }
 
                 .policy-content a:hover {
-                  color: #0056b3;
-                }
-
-                .policy-content a:visited {
-                  color: #800080;
+                  color: #1d4ed8;
+                  text-decoration: underline;
                 }
 
                 .policy-content strong {
                   font-weight: 600;
-                  color: #2a2a2a;
+                  color: #111827;
                 }
 
                 .policy-content .meta {
                   font-size: 1rem;
-                  color: #666;
+                  color: #6b7280;
                   margin-bottom: 2rem;
                 }
               `}</style>

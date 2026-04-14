@@ -4,56 +4,55 @@
  */
 
 export interface ExtractedMedia {
-  type: "audio" | "video" | "image" | null
+  type: "audio" | "video" | "image" | "document" | null
   url: string | null
   displayText: string
+  filename: string | null
 }
+
+// Shared pattern: [TAG] <filename> - <url>
+// Filename can contain spaces, commas, unicode — anything up to " - http"
+const MEDIA_PATTERN = (tag: string) =>
+  new RegExp(`\\[${tag}\\]\\s+(.+?)\\s+-\\s+(https?:\\/\\/[^\\s]+)`, "i")
+
+// Fallback: [TAG] <filename> with no URL
+const MEDIA_NO_URL = (tag: string) =>
+  new RegExp(`\\[${tag}\\]\\s+(.+?)\\s*$`, "i")
 
 /**
  * Extract media from message content
- * Returns media type, URL, and the remaining display text
+ * Returns media type, URL, filename, and the remaining display text
  */
 export const extractMedia = (content: string): ExtractedMedia => {
   if (!content) {
-    return { type: null, url: null, displayText: "" }
+    return { type: null, url: null, displayText: "", filename: null }
   }
 
-  // Audio pattern: [AUDIO] Media/ID - URL or [AUDIO] 837415822316117 - URL or [AUDIO] filename.ext - URL
-  const audioMatch = content.match(/\[AUDIO\]\s+(?:Media|[\w_.-]+)(?:\s+-\s+(https?:\/\/[^\s]+))?/i)
-  if (audioMatch) {
-    const url = audioMatch[1] || null
-    // Remove the [AUDIO] tag and URL from display text
-    const displayText = content.replace(/\[AUDIO\]\s+(?:Media|[\w_.-]+)(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "").trim()
-    return {
-      type: "audio",
-      url: url,
-      displayText: displayText || "", // Show remaining text if any
+  const mediaTypes = ["AUDIO", "VIDEO", "IMAGE", "DOCUMENT"] as const
+  const typeMap: Record<string, ExtractedMedia["type"]> = {
+    AUDIO: "audio",
+    VIDEO: "video",
+    IMAGE: "image",
+    DOCUMENT: "document",
+  }
+
+  for (const tag of mediaTypes) {
+    // Try pattern with URL first
+    const withUrl = content.match(MEDIA_PATTERN(tag))
+    if (withUrl) {
+      const filename = withUrl[1] || null
+      const url = withUrl[2]
+      // Remove the entire tag from display text
+      const displayText = content.replace(MEDIA_PATTERN(tag), "").trim()
+      return { type: typeMap[tag], url, displayText, filename }
     }
-  }
 
-  // Image pattern: [IMAGE] Media/ID/filename - URL or [IMAGE] 835637205492111 - URL (with or without URL)
-  const imageMatch = content.match(/\[IMAGE\]\s+(?:Media|[\w_.-]+)(?:\s+-\s+(https?:\/\/[^\s]+))?/i)
-  if (imageMatch) {
-    const url = imageMatch[1] || null
-    // Remove the [IMAGE] tag and URL from display text
-    const displayText = content.replace(/\[IMAGE\]\s+(?:Media|[\w_.-]+)(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "").trim()
-    return {
-      type: "image",
-      url: url,
-      displayText: displayText || "", // Show remaining text if any
-    }
-  }
-
-  // Video pattern: [VIDEO] Media/ID/filename - URL or [VIDEO] 123456 - URL
-  const videoMatch = content.match(/\[VIDEO\]\s+(?:Media|[\w_.-]+)(?:\s+-\s+(https?:\/\/[^\s]+))?/i)
-  if (videoMatch) {
-    const url = videoMatch[1] || null
-    // Remove the [VIDEO] tag and URL from display text
-    const displayText = content.replace(/\[VIDEO\]\s+(?:Media|[\w_.-]+)(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "").trim()
-    return {
-      type: "video",
-      url: url,
-      displayText: displayText || "", // Show remaining text if any
+    // Try pattern without URL
+    const noUrl = content.match(MEDIA_NO_URL(tag))
+    if (noUrl) {
+      const filename = noUrl[1] || null
+      const displayText = content.replace(MEDIA_NO_URL(tag), "").trim()
+      return { type: typeMap[tag], url: null, displayText, filename }
     }
   }
 
@@ -63,31 +62,19 @@ export const extractMedia = (content: string): ExtractedMedia => {
     const url = azureBlobMatch[1]
     const lowerUrl = url.toLowerCase()
 
-    // Determine media type from URL extension
     if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(lowerUrl)) {
-      return {
-        type: "image",
-        url: url,
-        displayText: content,
-      }
+      return { type: "image", url, displayText: "", filename: null }
     }
-
     if (/\.(mp3|wav|ogg|m4a|aac|opus|webm)(\?|$)/i.test(lowerUrl)) {
-      return {
-        type: "audio",
-        url: url,
-        displayText: content,
-      }
+      return { type: "audio", url, displayText: "", filename: null }
     }
-
     if (/\.(mp4|avi|mov|mkv|flv|wmv|3gp|webm)(\?|$)/i.test(lowerUrl)) {
-      return {
-        type: "video",
-        url: url,
-        displayText: content,
-      }
+      return { type: "video", url, displayText: "", filename: null }
+    }
+    if (/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|csv|txt|zip|rar)(\?|$)/i.test(lowerUrl)) {
+      return { type: "document", url, displayText: "", filename: null }
     }
   }
 
-  return { type: null, url: null, displayText: content }
+  return { type: null, url: null, displayText: content, filename: null }
 }

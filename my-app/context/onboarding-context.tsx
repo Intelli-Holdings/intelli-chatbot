@@ -60,4 +60,3 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     </OnboardingContext.Provider>
   )
 }
-

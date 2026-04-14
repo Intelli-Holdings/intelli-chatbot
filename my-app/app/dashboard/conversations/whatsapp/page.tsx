@@ -116,10 +116,13 @@ function WhatsAppConvosContent() {
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string>("")
   const phoneNumber = selectedPhoneNumber || primaryPhoneNumber
 
-  // Auto-select first AppService when available
+  // Auto-select first AppService that has a phone number
   useEffect(() => {
-    if (!selectedPhoneNumber && appServices.length > 0 && appServices[0].phone_number) {
-      setSelectedPhoneNumber(appServices[0].phone_number)
+    if (!selectedPhoneNumber && appServices.length > 0) {
+      const first = appServices.find((s) => s.phone_number)
+      if (first?.phone_number) {
+        setSelectedPhoneNumber(first.phone_number)
+      }
     }
   }, [appServices, selectedPhoneNumber])
 
@@ -211,7 +214,10 @@ function WhatsAppConvosContent() {
   )
 
   useEffect(() => {
-    if (!activeOrganizationId) return
+    if (!activeOrganizationId) {
+      logger.info("WhatsApp page: waiting for organization ID")
+      return
+    }
 
     if (appServicesLoading) {
       setLoadingMessage("Fetching phone configuration...")
@@ -228,8 +234,12 @@ function WhatsAppConvosContent() {
     if (phoneNumber) {
       setLoadingProgress(40)
       setLoadingMessage("Phone configuration loaded")
+    } else {
+      // No WhatsApp phone number available — stop loading
+      logger.info("WhatsApp page: no phone number found", { appServicesCount: appServices.length })
+      setIsInitializing(false)
     }
-  }, [activeOrganizationId, appServicesLoading, appServicesError, phoneNumber])
+  }, [activeOrganizationId, appServicesLoading, appServicesError, phoneNumber, appServices.length])
 
   useEffect(() => {
     if (!phoneNumber || !activeOrganizationId) return
@@ -470,36 +480,20 @@ function WhatsAppConvosContent() {
 
   // Show professional skeleton loader during initialization
   if (isInitializing) {
+    logger.info("WhatsApp page: still initializing", {
+      activeOrganizationId,
+      appServicesLoading,
+      appServicesCount: appServices.length,
+      phoneNumber,
+      sessionsLoading,
+    })
     return <WhatsAppSkeletonLoader />
   }
 
   return (
     <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
-      {/* Left Panel - AppService Selector + Conversations */}
+      {/* Left Panel - Conversations */}
       <div className="flex flex-col h-full">
-        {/* AppService Selector - only show if multiple AppServices exist */}
-        {appServices.length > 1 && (
-          <div className="w-[420px] p-3 border-b border-[#e9edef] bg-[#f0f2f5]">
-            <Select value={selectedPhoneNumber} onValueChange={handleAppServiceChange}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Select a phone number" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {appServices.map((appService) => (
-                    <SelectItem
-                      key={appService.id}
-                      value={appService.phone_number || ""}
-                    >
-                      {appService.name || appService.phone_number || `AppService ${appService.id}`}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         <div className="flex-1 overflow-hidden">
           <ChatSidebar
             conversations={conversations}
@@ -509,6 +503,27 @@ function WhatsAppConvosContent() {
             hasMore={listHasMore}
             loadMore={loadMoreConversations}
             isLoadingMore={isFetchingNextPage}
+            headerExtra={
+              appServices.length > 0 ? (
+                <Select value={selectedPhoneNumber} onValueChange={handleAppServiceChange}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select a phone number" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {appServices.filter((s) => s.phone_number).map((appService) => (
+                        <SelectItem
+                          key={appService.id}
+                          value={appService.phone_number!}
+                        >
+                          {appService.name || appService.phone_number || `AppService ${appService.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              ) : undefined
+            }
           />
         </div>
       </div>

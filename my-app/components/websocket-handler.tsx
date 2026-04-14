@@ -19,6 +19,8 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
   const wsRef = useRef<WebSocket | null>(null)
   const [isActive, setIsActive] = useState(false)
   const { getToken } = useAuth()
+  const getTokenRef = useRef(getToken)
+  getTokenRef.current = getToken
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptRef = useRef(0)
   const shouldReconnectRef = useRef(true)
@@ -56,7 +58,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
       `${process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://dev-intelliconcierge.onrender.com/ws"}/messages/?customer_number=${customerNumber}&phone_number=${phoneNumber}`
 
     try {
-      const token = await getToken()
+      const token = await getTokenRef.current()
       if (token && !wsUrl.includes("token=")) {
         const separator = wsUrl.includes("?") ? "&" : "?"
         wsUrl = `${wsUrl}${separator}token=${encodeURIComponent(token)}`
@@ -94,12 +96,34 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
 
         // Handle status updates separately
         if (message.type === "status_update") {
-          // Dispatch status update event
           window.dispatchEvent(
             new CustomEvent("messageStatusUpdate", {
               detail: {
                 message_id: message.message_id,
                 status: message.status,
+                timestamp: message.timestamp,
+                error_code: message.error_code,
+                error_title: message.error_title,
+                error_message: message.error_message,
+                error_details: message.error_details,
+              },
+            }),
+          )
+          return
+        }
+
+        // Handle reaction updates
+        if (message.type === "reaction_update") {
+          logger.info("Reaction update received via WebSocket", {
+            message_id: message.message_id,
+            reaction: message.reaction,
+          })
+          window.dispatchEvent(
+            new CustomEvent("reactionUpdate", {
+              detail: {
+                message_id: message.message_id,
+                reaction: message.reaction,
+                reactor_type: message.reactor_type,
                 timestamp: message.timestamp,
               },
             }),
@@ -110,21 +134,20 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
         // Generate a unique id for the message with additional randomness
         const newId = Date.now() + Math.floor(Math.random() * 10000)
 
-        // Extract media URL if applicable
-        let mediaUrl = null
-        if (message.type === "image" || message.type === "audio" || message.type === "video") {
-          const mediaMatch = message.content.match(/Media - (https:\/\/[^\s]+)/)
-          if (mediaMatch && mediaMatch[1]) {
-            mediaUrl = mediaMatch[1]
-          }
-        }
-
         // Use the timestamp from the payload if available; otherwise fallback to current time
         const messageTimestamp = message.timestamp || new Date().toISOString()
 
         // Determine if this is a customer message or business/AI message
         const isCustomerMessage = message.sender === "customer"
-        const messageContent = message.type === "text" ? message.content : null
+        // Pass content through for all message types so extractMedia() can parse it downstream
+        const messageContent = message.content || null
+
+        // Read explicit media URL from the WebSocket payload as fallback
+        let mediaUrl = message.media || message.media_url || null
+        // Prevent double-rendering if content already contains the media URL
+        if (mediaUrl && messageContent && messageContent.includes(mediaUrl)) {
+          mediaUrl = null
+        }
 
         // Create the new message object
         // Customer messages go in 'content' field, Business/AI messages go in 'answer' field
@@ -179,7 +202,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
     ws.onerror = (error) => {
       logger.error("WebSocket error:", { error: error instanceof Error ? error.message : String(error) })
     }
-  }, [getToken])
+  }, [])
 
   useEffect(() => {
     // If props are provided, start connection immediately
@@ -221,6 +244,7 @@ export function WebSocketHandler({ customerNumber, phoneNumber, websocketUrl }: 
     window.addEventListener("aiSupportChanged", handleAiSupportChange as EventListener)
 
     return () => {
+      stopWebSocketConnection()
       window.removeEventListener("websocketControl", handleWebSocketControl as EventListener)
       window.removeEventListener("aiSupportChanged", handleAiSupportChange as EventListener)
     }

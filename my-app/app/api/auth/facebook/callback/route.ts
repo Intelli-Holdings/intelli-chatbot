@@ -20,7 +20,7 @@ const decodeState = (state: string | null) => {
   }
 }
 
-const persistMetaCredentials = async ({
+async function persistMetaCredentials({
   organizationId,
   pageId,
   pageAccessToken,
@@ -34,7 +34,7 @@ const persistMetaCredentials = async ({
   instagramBusinessAccountId?: string
   userAccessToken: string
   channel: string
-}) => {
+}): Promise<{ persisted: boolean }> {
   const persistUrl = process.env.META_CHANNELS_PERSIST_URL
   const serviceToken = process.env.META_CHANNELS_SERVICE_TOKEN
 
@@ -69,6 +69,7 @@ const persistMetaCredentials = async ({
 
   return { persisted: true }
 }
+
 
 export async function GET(request: NextRequest) {
   const appId = process.env.FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_FACEBOOK_APP_ID

@@ -34,8 +34,8 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   let codeString = '';
   if (typeof children === 'string') {
     codeString = children.trim();
-  } else if (React.isValidElement(children) && typeof (children.props as Record<string, unknown>).children === 'string') {
-    codeString = ((children.props as Record<string, unknown>).children as string).trim();
+  } else if (React.isValidElement<{children?: string}>(children) && typeof children.props.children === 'string') {
+    codeString = children.props.children.trim();
   }
 
   return (

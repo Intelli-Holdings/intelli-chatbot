@@ -30,6 +30,9 @@ import { useWhatsAppTemplates } from "@/hooks/use-whatsapp-templates"
 import type { AppService } from "@/services/whatsapp"
 import { SendTemplateDialog } from "./send-template-dialog"
 import { CannedResponsesDialog } from "@/components/canned-responses-dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { ProductMessageComposer } from "@/components/catalogue"
+import { useCatalogues, useProducts, useProductMessages } from "@/hooks/use-catalogue"
 
 // Extended interface to include polling configuration
 interface ConversationViewProps {
@@ -137,6 +140,27 @@ export default function ChatArea({
   // Template & canned response dialog state
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
   const [showCannedResponses, setShowCannedResponses] = useState(false)
+  const [productComposerOpen, setProductComposerOpen] = useState(false)
+
+  // Product catalogue hooks
+  const { catalogues, selectedCatalogue } = useCatalogues(currentAppService as AppService | null)
+  const {
+    products,
+    loading: productsLoading,
+    error: productsError,
+    search: searchProducts,
+    searchQuery,
+    clearSearch: clearProductSearch,
+    loadMore: loadMoreProducts,
+    hasMore: hasMoreProducts,
+    refetch: refetchProducts,
+  } = useProducts(currentAppService as AppService | null, selectedCatalogue?.id || null)
+  const {
+    sendSingleProduct,
+    sendMultipleProducts,
+    sending: productSending,
+    error: productSendError,
+  } = useProductMessages(currentAppService as AppService | null)
 
   // Compute last customer message time for 24h window
   // The window opens when the customer messages the business (any mode) or replies to a template.
@@ -642,19 +666,21 @@ export default function ChatArea({
 
     // Listen for message status updates from WebSocketHandler
     const handleStatusUpdate = (event: CustomEvent) => {
-      const { message_id, status } = event.detail
+      const { message_id, status, error_details, error_message } = event.detail
       logger.debug("Status update received", { message_id, status })
 
       if (message_id && status) {
         updateMessagesAndSync((prev) => {
-          const updated = (prev || []).map((msg) => {
+          return (prev || []).map((msg) => {
             if (msg.whatsapp_message_id === message_id) {
-              return { ...msg, status: status }
+              const updated = { ...msg, status }
+              if (status === "failed" && (error_details || error_message)) {
+                (updated as any).error_details = error_details || error_message
+              }
+              return updated
             }
             return msg
           })
-
-          return updated
         })
       }
     }
@@ -672,10 +698,28 @@ export default function ChatArea({
 
     window.addEventListener("websocketConnectionChange", handleConnectionChange as EventListener)
 
+    // Listen for reaction updates from WebSocket
+    const handleReactionUpdate = (event: CustomEvent) => {
+      const { message_id, reaction } = event.detail
+      if (!message_id) return
+
+      updateMessagesAndSync((prev) =>
+        (prev || []).map((msg) => {
+          if (msg.whatsapp_message_id === message_id || msg.incoming_whatsapp_message_id === message_id) {
+            return { ...msg, reaction }
+          }
+          return msg
+        })
+      )
+    }
+
+    window.addEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
+
     return () => {
       window.removeEventListener("newMessageReceived", handleNewMessage as unknown as EventListener)
       window.removeEventListener("messageStatusUpdate", handleStatusUpdate as unknown as EventListener)
       window.removeEventListener("websocketConnectionChange", handleConnectionChange as unknown as EventListener)
+      window.removeEventListener("reactionUpdate", handleReactionUpdate as unknown as EventListener)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -1202,9 +1246,11 @@ export default function ChatArea({
                 <div className="" key={date}>
                   {renderDateSeparator(date)}
                   {(messages ?? []).map((message, messageIndex) => {
-                    // Extract media from content if it exists
+                    // Extract media from content (customer) and answer (business) fields
                     const contentMedia = message.content ? extractMedia(message.content) : null
                     const contentHasMedia = contentMedia?.type && contentMedia?.url
+                    const answerMedia = message.answer ? extractMedia(message.answer) : null
+                    const answerHasMedia = answerMedia?.type && answerMedia?.url
                     const messageKey =
                       message.id ??
                       message.whatsapp_message_id ??
@@ -1247,10 +1293,18 @@ export default function ChatArea({
                       <>
                         {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
                         {contentMedia?.type === "image" && contentMedia?.url && (
-                          <ImagePreview src={contentMedia.url || "/placeholder.svg"} />
+                          <ImagePreview src={contentMedia.url || "/placeholder.svg"} title={contentMedia.filename || undefined} />
                         )}
                         {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
-                        {/* Display remaining text if any */}
+                        {contentMedia?.type === "document" && contentMedia?.url && (
+                          <a href={contentMedia.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                            <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm truncate block">{contentMedia.filename || "Document"}</span>
+                              <span className="text-xs text-[#667781]">Tap to open</span>
+                            </div>
+                          </a>
+                        )}
                         {contentMedia?.displayText && contentMedia.displayText.trim() && (
                           <div className="mt-2">{formatMessage(contentMedia.displayText)}</div>
                         )}
@@ -1279,6 +1333,70 @@ export default function ChatArea({
               })()}
 
               {message.answer && (() => {
+                // Check if this is a media placeholder from file upload (e.g. "[DOCUMENT] Invoice.pdf - https://...")
+                const placeholderMedia = extractMedia(message.answer)
+                const placeholderHasMedia = placeholderMedia?.type && placeholderMedia?.url
+                if (placeholderHasMedia) {
+                  return (
+                    <div
+                      className={cn(
+                        "message-bubble group message-human",
+                        message.status === "failed" && "border-2 border-red-400 bg-red-50/50",
+                      )}
+                    >
+                      {message.status === "failed" && (
+                        <div className="text-[10px] text-red-600 font-medium mb-1">
+                          <div className="flex items-center gap-1">
+                            <span>⚠</span>
+                            <span>Failed to send</span>
+                          </div>
+                          {message.error_details && (
+                            <div className="text-[9px] text-red-500 mt-0.5">{message.error_details}</div>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-[9px] font-semibold mb-1 text-green-700">
+                        👤 Business
+                      </div>
+                      <div className="text-sm">
+                        {placeholderMedia.type === "audio" && <AudioPlayer src={placeholderMedia.url!} />}
+                        {placeholderMedia.type === "image" && <ImagePreview src={placeholderMedia.url!} title={placeholderMedia.filename || undefined} />}
+                        {placeholderMedia.type === "video" && <VideoPlayer src={placeholderMedia.url!} />}
+                        {placeholderMedia.type === "document" && (
+                          <a href={placeholderMedia.url!} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                            <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm truncate block">{placeholderMedia.filename || "Document"}</span>
+                              <span className="text-xs text-[#667781]">Tap to open</span>
+                            </div>
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[11px] text-[#667781]">
+                          {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {message.sender === "human" && (
+                          <>
+                            <MessageStatus
+                              status={message.pending ? 'sending' : message.status || 'delivered'}
+                              className="text-[#667781]"
+                            />
+                            {message.status === "failed" && (
+                              <button
+                                onClick={() => handleRetryMessage(message.id)}
+                                className="ml-2 text-[10px] text-red-600 hover:text-red-700 underline"
+                              >
+                                Retry
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+
                 // Check if this is a flow interactive message with buttons
                 const parsedInteractive = message.sender === 'flow'
                   ? parseInteractiveMessage(message.answer)
@@ -1345,9 +1463,14 @@ export default function ChatArea({
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
                   {message.status === "failed" && (
-                    <div className="text-[10px] text-red-600 font-medium mb-1 flex items-center gap-1">
-                      <span>⚠</span>
-                      <span>Failed to send</span>
+                    <div className="text-[10px] text-red-600 font-medium mb-1">
+                      <div className="flex items-center gap-1">
+                        <span>⚠</span>
+                        <span>Failed to send</span>
+                      </div>
+                      {message.error_details && (
+                        <div className="text-[9px] text-red-500 mt-0.5">{message.error_details}</div>
+                      )}
                     </div>
                   )}
                   {/* Sender badge - AI or Human/Flow */}
@@ -1357,7 +1480,31 @@ export default function ChatArea({
                   )}>
                     {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
                   </div>
-                  <div className="text-sm">{formatMessage(message.answer)}</div>
+                  <div className="text-sm">
+                    {answerHasMedia ? (
+                      <>
+                        {answerMedia?.type === "audio" && answerMedia?.url && <AudioPlayer src={answerMedia.url} />}
+                        {answerMedia?.type === "image" && answerMedia?.url && (
+                          <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
+                        )}
+                        {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
+                        {answerMedia?.type === "document" && answerMedia?.url && (
+                          <a href={answerMedia.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                            <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm truncate block">{answerMedia.filename || "Document"}</span>
+                              <span className="text-xs text-[#667781]">Tap to open</span>
+                            </div>
+                          </a>
+                        )}
+                        {answerMedia?.displayText && answerMedia.displayText.trim() && (
+                          <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
+                        )}
+                      </>
+                    ) : (
+                      formatMessage(message.answer)
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-[11px] text-[#667781]">
                       {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -1397,7 +1544,7 @@ export default function ChatArea({
                 </div>
                 )
               })()}
-              {message.media && (() => {
+              {message.media && !message.answer?.match(/^\[(DOCUMENT|IMAGE|VIDEO|AUDIO)\]/) && (() => {
                 // Media messages: determine if customer or outgoing
                 const isCustomerMedia = message.content != null
                 return (
@@ -1427,19 +1574,22 @@ export default function ChatArea({
                       {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
                     </div>
                   )}
-                  <div className="text-sm cursor-pointer" onClick={() => {}}>
-                    <div className="max-w-xs rounded-lg overflow-hidden shadow">
-                      {message.type === "image" ? (
-                        <Image
-                          src={message.media || "/placeholder.svg"}
-                          alt="Image"
-                          className="w-full h-auto rounded-lg"
-                        />
+                  <div className="text-sm">
+                    <div className="max-w-xs rounded-lg overflow-hidden">
+                      {(message.type === "image" || message.type?.startsWith("image/")) ? (
+                        <ImagePreview src={message.media || "/placeholder.svg"} />
+                      ) : (message.type === "video" || message.type?.startsWith("video/")) ? (
+                        <VideoPlayer src={message.media!} />
+                      ) : (message.type === "audio" || message.type?.startsWith("audio/")) ? (
+                        <AudioPlayer src={message.media!} />
                       ) : (
-                        <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg">
+                        <a href={message.media!} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                           {getFileIcon(message.type)}
-                          <span className="text-sm truncate">Attachment</span>
-                        </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm truncate block">Document</span>
+                            <span className="text-xs text-[#667781]">Tap to open</span>
+                          </div>
+                        </a>
                       )}
                     </div>
                   </div>
@@ -1514,6 +1664,7 @@ export default function ChatArea({
           onMessageSendFailure={handleMessageSendFailure}
           onOpenTemplatePicker={() => setShowTemplatePicker(true)}
           onOpenCannedResponses={() => setShowCannedResponses(true)}
+          onOpenProductComposer={selectedCatalogue ? () => setProductComposerOpen(true) : undefined}
         />
       </div>
 
@@ -1538,6 +1689,45 @@ export default function ChatArea({
         organizationId={organizationId}
         onInsert={handleCannedResponseInsert}
       />
+
+      {/* Product composer sheet */}
+      {selectedCatalogue && (
+        <Sheet open={productComposerOpen} onOpenChange={setProductComposerOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Send Product</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">
+              <ProductMessageComposer
+                catalogId={selectedCatalogue.id}
+                products={products}
+                productsLoading={productsLoading}
+                productsError={productsError}
+                onSearchProducts={searchProducts}
+                searchQuery={searchQuery}
+                onClearSearch={clearProductSearch}
+                onLoadMore={loadMoreProducts}
+                hasMore={hasMoreProducts}
+                onRefreshProducts={refetchProducts}
+                onSendSingleProduct={async (productRetailerId, bodyText, footerText) => {
+                  const customerNumber = conversation?.customer_number || conversation?.recipient_id || ''
+                  await sendSingleProduct(customerNumber, selectedCatalogue.id, productRetailerId, bodyText, footerText)
+                  setProductComposerOpen(false)
+                  toast({ title: 'Product message sent' })
+                }}
+                onSendMultiProduct={async (headerText, bodyText, sections, footerText) => {
+                  const customerNumber = conversation?.customer_number || conversation?.recipient_id || ''
+                  await sendMultipleProducts(customerNumber, selectedCatalogue.id, headerText, bodyText, sections, footerText)
+                  setProductComposerOpen(false)
+                  toast({ title: 'Product list sent' })
+                }}
+                sending={productSending}
+                error={productSendError}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   )
 }

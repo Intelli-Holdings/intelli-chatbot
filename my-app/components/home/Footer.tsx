@@ -75,6 +75,8 @@ export function FooterComponent() {
           <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-6">
             <Link href="/terms-of-service" className="hover:text-yellow-500 text-base sm:text-lg">Terms of Use</Link>
             <Link href="/privacy" className="hover:text-yellow-500 text-base sm:text-lg">Privacy Policy</Link>
+            <Link href="/subprocessors" className="hover:text-yellow-500 text-base sm:text-lg">Subprocessors</Link>
+            <Link href="/data-processing-agreement" className="hover:text-yellow-500 text-base sm:text-lg">DPA</Link>
             <span className="text-sm sm:text-base">Copyright © {new Date().getFullYear()} Intelli Holdings Inc</span>
           </div>
         </div>

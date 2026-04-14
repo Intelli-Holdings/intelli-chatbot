@@ -1,301 +1,312 @@
 "use client"
 
-import * as React from "react"
+import { useState, useEffect } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { useRouter, usePathname } from "next/navigation"
 import {
   Home,
-  Building2,
-  Bot,
-  BarChart,
-  MessageSquareDot,
-  BellDot,
-  PaintRoller,
+  MessageSquare,
   Globe,
+  Users,
   Contact,
-  ChevronDown,
-  Files,
+  SlidersHorizontal,
+  Megaphone,
+  FileText,
+  ShoppingBag,
+  BarChart3,
+  Bot,
+  MessageSquareCode,
+  Layout,
   ChevronRight,
-  RadioTower,
-  CreditCard,
-  SettingsIcon,
-  CogIcon,
-  Workflow,
+  ChevronLeft,
+  X,
 } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { UserNav } from "@/components/user-nav"
-import { AnnouncementBanner } from "@/components/announcement"
+import { SidebarCTA } from "@/components/dashboard/sidebar/SidebarCTA"
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon"
-
+import { InstagramIcon } from "@/components/icons/instagram-icon"
+import { MessengerIcon } from "@/components/icons/messenger-icon"
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { MessengerIcon } from "./icons/messenger-icon"
-import { InstagramIcon } from "./icons/instagram-icon"
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import type React from "react"
 
-type IconComponent = React.ComponentType<{ className?: string }>
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-type NavItem = {
-  title: string
-  url: string
-  icon: IconComponent
-  showBadge?: boolean
-  hasSubmenu?: boolean
-  submenuItems?: { title: string; url: string; icon?: string | IconComponent }[]
+interface SubItem {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  description?: string
+  route: string
 }
 
-const data = {
-  navMain: [
-    {
-      title: "Home",
-      url: "/dashboard",
-      icon: Home,
-    },
-    {
-      title: "Assistants",
-      url: "/dashboard/assistants",
-      icon: Bot,
-    },
-    {
-      title: "Chatbots",
-      url: "/dashboard/chatbots",
-      icon: Workflow,
-    },
-    {
-      title: "Widgets",
-      url: "/dashboard/widgets",
-      icon: Globe,
-    },
-    {
-      title: "Conversations",
-      url: "/dashboard/conversations",
-      icon: MessageSquareDot,
-      hasSubmenu: true,
-      submenuItems: [
-        { title: "🌐 Website", url: "/dashboard/conversations/website" },
-        {
-          title: "WhatsApp",
-          url: "/dashboard/conversations/whatsapp",
-          icon: WhatsAppIcon,
-        },
-        {
-          title: "Instagram",
-          url: "/dashboard/conversations/instagram",
-          icon: InstagramIcon,
-        },
-        {
-          title: "Messenger",
-          url: "/dashboard/conversations/messenger",
-          icon: MessengerIcon,
-        },
-      ],
-    },
-    {
-      title: "Notifications",
-      url: "/dashboard/notifications",
-      icon: BellDot,
-    },
-    {
-      title: "Contacts",
-      url: "/dashboard/contacts",
-      icon: Contact,
-    },
-    {
-      title: "Campaigns",
-      url: "/dashboard/campaigns",
-      icon: RadioTower,
-    },
-    {
-      title: "Templates",
-      url: "/dashboard/templates",
-      icon: Files,
-    },
-    {
-      title: "Analytics",
-      url: "/dashboard/analytics",
-      icon: BarChart,
-    },
-    {
-      title: "Organization",
-      url: "/dashboard/organization",
-      icon: Building2,
-    },
-    {
-      title: "Billing",
-      url: "/dashboard/billing",
-      icon: CreditCard,
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: SettingsIcon,
-    },
-  ],
+interface SidebarItem {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  badge?: string
+  hasSubItems?: boolean
+  route?: string
+  subItems?: SubItem[]
 }
 
-// Helper component for submenu items
-const SidebarSubmenuItem = ({
-  title,
-  url,
-  pathname,
-  icon,
-}: {
-  title: string
-  url: string
-  pathname: string
-  icon?: string | IconComponent
-}) => {
-  const IconComp = typeof icon === "function" ? icon : null
-  const iconPath = typeof icon === "string" ? icon : null
+// ---------------------------------------------------------------------------
+// Menu items
+// ---------------------------------------------------------------------------
 
-  return (
-    <SidebarMenuItem className="ml-6">
-      <SidebarMenuButton asChild className="w-full">
-        <Link href={url} className="w-full">
-          <span
-            className={cn(
-              "group flex w-full items-center rounded-lg px-2 py-2 text-sm font-medium hover:bg-blue-100 hover:text-blue-600",
-              pathname === url ? "bg-blue-500 text-white" : "transparent",
-            )}
-          >
-            {IconComp ? (
-              <IconComp className="mr-2 size-4" />
-            ) : iconPath ? (
-              <Image src={iconPath || "/placeholder.svg"} alt={title} width={16} height={16} className="mr-2" />
-            ) : null}
-            <span>{title}</span>
-          </span>
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  )
+const sidebarItems: SidebarItem[] = [
+  { id: "home", label: "Home", icon: Home, route: "/dashboard" },
+  { id: "assistants", label: "Assistants", icon: Bot, route: "/dashboard/assistants" },
+  { id: "chatbots", label: "Chatbots", icon: MessageSquareCode, route: "/dashboard/chatbots" },
+  { id: "widgets", label: "Widgets", icon: Layout, route: "/dashboard/widgets" },
+  {
+    id: "conversations",
+    label: "Conversations",
+    icon: MessageSquare,
+    hasSubItems: true,
+    subItems: [
+      { id: "website", label: "Website", icon: Globe, description: "Website chat conversations", route: "/dashboard/conversations/website" },
+      { id: "whatsapp", label: "WhatsApp", icon: WhatsAppIcon, description: "WhatsApp Business messages", route: "/dashboard/conversations/whatsapp" },
+      { id: "instagram", label: "Instagram", icon: InstagramIcon, description: "Instagram direct messages", route: "/dashboard/conversations/instagram" },
+      { id: "messenger", label: "Messenger", icon: MessengerIcon, description: "Facebook Messenger chats", route: "/dashboard/conversations/messenger" },
+    ],
+  },
+  {
+    id: "audiences",
+    label: "Audiences",
+    icon: Users,
+    hasSubItems: true,
+    subItems: [
+      { id: "contacts", label: "Contacts", icon: Contact, description: "Manage your contacts", route: "/dashboard/audiences/contacts" },
+      { id: "segments", label: "Segments", icon: SlidersHorizontal, description: "Audience segments and filters", route: "/dashboard/audiences/segments" },
+      { id: "campaigns", label: "Campaigns", icon: Megaphone, description: "Create and manage campaigns", route: "/dashboard/campaigns" },
+      { id: "templates", label: "Templates", icon: FileText, description: "Message templates", route: "/dashboard/templates" },
+    ],
+  },
+  { id: "commerce", label: "Commerce", icon: ShoppingBag, route: "/dashboard/commerce" },
+  { id: "analytics", label: "Analytics", icon: BarChart3, route: "/dashboard/analytics" },
+]
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function isRouteActive(route: string, pathname: string) {
+  if (route === "/dashboard") return pathname === "/dashboard"
+  return pathname === route || pathname.startsWith(route + "/")
 }
 
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  activePath: string
+function hasActiveChild(item: SidebarItem, pathname: string) {
+  return item.subItems?.some((sub) => isRouteActive(sub.route, pathname)) ?? false
 }
 
-export function AppSidebar({ activePath, ...props }: AppSidebarProps) {
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
+const primaryActiveClass =
+  "bg-[#007fff] text-white hover:bg-[#006ee6]"
+const primaryDefaultClass =
+  "text-foreground/80 hover:bg-[#007fff]/10 hover:text-[#007fff]"
+const secondaryActiveClass =
+  "bg-[#007fff]/10 text-[#007fff] hover:bg-[#007fff]/15"
+const secondaryDefaultClass =
+  "text-foreground/80 hover:bg-[#007fff]/10 hover:text-[#007fff]"
+
+// ---------------------------------------------------------------------------
+// AppSidebar
+// ---------------------------------------------------------------------------
+
+export function AppSidebar() {
+  const router = useRouter()
   const pathname = usePathname()
-  const [expandedMenus, setExpandedMenus] = React.useState<Record<string, boolean>>({})
+  const [collapsed, setCollapsed] = useState(false)
+  const [openPanel, setOpenPanel] = useState<string | null>(null)
 
-  // Toggle submenu visibility
-  const toggleSubmenu = (title: string) => {
-    setExpandedMenus((prev) => ({
-      ...prev,
-      [title]: !prev[title],
-    }))
+  // Close panel when collapsing
+  useEffect(() => {
+    if (collapsed) setOpenPanel(null)
+  }, [collapsed])
+
+  // Auto-open panel if a sub-item is active
+  useEffect(() => {
+    const matching = sidebarItems.find(
+      (item) => item.hasSubItems && hasActiveChild(item, pathname)
+    )
+    if (matching && !collapsed) {
+      setOpenPanel(matching.id)
+    }
+  }, [pathname, collapsed])
+
+  const openPanelData = sidebarItems.find((item) => item.id === openPanel)
+
+  const handleItemClick = (item: SidebarItem) => {
+    if (item.hasSubItems) {
+      if (collapsed) {
+        setCollapsed(false)
+        setTimeout(() => setOpenPanel(item.id), 200)
+      } else {
+        setOpenPanel(openPanel === item.id ? null : item.id)
+      }
+    } else if (item.route) {
+      setOpenPanel(null)
+      router.push(item.route)
+    }
   }
 
-  // Initialize expanded state for the menu that contains the current path
-  React.useEffect(() => {
-    const menuToExpand = data.navMain.find(
-      (item) =>
-        item.hasSubmenu && (pathname === item.url || item.submenuItems?.some((subItem) => pathname === subItem.url)),
-    )
-
-    if (menuToExpand) {
-      setExpandedMenus((prev) => ({
-        ...prev,
-        [menuToExpand.title]: true,
-      }))
-    }
-  }, [pathname])
-
   return (
-    <Sidebar variant="floating" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-gray-900 text-sidebar-primary-foreground">
-                  <Image alt="Intelli Logo" className="h-16 size-4" src="/Intelli.svg" height={25} width={25} />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-bold">Intelli</span>
-                </div>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu className="gap-2">
-            {data.navMain.map((item) => (
-              <React.Fragment key={item.title}>
-                <SidebarMenuItem className="w-full">
-                  {item.hasSubmenu ? (
-                    <SidebarMenuButton className="w-full" onClick={() => toggleSubmenu(item.title)}>
-                      <span className="relative w-full">
-                        <span
-                          className={cn(
-                            "group flex w-full items-center justify-between rounded-lg px-2 py-2 text-sm font-medium hover:bg-blue-100 hover:text-blue-600",
-                            pathname === item.url || item.submenuItems?.some((subItem) => pathname === subItem.url)
-                              ? "bg-blue-500 text-white"
-                              : "transparent",
-                          )}
-                        >
-                          <div className="flex items-center">
-                            {item.icon && <item.icon className="mr-2 size-4" />}
-                            <span>{item.title}</span>
-                          </div>
-                          {expandedMenus[item.title] ? (
-                            <ChevronDown className="size-4" />
-                          ) : (
-                            <ChevronRight className="size-4" />
-                          )}
-                        </span>
-                      </span>
-                    </SidebarMenuButton>
-                  ) : (
-                    <SidebarMenuButton asChild className="w-full">
-                      <Link href={item.url} className="w-full">
-                        <span
-                          className={cn(
-                            "group flex w-full items-center rounded-lg px-2 py-2 text-sm font-medium hover:bg-blue-100 hover:text-blue-600",
-                            pathname === item.url ? "bg-blue-500 text-white" : "transparent",
-                          )}
-                        >
-                          {item.icon && <item.icon className="mr-2 size-4" />}
-                          <span>{item.title}</span>
-                        </span>
-                      </Link>
-                    </SidebarMenuButton>
+    <TooltipProvider delayDuration={0}>
+      <div className="flex h-dvh shrink-0">
+        {/* Primary sidebar */}
+        <aside
+          className={cn(
+            "relative flex h-full flex-col border-r border-border bg-card transition-[width] duration-300 ease-in-out",
+            collapsed ? "w-[68px]" : "w-64"
+          )}
+        >
+          {/* Floating toggle button */}
+          <button
+            type="button"
+            onClick={() => setCollapsed((c) => !c)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={cn(
+              "absolute -right-3 top-6 z-20 flex h-6 w-6 items-center justify-center",
+              "rounded-full border border-border bg-card shadow-md",
+              "transition-colors hover:bg-accent"
+            )}
+          >
+            <ChevronLeft
+              className={cn(
+                "h-3.5 w-3.5 transition-transform duration-300",
+                collapsed && "rotate-180"
+              )}
+            />
+          </button>
+
+          {/* Logo */}
+          <div className={cn(
+            "flex h-16 items-center border-b border-border shrink-0",
+            collapsed ? "justify-center px-0" : "px-4"
+          )}>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-gray-900">
+                <Image alt="Intelli Logo" src="/Intelli.svg" height={20} width={20} className="size-5" />
+              </div>
+              {!collapsed && <span className="font-bold whitespace-nowrap">Intelli</span>}
+            </Link>
+          </div>
+
+          {/* Nav items — no scroll */}
+          <nav className="flex-1 space-y-1 p-2 overflow-hidden">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon
+              const isActive = item.route
+                ? isRouteActive(item.route, pathname)
+                : hasActiveChild(item, pathname)
+              const isPanelOpen = openPanel === item.id
+
+              const button = (
+                <button
+                  type="button"
+                  onClick={() => handleItemClick(item)}
+                  className={cn(
+                    "flex h-10 w-full items-center rounded-lg text-sm font-medium transition-colors",
+                    isActive || isPanelOpen ? primaryActiveClass : primaryDefaultClass,
+                    collapsed ? "justify-center px-0" : "gap-3 px-3"
                   )}
-                </SidebarMenuItem>
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 whitespace-nowrap text-left truncate">{item.label}</span>
+                      {item.hasSubItems && (
+                        <ChevronRight
+                          className={cn(
+                            "h-4 w-4 shrink-0 transition-transform",
+                            isPanelOpen && "rotate-90"
+                          )}
+                        />
+                      )}
+                    </>
+                  )}
+                </button>
+              )
 
-                {/* Render submenu items if parent is expanded */}
-                {item.hasSubmenu &&
-                  expandedMenus[item.title] &&
-                  item.submenuItems?.map((subItem) => (
-                    <SidebarSubmenuItem
-                      key={subItem.url}
-                      title={subItem.title}
-                      url={subItem.url}
-                      pathname={pathname}
-                      icon={subItem.icon}
-                    />
-                  ))}
-              </React.Fragment>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
+              if (collapsed) {
+                return (
+                  <Tooltip key={item.id}>
+                    <TooltipTrigger asChild>{button}</TooltipTrigger>
+                    <TooltipContent side="right">{item.label}</TooltipContent>
+                  </Tooltip>
+                )
+              }
 
-      <SidebarFooter className="border-t">
-        <AnnouncementBanner />
-        <UserNav />
-      </SidebarFooter>
-    </Sidebar>
+              return <div key={item.id}>{button}</div>
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div className="shrink-0 space-y-2 border-t border-border p-2">
+            {!collapsed && <SidebarCTA />}
+            <UserNav collapsed={collapsed} />
+          </div>
+        </aside>
+
+        {/* Secondary panel — sub-items */}
+        {openPanel && openPanelData?.subItems && !collapsed && (
+          <aside className="flex h-full w-72 flex-col border-r border-border bg-card animate-in slide-in-from-left-5 duration-200">
+            <div className="flex h-16 items-center justify-between border-b border-border px-4 shrink-0">
+              <h3 className="font-medium">{openPanelData.label}</h3>
+              <button
+                type="button"
+                onClick={() => setOpenPanel(null)}
+                className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-[#007fff]/10 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <nav className="flex-1 space-y-1 p-2 overflow-hidden">
+              {openPanelData.subItems.map((subItem) => {
+                const SubIcon = subItem.icon
+                const isSelected = isRouteActive(subItem.route, pathname)
+
+                return (
+                  <button
+                    key={subItem.id}
+                    type="button"
+                    onClick={() => router.push(subItem.route)}
+                    className={cn(
+                      "flex w-full items-start gap-3 rounded-lg px-3 py-2 text-sm transition-colors text-left",
+                      isSelected ? secondaryActiveClass : secondaryDefaultClass
+                    )}
+                  >
+                    <SubIcon className={cn("h-5 w-5 shrink-0 mt-0.5", isSelected && "text-[#007fff]")} />
+                    <div className="flex-1 min-w-0">
+                      <div className={cn("font-medium", isSelected && "text-[#007fff]")}>
+                        {subItem.label}
+                      </div>
+                      {subItem.description && (
+                        <div className={cn("text-xs mt-0.5", isSelected ? "text-[#007fff]/70" : "text-muted-foreground")}>
+                          {subItem.description}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </nav>
+          </aside>
+        )}
+      </div>
+    </TooltipProvider>
   )
 }

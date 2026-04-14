@@ -252,6 +252,13 @@ export default function SimpleCarouselCreator({
         return;
       }
 
+      // Validate card body text length
+      if (cards[i].bodyText && cards[i].bodyText!.trim().length > 160) {
+        toast.error(`Card ${i + 1}: Body text exceeds 160 character limit`);
+        setCurrentCardIndex(i);
+        return;
+      }
+
       if (!cards[i].buttons || cards[i].buttons.length === 0) {
         toast.error(`Card ${i + 1}: At least one button is required`);
         setCurrentCardIndex(i);
@@ -523,10 +530,11 @@ export default function SimpleCarouselCreator({
                   }}
                   placeholder="Add text that appears below the image/video on this card (optional)"
                   rows={3}
+                  maxLength={160}
                   className="mt-2"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  This text appears on the individual card. Leave empty if you only want the media.
+                  {(currentCard.bodyText || '').length}/160 characters • This text appears on the individual card. Leave empty if you only want the media.
                 </p>
               </div>
 

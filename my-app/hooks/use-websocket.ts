@@ -12,7 +12,19 @@ export type WebSocketMessage = {
   // Properties for status updates
   message_id?: string
   status?: string
-  // Add any other properties that might be in your WebSocket messages
+  // Media fields from backend WebSocket payload
+  media?: string
+  media_url?: string
+  // Channel identifier (e.g. "whatsapp", "instagram")
+  channel?: string
+  // Reaction update fields
+  reaction?: { emoji: string; reactor_id?: string; created_at?: string } | null
+  reactor_type?: string
+  // Error fields for failed message status updates
+  error_code?: number
+  error_title?: string
+  error_message?: string
+  error_details?: string
 }
 
 // Update the Options interface to include the enabled property
@@ -30,7 +42,7 @@ export const useWebSocket = (url: string | null, options: Options) => {
   const [isConnected, setIsConnected] = useState<boolean>(false)
   const [error, setError] = useState<Event | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const reconnectCountRef = useRef<number>(0)
 
   const reconnectInterval = options.reconnectInterval || 3000

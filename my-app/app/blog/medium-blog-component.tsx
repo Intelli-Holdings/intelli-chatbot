@@ -24,6 +24,7 @@ interface MediumPost {
   author?: string
   readTime?: string
   guid?: string
+  slug?: string
   source?: "medium" | "cms"
 }
 
@@ -106,7 +107,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
             contentSnippet: "This is a demo post while we wait for content from Medium.",
             content:
               "<p>This is a demo post while we set up your Medium integration.</p><p>We shall shortly share the blog content with you. The blog component supports rich content including images, formatted text, and more.</p>",
-            thumbnail: "/blogThumbnail.png?height=400&width=600",
+            thumbnail: "/blogThumbnail.png",
             pubDate: new Date().toISOString(),
             categories: ["Demo"],
             author: "Intelli Team",
@@ -191,11 +192,11 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
   }
 
   const PostCard = ({ post, priority = false }: { post: MediumPost; priority?: boolean }) => (
-    <Link href={`/blog/${createSlug(post.title)}`} className="cursor-pointer">
+    <Link href={`/blog/${post.slug || createSlug(post.title)}`} className="cursor-pointer">
       <Card className="group overflow-hidden border-2 border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm h-full">
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
-            src={post.thumbnail || "/blogThumbnail.png?height=400&width=600"}
+            src={post.thumbnail || "/blogThumbnail.png"}
             alt={post.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -283,12 +284,12 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           line-height: 1.8;
           font-size: 16px;
         }
-        
+
         .article-content p {
           margin-bottom: 1.5rem;
           color: #374151;
         }
-        
+
         .article-content h1,
         .article-content h2,
         .article-content h3,
@@ -300,14 +301,14 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           font-weight: 700;
           color: #111827;
         }
-        
+
         .article-content img {
           max-width: 100%;
           height: auto;
           border-radius: 8px;
           margin: 1.5rem 0;
         }
-        
+
         .article-content blockquote {
           border-left: 4px solid #e5e7eb;
           padding-left: 1rem;
@@ -315,30 +316,30 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           font-style: italic;
           color: #6b7280;
         }
-        
+
         .article-content ul,
         .article-content ol {
           margin: 1rem 0;
           padding-left: 1.5rem;
         }
-        
+
         .article-content li {
           margin-bottom: 0.5rem;
         }
-        
+
         .article-content a {
           color: #2563eb;
           text-decoration: underline;
         }
-        
+
         .article-content a:hover {
           color: #1d4ed8;
         }
-        
+
         .article-content strong {
           font-weight: 600;
         }
-        
+
         .article-content code {
           background-color: #f3f4f6;
           padding: 0.25rem 0.5rem;
@@ -346,7 +347,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           font-family: ui-monospace, SFMono-Regular, monospace;
           font-size: 0.875rem;
         }
-        
+
         .article-content pre {
           background-color: #f3f4f6;
           padding: 1rem;
@@ -354,7 +355,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
           overflow-x: auto;
           margin: 1.5rem 0;
         }
-        
+
         .article-content pre code {
           background-color: transparent;
           padding: 0;
@@ -530,7 +531,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
               <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm h-full">
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <Image
-                    src="/blogThumbnail.png?height=400&width=600"
+                    src="/blogThumbnail.png"
                     alt="7 Essential AI Features Every Organization Should Adopt"
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -571,7 +572,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
               <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm h-full">
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <Image
-                    src="/blogThumbnail.png?height=400&width=600"
+                    src="/blogThumbnail.png"
                     alt="How to Overcome Customer Service Delays with AI automation"
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -612,7 +613,7 @@ const MediumBlogComponent: React.FC<MediumBlogComponentProps> = ({ initialPosts 
               <Card className="group overflow-hidden border-1 border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 bg-white/50 backdrop-blur-sm h-full">
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <Image
-                    src="/blogThumbnail.png?height=400&width=600"
+                    src="/blogThumbnail.png"
                     alt="AI Support vs Traditional Help Desks: Which Delivers Faster ROI?"
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"

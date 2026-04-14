@@ -11,13 +11,17 @@ import {
   Users,
   BarChart3,
   ArrowRight,
-  Rocket
+  Rocket,
+  Globe
 } from 'lucide-react';
+import Image from 'next/image';
 
 interface EmptyStateProps {
   userName?: string;
   onWhatsAppSetup?: () => void;
   onWebsiteSetup?: () => void;
+  onInstagramSetup?: () => void;
+  onMessengerSetup?: () => void;
   stats?: {
     totalConversations?: number;
     totalMessages?: number;
@@ -34,6 +38,8 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
   userName = "there",
   onWhatsAppSetup,
   onWebsiteSetup,
+  onInstagramSetup,
+  onMessengerSetup,
   stats
 }) => {
   const router = useRouter();
@@ -84,24 +90,50 @@ export const DashboardEmptyState: React.FC<EmptyStateProps> = ({
                 </p>
               </div>
             </div>
-            {onWhatsAppSetup && (
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {onWhatsAppSetup && (
+                <Button
+                  onClick={onWhatsAppSetup}
+                  variant="outline"
+                  className="flex items-center justify-center gap-2 h-10"
+                  size="sm"
+                >
+                  <Image src="/whatsapp.png" alt="WhatsApp" width={20} height={20} className="object-contain" />
+                  WhatsApp
+                </Button>
+              )}
+              {onInstagramSetup && (
+                <Button
+                  onClick={onInstagramSetup}
+                  variant="outline"
+                  className="flex items-center justify-center gap-2 h-10"
+                  size="sm"
+                >
+                  <Image src="/instagram.png" alt="Instagram" width={20} height={20} className="object-contain" />
+                  Instagram
+                </Button>
+              )}
+              {onMessengerSetup && (
+                <Button
+                  onClick={onMessengerSetup}
+                  variant="outline"
+                  className="flex items-center justify-center gap-2 h-10"
+                  size="sm"
+                >
+                  <Image src="/messenger.png" alt="Messenger" width={20} height={20} className="object-contain" />
+                  Messenger
+                </Button>
+              )}
               <Button
-                onClick={onWhatsAppSetup}
+                onClick={() => router.push('/dashboard/widgets')}
                 variant="outline"
-                className="w-full mt-4"
+                className="flex items-center justify-center gap-2 h-10"
                 size="sm"
               >
-                Setup WhatsApp <ArrowRight className="ml-2 h-4 w-4" />
+                <Globe className="h-4 w-4 text-blue-600" />
+                Website Widget
               </Button>
-            )}
-            <Button
-              onClick={() => router.push('/dashboard/widgets')}
-              variant="outline"
-              className="w-full mt-2"
-              size="sm"
-            >
-              Setup Website Widget <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            </div>
           </Card>
 
           {/* Step 2 */}

@@ -14,6 +14,7 @@ export async function PATCH(
 ) {
   const { id } = await params;
   try {
+    const { id } = await params;
     // Get authentication token from Clerk
     const { getToken } = await auth();
     const token = await getToken();
@@ -59,6 +60,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
+    const { id } = await params;
     // Get authentication token from Clerk
     const { getToken } = await auth();
     const token = await getToken();

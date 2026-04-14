@@ -614,7 +614,7 @@ export function ResourcesComponent() {
   )
 }
 
-function SearchIcon(props: JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
+function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

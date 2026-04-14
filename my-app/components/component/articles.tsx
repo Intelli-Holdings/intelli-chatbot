@@ -104,7 +104,7 @@ export function Article() {
 
 }
 
-function SearchIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
+function SearchIcon(props: SVGProps<SVGSVGElement>) {
     return (
       <svg
         {...props}

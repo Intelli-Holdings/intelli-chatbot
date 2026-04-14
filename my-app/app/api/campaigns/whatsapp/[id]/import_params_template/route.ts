@@ -10,6 +10,7 @@ export async function POST(
 ) {
   const { id } = await params;
   try {
+    const { id } = await params
     const { getToken } = await auth()
     const token = await getToken()
 

@@ -7,7 +7,7 @@ import ConfettiEffect from "./confetti-effect"
 import { useOnboarding } from "@/context/onboarding-context"
 import OnboardingFlow from "./onboarding-flow"
 import CircuitBackground from "@/components/ui/circuit-background"
-import { 
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -85,4 +85,3 @@ export default function OnboardingPage() {
     </div>
   )
 }
-

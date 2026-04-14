@@ -6,12 +6,10 @@ import Script from "next/script";
 
 import { PHProvider } from './providers'
 import { ClerkProvider } from '@clerk/nextjs';
+import { ClientProviders } from './client-providers';
 
 // AEO: Organization + WebSite JSON-LD structured data (injected globally)
 import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/JsonLd";
-
-// Client-only dynamic components (ssr: false requires "use client")
-import ClientLayoutComponents from './client-layout-components'
 
 const inter = Inter({ subsets: ["latin"] });
 const dmSans = DM_Sans({
@@ -118,7 +116,7 @@ export default function RootLayout({
         <PHProvider>
           <SpeedInsights />
           <body className={`${inter.className} ${dmSans.variable}`}>
-            <ClientLayoutComponents />
+            <ClientProviders />
             {children}
           </body>
           <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />

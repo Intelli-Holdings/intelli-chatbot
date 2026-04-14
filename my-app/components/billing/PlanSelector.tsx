@@ -49,11 +49,11 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
       .finally(() => setLoading(false));
   }, [open]);
 
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const handleStartTrial = async (plan: Plan) => {
     if (!organizationId) return;
-    setActionLoading(true);
+    setActionLoadingId(plan.id);
     try {
       await BillingService.startTrial(organizationId, plan.id, interval);
       toast.success(`7-day free trial started on ${plan.name}`);
@@ -70,7 +70,7 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
         toast.error(msg);
       }
     } finally {
-      setActionLoading(false);
+      setActionLoadingId(null);
     }
   };
 
@@ -180,8 +180,8 @@ export function PlanSelector({ open, onClose, currentPlanId, organizationId, has
                       Switch
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={() => handleStartTrial(plan)} disabled={actionLoading}>
-                      {actionLoading ? "Starting..." : "Start Free Trial"}
+                    <Button size="sm" onClick={() => handleStartTrial(plan)} disabled={actionLoadingId !== null}>
+                      {actionLoadingId === plan.id ? "Starting..." : "Start Free Trial"}
                     </Button>
                   )}
                 </div>

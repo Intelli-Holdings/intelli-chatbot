@@ -15,7 +15,8 @@ export interface ParsedCtaMessage {
 
 /**
  * Detects and parses the [Options: ...] pattern from flow messages.
- * Backend format: "{body_text}\n[Options: {opt1}, {opt2}, ...]"
+ * Backend format: "{body_text}\n[Options: {opt1} | {opt2} | ...]"
+ * Also supports legacy comma-separated format for backwards compatibility.
  *
  * @returns ParsedInteractiveMessage if pattern matches, null otherwise
  */
@@ -25,7 +26,11 @@ export function parseInteractiveMessage(text: string): ParsedInteractiveMessage 
 
   const body = match[1].trim();
   const optionsStr = match[2].trim();
-  const options = optionsStr.split(',').map(opt => opt.trim()).filter(Boolean);
+
+  // Prefer pipe delimiter; fall back to comma for legacy messages
+  const options = optionsStr.includes(' | ')
+    ? optionsStr.split(' | ').map(opt => opt.trim()).filter(Boolean)
+    : optionsStr.split(',').map(opt => opt.trim()).filter(Boolean);
 
   if (options.length === 0) return null;
 

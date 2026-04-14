@@ -12,6 +12,9 @@ interface AppService {
   name?: string;
   status?: string;
   is_default?: boolean;
+  channel?: 'whatsapp' | 'instagram' | 'messenger';
+  instagram_business_account_id?: string;
+  instagram_page_name?: string;
 }
 
 interface WhatsAppTemplate {
@@ -668,7 +671,7 @@ static formatTemplateComponents(components: any[]): any[] {
         throw new Error('Organization ID is required');
       }
 
-      const apiUrl = `/api/channels/whatsapp/org/${organizationId}`;
+      const apiUrl = `/api/appservice/paginated/org/${organizationId}/appservices/`;
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -682,7 +685,7 @@ static formatTemplateComponents(components: any[]): any[] {
       }
 
       const data = await response.json();
-      const services = Array.isArray(data) ? data : (data.appServices || data || []);
+      const services = Array.isArray(data) ? data : (data.results || data.appServices || data || []);
 
       return services;
     } catch (error) {
