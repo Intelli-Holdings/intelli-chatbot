@@ -914,17 +914,20 @@ export default function ChatArea({
       // Generate a unique temporary ID that's very unlikely to collide
       // Use negative timestamp to avoid collision with real message IDs
       const tempId = -(Date.now() + Math.random() * 1000)
+      const hasMedia = !!mediaUrl && !!mediaType
       const optimisticMessage = {
-        id: tempId, // Unique temporary ID
-        answer: newMessageContent,
+        id: tempId,
+        // When sending media, store caption text in answer only if present.
+        // The media element itself renders via media/type fields.
+        answer: newMessageContent || null,
         sender: "human",
         created_at: new Date().toISOString(),
         read: false,
         content: null,
-        media: mediaUrl || null,
-        type: mediaType || "text",
+        media: hasMedia ? mediaUrl : null,
+        type: hasMedia ? mediaType : "text",
         status: "sending" as const,
-        pending: true, // Flag to identify optimistic messages
+        pending: true,
       }
       updateMessagesAndSync((prev) => [...(prev || []), optimisticMessage])
       // Avoid poll-based duplication by keeping the last server message id.

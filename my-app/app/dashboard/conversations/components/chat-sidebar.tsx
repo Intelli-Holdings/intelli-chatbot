@@ -200,10 +200,10 @@ export default function ChatSidebar({
 
               // Clean up media placeholders and show user-friendly text
               lastMessage = lastMessage.replace(/\[MEDIA_PLACEHOLDER\]/gi, "📎 Media")
-              lastMessage = lastMessage.replace(/\[IMAGE\]\s+\d+(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "📷 Image")
-              lastMessage = lastMessage.replace(/\[AUDIO\]\s+\d+(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "🎵 Audio")
-              lastMessage = lastMessage.replace(/\[VIDEO\]\s+\d+(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "🎥 Video")
-              lastMessage = lastMessage.replace(/\[DOCUMENT\]\s+[^\s]+(?:\s+-\s+https?:\/\/[^\s]+)?/gi, "📄 Document")
+              lastMessage = lastMessage.replace(/\[IMAGE\]\s+.+?(?:\s+-\s+https?:\/\/[^\s]+)?$/gim, "📷 Image")
+              lastMessage = lastMessage.replace(/\[AUDIO\]\s+.+?(?:\s+-\s+https?:\/\/[^\s]+)?$/gim, "🎵 Audio")
+              lastMessage = lastMessage.replace(/\[VIDEO\]\s+.+?(?:\s+-\s+https?:\/\/[^\s]+)?$/gim, "🎥 Video")
+              lastMessage = lastMessage.replace(/\[DOCUMENT\]\s+.+?(?:\s+-\s+https?:\/\/[^\s]+)?$/gim, "📄 Document")
 
               const unreadCount = conversation.unread_messages || 0
               const displayName = conversation.customer_name || conversation.customer_number || "Unknown"
