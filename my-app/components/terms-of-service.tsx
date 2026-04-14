@@ -274,9 +274,27 @@ function CurrentTerms() {
       </h2>
       <p>
         These Terms shall be governed by and construed in accordance with the
-        laws of Kenya, without regard to its conflict of law principles. Any
-        disputes arising under or in connection with these Terms shall be
-        resolved through binding arbitration in Kenya.
+        laws of the State of Delaware, United States of America, without regard
+        to its conflict of law principles. Intelli Holdings Inc is incorporated
+        in the State of Delaware. Any disputes arising under or in connection
+        with these Terms shall be resolved through binding arbitration in the
+        State of Delaware, United States of America. Each party irrevocably
+        submits to the jurisdiction of the state and federal courts located in
+        the State of Delaware for any proceedings ancillary to arbitration.
+      </p>
+      <p>
+        To the extent that the processing of personal data is subject to the
+        California Consumer Privacy Act (Cal. Civ. Code &sect;&sect; 1798.100
+        et seq.), as amended by the California Privacy Rights Act of 2020
+        (&ldquo;CCPA&rdquo;), our data processing practices comply with the
+        requirements of the CCPA. For more details, please refer to our{" "}
+        <a
+          href="/data-processing-agreement"
+          className="text-blue-600 hover:underline"
+        >
+          Data Processing Agreement
+        </a>
+        .
       </p>
 
       {/* 11. Changes to the Terms */}
@@ -327,7 +345,7 @@ function CurrentTerms() {
                 Telephone
               </td>
               <td className="px-6 py-3 text-sm text-gray-600">
-                +233536620120, +254745051091
+                +254769758405
               </td>
             </tr>
             <tr>
@@ -626,7 +644,7 @@ function PreviousTerms() {
             support@intelliconcierge.com
           </a>
         </li>
-        <li>Telephone: +233536620120</li>
+        <li>Telephone: +254769758405</li>
         <li>Instagram: @Intelli_concierge</li>
         <li>Facebook: @Intelli_concierge</li>
       </ul>
@@ -777,7 +795,7 @@ function V2Terms() {
             </tr>
             <tr>
               <td className="px-6 py-3 text-sm font-medium text-gray-900 bg-gray-50">Telephone</td>
-              <td className="px-6 py-3 text-sm text-gray-600">+233536620120, +254745051091</td>
+              <td className="px-6 py-3 text-sm text-gray-600">+254769758405</td>
             </tr>
             <tr>
               <td className="px-6 py-3 text-sm font-medium text-gray-900 bg-gray-50">Social Media</td>
@@ -797,7 +815,7 @@ function V2Terms() {
 type Version = "v3" | "v2" | "v1";
 
 const versions: { key: Version; label: string; date: string }[] = [
-  { key: "v3", label: "Current (v3)", date: "Effective Date: April 13, 2026" },
+  { key: "v3", label: "Current (v3)", date: "Effective Date: April 14, 2026" },
   { key: "v2", label: "v2", date: "Effective Date: January 14, 2025" },
   { key: "v1", label: "v1", date: "Effective Date: June 20, 2024" },
 ];
