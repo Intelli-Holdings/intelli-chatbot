@@ -72,16 +72,33 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Listen for retry events from failed messages
   useEffect(() => {
     const handleRetry = async (event: CustomEvent) => {
-      const { content } = event.detail
+      const { content, mediaUrl, mediaType } = event.detail
+
+      // If media message failed, try to re-fetch the blob and re-submit
+      if (mediaUrl && mediaType) {
+        try {
+          const response = await fetch(mediaUrl)
+          const blob = await response.blob()
+          const extension = mediaType === "image" ? "jpg" : mediaType === "video" ? "mp4" : mediaType === "audio" ? "webm" : "bin"
+          const file = new File([blob], `retry-media.${extension}`, { type: blob.type })
+          setFiles([file])
+          if (content) setAnswer(content)
+          setTimeout(() => {
+            const form = document.querySelector('form') as HTMLFormElement
+            if (form) form.requestSubmit()
+          }, 100)
+        } catch {
+          // Blob URL expired — user must re-select the file
+          toast.error("Media expired. Please re-attach the file and send again.")
+        }
+        return
+      }
+
       if (content) {
-        // Set the message content
         setAnswer(content)
-        // Auto-submit after a brief delay to ensure state is updated
         setTimeout(() => {
           const form = document.querySelector('form') as HTMLFormElement
-          if (form) {
-            form.requestSubmit()
-          }
+          if (form) form.requestSubmit()
         }, 100)
       }
     }
@@ -138,12 +155,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     // Create optimistic message BEFORE sending
-    let optimisticLabel = currentAnswer || "Media"
-    if (currentFiles.length > 0 && mediaType) {
-      optimisticLabel = `[${mediaType.toUpperCase()}] ${currentFiles[0].name}`
-    } else if (currentAudioBlob && mediaType) {
-      optimisticLabel = `[AUDIO] Voice message`
-    }
+    // Pass the actual text (caption) — not a placeholder like "[IMAGE] file.jpg"
+    // The chat-area will display the media element via mediaUrl/mediaType
+    const optimisticLabel = currentAnswer || ""
     const tempId = onMessageSent ? onMessageSent(optimisticLabel, mediaUrl, mediaType) : undefined
 
     // Clear input immediately (optimistic UX)
@@ -182,6 +196,21 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       const response = await sendMessage(formData)
       logger.info("Message sent successfully", { data: response })
+
+      // Replace optimistic message with real server response
+      if (tempId && onMessageSendSuccess && response) {
+        onMessageSendSuccess(tempId, {
+          id: response.id || tempId,
+          answer: response.answer || response.content || optimisticLabel || null,
+          sender: response.sender || "human",
+          created_at: response.created_at || new Date().toISOString(),
+          content: response.content || null,
+          media: response.media || response.media_url || null,
+          type: response.type || mediaType || "text",
+          whatsapp_message_id: response.whatsapp_message_id || response.wmessage_id || null,
+          status: response.status || "sent",
+        })
+      }
     } catch (e) {
       setError((e as Error).message)
       toast.error("Failed to send message")
