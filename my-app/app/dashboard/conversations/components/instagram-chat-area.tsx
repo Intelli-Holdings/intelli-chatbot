@@ -982,6 +982,9 @@ export default function InstagramChatArea({
                                 !expandedMessages.includes(message.id) && "collapsed",
                               )}
                             >
+                              <div className="text-[9px] font-semibold text-gray-500 mb-1">
+                                Customer
+                              </div>
                               <div className="text-sm">
                                 {contentHasMedia ? (
                                   <>
@@ -1026,6 +1029,13 @@ export default function InstagramChatArea({
                                   </button>
                                 </div>
                               )}
+                              {/* Sender badge */}
+                              <div className={cn(
+                                "text-[9px] font-semibold mb-1",
+                                message.sender === "ai" ? "text-white/70" : "text-white/70"
+                              )}>
+                                {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
+                              </div>
                               <div className="text-sm">
                                 {answerHasMedia ? (
                                   <>
@@ -1076,6 +1086,13 @@ export default function InstagramChatArea({
                                 isCustomerMedia ? "self-start" : "self-end",
                               )}
                             >
+                              {/* Sender badge for media */}
+                              <div className={cn(
+                                "text-[9px] font-semibold mb-1 px-1",
+                                isCustomerMedia ? "text-gray-500" : message.sender === "ai" ? "text-purple-400 text-right" : "text-blue-400 text-right"
+                              )}>
+                                {isCustomerMedia ? "Customer" : message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
+                              </div>
                               <div className="rounded-[18px] overflow-hidden">
                                 {(message.type === "image" || message.type?.startsWith("image/")) ? (
                                   <Image
