@@ -9,10 +9,10 @@ export const metadata: Metadata = {
 
 const subprocessors = [
   {
-    name: "Amazon Web Services (AWS)",
-    purpose: "Cloud Hosting & Infrastructure",
+    name: "Microsoft Azure",
+    purpose: "Cloud Hosting, Infrastructure & Backend Services",
     location: "USA",
-    website: "https://aws.amazon.com/",
+    website: "https://azure.microsoft.com/en-us",
   },
   {
     name: "Vercel",
@@ -21,10 +21,10 @@ const subprocessors = [
     website: "https://vercel.com/",
   },
   {
-    name: "MongoDB Atlas",
+    name: "Azure Database for PostgreSQL (Microsoft)",
     purpose: "Database Infrastructure",
     location: "USA",
-    website: "https://www.mongodb.com/",
+    website: "https://azure.microsoft.com/en-us/products/postgresql",
   },
   {
     name: "Clerk",
@@ -33,10 +33,22 @@ const subprocessors = [
     website: "https://clerk.com/",
   },
   {
-    name: "Azure OpenAI (Microsoft)",
+    name: "Azure AI Foundry Models (Microsoft)",
     purpose: "AI Language Models",
     location: "USA",
-    website: "https://azure.microsoft.com/en-us/products/ai-services/openai-service",
+    website: "https://azure.microsoft.com/en-us/products/ai-model-catalog",
+  },
+  {
+    name: "Azure AI Search (Microsoft)",
+    purpose: "Search, RAG Pipelines & Data Retrieval",
+    location: "USA",
+    website: "https://azure.microsoft.com/en-us/products/ai-services/ai-search",
+  },
+  {
+    name: "Azure Monitor (Microsoft)",
+    purpose: "Application Monitoring & Observability",
+    location: "USA",
+    website: "https://azure.microsoft.com/en-us/products/monitor",
   },
   {
     name: "OpenAI",
@@ -80,30 +92,6 @@ const subprocessors = [
     location: "USA",
     website: "https://posthog.com/",
   },
-  {
-    name: "Cloudinary",
-    purpose: "Media & Image Management",
-    location: "USA",
-    website: "https://cloudinary.com/",
-  },
-  {
-    name: "Resend",
-    purpose: "Transactional Email Service",
-    location: "USA",
-    website: "https://resend.com/",
-  },
-  {
-    name: "Google Firebase",
-    purpose: "Backend Services & Analytics",
-    location: "USA",
-    website: "https://firebase.google.com/",
-  },
-  {
-    name: "Paddle",
-    purpose: "Subscription & Billing Management",
-    location: "UK",
-    website: "https://www.paddle.com/",
-  },
 ];
 
 export default function SubprocessorsPage() {
@@ -118,7 +106,7 @@ export default function SubprocessorsPage() {
                 Subprocessors
               </h1>
               <p className="text-lg text-gray-600">
-                Current as of April 13, 2026
+                Current as of April 14, 2026
               </p>
             </div>
 
