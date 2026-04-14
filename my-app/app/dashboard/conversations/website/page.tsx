@@ -347,21 +347,16 @@ export default function WebsiteConversationsPage() {
   return (
     <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-[#e9edef] bg-white shadow-lg">
       {/* Left Sidebar - Conversations List */}
-      <div className="w-full md:w-96 bg-white border-r border-[#e9edef] flex flex-col">
+      <div className="w-[420px] bg-white border-r border-[#e9edef] flex flex-col h-full">
         {/* Header */}
-        <div className="bg-gray-100 p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-semibold">Chats</h1>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-4 py-3 bg-[#f0f2f5] border-b border-[#e9edef]">
+          <h1 className="text-[19px] font-semibold text-[#111b21]">Chats</h1>
+        </div>
 
-          {/* Widget Selector */}
+        {/* Widget Selector */}
+        <div className="px-3 py-2 border-b border-[#e9edef] bg-[#f0f2f5]/50">
           <Select value={selectedWidgetKey} onValueChange={setSelectedWidgetKey}>
-            <SelectTrigger className="mb-2">
+            <SelectTrigger className="bg-white">
               <SelectValue placeholder="Select a widget" />
             </SelectTrigger>
             <SelectContent>
@@ -374,16 +369,18 @@ export default function WebsiteConversationsPage() {
               </SelectGroup>
             </SelectContent>
           </Select>
+        </div>
 
-          {/* Search */}
+        {/* Search */}
+        <div className="px-3 py-2 bg-white">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-[15px] w-[15px] text-[#667781]" />
             <Input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Search or start new chat"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white"
+              className="pl-10 pr-4 py-2 bg-[#f0f2f5] border-none rounded-lg text-[14px] text-[#111b21] placeholder:text-[#667781] h-9"
             />
           </div>
         </div>

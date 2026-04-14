@@ -1034,6 +1034,15 @@ export default function InstagramChatArea({
                                       <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
                                     )}
                                     {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
+                                    {answerMedia?.type === "document" && answerMedia?.url && (
+                                      <a href={answerMedia.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                        <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                          <span className="text-sm truncate block">{answerMedia.filename || "Document"}</span>
+                                          <span className="text-xs text-[#667781]">Tap to open</span>
+                                        </div>
+                                      </a>
+                                    )}
                                     {answerMedia?.displayText && answerMedia.displayText.trim() && (
                                       <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
                                     )}
@@ -1068,20 +1077,38 @@ export default function InstagramChatArea({
                               )}
                             >
                               <div className="rounded-[18px] overflow-hidden">
-                                {message.type === "image" ? (
+                                {(message.type === "image" || message.type?.startsWith("image/")) ? (
                                   <Image
                                     src={message.media || "/placeholder.svg"}
                                     alt="Image"
                                     className="w-full h-auto"
                                   />
-                                ) : (
+                                ) : (message.type === "video" || message.type?.startsWith("video/")) ? (
+                                  <video
+                                    src={message.media!}
+                                    controls
+                                    controlsList="nodownload"
+                                    className="w-full rounded-[18px] bg-black"
+                                    preload="metadata"
+                                  />
+                                ) : (message.type === "audio" || message.type?.startsWith("audio/")) ? (
                                   <div className={cn(
-                                    "flex items-center gap-2 p-3 rounded-[18px]",
-                                    isCustomerMedia ? "bg-[#EFEFEF]" : "bg-gradient-to-b from-[#8B2FB8] via-[#6758CD] to-[#5974DB] text-white"
+                                    "p-3 rounded-[18px]",
+                                    isCustomerMedia ? "bg-[#EFEFEF]" : "bg-gradient-to-b from-[#8B2FB8] via-[#6758CD] to-[#5974DB]"
+                                  )}>
+                                    <audio src={message.media!} controls className="w-full" preload="metadata" />
+                                  </div>
+                                ) : (
+                                  <a href={message.media!} target="_blank" rel="noopener noreferrer" className={cn(
+                                    "flex items-center gap-2 p-3 rounded-[18px] transition-colors",
+                                    isCustomerMedia ? "bg-[#EFEFEF] hover:bg-[#E0E0E0]" : "bg-gradient-to-b from-[#8B2FB8] via-[#6758CD] to-[#5974DB] text-white"
                                   )}>
                                     {getFileIcon(message.type)}
-                                    <span className="text-sm truncate">Attachment</span>
-                                  </div>
+                                    <div className="flex-1 min-w-0">
+                                      <span className="text-sm truncate block">Document</span>
+                                      <span className={cn("text-xs", isCustomerMedia ? "text-gray-500" : "text-white/70")}>Tap to open</span>
+                                    </div>
+                                  </a>
                                 )}
                               </div>
                             </div>

@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next"
+import { fetchAllPosts } from "@/lib/medium-feed"
+import { createSlug } from "@/lib/blog-utils"
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://www.intelliconcierge.com"
   const currentDate = new Date()
 
@@ -27,18 +29,41 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/join-waitlist`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.6 },
   ]
 
-  // Blog pages
-  const blogPages: MetadataRoute.Sitemap = [
+  // Static blog / guide pages
+  const staticBlogPages: MetadataRoute.Sitemap = [
     { url: `${baseUrl}/blog`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/blog/ai-features-organizations`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/blog/overcome-customer-service-delays`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/blog/ai-support-vs-traditional-helpdesks`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${baseUrl}/medium-blog`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.6 },
     { url: `${baseUrl}/blog/whatsapp-cloud-api-pricing`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/blog/whatsapp-business-api-multiple-numbers`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/blog/whatsapp-api-provider-africa`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/blog/whatsapp-ai-chatbot-policy-2026`, lastModified: currentDate, changeFrequency: "monthly", priority: 0.7 },
   ]
+
+  // Dynamically fetched blog articles (CMS + Medium)
+  const staticSlugs = new Set(staticBlogPages.map((p) => p.url))
+  let dynamicBlogPages: MetadataRoute.Sitemap = []
+
+  try {
+    const feedResult = await fetchAllPosts()
+    if (feedResult.success) {
+      dynamicBlogPages = feedResult.items
+        .map((post) => {
+          const slug = createSlug(post.title)
+          const url = `${baseUrl}/blog/${slug}`
+          return {
+            url,
+            lastModified: post.pubDate ? new Date(post.pubDate) : currentDate,
+            changeFrequency: "weekly" as const,
+            priority: 0.7,
+          }
+        })
+        .filter((entry) => !staticSlugs.has(entry.url))
+    }
+  } catch {
+    // Sitemap generation should never fail — return static pages only
+  }
 
   // Comparison pages
   const comparePages: MetadataRoute.Sitemap = [
@@ -69,12 +94,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/changelog/release-notes`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.5 },
   ]
 
+  // RSS feed discovery
+  const feedPages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/feed.xml`, lastModified: currentDate, changeFrequency: "weekly", priority: 0.3 },
+  ]
+
   return [
     ...corePages,
     ...marketingPages,
-    ...blogPages,
+    ...staticBlogPages,
+    ...dynamicBlogPages,
     ...comparePages,
     ...docsPages,
     ...otherPages,
+    ...feedPages,
   ]
 }

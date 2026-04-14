@@ -36,7 +36,6 @@ import { useRouter } from "next/navigation"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import WidgetPreview from "@/components/WidgetPreview"
 
-import { logger } from "@/lib/logger";
 interface Widget {
   showKey: any
   id: string
@@ -172,7 +171,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
       setWidgets(data)
       setWidgetsCache(orgId, data)
     } catch (error) {
-      logger.error("[Widgets] Error fetching widgets:", { error: error instanceof Error ? error.message : String(error) })
+      console.error("[Widgets] Error fetching widgets:", error)
       toast.error(`Failed to fetch widgets: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       if (showLoader) setIsFetchingWidgets(false)
@@ -220,7 +219,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
     setWidgetToDelete(null)
 
     try {
-      logger.info(`[Widgets] Deleting widget`)
+      console.log(`[Widgets] Deleting widget`)
       const response = await fetch(`/api/widgets/widget/${deletedWidget.widget_key}`, {
         method: "DELETE",
       })
@@ -232,7 +231,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
 
       toast.success("Widget deleted successfully!")
     } catch (error) {
-      logger.error("[Widgets] Error deleting widget:", { error: error instanceof Error ? error.message : String(error) })
+      console.error("[Widgets] Error deleting widget:", error)
       toast.error(`Failed to delete widget: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Revert optimistic update on error
@@ -302,7 +301,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
     }
 
     try {
-      logger.info(`[Widgets] Updating widget`)
+      console.log(`[Widgets] Updating widget`)
 
       // Optimistic update: Update widget in UI immediately
       const optimisticWidget = {
@@ -338,10 +337,10 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
       setAvatarUrl(null)
 
       // Refresh the widget list to show actual updated data from server
-      logger.info("[Widgets] Refreshing widget list after update...")
+      console.log("[Widgets] Refreshing widget list after update...")
       await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } catch (error) {
-      logger.error("[Widgets] Error updating widget:", { error: error instanceof Error ? error.message : String(error) })
+      console.error("[Widgets] Error updating widget:", error)
       toast.error(`Failed to update widget: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Revert optimistic update on error
@@ -440,7 +439,7 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
         toast.success(`Successfully deleted ${widgetsToDelete.length} widget(s)!`)
       }
     } catch (error) {
-      logger.error("[Widgets] Error during bulk delete:", { error: error instanceof Error ? error.message : String(error) })
+      console.error("[Widgets] Error during bulk delete:", error)
       toast.error(`Failed to delete widgets: ${error instanceof Error ? error.message : "Unknown error"}`)
 
       // Revert optimistic update on error

@@ -3,7 +3,6 @@
 import type React from "react"
 import { useState } from "react"
 import { useAuth } from "@clerk/nextjs"
-import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { QueryClient, QueryClientProvider } from "react-query"
 
@@ -23,10 +22,10 @@ function DashboardLayoutContent({
   }
 
   return (
-    <SidebarProvider>
+    <div className="flex h-svh w-full bg-background">
       <AppSidebar />
       <main className="flex-1 overflow-y-auto p-golden-lg">{children}</main>
-    </SidebarProvider>
+    </div>
   )
 }
 

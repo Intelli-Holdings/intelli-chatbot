@@ -4,7 +4,7 @@
  */
 
 export interface ExtractedMedia {
-  type: "audio" | "video" | "image" | null
+  type: "audio" | "video" | "image" | "document" | null
   url: string | null
   displayText: string
   filename: string | null
@@ -28,11 +28,12 @@ export const extractMedia = (content: string): ExtractedMedia => {
     return { type: null, url: null, displayText: "", filename: null }
   }
 
-  const mediaTypes = ["AUDIO", "VIDEO", "IMAGE"] as const
+  const mediaTypes = ["AUDIO", "VIDEO", "IMAGE", "DOCUMENT"] as const
   const typeMap: Record<string, ExtractedMedia["type"]> = {
     AUDIO: "audio",
     VIDEO: "video",
     IMAGE: "image",
+    DOCUMENT: "document",
   }
 
   for (const tag of mediaTypes) {
@@ -69,6 +70,9 @@ export const extractMedia = (content: string): ExtractedMedia => {
     }
     if (/\.(mp4|avi|mov|mkv|flv|wmv|3gp|webm)(\?|$)/i.test(lowerUrl)) {
       return { type: "video", url, displayText: "", filename: null }
+    }
+    if (/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|csv|txt|zip|rar)(\?|$)/i.test(lowerUrl)) {
+      return { type: "document", url, displayText: "", filename: null }
     }
   }
 

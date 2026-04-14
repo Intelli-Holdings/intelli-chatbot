@@ -1,5 +1,4 @@
 // app/api/medium/route.ts
-import { logger } from "@/lib/logger"
 import { fetchMediumPosts } from "@/lib/medium-feed"
 import { fetchCmsPosts } from "@/lib/cms-feed"
 
@@ -10,10 +9,10 @@ export async function GET() {
   ])
 
   if (!feedResult.success) {
-    logger.error("Error fetching Medium feed", { error: feedResult.error })
+    console.error("Error fetching Medium feed", { error: feedResult.error })
   }
   if (!cmsResult.success) {
-    logger.error("Error fetching CMS posts", { error: cmsResult.error })
+    console.error("Error fetching CMS posts", { error: cmsResult.error })
   }
 
   // CMS posts first, then Medium posts

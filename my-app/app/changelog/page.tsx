@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link"
 import Image from "next/image"
 import { Filter, Rss } from "lucide-react"
@@ -6,6 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+
+export const metadata: Metadata = {
+  title: "Changelog – Intelli Platform Updates & Release Notes",
+  description:
+    "Track the latest updates, new features, bug fixes, and improvements to the Intelli AI customer engagement platform. Stay informed about WhatsApp API, AI assistant, and analytics enhancements.",
+  alternates: { canonical: "https://www.intelliconcierge.com/changelog" },
+  openGraph: {
+    title: "Changelog – Intelli Platform Updates",
+    description: "Latest updates and release notes for the Intelli AI customer engagement platform.",
+    url: "https://www.intelliconcierge.com/changelog",
+  },
+};
 
 export default function Changelog() {
   return (

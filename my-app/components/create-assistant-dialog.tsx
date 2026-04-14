@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useOrganizationList, useAuth } from "@clerk/nextjs"
+import { useOrganizationList } from "@clerk/nextjs"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -20,7 +20,6 @@ interface CreateAssistantDialogProps {
 }
 
 export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDialogProps) {
-  const { getToken } = useAuth()
   const { userMemberships, isLoaded } = useOrganizationList({
     userMemberships: {
       infinite: true,
@@ -50,13 +49,10 @@ export function CreateAssistantDialog({ onAssistantCreated }: CreateAssistantDia
     try {
       logger.info("Submitting data to backend:", { data })
 
-      const token = await getToken()
-
       const response = await fetch(`/api/assistants/${data.organization_id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       })

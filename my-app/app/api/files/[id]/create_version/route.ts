@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
-import { logger } from "@/lib/logger";
 
 // POST - Create file version
 export async function POST(
@@ -41,12 +40,12 @@ export async function POST(
         body: formData,
       }
     )
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      logger.error("Backend error creating file version", { error: errorData })
+      console.error("Backend error creating file version", { error: errorData })
       return NextResponse.json(
-        { error: errorData.detail || 'Failed to create file version' }, 
+        { error: errorData.detail || 'Failed to create file version' },
         { status: response.status }
       )
     }
@@ -54,9 +53,9 @@ export async function POST(
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    logger.error("Error creating file version", { error: error instanceof Error ? error.message : String(error) })
+    console.error("Error creating file version", { error: error instanceof Error ? error.message : String(error) })
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

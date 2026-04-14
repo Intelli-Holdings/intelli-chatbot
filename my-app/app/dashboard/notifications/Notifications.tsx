@@ -618,9 +618,6 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                   )
                 )
               })()}
-              <AvatarFallback className="bg-[#007fff] text-white text-xs">
-                {(notification.channel?.[0] || "N").toUpperCase()}
-              </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">

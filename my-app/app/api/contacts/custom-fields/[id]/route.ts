@@ -12,6 +12,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { id } = await params;
     // Get authentication token from Clerk
@@ -57,6 +58,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { id } = await params;
     // Get authentication token from Clerk

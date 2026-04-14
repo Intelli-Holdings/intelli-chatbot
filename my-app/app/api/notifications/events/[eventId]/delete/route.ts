@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { logger } from "@/lib/logger";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -23,6 +22,7 @@ export async function DELETE(
   if (!API_BASE_URL) {
     return NextResponse.json({ error: "API base URL is not configured" }, { status: 500 });
   }
+
   if (!eventId) {
     return NextResponse.json({ error: "Event id is required" }, { status: 400 });
   }
@@ -52,7 +52,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error("Error deleting escalation event", { error: error instanceof Error ? error.message : String(error) });
+    console.error("Error deleting escalation event", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

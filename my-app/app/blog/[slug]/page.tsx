@@ -10,6 +10,8 @@ import { createSlug, formatDate } from "@/lib/blog-utils"
 import { sanitizeHtml } from "@/lib/sanitize"
 import { fetchMediumPosts } from "@/lib/medium-feed"
 import { fetchCmsPosts } from "@/lib/cms-feed"
+import { getCanonicalUrl } from "@/lib/metadata"
+import { BlogPostingJsonLd } from "@/components/seo/JsonLd"
 import { RelatedArticleCard } from "./article-content"
 
 export const revalidate = 60 // revalidate every minute (ISR)
@@ -43,13 +45,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Article Not Found – Intelli Blog" }
   }
 
+  const canonicalUrl = getCanonicalUrl(`/blog/${slug}`)
+
   return {
     title: `${article.title} – Intelli Blog`,
     description: article.contentSnippet,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: article.title,
       description: article.contentSnippet,
-      url: `https://intelliconcierge.com/blog/${slug}`,
+      url: canonicalUrl,
       type: "article",
       ...(article.thumbnail && { images: [{ url: article.thumbnail }] }),
       ...(article.pubDate && { publishedTime: article.pubDate }),
@@ -220,7 +227,74 @@ export default async function BlogArticlePage({ params }: PageProps) {
           border-radius: 12px;
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
+
+        .article-content table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 2rem 0;
+          font-size: 0.95rem;
+          overflow-x: auto;
+          display: block;
+        }
+
+        .article-content thead {
+          background-color: #f9fafb;
+        }
+
+        .article-content th {
+          padding: 0.75rem 1rem;
+          text-align: left;
+          font-weight: 600;
+          color: #111827;
+          border-bottom: 2px solid #e5e7eb;
+        }
+
+        .article-content td {
+          padding: 0.75rem 1rem;
+          border-bottom: 1px solid #e5e7eb;
+          color: #374151;
+        }
+
+        .article-content tr:hover {
+          background-color: #f9fafb;
+        }
+
+        .article-content mark {
+          background-color: #fef08a;
+          padding: 0.1rem 0.3rem;
+          border-radius: 3px;
+        }
+
+        .article-content del {
+          text-decoration: line-through;
+          color: #9ca3af;
+        }
+
+        .article-content hr {
+          border: none;
+          border-top: 1px solid #e5e7eb;
+          margin: 2.5rem 0;
+        }
+
+        .article-content sup {
+          font-size: 0.75em;
+          vertical-align: super;
+        }
+
+        .article-content sub {
+          font-size: 0.75em;
+          vertical-align: sub;
+        }
       `}</style>
+
+      <BlogPostingJsonLd
+        title={article.title}
+        description={article.contentSnippet}
+        datePublished={article.pubDate || new Date().toISOString()}
+        authorName={article.author || "Intelli"}
+        url={getCanonicalUrl(`/blog/${slug}`)}
+        image={article.thumbnail}
+      />
 
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
@@ -265,7 +339,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
             {/* Featured Image */}
             {article.thumbnail && (
               <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-12 shadow-2xl">
-                <Image src={article.thumbnail} alt={article.title} fill className="object-cover" priority />
+                <Image src={article.thumbnail} alt={article.title} fill className="object-cover" priority sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 896px" />
               </div>
             )}
 
@@ -275,7 +349,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
             </div>
 
             {/* Original Article Link */}
-            {article.link !== "#" && (
+            {article.link !== "#" && !article.link.includes("cms.intelliconcierge.com") && (
               <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-xl">
                 <p className="text-blue-800 mb-4 font-medium">Want to engage with this article on Medium?</p>
                 <Link href={article.link} target="_blank" rel="noopener noreferrer">
