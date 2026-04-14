@@ -327,7 +327,7 @@ function CurrentTerms() {
                 Telephone
               </td>
               <td className="px-6 py-3 text-sm text-gray-600">
-                +233536620120, +254745051091
+                +254769758405
               </td>
             </tr>
             <tr>
@@ -626,7 +626,7 @@ function PreviousTerms() {
             support@intelliconcierge.com
           </a>
         </li>
-        <li>Telephone: +233536620120</li>
+        <li>Telephone: +254769758405</li>
         <li>Instagram: @Intelli_concierge</li>
         <li>Facebook: @Intelli_concierge</li>
       </ul>
@@ -777,7 +777,7 @@ function V2Terms() {
             </tr>
             <tr>
               <td className="px-6 py-3 text-sm font-medium text-gray-900 bg-gray-50">Telephone</td>
-              <td className="px-6 py-3 text-sm text-gray-600">+233536620120, +254745051091</td>
+              <td className="px-6 py-3 text-sm text-gray-600">+254769758405</td>
             </tr>
             <tr>
               <td className="px-6 py-3 text-sm font-medium text-gray-900 bg-gray-50">Social Media</td>
