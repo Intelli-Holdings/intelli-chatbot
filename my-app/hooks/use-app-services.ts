@@ -35,9 +35,13 @@ export const useAppServices = (): UseAppServicesReturn => {
       const services = await WhatsAppService.fetchAppServices(organizationId);
       setAppServices(services);
 
-      // Auto-select the first app service if available and none is selected
+      // Auto-select a service: prefer WhatsApp (has phone_number), then default, then first
       if (services.length > 0) {
-        setSelectedAppService((prev) => prev ?? services[0]);
+        setSelectedAppService((prev) => {
+          if (prev) return prev;
+          const whatsapp = services.find((s) => s.phone_number);
+          return whatsapp ?? services[0];
+        });
       } else {
         // Provide helpful message when no services are found
         setError('No services found for this organization. Please configure a WhatsApp or Instagram account first.');
