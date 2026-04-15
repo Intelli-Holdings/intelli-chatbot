@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { WhatsAppService, type WhatsAppTemplate, type AppService } from '@/services/whatsapp';
 import { logger } from "@/lib/logger";
+import useActiveOrganizationId from './use-organization-id';
 
 export interface UseWhatsAppTemplatesReturn {
   templates: WhatsAppTemplate[];
@@ -17,18 +18,19 @@ export interface UseWhatsAppTemplatesReturn {
  */
 export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsAppTemplatesReturn => {
   const queryClient = useQueryClient();
+  const organizationId = useActiveOrganizationId();
   const queryKey = ['whatsapp-templates', appService?.id ?? appService?.whatsapp_business_account_id ?? null];
-  const canFetch = Boolean(appService?.whatsapp_business_account_id);
+  const canFetch = Boolean(appService?.whatsapp_business_account_id && organizationId);
   const configError = appService && !appService.whatsapp_business_account_id
     ? 'App service configuration not available'
     : null;
 
   const fetchTemplates = async (): Promise<WhatsAppTemplate[]> => {
-    if (!appService?.whatsapp_business_account_id) {
+    if (!appService?.whatsapp_business_account_id || !organizationId) {
       return [];
     }
 
-    return WhatsAppService.fetchTemplates(appService);
+    return WhatsAppService.fetchTemplates(appService, { organizationId });
   };
 
   const query = useQuery(queryKey, fetchTemplates, {
