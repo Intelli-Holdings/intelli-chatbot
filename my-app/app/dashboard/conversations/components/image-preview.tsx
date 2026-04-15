@@ -27,19 +27,31 @@ export function ImagePreview({ src }: ImagePreviewProps) {
 
       {error ? (
         <div className="bg-gray-100 p-3 text-sm text-gray-500 rounded border border-gray-200">
-          Unable to load image: {src}
+          Unable to load image
         </div>
       ) : (
         <div className={`${isLoading ? "invisible" : "visible"}`}>
-          <Image
-            src={src || "/placeholder.svg"}
-            alt="Shared image"
-            width={300}
-            height={200}
-            className="rounded-md object-cover"
-            onLoad={handleLoad}
-            onError={handleError}
-          />
+          {/* Use native img for blob: URLs since next/image doesn't support them */}
+          {src.startsWith("blob:") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={src}
+              alt="Shared image"
+              className="rounded-md object-cover max-w-[300px] max-h-[200px]"
+              onLoad={handleLoad}
+              onError={handleError}
+            />
+          ) : (
+            <Image
+              src={src || "/placeholder.svg"}
+              alt="Shared image"
+              width={300}
+              height={200}
+              className="rounded-md object-cover"
+              onLoad={handleLoad}
+              onError={handleError}
+            />
+          )}
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@
 import type React from "react"
 import Image from "next/image"
 import { useState, useRef, type ChangeEvent, type KeyboardEvent, useEffect } from "react"
-import { ArrowUp, Paperclip, X, FileIcon, Loader2, Mic, Trash2, Smile, FileText, MessageSquareText, ShoppingBag } from "lucide-react"
+import { ArrowUp, Paperclip, X, FileIcon, Mic, Trash2, Smile, FileText, MessageSquareText, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { sendMessage } from "@/app/actions"
 import { useUser } from "@clerk/nextjs"
@@ -41,7 +41,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [answer, setAnswer] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [files, setFiles] = useState<File[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  // isLoading removed — input is never blocked during send (fire-and-forget with optimistic UI)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
@@ -72,16 +72,33 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Listen for retry events from failed messages
   useEffect(() => {
     const handleRetry = async (event: CustomEvent) => {
-      const { content } = event.detail
+      const { content, mediaUrl, mediaType } = event.detail
+
+      // If media message failed, try to re-fetch the blob and re-submit
+      if (mediaUrl && mediaType) {
+        try {
+          const response = await fetch(mediaUrl)
+          const blob = await response.blob()
+          const extension = mediaType === "image" ? "jpg" : mediaType === "video" ? "mp4" : mediaType === "audio" ? "webm" : "bin"
+          const file = new File([blob], `retry-media.${extension}`, { type: blob.type })
+          setFiles([file])
+          if (content) setAnswer(content)
+          setTimeout(() => {
+            const form = document.querySelector('form') as HTMLFormElement
+            if (form) form.requestSubmit()
+          }, 100)
+        } catch {
+          // Blob URL expired — user must re-select the file
+          toast.error("Media expired. Please re-attach the file and send again.")
+        }
+        return
+      }
+
       if (content) {
-        // Set the message content
         setAnswer(content)
-        // Auto-submit after a brief delay to ensure state is updated
         setTimeout(() => {
           const form = document.querySelector('form') as HTMLFormElement
-          if (form) {
-            form.requestSubmit()
-          }
+          if (form) form.requestSubmit()
         }, 100)
       }
     }
@@ -117,7 +134,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     event.preventDefault()
     if (isSubmitDisabled) return
     setError(null)
-    setIsLoading(true)
 
     // Capture current state before clearing
     const currentAnswer = answer
@@ -138,15 +154,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
 
     // Create optimistic message BEFORE sending
-    let optimisticLabel = currentAnswer || "Media"
-    if (currentFiles.length > 0 && mediaType) {
-      optimisticLabel = `[${mediaType.toUpperCase()}] ${currentFiles[0].name}`
-    } else if (currentAudioBlob && mediaType) {
-      optimisticLabel = `[AUDIO] Voice message`
-    }
+    const optimisticLabel = currentAnswer || ""
     const tempId = onMessageSent ? onMessageSent(optimisticLabel, mediaUrl, mediaType) : undefined
 
-    // Clear input immediately (optimistic UX)
+    // Clear input immediately — user can start typing the next message right away
     setAnswer("")
     setFiles([])
     setAudioBlob(null)
@@ -159,41 +170,51 @@ const MessageInput: React.FC<MessageInputProps> = ({
       textareaRef.current.style.height = "auto"
     }
 
-    try {
-      const formData = new FormData()
-      formData.append("customer_number", customerNumber)
-      formData.append("phone_number", phoneNumber || "")
+    // Send in background — don't block the input
+    const formData = new FormData()
+    formData.append("customer_number", customerNumber)
+    formData.append("phone_number", phoneNumber || "")
 
-      if (currentAnswer.trim()) {
-        formData.append("answer", currentAnswer)
-      }
-
-      currentFiles.forEach((file) => {
-        formData.append("file", file)
-        formData.append("type", getMediaType(file))
-      })
-
-      // Add audio file if exists
-      if (currentAudioBlob) {
-        const audioFile = new File([currentAudioBlob], "voice-message.webm", { type: "audio/webm" })
-        formData.append("file", audioFile)
-        formData.append("type", "audio")
-      }
-
-      const response = await sendMessage(formData)
-      logger.info("Message sent successfully", { data: response })
-    } catch (e) {
-      setError((e as Error).message)
-      toast.error("Failed to send message")
-      logger.error("Error sending message", { error: e instanceof Error ? e.message : String(e) })
-
-      // Mark optimistic message as failed
-      if (tempId && onMessageSendFailure) {
-        onMessageSendFailure(tempId)
-      }
-    } finally {
-      setIsLoading(false)
+    if (currentAnswer.trim()) {
+      formData.append("answer", currentAnswer)
     }
+
+    currentFiles.forEach((file) => {
+      formData.append("file", file)
+      formData.append("type", getMediaType(file))
+    })
+
+    if (currentAudioBlob) {
+      const audioFile = new File([currentAudioBlob], "voice-message.webm", { type: "audio/webm" })
+      formData.append("file", audioFile)
+      formData.append("type", "audio")
+    }
+
+    sendMessage(formData)
+      .then((response) => {
+        logger.info("Message sent successfully", { data: response })
+        if (tempId && onMessageSendSuccess && response) {
+          onMessageSendSuccess(tempId, {
+            id: response.id || tempId,
+            answer: response.answer || response.content || optimisticLabel || null,
+            sender: response.sender || "human",
+            created_at: response.created_at || new Date().toISOString(),
+            content: response.content || null,
+            media: response.media || response.media_url || null,
+            type: response.type || mediaType || "text",
+            whatsapp_message_id: response.whatsapp_message_id || response.wmessage_id || null,
+            status: response.status || "sent",
+          })
+        }
+      })
+      .catch((e) => {
+        setError((e as Error).message)
+        toast.error("Failed to send message")
+        logger.error("Error sending message", { error: e instanceof Error ? e.message : String(e) })
+        if (tempId && onMessageSendFailure) {
+          onMessageSendFailure(tempId)
+        }
+      })
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -324,7 +345,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }
 
-  const isSubmitDisabled = isLoading || (answer.trim() === "" && files.length === 0 && !audioBlob)
+  const isSubmitDisabled = answer.trim() === "" && files.length === 0 && !audioBlob
 
   const renderFilePreview = (file: File, index: number) => {
     if (file.type.startsWith("image/")) {
@@ -444,7 +465,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             value={answer}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            disabled={isLoading || isRecording}
+            disabled={isRecording}
             ref={textareaRef}
             rows={1}
           />
@@ -457,7 +478,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 size="icon"
                 className="rounded-full h-8 w-8"
                 onClick={onOpenCannedResponses}
-                disabled={isLoading || isRecording}
+                disabled={isRecording}
                 title="Canned responses"
               >
                 <MessageSquareText className="h-4 w-4 text-gray-500" />
@@ -469,7 +490,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               size="icon"
               className="rounded-full h-8 w-8"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              disabled={isLoading || isRecording}
+              disabled={isRecording}
             >
               <Smile className="h-4 w-4 text-gray-500" />
             </Button>
@@ -479,7 +500,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               size="icon"
               className="rounded-full h-8 w-8"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading || isRecording}
+              disabled={isRecording}
             >
               <Paperclip className="h-4 w-4 text-gray-500" />
             </Button>
@@ -490,7 +511,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 size="icon"
                 className="rounded-full h-8 w-8"
                 onClick={onOpenTemplatePicker}
-                disabled={isLoading || isRecording}
+                disabled={isRecording}
                 title="Send template message"
               >
                 <FileText className="h-4 w-4 text-gray-500" />
@@ -503,7 +524,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                 size="icon"
                 className="rounded-full h-8 w-8"
                 onClick={onOpenProductComposer}
-                disabled={isLoading || isRecording}
+                disabled={isRecording}
                 title="Send product"
               >
                 <ShoppingBag className="h-4 w-4 text-gray-500" />
@@ -517,11 +538,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
               variant="outline"
               disabled={isSubmitDisabled}
             >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
-              ) : (
-                <ArrowUp className="h-4 w-4 text-gray-500" />
-              )}
+              <ArrowUp className="h-4 w-4 text-gray-500" />
             </Button>
           </div>
         </div>

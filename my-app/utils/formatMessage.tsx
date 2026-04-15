@@ -641,6 +641,12 @@ const processTextWithLinks = (text: string): React.ReactNode[] => {
     }
   }
 
+  // Strip any remaining [TAG] media placeholders that weren't handled above
+  // These are system-level indicators that should never be visible to users
+  text = text.replace(/\[(IMAGE|VIDEO|AUDIO|DOCUMENT)\]\s*[^\n]*/gi, "").trim()
+
+  if (!text) return []
+
   // If no media patterns, process as before
   const parts = text.split(urlRegex)
 
