@@ -64,6 +64,7 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   { id: "home", label: "Home", icon: Home, route: "/dashboard" },
+  { id: "channels", label: "Channels", icon: SlidersHorizontal, route: "/dashboard/channels" },
   { id: "assistants", label: "Assistants", icon: Bot, route: "/dashboard/assistants" },
   { id: "chatbots", label: "Chatbots", icon: MessageSquareCode, route: "/dashboard/chatbots" },
   { id: "widgets", label: "Widgets", icon: Layout, route: "/dashboard/widgets" },
@@ -86,7 +87,6 @@ const sidebarItems: SidebarItem[] = [
     hasSubItems: true,
     subItems: [
       { id: "contacts", label: "Contacts", icon: Contact, description: "Manage your contacts", route: "/dashboard/audiences/contacts" },
-      { id: "segments", label: "Segments", icon: SlidersHorizontal, description: "Audience segments and filters", route: "/dashboard/audiences/segments" },
       { id: "campaigns", label: "Campaigns", icon: Megaphone, description: "Create and manage campaigns", route: "/dashboard/campaigns" },
       { id: "templates", label: "Templates", icon: FileText, description: "Message templates", route: "/dashboard/templates" },
     ],
