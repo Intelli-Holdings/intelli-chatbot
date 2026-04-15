@@ -311,10 +311,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     setFormData(prev => {
       const isSelected = prev.selectedTags.includes(tagSlug);
 
-      // Get contacts that have this tag
-      const contactsWithTag = contacts.filter(c =>
-        c.tags?.some((t: any) => t.slug === tagSlug)
-      );
+      // Get contacts that have this tag and match the campaign channel
+      const contactsWithTag = contacts.filter(c => {
+        if (prev.channel === 'whatsapp' && !c.phone) return false;
+        if (prev.channel === 'email' && !c.email) return false;
+        return c.tags?.some((t: any) => t.slug === tagSlug);
+      });
       const contactIdsWithTag = contactsWithTag.map(c => c.id);
 
       if (isSelected) {
@@ -1806,10 +1808,17 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     'Review & Launch'
   ];
 
-  const filteredContacts = contacts.filter(contact =>
-    contact.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.phone?.includes(searchTerm)
-  );
+  const filteredContacts = contacts.filter(contact => {
+    // Only show contacts relevant to the selected channel
+    if (formData.channel === 'whatsapp' && !contact.phone) return false;
+    if (formData.channel === 'email' && !contact.email) return false;
+
+    if (!searchTerm) return true;
+    return (
+      contact.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.phone?.includes(searchTerm)
+    );
+  });
 
   const displayedTags = showAllTags ? tags : tags.slice(0, 12);
   const hasMoreTags = tags.length > 12;
@@ -1824,10 +1833,12 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
     // Add contacts from selected tags (rough estimate)
     formData.selectedTags.forEach(tagSlug => {
-      const contactsWithTag = contacts.filter(c =>
-        c.tags.some(t => t.slug === tagSlug) &&
-        !formData.selectedContacts.includes(c.id)
-      );
+      const contactsWithTag = contacts.filter(c => {
+        if (formData.channel === 'whatsapp' && !c.phone) return false;
+        if (formData.channel === 'email' && !c.email) return false;
+        return c.tags.some(t => t.slug === tagSlug) &&
+          !formData.selectedContacts.includes(c.id);
+      });
       count += contactsWithTag.length;
     });
 
