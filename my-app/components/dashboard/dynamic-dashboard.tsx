@@ -516,96 +516,7 @@ export const DynamicDashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Charts Row */}
-        <div className="grid gap-5 lg:grid-cols-2">
-          {/* Conversation Trend Chart */}
-          {stats.conversationTrend.length > 0 && (
-            <Card className="rounded-xl border border-gray-200 p-5 shadow-sm">
-              <CardHeader className="p-0 mb-4">
-                <CardTitle className="text-base font-semibold text-gray-900">Conversation Trend</CardTitle>
-                <CardDescription className="text-sm text-gray-500">
-                  Conversations over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={stats.conversationTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 12 }}
-                      stroke="#999"
-                    />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      stroke="#999"
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="count"
-                      stroke="#007fff"
-                      fill="#e6f2ff"
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Message Trend Chart */}
-          {stats.messageTrend.length > 0 && (
-            <Card className="rounded-xl border border-gray-200 p-5 shadow-sm">
-              <CardHeader className="p-0 mb-4">
-                <CardTitle className="text-base font-semibold text-gray-900">Message Volume</CardTitle>
-                <CardDescription className="text-sm text-gray-500">
-                  Messages sent over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={stats.messageTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 12 }}
-                      stroke="#999"
-                    />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      stroke="#999"
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="count"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      dot={{ fill: '#8b5cf6', r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Bottom Row Cards */}
+                {/* Bottom Row Cards */}
         <div className="grid gap-5 lg:grid-cols-3">
           {/* Recent Escalations */}
           <Card className="rounded-xl border border-gray-200 p-5 shadow-sm">
@@ -783,48 +694,98 @@ export const DynamicDashboard: React.FC = () => {
             </div>
           </Card>
         </div>
-      </section>
 
-      {/* Channels Section */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Channels</h2>
-          <p className="text-sm text-gray-500">
-            Manage your communication channels
-          </p>
+        {/* Charts Row */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          {/* Conversation Trend Chart */}
+          {stats.conversationTrend.length > 0 && (
+            <Card className="rounded-xl border border-gray-200 p-5 shadow-sm">
+              <CardHeader className="p-0 mb-4">
+                <CardTitle className="text-base font-semibold text-gray-900">Conversation Trend</CardTitle>
+                <CardDescription className="text-sm text-gray-500">
+                  Conversations over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={stats.conversationTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 12 }}
+                      stroke="#999"
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      stroke="#999"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '12px'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#007fff"
+                      fill="#e6f2ff"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Message Trend Chart */}
+          {stats.messageTrend.length > 0 && (
+            <Card className="rounded-xl border border-gray-200 p-5 shadow-sm">
+              <CardHeader className="p-0 mb-4">
+                <CardTitle className="text-base font-semibold text-gray-900">Message Volume</CardTitle>
+                <CardDescription className="text-sm text-gray-500">
+                  Messages sent over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={stats.messageTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 12 }}
+                      stroke="#999"
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      stroke="#999"
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '12px'
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      dot={{ fill: '#8b5cf6', r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
         </div>
-        <Channels
-          onWhatsAppCreate={handleWhatsAppSetup}
-          onWebsiteCreate={handleWebsiteSetup}
-          onFacebookCreate={handleFacebookSetup}
-          onInstagramCreate={handleInstagramSetup}
-        />
+
       </section>
 
-      {/* Dialogs */}
-      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
-          <WhatsappOnboarding />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={websiteDialogOpen} onOpenChange={setWebsiteDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <UnifiedWidgets />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={facebookDialogOpen} onOpenChange={setFacebookDialogOpen}>
-        <DialogContent className="max-w-5xl">
-          <FacebookMessengerOnboarding />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={instagramDialogOpen} onOpenChange={setInstagramDialogOpen}>
-        <DialogContent className="max-w-5xl">
-          <InstagramOnboarding />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
