@@ -19,18 +19,29 @@ export interface UseWhatsAppTemplatesReturn {
 export const useWhatsAppTemplates = (appService: AppService | null): UseWhatsAppTemplatesReturn => {
   const queryClient = useQueryClient();
   const organizationId = useActiveOrganizationId();
-  const queryKey = ['whatsapp-templates', appService?.id ?? appService?.whatsapp_business_account_id ?? null];
-  const canFetch = Boolean(appService?.whatsapp_business_account_id && organizationId);
-  const configError = appService && !appService.whatsapp_business_account_id
-    ? 'App service configuration not available'
-    : null;
+  const queryKey = ['whatsapp-templates', organizationId, appService?.id ?? null];
+  const canFetch = Boolean(organizationId);
+  const configError = !organizationId ? 'Organization not available' : null;
 
   const fetchTemplates = async (): Promise<WhatsAppTemplate[]> => {
-    if (!appService?.whatsapp_business_account_id || !organizationId) {
+    if (!organizationId) {
       return [];
     }
 
-    return WhatsAppService.fetchTemplates(appService, { organizationId });
+    // Build a minimal appService-like object for the fetch call when the
+    // selected service is not WhatsApp (e.g. Instagram). The listing endpoint
+    // only needs organizationId; appserviceId/phone are optional.
+    const serviceArg: AppService = appService ?? {
+      id: 0,
+      phone_number: '',
+      phone_number_id: '',
+      whatsapp_business_account_id: '',
+      created_at: '',
+      access_token: '',
+      organization_id: organizationId,
+    };
+
+    return WhatsAppService.fetchTemplates(serviceArg, { organizationId });
   };
 
   const query = useQuery(queryKey, fetchTemplates, {
