@@ -50,6 +50,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -71,6 +72,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   // Listen for retry events from failed messages
   useEffect(() => {
+    const submitRetry = () => {
+      // Use the form ref instead of a global querySelector — there may be
+      // other forms on the page (search, etc.) and submitting the wrong one
+      // would be silent garbage.
+      setTimeout(() => {
+        formRef.current?.requestSubmit()
+      }, 100)
+    }
+
     const handleRetry = async (event: CustomEvent) => {
       const { content, mediaUrl, mediaType } = event.detail
 
@@ -83,10 +93,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           const file = new File([blob], `retry-media.${extension}`, { type: blob.type })
           setFiles([file])
           if (content) setAnswer(content)
-          setTimeout(() => {
-            const form = document.querySelector('form') as HTMLFormElement
-            if (form) form.requestSubmit()
-          }, 100)
+          submitRetry()
         } catch {
           // Blob URL expired — user must re-select the file
           toast.error("Media expired. Please re-attach the file and send again.")
@@ -96,10 +103,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       if (content) {
         setAnswer(content)
-        setTimeout(() => {
-          const form = document.querySelector('form') as HTMLFormElement
-          if (form) form.requestSubmit()
-        }, 100)
+        submitRetry()
       }
     }
 
@@ -428,7 +432,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     <div className="border rounded-xl shadow-sm overflow-hidden">
       {error && <p className="text-red-500 px-4 py-2 text-sm">{error}</p>}
 
-      <form onSubmit={handleSubmit} className="flex flex-col">
+      <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col">
         <input
           type="file"
           ref={fileInputRef}
