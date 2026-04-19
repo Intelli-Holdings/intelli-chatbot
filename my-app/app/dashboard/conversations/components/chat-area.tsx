@@ -1247,9 +1247,8 @@ export default function ChatArea({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="relative flex-1 min-h-0">
       <div
-        className="absolute inset-0 overflow-y-auto p-4"
+        className="relative flex-1 overflow-y-auto p-4"
         style={{
           backgroundImage: "url('/original.png?height=500&width=500')",
           backgroundSize: "contain",
@@ -1689,13 +1688,12 @@ export default function ChatArea({
               </div>
             )}
             <div className="h-4" ref={dummyRef} />
+            {/* The scroll container is `relative`, so the button anchors to
+                the bottom-right of its viewport and stays in place as
+                messages scroll past. */}
+            <ScrollToBottomButton targetRef={dummyRef} threshold={150} />
           </div>
         )}
-      </div>
-      {/* Sibling of the scroll area inside the `relative flex-1` wrapper;
-          anchors to the viewport of that wrapper rather than the scrolling
-          content, so it stays in the bottom-right corner as messages scroll. */}
-      <ScrollToBottomButton targetRef={dummyRef} threshold={150} />
       </div>
       {isWindowExpired && (
         <div className="px-3 py-2 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
