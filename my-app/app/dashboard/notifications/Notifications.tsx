@@ -316,13 +316,36 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
   }
 
   const handleAssigneeChange = async (notificationId: string, assigneeId: string) => {
+    const selectedUser = organizationUsers.find((user) => user.id === assigneeId)
+    if (!selectedUser) {
+      toast("Assignment Failed", { description: "Selected user not found" })
+      return
+    }
+
+    // Optimistic update: immediately reflect the new assignee in the UI so the
+    // card doesn't appear to "refresh" after the network round trip.
+    const numericId = Number(notificationId)
+    const previousItem = paginatedNotifications.find((n) => n.id === numericId)
+    const optimisticAssignee = {
+      id: selectedUser.id,
+      clerk_id: selectedUser.clerk_id ?? null,
+      email: selectedUser.email ?? null,
+      first_name: selectedUser.name?.split(" ")[0] || null,
+      last_name: selectedUser.name?.split(" ").slice(1).join(" ") || null,
+      profile_image_url: selectedUser.image || null,
+    }
+
+    setPaginatedNotifications((prev) =>
+      prev.map((n) =>
+        n.id === numericId
+          ? ({ ...n, assignee: optimisticAssignee, status: "assigned" } as NotificationMessage)
+          : n,
+      ),
+    )
+    setShowAssigneeSelect(null)
     setIsLoading((prev) => ({ ...prev, [notificationId]: true }))
 
     try {
-      const selectedUser = organizationUsers.find((user) => user.id === assigneeId)
-      if (!selectedUser) {
-        throw new Error("Selected user not found")
-      }
       const headers = await getAuthHeaders()
       const payload: Record<string, string> = {
         notification_id: notificationId,
@@ -360,24 +383,31 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
         throw new Error(`Failed to assign: ${response.statusText}`)
       }
       const updatedNotification = await response.json()
+      // Reconcile with the server-authoritative record. Because the optimistic
+      // update already matched the expected shape closely, this usually looks
+      // like a no-op to the user.
       updateNotification(updatedNotification)
       setPaginatedNotifications((prev) =>
         prev.map((notification) =>
-          notification.id === updatedNotification.id ? updatedNotification : notification
-        )
+          notification.id === updatedNotification.id ? updatedNotification : notification,
+        ),
       )
       toast("Success", {
         description: `Assigned to ${selectedUser.name}`,
       })
 
     } catch (error) {
+      // Roll back the optimistic update so the UI doesn't lie.
+      if (previousItem) {
+        setPaginatedNotifications((prev) =>
+          prev.map((n) => (n.id === numericId ? previousItem : n)),
+        )
+      }
       toast("Assignment Failed", {
         description: error instanceof Error ? error.message : "Unknown error occurred",
-        
       })
     } finally {
       setIsLoading((prev) => ({ ...prev, [notificationId]: false }))
-      setShowAssigneeSelect(null)
     }
   }
 
@@ -689,6 +719,35 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                       sizes="64px"
                       unoptimized
                     />
+                  </div>
+                ) : mediaInfo.type === 'video' && mediaInfo.url ? (
+                  <div className="relative w-16 h-16 rounded-md overflow-hidden bg-black border border-[#e9edef]">
+                    <video
+                      src={mediaInfo.url}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <Video className="h-5 w-5 text-white drop-shadow" />
+                    </div>
+                  </div>
+                ) : mediaInfo.type === 'audio' && mediaInfo.url ? (
+                  <div className="relative flex h-16 w-16 items-center justify-center rounded-md bg-gradient-to-br from-[#007fff]/15 to-[#007fff]/5 border border-[#e9edef]">
+                    <svg viewBox="0 0 32 16" className="absolute inset-x-2 top-1/2 h-5 -translate-y-1/2 text-[#007fff]/70" fill="currentColor" aria-hidden="true">
+                      {[3, 6, 10, 14, 18, 22, 26, 29].map((x, i) => (
+                        <rect key={i} x={x} y={6 - (i % 3) * 2} width="2" height={4 + (i % 3) * 2 * 2} rx="1" />
+                      ))}
+                    </svg>
+                    <Music className="relative h-5 w-5 text-[#007fff]" />
+                  </div>
+                ) : mediaInfo.type === 'document' ? (
+                  <div className="flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-md bg-white border border-[#e9edef] p-1">
+                    <FileText className="h-5 w-5 text-orange-500" />
+                    <span className="w-full truncate text-center text-[9px] font-medium text-[#667781]" title={mediaInfo.fileName || 'Document'}>
+                      {mediaInfo.fileName || 'Document'}
+                    </span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center w-16 h-16 rounded-md bg-white border border-[#e9edef]">

@@ -16,6 +16,7 @@ export interface UseDashboardMetricsReturn {
   stats: DashboardStats | null;
   allTimeStats: DashboardStats | null;
   loading: boolean;
+  isRefreshing: boolean;
   error: string | null;
   period: TimePeriod;
   setPeriod: (period: TimePeriod) => void;
@@ -174,9 +175,13 @@ export const useDashboardMetrics = (
     }
   );
 
-  // Derive combined state
+  // Derive combined state. `loading` covers the initial load (no cached data yet);
+  // `isRefreshing` covers background refetches — React Query flips `isFetching`
+  // on refetch but leaves `isLoading` false when data is already present.
   const loading = periodQuery.isLoading || allTimeQuery.isLoading ||
     contactsQuery.isLoading || escalationsQuery.isLoading;
+  const isRefreshing = periodQuery.isFetching || allTimeQuery.isFetching ||
+    contactsQuery.isFetching || escalationsQuery.isFetching;
 
   const error = useMemo(() => {
     const firstError = periodQuery.error || allTimeQuery.error ||
@@ -253,6 +258,7 @@ export const useDashboardMetrics = (
     stats,
     allTimeStats,
     loading,
+    isRefreshing,
     error,
     period,
     setPeriod,

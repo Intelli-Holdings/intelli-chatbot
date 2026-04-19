@@ -160,8 +160,26 @@ export default function WebsiteConversationsPage() {
           const data = JSON.parse(event.data);
           logger.debug("WebSocket message received", { data });
 
-          // Handle new messages
-          if (data.type === 'business_forward' || data.type === 'new_chat') {
+          // A new visitor message arrived. Append it to the currently open
+          // conversation so it shows instantly, and trigger a list refetch so
+          // visitor ordering/unread counts stay accurate.
+          if (data.type === 'business_forward') {
+            setSelectedVisitor((prev) => {
+              if (!prev || prev.visitor_id !== data.visitor_id) return prev;
+              const appended: Message = {
+                id: Date.now(),
+                content: data.message || '',
+                sender_type: 'visitor',
+                sender: 'customer',
+                timestamp: new Date().toISOString(),
+              };
+              return { ...prev, messages: [...(prev.messages || []), appended] };
+            });
+            refetchVisitors();
+            return;
+          }
+
+          if (data.type === 'new_chat') {
             refetchVisitors();
           }
         } catch (error) {

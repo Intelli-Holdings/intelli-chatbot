@@ -976,34 +976,36 @@ export default function InstagramChatArea({
                         {/* Regular customer messages (content field) */}
                         {message.content && !specialRendering && (() => {
                           return (
-                            <div
-                              className={cn(
-                                "ig-message-bubble ig-message-customer",
-                                !expandedMessages.includes(message.id) && "collapsed",
-                              )}
-                            >
-                              <div className="text-[9px] font-semibold text-gray-500 mb-1">
-                                Customer
-                              </div>
-                              <div className="text-sm">
-                                {contentHasMedia ? (
-                                  <>
-                                    {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
-                                    {contentMedia?.type === "image" && contentMedia?.url && (
-                                      <ImagePreview src={contentMedia.url || "/placeholder.svg"} title={contentMedia.filename || undefined} />
-                                    )}
-                                    {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
-                                    {contentMedia?.displayText && contentMedia.displayText.trim() && (
-                                      <div className="mt-2">{formatMessage(contentMedia.displayText)}</div>
-                                    )}
-                                  </>
-                                ) : (
-                                  formatMessage(message.content)
+                            <div className="flex flex-col items-start">
+                              <div
+                                className={cn(
+                                  "ig-message-bubble ig-message-customer",
+                                  !expandedMessages.includes(message.id) && "collapsed",
+                                )}
+                              >
+                                <div className="text-sm">
+                                  {contentHasMedia ? (
+                                    <>
+                                      {contentMedia?.type === "audio" && contentMedia?.url && <AudioPlayer src={contentMedia.url} />}
+                                      {contentMedia?.type === "image" && contentMedia?.url && (
+                                        <ImagePreview src={contentMedia.url || "/placeholder.svg"} title={contentMedia.filename || undefined} />
+                                      )}
+                                      {contentMedia?.type === "video" && contentMedia?.url && <VideoPlayer src={contentMedia.url} />}
+                                      {contentMedia?.displayText && contentMedia.displayText.trim() && (
+                                        <div className="mt-2">{formatMessage(contentMedia.displayText)}</div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    formatMessage(message.content)
+                                  )}
+                                </div>
+                                {message.reaction?.emoji && (
+                                  <span className="ig-reaction-overlay">{message.reaction.emoji}</span>
                                 )}
                               </div>
-                              {message.reaction?.emoji && (
-                                <span className="ig-reaction-overlay">{message.reaction.emoji}</span>
-                              )}
+                              <span className="text-[10px] text-[#8E8E8E] mt-1 ml-2">
+                                {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
                             </div>
                           )
                         })()}
@@ -1011,67 +1013,65 @@ export default function InstagramChatArea({
                         {/* Business/AI responses (answer field) */}
                         {message.answer && (() => {
                           return (
-                            <div
-                              className={cn(
-                                "ig-message-bubble",
-                                message.sender === "ai" ? "ig-message-assistant" : "ig-message-human",
-                                message.status === "failed" && "!bg-red-100 !text-red-700",
-                              )}
-                            >
-                              {message.status === "failed" && (
-                                <div className="text-[10px] font-medium mb-1 flex items-center gap-1">
-                                  <span>Failed to send</span>
-                                  <button
-                                    onClick={() => handleRetryMessage(message.id)}
-                                    className="underline ml-1"
-                                  >
-                                    Retry
-                                  </button>
+                            <div className="flex flex-col items-end">
+                              <div
+                                className={cn(
+                                  "ig-message-bubble",
+                                  message.sender === "ai" ? "ig-message-assistant" : "ig-message-human",
+                                  message.status === "failed" && "!bg-red-100 !text-red-700",
+                                )}
+                              >
+                                {message.status === "failed" && (
+                                  <div className="text-[10px] font-medium mb-1 flex items-center gap-1">
+                                    <span>Failed to send</span>
+                                    <button
+                                      onClick={() => handleRetryMessage(message.id)}
+                                      className="underline ml-1"
+                                    >
+                                      Retry
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="text-sm">
+                                  {answerHasMedia ? (
+                                    <>
+                                      {answerMedia?.type === "audio" && answerMedia?.url && <AudioPlayer src={answerMedia.url} />}
+                                      {answerMedia?.type === "image" && answerMedia?.url && (
+                                        <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
+                                      )}
+                                      {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
+                                      {answerMedia?.type === "document" && answerMedia?.url && (
+                                        <a href={answerMedia.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                          <FileText className="h-8 w-8 text-red-500 shrink-0" />
+                                          <div className="flex-1 min-w-0">
+                                            <span className="text-sm truncate block">{answerMedia.filename || "Document"}</span>
+                                            <span className="text-xs text-[#667781]">Tap to open</span>
+                                          </div>
+                                        </a>
+                                      )}
+                                      {answerMedia?.displayText && answerMedia.displayText.trim() && (
+                                        <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    formatMessage(message.answer)
+                                  )}
                                 </div>
-                              )}
-                              {/* Sender badge */}
-                              <div className={cn(
-                                "text-[9px] font-semibold mb-1",
-                                message.sender === "ai" ? "text-white/70" : "text-white/70"
-                              )}>
-                                {message.sender === "ai" ? "🤖 AI Assistant" : "👤 Business"}
-                              </div>
-                              <div className="text-sm">
-                                {answerHasMedia ? (
-                                  <>
-                                    {answerMedia?.type === "audio" && answerMedia?.url && <AudioPlayer src={answerMedia.url} />}
-                                    {answerMedia?.type === "image" && answerMedia?.url && (
-                                      <ImagePreview src={answerMedia.url} title={answerMedia.filename || undefined} />
-                                    )}
-                                    {answerMedia?.type === "video" && answerMedia?.url && <VideoPlayer src={answerMedia.url} />}
-                                    {answerMedia?.type === "document" && answerMedia?.url && (
-                                      <a href={answerMedia.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                                        <FileText className="h-8 w-8 text-red-500 shrink-0" />
-                                        <div className="flex-1 min-w-0">
-                                          <span className="text-sm truncate block">{answerMedia.filename || "Document"}</span>
-                                          <span className="text-xs text-[#667781]">Tap to open</span>
-                                        </div>
-                                      </a>
-                                    )}
-                                    {answerMedia?.displayText && answerMedia.displayText.trim() && (
-                                      <div className="mt-2">{formatMessage(answerMedia.displayText)}</div>
-                                    )}
-                                  </>
-                                ) : (
-                                  formatMessage(message.answer)
+                                {message.reaction?.emoji && (
+                                  <span className="ig-reaction-overlay">{message.reaction.emoji}</span>
                                 )}
                               </div>
-                              {message.sender === "human" && message.pending && (
-                                <div className="flex justify-end mt-0.5">
-                                  <MessageStatus
-                                    status="sending"
-                                    className="text-white/60"
-                                  />
-                                </div>
-                              )}
-                              {message.reaction?.emoji && (
-                                <span className="ig-reaction-overlay">{message.reaction.emoji}</span>
-                              )}
+                              <div className="flex items-center gap-1 mt-1 mr-2">
+                                {message.sender === "ai" && (
+                                  <span className="text-[10px] font-medium text-[#8B2FB8]">AI Assistant</span>
+                                )}
+                                <span className="text-[10px] text-[#8E8E8E]">
+                                  {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                {message.sender === "human" && message.pending && (
+                                  <MessageStatus status="sending" className="text-[#8E8E8E]" />
+                                )}
+                              </div>
                             </div>
                           )
                         })()}

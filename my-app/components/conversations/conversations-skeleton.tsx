@@ -114,9 +114,12 @@ function ActiveChatPanel() {
 
 export function ConversationsSkeleton({ showActiveChat = false }: { showActiveChat?: boolean }) {
   return (
-    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border bg-background shadow-lg">
+    // Mirror the real Instagram conversations page shell so the transition
+    // from skeleton -> live content doesn't resize the frame under the user.
+    // Actual chat sidebar width is 420px (see ChatSidebar).
+    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
       {/* Left Panel */}
-      <div className="w-[320px] flex-shrink-0 flex flex-col border-r">
+      <div className="w-[420px] flex-shrink-0 flex flex-col border-r border-[#e9edef]">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3">
           <Skeleton className="h-5 w-[120px] rounded-full" />
