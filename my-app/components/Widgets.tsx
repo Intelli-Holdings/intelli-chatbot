@@ -303,12 +303,13 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
     try {
       console.log(`[Widgets] Updating widget`)
 
-      // Optimistic update: Update widget in UI immediately
-      const optimisticWidget = {
+      // Optimistic update: reflect all edited fields immediately in the list
+      const optimisticWidget: Widget = {
         ...editWidget,
-        widget_name: editWidget.widget_name,
-        website_url: editWidget.website_url,
         brand_color: brandColor,
+        // If a new avatar was uploaded, show the local data URL until the server
+        // returns the final hosted URL via fetchWidgets.
+        avatar_url: avatarFile && avatarUrl ? avatarUrl : editWidget.avatar_url,
       }
       setWidgets((prevWidgets) => {
         const nextWidgets = prevWidgets.map((w) => (w.id === editWidget.id ? optimisticWidget : w))
@@ -326,19 +327,19 @@ const Widgets = ({ onCreateWidget }: WidgetsProps) => {
         throw new Error(errorData.error || "Failed to update widget")
       }
 
-      const updatedData = await response.json()
+      await response.json()
 
       toast.success("Widget updated successfully!")
 
-      // Reset edit state
+      // Refresh the widget list to show actual updated data from server before
+      // resetting local edit state — prevents a flash of stale card data.
+      console.log("[Widgets] Refreshing widget list after update...")
+      await fetchWidgets(selectedOrganizationId, { showLoader: false })
+
       setIsEditDialogOpen(false)
       setEditWidget(null)
       setAvatarFile(null)
       setAvatarUrl(null)
-
-      // Refresh the widget list to show actual updated data from server
-      console.log("[Widgets] Refreshing widget list after update...")
-      await fetchWidgets(selectedOrganizationId, { showLoader: false })
     } catch (error) {
       console.error("[Widgets] Error updating widget:", error)
       toast.error(`Failed to update widget: ${error instanceof Error ? error.message : "Unknown error"}`)

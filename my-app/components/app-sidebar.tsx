@@ -131,31 +131,21 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [openPanel, setOpenPanel] = useState<string | null>(null)
 
-  // Close panel when collapsing
-  useEffect(() => {
-    if (collapsed) setOpenPanel(null)
-  }, [collapsed])
-
   // Auto-open panel if a sub-item is active
   useEffect(() => {
     const matching = sidebarItems.find(
       (item) => item.hasSubItems && hasActiveChild(item, pathname)
     )
-    if (matching && !collapsed) {
+    if (matching) {
       setOpenPanel(matching.id)
     }
-  }, [pathname, collapsed])
+  }, [pathname])
 
   const openPanelData = sidebarItems.find((item) => item.id === openPanel)
 
   const handleItemClick = (item: SidebarItem) => {
     if (item.hasSubItems) {
-      if (collapsed) {
-        setCollapsed(false)
-        setTimeout(() => setOpenPanel(item.id), 200)
-      } else {
-        setOpenPanel(openPanel === item.id ? null : item.id)
-      }
+      setOpenPanel(openPanel === item.id ? null : item.id)
     } else if (item.route) {
       setOpenPanel(null)
       router.push(item.route)
@@ -200,7 +190,14 @@ export function AppSidebar() {
               <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-gray-900">
                 <Image alt="Intelli Logo" src="/Intelli.svg" height={20} width={20} className="size-5" />
               </div>
-              {!collapsed && <span className="font-bold whitespace-nowrap">Intelli</span>}
+              <span
+                className={cn(
+                  "font-bold whitespace-nowrap transition-[opacity,max-width] duration-200 ease-in-out",
+                  collapsed ? "max-w-0 opacity-0" : "max-w-[8rem] opacity-100 delay-75"
+                )}
+              >
+                Intelli
+              </span>
             </Link>
           </div>
 
@@ -208,10 +205,13 @@ export function AppSidebar() {
           <nav className="flex-1 space-y-1 p-2 overflow-hidden">
             {sidebarItems.map((item) => {
               const Icon = item.icon
-              const isActive = item.route
+              const isRouteMatch = item.route
                 ? isRouteActive(item.route, pathname)
                 : hasActiveChild(item, pathname)
               const isPanelOpen = openPanel === item.id
+              // When any panel is open, only the panel-open parent shows active styling;
+              // otherwise fall back to route-based active state.
+              const showActive = openPanel !== null ? isPanelOpen : isRouteMatch
 
               const button = (
                 <button
@@ -219,23 +219,29 @@ export function AppSidebar() {
                   onClick={() => handleItemClick(item)}
                   className={cn(
                     "flex h-10 w-full items-center rounded-lg text-sm font-medium transition-colors",
-                    isActive || isPanelOpen ? primaryActiveClass : primaryDefaultClass,
+                    showActive ? primaryActiveClass : primaryDefaultClass,
                     collapsed ? "justify-center px-0" : "gap-3 px-3"
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 whitespace-nowrap text-left truncate">{item.label}</span>
-                      {item.hasSubItems && (
-                        <ChevronRight
-                          className={cn(
-                            "h-4 w-4 shrink-0 transition-transform",
-                            isPanelOpen && "rotate-90"
-                          )}
-                        />
+                  <span
+                    className={cn(
+                      "whitespace-nowrap text-left truncate transition-[opacity,max-width] duration-200 ease-in-out",
+                      collapsed
+                        ? "max-w-0 opacity-0"
+                        : "max-w-full flex-1 opacity-100 delay-75"
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                  {item.hasSubItems && (
+                    <ChevronRight
+                      className={cn(
+                        "h-4 w-4 shrink-0 transition-[opacity,transform,width] duration-200 ease-in-out",
+                        isPanelOpen && "rotate-90",
+                        collapsed ? "w-0 opacity-0" : "opacity-100 delay-75"
                       )}
-                    </>
+                    />
                   )}
                 </button>
               )
@@ -261,7 +267,7 @@ export function AppSidebar() {
         </aside>
 
         {/* Secondary panel — sub-items */}
-        {openPanel && openPanelData?.subItems && !collapsed && (
+        {openPanel && openPanelData?.subItems && (
           <aside className="flex h-full w-72 flex-col border-r border-border bg-card animate-in slide-in-from-left-5 duration-200">
             <div className="flex h-16 items-center justify-between border-b border-border px-4 shrink-0">
               <h3 className="font-medium">{openPanelData.label}</h3>

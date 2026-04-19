@@ -78,24 +78,34 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [playbackRate, setPlaybackRate] = useState(1)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [waveformBars, setWaveformBars] = useState<number[]>([])
 
   // Generate random waveform on mount
   useEffect(() => {
-    // Generate 30 random bars for the waveform
     const bars = Array.from({ length: 30 }, () => Math.random() * 0.8 + 0.2)
     setWaveformBars(bars)
   }, [])
 
   const togglePlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause()
-      } else {
-        audioRef.current.play()
-      }
-      setIsPlaying(!isPlaying)
+    const audio = audioRef.current
+    if (!audio) return
+    if (isPlaying) {
+      audio.pause()
+      setIsPlaying(false)
+      return
+    }
+    const playPromise = audio.play()
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          setLoadError(err?.message || "Unable to play audio")
+          setIsPlaying(false)
+        })
+    } else {
+      setIsPlaying(true)
     }
   }
 
@@ -105,9 +115,35 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
     }
   }
 
+  // WhatsApp voice notes (audio/ogg;codecs=opus) and some webm streams report
+  // duration === Infinity because the container has no duration header. The
+  // documented workaround is to seek to the end, let the browser compute the
+  // actual length, then seek back to zero.
+  const resolveDurationWithSeekHack = (audio: HTMLAudioElement) => {
+    const onTimeUpdate = () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate)
+      const resolved = audio.duration
+      if (Number.isFinite(resolved) && resolved > 0) {
+        setDuration(resolved)
+      }
+      audio.currentTime = 0
+    }
+    audio.addEventListener("timeupdate", onTimeUpdate)
+    try {
+      audio.currentTime = 1e101
+    } catch {
+      audio.removeEventListener("timeupdate", onTimeUpdate)
+    }
+  }
+
   const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration)
+    const audio = audioRef.current
+    if (!audio) return
+    const d = audio.duration
+    if (!Number.isFinite(d) || isNaN(d) || d <= 0) {
+      resolveDurationWithSeekHack(audio)
+    } else {
+      setDuration(d)
     }
   }
 
@@ -142,13 +178,15 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
   }
 
   const formatTime = (timeInSeconds: number) => {
+    if (!Number.isFinite(timeInSeconds) || timeInSeconds < 0) return "0:00"
     const minutes = Math.floor(timeInSeconds / 60)
     const seconds = Math.floor(timeInSeconds % 60)
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`
   }
 
-  // Calculate progress percentage
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
+  // Calculate progress percentage — guard against Infinity and zero duration
+  const progressPercentage =
+    Number.isFinite(duration) && duration > 0 ? (currentTime / duration) * 100 : 0
 
   // Determine which bars should be highlighted based on progress
   const highlightedBarsCount = Math.floor((progressPercentage / 100) * waveformBars.length)
@@ -238,9 +276,18 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
         src={src}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
+        onDurationChange={handleLoadedMetadata}
         onEnded={handleEnded}
+        onError={() =>
+          setLoadError("Audio format not supported by this browser")
+        }
         preload="metadata"
       />
+      {loadError && (
+        <div className="ml-2 text-[10px] text-red-500" role="alert">
+          {loadError}
+        </div>
+      )}
     </div>
   )
 }
@@ -250,11 +297,50 @@ interface VideoPlayerProps {
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ src }) => {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Same duration-is-Infinity workaround used in AudioPlayer: some MP4/WEBM
+  // containers (especially re-muxed WhatsApp videos) do not expose duration
+  // until after a full seek pass.
+  const handleLoadedMetadata = () => {
+    const video = videoRef.current
+    if (!video) return
+    const d = video.duration
+    if (!Number.isFinite(d) || isNaN(d) || d <= 0) {
+      const onTimeUpdate = () => {
+        video.removeEventListener("timeupdate", onTimeUpdate)
+        video.currentTime = 0
+      }
+      video.addEventListener("timeupdate", onTimeUpdate)
+      try {
+        video.currentTime = 1e101
+      } catch {
+        video.removeEventListener("timeupdate", onTimeUpdate)
+      }
+    }
+  }
+
   return (
     <div className="my-2 max-w-md rounded-lg overflow-hidden shadow">
-      <video src={src} controls className="w-full h-auto bg-black rounded-lg" controlsList="nodownload">
+      <video
+        ref={videoRef}
+        src={src}
+        controls
+        playsInline
+        preload="metadata"
+        onLoadedMetadata={handleLoadedMetadata}
+        onError={() => setLoadError("Video format not supported by this browser")}
+        className="w-full h-auto bg-black rounded-lg"
+        controlsList="nodownload"
+      >
         Your browser does not support the video tag.
       </video>
+      {loadError && (
+        <div className="mt-1 text-[10px] text-red-500" role="alert">
+          {loadError}
+        </div>
+      )}
     </div>
   )
 }

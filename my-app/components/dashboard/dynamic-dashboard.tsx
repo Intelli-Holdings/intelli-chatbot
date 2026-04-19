@@ -231,6 +231,7 @@ export const DynamicDashboard: React.FC = () => {
     stats,
     allTimeStats,
     loading,
+    isRefreshing,
     error,
     period,
     setPeriod,
@@ -477,10 +478,10 @@ export const DynamicDashboard: React.FC = () => {
                 onClick={() => refetch()}
                 variant="outline"
                 size="sm"
-                disabled={loading}
+                disabled={isRefreshing}
                 className="h-9 rounded-full px-3 text-xs font-semibold"
               >
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>

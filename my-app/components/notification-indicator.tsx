@@ -1,5 +1,17 @@
 "use client"
-import { Bell, CheckCircle, Eye, Globe, Mail, Facebook, MessageSquare, ExternalLink } from "lucide-react"
+import {
+  Bell,
+  CheckCircle,
+  Eye,
+  Globe,
+  Mail,
+  Facebook,
+  MessageSquare,
+  ExternalLink,
+  Video,
+  Music,
+  FileText,
+} from "lucide-react"
 import { useNotificationContext } from "@/hooks/use-notification-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,6 +28,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { extractMediaFromMessage, MEDIA_LABELS } from "@/lib/notification-media"
 
 export function NotificationIndicator() {
   const {
@@ -172,6 +185,8 @@ export function NotificationIndicator() {
                   (typeof window !== 'undefined'
                     ? Number(localStorage.getItem(`org_last_read_${notification.organization_id}`) || '0')
                     : 0)
+                const mediaInfo = extractMediaFromMessage(notification.message)
+                const hasMedia = mediaInfo.type !== null
 
                 return (
                   <DropdownMenuItem
@@ -196,7 +211,6 @@ export function NotificationIndicator() {
                           <p className="text-sm font-medium line-clamp-1">
                             {notification.chatsession?.customer_name || notification.widget_visitor?.visitor_name || "Unknown Customer"}
                           </p>
-                          {/* Display phone number if available */}
                           {(notification.chatsession?.customer_number || notification.widget_visitor?.visitor_phone) && (
                             <p className="text-xs text-gray-500 line-clamp-1">
                               {notification.chatsession?.customer_number || notification.widget_visitor?.visitor_phone}
@@ -207,14 +221,62 @@ export function NotificationIndicator() {
                           {formatDate(notification.created_at)}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                        {notification.message}
-                      </p>
+                      {hasMedia ? (
+                        <div className="flex items-center gap-2">
+                          {mediaInfo.type === 'image' && mediaInfo.url ? (
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+                              <Image
+                                src={mediaInfo.url}
+                                alt="Preview"
+                                fill
+                                sizes="40px"
+                                className="object-cover"
+                                unoptimized
+                              />
+                            </div>
+                          ) : mediaInfo.type === 'video' && mediaInfo.url ? (
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-black">
+                              <video
+                                src={mediaInfo.url}
+                                preload="metadata"
+                                muted
+                                playsInline
+                                className="h-full w-full object-cover"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Video className="h-4 w-4 text-white drop-shadow" />
+                              </div>
+                            </div>
+                          ) : mediaInfo.type === 'audio' ? (
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-[#007fff]/10">
+                              <Music className="h-4 w-4 text-[#007fff]" />
+                            </div>
+                          ) : (
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-orange-50">
+                              <FileText className="h-4 w-4 text-orange-500" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            {mediaInfo.text ? (
+                              <p className="line-clamp-2 text-xs text-gray-600 dark:text-gray-400">{mediaInfo.text}</p>
+                            ) : (
+                              <p className="text-xs italic text-gray-500 dark:text-gray-400">
+                                {mediaInfo.type === 'document' && mediaInfo.fileName
+                                  ? `📄 ${mediaInfo.fileName}`
+                                  : MEDIA_LABELS[mediaInfo.type!]}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="line-clamp-2 text-xs text-gray-600 dark:text-gray-400">
+                          {notification.message}
+                        </p>
+                      )}
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="outline" className="text-xs">
                           {notification.channel}
                         </Badge>
-                        {/* Display business phone number (AppService) if available */}
                         {notification.chatsession?.business_phone_number && (
                           <Badge variant="secondary" className="text-xs">
                             {notification.chatsession.business_phone_number}

@@ -690,6 +690,35 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
                       unoptimized
                     />
                   </div>
+                ) : mediaInfo.type === 'video' && mediaInfo.url ? (
+                  <div className="relative w-16 h-16 rounded-md overflow-hidden bg-black border border-[#e9edef]">
+                    <video
+                      src={mediaInfo.url}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <Video className="h-5 w-5 text-white drop-shadow" />
+                    </div>
+                  </div>
+                ) : mediaInfo.type === 'audio' && mediaInfo.url ? (
+                  <div className="relative flex h-16 w-16 items-center justify-center rounded-md bg-gradient-to-br from-[#007fff]/15 to-[#007fff]/5 border border-[#e9edef]">
+                    <svg viewBox="0 0 32 16" className="absolute inset-x-2 top-1/2 h-5 -translate-y-1/2 text-[#007fff]/70" fill="currentColor" aria-hidden="true">
+                      {[3, 6, 10, 14, 18, 22, 26, 29].map((x, i) => (
+                        <rect key={i} x={x} y={6 - (i % 3) * 2} width="2" height={4 + (i % 3) * 2 * 2} rx="1" />
+                      ))}
+                    </svg>
+                    <Music className="relative h-5 w-5 text-[#007fff]" />
+                  </div>
+                ) : mediaInfo.type === 'document' ? (
+                  <div className="flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-md bg-white border border-[#e9edef] p-1">
+                    <FileText className="h-5 w-5 text-orange-500" />
+                    <span className="w-full truncate text-center text-[9px] font-medium text-[#667781]" title={mediaInfo.fileName || 'Document'}>
+                      {mediaInfo.fileName || 'Document'}
+                    </span>
+                  </div>
                 ) : (
                   <div className="flex items-center justify-center w-16 h-16 rounded-md bg-white border border-[#e9edef]">
                     {getMediaIcon(mediaInfo.type || '')}
