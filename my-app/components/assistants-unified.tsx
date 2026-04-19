@@ -109,6 +109,7 @@ interface AssistantFile {
   version: number;
   created_at: string;
   updated_at: string;
+  error_details?: string | null;
 }
 
 const FileStatusIcon = ({ status }: { status: string }) => {
@@ -1151,15 +1152,20 @@ export default function AssistantsUnified() {
                       {pendingFiles.map((file) => (
                         <div
                           key={file.id}
-                          className="flex items-center justify-between p-3 border rounded-lg"
+                          className="flex items-start justify-between p-3 border rounded-lg"
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-start gap-3 min-w-0">
                             <FileStatusIcon status={file.azure_file_status} />
-                            <div>
-                              <p className="text-sm font-medium">{file.file_name}</p>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{file.file_name}</p>
                               <p className="text-xs text-muted-foreground">
                                 {formatFileSize(file.file_size)} • {file.azure_file_status}
                               </p>
+                              {file.azure_file_status === 'failed' && file.error_details && (
+                                <p className="mt-1 text-xs text-red-600 break-words">
+                                  {file.error_details}
+                                </p>
+                              )}
                             </div>
                           </div>
                           {file.azure_file_status === 'failed' && (
@@ -1167,6 +1173,7 @@ export default function AssistantsUnified() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleRetryFile(file.id)}
+                              className="shrink-0 ml-3"
                             >
                               <RefreshCw className="h-3 w-3 mr-1" />
                               Retry
@@ -1217,18 +1224,30 @@ export default function AssistantsUnified() {
                               {formatFileSize(file.file_size)}
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant={
-                                  file.azure_file_status === 'completed'
-                                    ? 'default'
-                                    : file.azure_file_status === 'failed'
-                                    ? 'destructive'
-                                    : 'secondary'
-                                }
-                                className="text-xs"
-                              >
-                                {file.azure_file_status}
-                              </Badge>
+                              <div className="flex flex-col gap-1">
+                                <Badge
+                                  variant={
+                                    file.azure_file_status === 'completed'
+                                      ? 'default'
+                                      : file.azure_file_status === 'failed'
+                                      ? 'destructive'
+                                      : 'secondary'
+                                  }
+                                  className="text-xs w-fit"
+                                  title={
+                                    file.azure_file_status === 'failed' && file.error_details
+                                      ? file.error_details
+                                      : undefined
+                                  }
+                                >
+                                  {file.azure_file_status}
+                                </Badge>
+                                {file.azure_file_status === 'failed' && file.error_details && (
+                                  <span className="text-[11px] text-red-600 max-w-[240px] line-clamp-2">
+                                    {file.error_details}
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-sm">v{file.version}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">
