@@ -7,59 +7,66 @@ export interface NotificationMediaInfo {
   fileName?: string
 }
 
+/**
+ * Match `[TAG] <filename> - <url>`. Filename may contain spaces, dots,
+ * semicolons, codec parameters, etc. — we accept anything up to the ` - http`
+ * separator. Case-insensitive on the tag.
+ */
+const taggedWithUrl = (tag: string) =>
+  new RegExp(`\\[${tag}\\]\\s+(.+?)\\s+-\\s+(https?:\\/\\/[^\\s]+)`, 'i')
+
+/** Fallback: bare `[TAG] <filename>` with no URL. */
+const taggedNoUrl = (tag: string) =>
+  new RegExp(`\\[${tag}\\]\\s*(.+?)?\\s*$`, 'im')
+
+const TAG_TO_TYPE: Record<string, NotificationMediaType> = {
+  IMAGE: 'image',
+  VIDEO: 'video',
+  AUDIO: 'audio',
+  DOCUMENT: 'document',
+}
+
 export function extractMediaFromMessage(message: string | null | undefined): NotificationMediaInfo {
   if (!message) return { type: null, url: '', text: '' }
 
+  // "The customer shared an image. Download URL: https://..."
   const sharedMediaMatch = message.match(
     /customer shared (?:an?|the)\s+(image|audio|video|document|file).*?Download URL:\s*(https?:\/\/[^\s]+)/i,
   )
   if (sharedMediaMatch) {
     const rawType = sharedMediaMatch[1].toLowerCase()
     const type: NotificationMediaType = rawType === 'file' ? 'document' : (rawType as NotificationMediaType)
-    return { type, url: sharedMediaMatch[2], text: '' }
+    return { type, url: sharedMediaMatch[2].replace(/\.$/, ''), text: '' }
   }
 
-  const imageMatch = message.match(/\[IMAGE\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-  const audioMatch = message.match(/\[AUDIO\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-  const videoMatch = message.match(/\[VIDEO\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-  const documentMatch = message.match(/\[DOCUMENT\]\s*([^\s\]]+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
+  // `[TAG] filename - url` — try each tag, long filename tolerated.
+  for (const tag of Object.keys(TAG_TO_TYPE)) {
+    const withUrl = message.match(taggedWithUrl(tag))
+    if (withUrl) {
+      const fileName = withUrl[1]?.trim() || undefined
+      const url = withUrl[2].replace(/[.,]$/, '')
+      const text = message.replace(taggedWithUrl(tag), '').trim()
+      return { type: TAG_TO_TYPE[tag], url, text, fileName }
+    }
+  }
 
-  if (imageMatch) {
+  // Bare `[TAG] filename` with no URL attached.
+  for (const tag of Object.keys(TAG_TO_TYPE)) {
+    const noUrl = message.match(taggedNoUrl(tag))
+    if (noUrl) {
+      const fileName = noUrl[1]?.trim() || undefined
+      const text = message.replace(taggedNoUrl(tag), '').trim()
+      return { type: TAG_TO_TYPE[tag], url: '', text, fileName }
+    }
+  }
+
+  // Raw image URL in the body (no tag) — treat as image.
+  const imageUrlMatch = message.match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|bmp|webp))/i)
+  if (imageUrlMatch) {
     return {
       type: 'image',
-      url: imageMatch[2] || '',
-      text: message.replace(/\[IMAGE\][^\n]*/gi, '').trim(),
-    }
-  }
-  if (audioMatch) {
-    return {
-      type: 'audio',
-      url: audioMatch[2] || '',
-      text: message.replace(/\[AUDIO\][^\n]*/gi, '').trim(),
-    }
-  }
-  if (videoMatch) {
-    return {
-      type: 'video',
-      url: videoMatch[2] || '',
-      text: message.replace(/\[VIDEO\][^\n]*/gi, '').trim(),
-    }
-  }
-  if (documentMatch) {
-    return {
-      type: 'document',
-      url: documentMatch[2] || '',
-      fileName: documentMatch[1] || 'Document',
-      text: message.replace(/\[DOCUMENT\][^\n]*/gi, '').trim(),
-    }
-  }
-
-  const urlMatch = message.match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|bmp|webp))/i)
-  if (urlMatch) {
-    return {
-      type: 'image',
-      url: urlMatch[0],
-      text: message.replace(urlMatch[0], '').trim(),
+      url: imageUrlMatch[0],
+      text: message.replace(imageUrlMatch[0], '').trim(),
     }
   }
 
