@@ -43,6 +43,7 @@ import { useNotificationContext } from "@/hooks/use-notification-context"
 import Image from "next/image"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import EscalationEvents from "@/components/EscalationEvents"
+import { extractMediaFromMessage as extractMediaFromMessageShared } from "@/lib/notification-media"
 
 interface NotificationsProps {
   members?: TeamMember[]
@@ -522,79 +523,10 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
     }
   }
 
-  // Extract media information from message
-  const extractMediaFromMessage = (message: string) => {
-    if (!message) return { type: null, url: '', text: '' }
-
-    // Check for "The customer shared an [type]. Download URL: [url]" format
-    const sharedMediaMatch = message.match(/customer shared (?:an?|the)\s+(image|audio|video|document|file).*?Download URL:\s*(https?:\/\/[^\s]+)/i)
-
-    if (sharedMediaMatch) {
-      const mediaType = sharedMediaMatch[1].toLowerCase()
-      const url = sharedMediaMatch[2]
-
-      // Extract any additional text before the "Download URL" part
-      const textBeforeUrl = message.split(/Download URL:/i)[0].trim()
-
-      return {
-        type: mediaType as 'image' | 'audio' | 'video' | 'document',
-        url: url,
-        text: '' // Don't show the generic "customer shared" text
-      }
-    }
-
-    // Try old format with [IMAGE], [AUDIO], etc. placeholders
-    const imageMatch = message.match(/\[IMAGE\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-    const audioMatch = message.match(/\[AUDIO\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-    const videoMatch = message.match(/\[VIDEO\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-    const documentMatch = message.match(/\[DOCUMENT\]\s*([^\s\]]+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-
-    if (imageMatch) {
-      return {
-        type: 'image' as const,
-        url: imageMatch[2] || '',
-        text: message.replace(/\[IMAGE\][^\n]*/gi, '').trim()
-      }
-    }
-    if (audioMatch) {
-      return {
-        type: 'audio' as const,
-        url: audioMatch[2] || '',
-        text: message.replace(/\[AUDIO\][^\n]*/gi, '').trim()
-      }
-    }
-    if (videoMatch) {
-      return {
-        type: 'video' as const,
-        url: videoMatch[2] || '',
-        text: message.replace(/\[VIDEO\][^\n]*/gi, '').trim()
-      }
-    }
-    if (documentMatch) {
-      return {
-        type: 'document' as const,
-        url: documentMatch[2] || '',
-        fileName: documentMatch[1] || 'Document',
-        text: message.replace(/\[DOCUMENT\][^\n]*/gi, '').trim()
-      }
-    }
-
-    // Check for direct media URLs in the message
-    const urlMatch = message.match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|bmp|webp))/i)
-    if (urlMatch) {
-      return {
-        type: 'image' as const,
-        url: urlMatch[0],
-        text: message.replace(urlMatch[0], '').trim()
-      }
-    }
-
-    return {
-      type: null,
-      url: '',
-      text: message
-    }
-  }
+  // Use the shared helper so the notifications page, the floating bell, and
+  // the backend email template all agree on how to parse [TAG] filename - url
+  // (filenames with spaces, dots, codec params are all tolerated).
+  const extractMediaFromMessage = extractMediaFromMessageShared
 
   // Get icon for media type
   const getMediaIcon = (type: string) => {
@@ -616,7 +548,11 @@ const Notifications: React.FC<NotificationsProps> = ({ members = [] }) => {
   const renderNotificationCard = (notification: NotificationMessage) => {
     const assigneeInfo = getAssignee(notification)
     const mediaInfo = extractMediaFromMessage(notification.message)
-    const hasMedia = mediaInfo.type && mediaInfo.url
+    // Render the media column whenever we recognised a media type, even if
+    // no URL was attached — we still want to show the label card so the user
+    // sees what kind of attachment it was instead of a raw URL or raw tag.
+    const hasMedia = Boolean(mediaInfo.type)
+    const hasMediaUrl = Boolean(mediaInfo.type && mediaInfo.url)
     const isResolved = notification.status === 'resolved' || notification.resolved
     const isSelected = selectedNotifications.has(notification.id)
 
