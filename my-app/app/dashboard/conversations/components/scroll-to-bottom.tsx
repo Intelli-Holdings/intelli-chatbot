@@ -61,7 +61,10 @@ export function ScrollToBottomButton({
     <button
       onClick={scrollToBottom}
       className={cn(
-        'fixed bottom-24 right-9 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-all',
+        // Positioned absolutely inside the chat panel so it hugs the
+        // conversation area instead of floating off to the browser's edge.
+        // The parent chat container must be `relative`.
+        'absolute bottom-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md transition-all',
         'hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/50',
         showButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none',
         className
