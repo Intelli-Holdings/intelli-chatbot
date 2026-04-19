@@ -31,6 +31,7 @@ import UnifiedWidgets from '@/components/UnifiedWidgets';
 import Channels from './channels';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { extractMediaFromMessage } from "@/lib/notification-media";
 
 // Recharts imports
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -136,75 +137,10 @@ const MetricCard: React.FC<MetricCardProps> = ({
 };
 
 // Helper function to extract media information from message
-const extractMediaFromMessage = (message: string) => {
-  if (!message) return { type: null, url: '', text: '' }
-
-  // Check for "The customer shared an [type]. Download URL: [url]" format
-  const sharedMediaMatch = message.match(/customer shared (?:an?|the)\s+(image|audio|video|document|file).*?Download URL:\s*(https?:\/\/[^\s]+)/i)
-
-  if (sharedMediaMatch) {
-    const mediaType = sharedMediaMatch[1].toLowerCase()
-    const url = sharedMediaMatch[2]
-
-    return {
-      type: mediaType as 'image' | 'audio' | 'video' | 'document',
-      url: url,
-      text: ''
-    }
-  }
-
-  // Try old format with [IMAGE], [AUDIO], etc. placeholders
-  const imageMatch = message.match(/\[IMAGE\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-  const audioMatch = message.match(/\[AUDIO\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-  const videoMatch = message.match(/\[VIDEO\]\s*(\d+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-  const documentMatch = message.match(/\[DOCUMENT\]\s*([^\s\]]+)?(?:\s*-\s*)?(https?:\/\/[^\s\]]+)?/i)
-
-  if (imageMatch) {
-    return {
-      type: 'image' as const,
-      url: imageMatch[2] || '',
-      text: message.replace(/\[IMAGE\][^\n]*/gi, '').trim()
-    }
-  }
-  if (audioMatch) {
-    return {
-      type: 'audio' as const,
-      url: audioMatch[2] || '',
-      text: message.replace(/\[AUDIO\][^\n]*/gi, '').trim()
-    }
-  }
-  if (videoMatch) {
-    return {
-      type: 'video' as const,
-      url: videoMatch[2] || '',
-      text: message.replace(/\[VIDEO\][^\n]*/gi, '').trim()
-    }
-  }
-  if (documentMatch) {
-    return {
-      type: 'document' as const,
-      url: documentMatch[2] || '',
-      fileName: documentMatch[1] || 'Document',
-      text: message.replace(/\[DOCUMENT\][^\n]*/gi, '').trim()
-    }
-  }
-
-  // Check for direct media URLs in the message
-  const urlMatch = message.match(/(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|bmp|webp))/i)
-  if (urlMatch) {
-    return {
-      type: 'image' as const,
-      url: urlMatch[0],
-      text: message.replace(urlMatch[0], '').trim()
-    }
-  }
-
-  return {
-    type: null,
-    url: '',
-    text: message
-  }
-};
+// Parser lives in @/lib/notification-media (imported above) so the dashboard
+// home page, the notifications page, the bell dropdown, and the backend
+// assignment email all agree on how to parse `[TAG] filename - url`
+// (filenames with spaces, dots, codec parameters, SAS tokens).
 
 // Get icon for media type
 const getMediaIcon = (type: string) => {
@@ -542,7 +478,11 @@ export const DynamicDashboard: React.FC = () => {
               {stats.recentEscalations.length > 0 ? (
                 stats.recentEscalations.map((escalation) => {
                   const mediaInfo = extractMediaFromMessage(escalation.message);
-                  const hasMedia = mediaInfo.type && mediaInfo.url;
+                  // Render the media card whenever we recognised a media type,
+                  // even if no URL was attached — otherwise historical rows
+                  // with broken URLs fall through to the raw-text branch and
+                  // the customer sees the full Azure SAS URL spelled out.
+                  const hasMedia = Boolean(mediaInfo.type);
 
                   return (
                     <div
