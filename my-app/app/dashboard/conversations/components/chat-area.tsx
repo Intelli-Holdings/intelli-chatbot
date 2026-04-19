@@ -1177,7 +1177,7 @@ export default function ChatArea({
   }
 
   return (
-    <div className="relative flex flex-col h-full bg-[#efeae2]">
+    <div className="flex flex-col h-full bg-[#efeae2]">
       <div className="flex items-center justify-between px-4 py-2.5 bg-[#f0f2f5] border-b border-[#e9edef]">
         <ConversationHeader
           conversation={conversation}
@@ -1688,17 +1688,10 @@ export default function ChatArea({
               </div>
             )}
             <div className="h-4" ref={dummyRef} />
+            <ScrollToBottomButton targetRef={dummyRef} threshold={150} />
           </div>
         )}
       </div>
-      {/* Sits outside the scroll container so it doesn't move with messages.
-          The outer chat panel is `relative`, so bottom-4 right-4 anchors
-          just above the message input, inside the conversation frame. */}
-      <ScrollToBottomButton
-        targetRef={dummyRef}
-        threshold={150}
-        className="bottom-20"
-      />
       {isWindowExpired && (
         <div className="px-3 py-2 bg-amber-50 border-t border-amber-200 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
