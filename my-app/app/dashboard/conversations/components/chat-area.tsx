@@ -834,11 +834,29 @@ export default function ChatArea({
 
               // For each new message, check if it should replace a pending optimistic message
               actualNewMessages.forEach(newMessage => {
+                const newMediaMatch = typeof newMessage.answer === 'string'
+                  ? newMessage.answer.match(/^\[(IMAGE|VIDEO|AUDIO|DOCUMENT)\]/i)
+                  : null
+                const newMediaType = newMediaMatch ? newMediaMatch[1].toLowerCase() : null
+
                 // Find matching pending message
                 const pendingIndex = updatedMessages.findIndex((msg) => {
                   if (!msg.pending) return false
 
-                  // For business messages, match by answer content
+                  // Business-side media: optimistic bubble has `media` + `type`
+                  // but null/empty `answer`. Match by sender + media type so
+                  // we don't end up with a duplicate bubble if the poll
+                  // arrives before the send response.
+                  if (
+                    newMessage.sender === 'human' &&
+                    newMediaType &&
+                    msg.media && msg.type &&
+                    msg.type.toLowerCase() === newMediaType
+                  ) {
+                    return true
+                  }
+
+                  // Business messages: match by answer content (text only)
                   if (newMessage.sender === 'human') {
                     return msg.answer && newMessage.answer &&
                            msg.answer.trim() === newMessage.answer.trim()
@@ -850,11 +868,26 @@ export default function ChatArea({
                 })
 
                 if (pendingIndex !== -1) {
-                  // Replace optimistic message with real one
-                  updatedMessages[pendingIndex] = {
-                    ...newMessage,
-                    pending: false,
-                    status: newMessage.status || "sent",
+                  const existing = updatedMessages[pendingIndex]
+                  const isPendingMedia = !!existing.media && existing.type && existing.type !== 'text'
+                  if (isPendingMedia) {
+                    // Keep the local blob preview; only update identifiers
+                    // and status so the image doesn't reload from Azure.
+                    updatedMessages[pendingIndex] = {
+                      ...existing,
+                      id: newMessage.id || existing.id,
+                      whatsapp_message_id:
+                        newMessage.whatsapp_message_id || newMessage.wmessage_id || existing.whatsapp_message_id || null,
+                      created_at: newMessage.created_at || existing.created_at,
+                      status: newMessage.status || 'sent',
+                      pending: false,
+                    }
+                  } else {
+                    updatedMessages[pendingIndex] = {
+                      ...newMessage,
+                      pending: false,
+                      status: newMessage.status || "sent",
+                    }
                   }
                   logger.debug("Replaced pending message with real message from polling")
                 } else {
@@ -943,15 +976,34 @@ export default function ChatArea({
     (tempId: number, realMessage: any) => {
       updateMessagesAndSync((prev) =>
         (prev || []).map((msg) => {
-          if (msg.id === tempId && msg.pending) {
-            // Replace optimistic message with real one
+          if (msg.id !== tempId || !msg.pending) return msg
+
+          // For media messages we intentionally keep the local blob URL in
+          // `media` (and leave `answer` null) so the preview doesn't flash
+          // while the browser refetches the Azure copy. We only need to
+          // update identifiers + status for tracking; the next time the
+          // conversation is refetched from scratch the Azure URL embedded
+          // in `answer` will drive the load naturally.
+          const isPendingMedia = !!msg.media && msg.type && msg.type !== "text"
+          if (isPendingMedia) {
             return {
-              ...realMessage,
-              pending: false,
+              ...msg,
+              id: realMessage.id || msg.id,
+              whatsapp_message_id:
+                realMessage.whatsapp_message_id || realMessage.wmessage_id || null,
+              created_at: realMessage.created_at || msg.created_at,
               status: realMessage.status || "sent",
+              pending: false,
             }
           }
-          return msg
+
+          // Text messages can swap cleanly — they have no local preview
+          // that would flicker.
+          return {
+            ...realMessage,
+            pending: false,
+            status: realMessage.status || "sent",
+          }
         }),
       )
     },
