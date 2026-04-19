@@ -842,7 +842,7 @@ export default function InstagramChatArea({
   }
 
   return (
-    <div className="relative flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white">
       <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-[#DBDBDB]">
         <ConversationHeader
           conversation={conversation}
@@ -910,7 +910,7 @@ export default function InstagramChatArea({
 
       {/* Messages area */}
       <div
-        className="flex-1 overflow-y-auto p-4 bg-white"
+        className="relative flex-1 overflow-y-auto p-4 bg-white"
         onScroll={handleScroll}
         ref={scrollAreaRef}
       >
@@ -1144,16 +1144,10 @@ export default function InstagramChatArea({
               </div>
             )}
             <div className="h-4" ref={dummyRef} />
+            <ScrollToBottomButton targetRef={dummyRef} threshold={150} />
           </div>
         )}
       </div>
-      {/* Absolute-positioned inside the relative chat panel so it hovers just
-          above the input instead of anchoring to the browser viewport. */}
-      <ScrollToBottomButton
-        targetRef={dummyRef}
-        threshold={150}
-        className="bottom-20"
-      />
 
       {/* Message input */}
       <div className="bg-white border-t border-[#DBDBDB]">
