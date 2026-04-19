@@ -194,16 +194,30 @@ const MessageInput: React.FC<MessageInputProps> = ({
       .then((response) => {
         logger.info("Message sent successfully", { data: response })
         if (tempId && onMessageSendSuccess && response) {
+          // Media uploads come back under `response.files[0]` with the full
+          // Message shape (including the Azure URL and the saved
+          // `[IMAGE] filename - url` answer). Text sends return the fields at
+          // the top level. Prefer the media record when available so the
+          // optimistic bubble swaps straight to the persisted one without
+          // dropping the local blob preview in between.
+          const fileRecord =
+            Array.isArray((response as any).files) && (response as any).files.length > 0
+              ? (response as any).files[0]
+              : null
+          const src = fileRecord || response
+
           onMessageSendSuccess(tempId, {
-            id: response.id || tempId,
-            answer: response.answer || response.content || optimisticLabel || null,
-            sender: response.sender || "human",
-            created_at: response.created_at || new Date().toISOString(),
-            content: response.content || null,
-            media: response.media || response.media_url || null,
-            type: response.type || mediaType || "text",
-            whatsapp_message_id: response.whatsapp_message_id || response.wmessage_id || null,
-            status: response.status || "sent",
+            id: src.id || response.id || tempId,
+            answer: src.answer || response.answer || response.content || optimisticLabel || null,
+            sender: src.sender || response.sender || "human",
+            created_at: src.created_at || response.created_at || new Date().toISOString(),
+            content: src.content ?? response.content ?? null,
+            media: src.media || src.file_url || response.media || response.media_url || mediaUrl || null,
+            type: src.type || response.type || mediaType || "text",
+            whatsapp_message_id:
+              src.wmessage_id || src.whatsapp_message_id ||
+              response.whatsapp_message_id || response.wmessage_id || null,
+            status: src.status || response.status || "sent",
           })
         }
       })
