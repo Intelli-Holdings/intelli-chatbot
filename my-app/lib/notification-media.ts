@@ -26,6 +26,20 @@ const TAG_TO_TYPE: Record<string, NotificationMediaType> = {
   DOCUMENT: 'document',
 }
 
+/**
+ * Strip dangling URL fragments (codec params, query strings, SAS tokens)
+ * from a leftover text blob after we've extracted the main URL. Handles the
+ * historic broken format `[AUDIO] file.ogg; codecs=opus - https://...ogg; codecs=opus?se=...`
+ * where the URL itself contained a space and the match stopped early.
+ */
+function stripUrlFragmentLeftovers(text: string): string {
+  if (!text) return ""
+  let cleaned = text.trim()
+  // Drop leading codec=/?/& junk lines.
+  cleaned = cleaned.replace(/^(?:codecs=|[?&])\S*(?:\s+\S+)*/i, "").trim()
+  return cleaned
+}
+
 export function extractMediaFromMessage(message: string | null | undefined): NotificationMediaInfo {
   if (!message) return { type: null, url: '', text: '' }
 
@@ -45,7 +59,12 @@ export function extractMediaFromMessage(message: string | null | undefined): Not
     if (withUrl) {
       const fileName = withUrl[1]?.trim() || undefined
       const url = withUrl[2].replace(/[.,]$/, '')
-      const text = message.replace(taggedWithUrl(tag), '').trim()
+      const rawText = message.replace(taggedWithUrl(tag), '').trim()
+      // Historic bug: some stored messages contain URLs with literal spaces
+      // (e.g. `attachment_xxx.ogg; codecs=opus?se=...`), so the URL match
+      // stops at the space and leaves a dangling SAS-looking fragment as
+      // the "text". Drop anything that is obviously a URL continuation.
+      const text = stripUrlFragmentLeftovers(rawText)
       return { type: TAG_TO_TYPE[tag], url, text, fileName }
     }
   }
