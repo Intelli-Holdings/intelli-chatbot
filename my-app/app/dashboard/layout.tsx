@@ -26,7 +26,7 @@ function DashboardLayoutContent({
     <div className="flex h-svh w-full bg-background">
       <AppSidebar />
       <main className="relative flex-1 overflow-y-auto p-golden-lg">
-        <div className="fixed right-6 top-4 z-30 rounded-full border border-border bg-card shadow-md">
+        <div className="fixed right-6 top-4 z-30">
           <NotificationIndicator />
         </div>
         {children}

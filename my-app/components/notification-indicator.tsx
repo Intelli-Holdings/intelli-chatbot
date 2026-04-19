@@ -15,6 +15,7 @@ import {
 import { useNotificationContext } from "@/hooks/use-notification-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
 import {
   DropdownMenu,
@@ -135,21 +136,37 @@ export function NotificationIndicator() {
   return (
     <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+        {/* Square-rounded pill button with a single layered indicator:
+            the unread count sits in a compact top-right pill, and the
+            connection state is a tiny dot on the bottom-right so the two
+            don't overlap like they used to. */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-10 w-10 rounded-xl border border-border bg-card text-foreground shadow-sm hover:bg-accent"
+          aria-label="Notifications"
+        >
+          <Bell className="h-[18px] w-[18px]" />
           {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            <span
+              className="pointer-events-none absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-card"
+              aria-label={`${unreadCount} unread notifications`}
             >
               {unreadCount > 99 ? "99+" : unreadCount}
-            </Badge>
+            </span>
           )}
-          <span className="sr-only">Notifications</span>
-          <div
-            className={`absolute top-0 right-0 h-2 w-2 rounded-full border-2 border-background ${isConnected ? "bg-[#007fff]" : "bg-red-500"}`}
-            title={isConnected ? "Connected to notification service" : "Disconnected from notification service"}
+          <span
+            className={cn(
+              "pointer-events-none absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full ring-2 ring-card",
+              isConnected ? "bg-emerald-500" : "bg-gray-400"
+            )}
+            title={
+              isConnected
+                ? "Connected to notification service"
+                : "Disconnected from notification service"
+            }
           />
+          <span className="sr-only">Notifications</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[380px]">
