@@ -619,27 +619,30 @@ export default function ChatArea({
           return updated
         }
 
-        // Check if message already exists (prevent duplicates)
-        // Check by whatsapp_message_id if available, or by content and timestamp
+        // Check if message already exists (prevent duplicates).
+        // A single logical message can reach the client twice: once via the
+        // WebSocket broadcast and once via the 3s polling refresh. The two
+        // don't share an id, and the broadcast doesn't always carry the
+        // outgoing wamid (AI responses broadcast before the Meta API
+        // returns). Match by id, wamid, or sender+content with a wide
+        // timestamp window so the poll doesn't re-add the bubble.
         isDuplicate = nextMessages.some((msg) => {
-          // Check by WhatsApp message ID
           if (newMessage.whatsapp_message_id && msg.whatsapp_message_id) {
             return msg.whatsapp_message_id === newMessage.whatsapp_message_id
           }
-
-          // Check by content and timestamp (within 1 second)
-          const sameContent =
-            (newMessage.answer && msg.answer && msg.answer === newMessage.answer) ||
-            (newMessage.content && msg.content && msg.content === newMessage.content)
-
-          if (sameContent) {
-            const msgTime = new Date(msg.created_at).getTime()
-            const newMsgTime = new Date(newMessage.created_at).getTime()
-            const timeDiff = Math.abs(newMsgTime - msgTime)
-            return timeDiff < 1000 // Within 1 second
+          if (msg.id === newMessage.id) return true
+          if (msg.sender && newMessage.sender && msg.sender !== newMessage.sender) {
+            return false
           }
-
-          return false
+          const sameAnswer =
+            !!newMessage.answer && !!msg.answer && msg.answer === newMessage.answer
+          const sameContent =
+            !!newMessage.content && !!msg.content && msg.content === newMessage.content
+          if (!sameAnswer && !sameContent) return false
+          const msgTime = new Date(msg.created_at).getTime()
+          const newMsgTime = new Date(newMessage.created_at).getTime()
+          if (!Number.isFinite(msgTime) || !Number.isFinite(newMsgTime)) return true
+          return Math.abs(newMsgTime - msgTime) < 60_000
         })
 
         if (isDuplicate) {
@@ -891,12 +894,49 @@ export default function ChatArea({
                   }
                   logger.debug("Replaced pending message with real message from polling")
                 } else {
-                  // Add as new message only if it's not a duplicate
-                  const isDuplicate = updatedMessages.some(msg =>
-                    msg.id === newMessage.id ||
-                    (msg.whatsapp_message_id && msg.whatsapp_message_id === newMessage.whatsapp_message_id)
-                  )
-                  if (!isDuplicate) {
+                  // Dedup across WebSocket-added + polling-fetched records. A
+                  // WebSocket broadcast for an AI/customer message doesn't
+                  // always carry a wamid (the server sends the text before
+                  // Meta's response is in), so matching by id or wamid alone
+                  // lets the DB copy sneak back in as a second bubble —
+                  // especially visible once a "read" status update kicks
+                  // off a render cycle. We also match by sender + payload
+                  // content, with a wide timestamp window, to catch those.
+                  const existingIndex = updatedMessages.findIndex((msg) => {
+                    if (msg.id === newMessage.id) return true
+                    if (
+                      msg.whatsapp_message_id &&
+                      newMessage.whatsapp_message_id &&
+                      msg.whatsapp_message_id === newMessage.whatsapp_message_id
+                    ) return true
+                    if (msg.sender !== newMessage.sender) return false
+                    const sameAnswer =
+                      !!msg.answer && !!newMessage.answer &&
+                      msg.answer.trim() === newMessage.answer.trim()
+                    const sameContent =
+                      !!msg.content && !!newMessage.content &&
+                      msg.content.trim() === newMessage.content.trim()
+                    if (!sameAnswer && !sameContent) return false
+                    const msgTime = new Date(msg.created_at).getTime()
+                    const newMsgTime = new Date(newMessage.created_at).getTime()
+                    return (
+                      Number.isFinite(msgTime) &&
+                      Number.isFinite(newMsgTime) &&
+                      Math.abs(newMsgTime - msgTime) < 60_000
+                    )
+                  })
+                  if (existingIndex !== -1) {
+                    // Reconcile identifiers so subsequent polls / status
+                    // updates can match deterministically.
+                    const existing = updatedMessages[existingIndex]
+                    updatedMessages[existingIndex] = {
+                      ...existing,
+                      id: newMessage.id || existing.id,
+                      whatsapp_message_id:
+                        newMessage.whatsapp_message_id || existing.whatsapp_message_id || undefined,
+                      status: newMessage.status || existing.status,
+                    }
+                  } else {
                     updatedMessages.push(newMessage)
                   }
                 }
