@@ -37,7 +37,7 @@ export async function GET(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       return NextResponse.json(
-        { error: errorData.detail || "Failed to fetch campaign" },
+        { error: errorData.error || errorData.detail || errorData.message || "Failed to fetch campaign" },
         { status: response.status }
       )
     }
@@ -92,7 +92,7 @@ export async function PATCH(
         url,
       })
       return NextResponse.json(
-        { error: errorData.detail || errorData.message || "Failed to update campaign" },
+        { error: errorData.error || errorData.detail || errorData.message || "Failed to update campaign" },
         { status: response.status }
       )
     }
@@ -139,7 +139,7 @@ export async function DELETE(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       return NextResponse.json(
-        { error: errorData.detail || "Failed to delete campaign" },
+        { error: errorData.error || errorData.detail || errorData.message || "Failed to delete campaign" },
         { status: response.status }
       )
     }

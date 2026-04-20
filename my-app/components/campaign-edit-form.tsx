@@ -142,7 +142,7 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
           invalidateCampaignQueries();
         } catch (execError) {
           logger.error("Error scheduling/executing WhatsApp campaign after edit", { error: execError instanceof Error ? execError.message : String(execError) });
-          toast.error(execError instanceof Error ? execError.message : 'Failed to schedule campaign');
+          throw execError;
         }
       }
 

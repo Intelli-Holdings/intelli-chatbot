@@ -85,10 +85,14 @@ export default function CampaignsPage() {
     setShowEditForm(true);
   };
 
-  const handlePauseCampaign = async (campaignId: string) => {
+  const handlePauseCampaign = async (campaign: Campaign) => {
     if (!organizationId) return;
+    if (!campaign.whatsapp_campaign_id) {
+      toast.error('WhatsApp campaign ID is missing');
+      return;
+    }
     try {
-      await CampaignService.pauseCampaign(campaignId, organizationId);
+      await CampaignService.pauseCampaign(campaign.whatsapp_campaign_id, organizationId);
       toast.success('Campaign paused successfully');
       await refetch();
       await refetchStatusCounts();
@@ -97,10 +101,14 @@ export default function CampaignsPage() {
     }
   };
 
-  const handleResumeCampaign = async (campaignId: string) => {
+  const handleResumeCampaign = async (campaign: Campaign) => {
     if (!organizationId) return;
+    if (!campaign.whatsapp_campaign_id) {
+      toast.error('WhatsApp campaign ID is missing');
+      return;
+    }
     try {
-      await CampaignService.resumeCampaign(campaignId, organizationId);
+      await CampaignService.resumeCampaign(campaign.whatsapp_campaign_id, organizationId);
       toast.success('Campaign resumed successfully');
       await refetch();
       await refetchStatusCounts();
@@ -175,6 +183,7 @@ export default function CampaignsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ready': return 'bg-green-100 text-green-800 border-green-200';
+      case 'sending': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -367,6 +376,7 @@ export default function CampaignsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="ready">Ready</SelectItem>
+                  <SelectItem value="sending">Sending</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="paused">Paused</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -495,15 +505,15 @@ export default function CampaignsPage() {
                               Edit
                             </DropdownMenuItem>
 
-                            {campaign.status === 'ready' && (
-                              <DropdownMenuItem onClick={() => handlePauseCampaign(campaign.id)}>
+                            {campaign.status === 'sending' && (
+                              <DropdownMenuItem onClick={() => handlePauseCampaign(campaign)}>
                                 <Pause className="h-4 w-4 mr-2" />
                                 Pause
                               </DropdownMenuItem>
                             )}
 
                             {campaign.status === 'paused' && (
-                              <DropdownMenuItem onClick={() => handleResumeCampaign(campaign.id)}>
+                              <DropdownMenuItem onClick={() => handleResumeCampaign(campaign)}>
                                 <Play className="h-4 w-4 mr-2" />
                                 Resume
                               </DropdownMenuItem>

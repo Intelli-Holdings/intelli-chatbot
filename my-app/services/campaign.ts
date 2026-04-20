@@ -6,7 +6,7 @@ interface Campaign {
   description: string;
   channel: 'whatsapp' | 'sms' | 'email';
   phone_number?: string;
-  status: 'draft' | 'scheduled' | 'ready' | 'paused' | 'completed' | 'failed';
+  status: 'draft' | 'scheduled' | 'ready' | 'sending' | 'paused' | 'completed' | 'failed';
   organization: string;
   scheduled_at?: string;
   created_at: string;
@@ -326,9 +326,22 @@ static async updateCampaign(
   /**
    * Pause a campaign (using PATCH to update status)
    */
-  static async pauseCampaign(campaignId: string, organizationId: string): Promise<void> {
+  static async pauseCampaign(whatsappCampaignId: string, organizationId: string): Promise<void> {
     try {
-      await this.updateCampaign(campaignId, organizationId, { status: 'paused' } as any);
+      const response = await fetch(`/api/campaigns/whatsapp/${whatsappCampaignId}/pause`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organization_id: organizationId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to pause campaign' }));
+        throw new Error(errorData.error || errorData.detail || errorData.message || 'Failed to pause campaign');
+      }
     } catch (error) {
       logger.error('Error pausing campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
@@ -338,9 +351,22 @@ static async updateCampaign(
   /**
    * Resume a paused campaign (using PATCH to update status)
    */
-  static async resumeCampaign(campaignId: string, organizationId: string): Promise<void> {
+  static async resumeCampaign(whatsappCampaignId: string, organizationId: string): Promise<void> {
     try {
-      await this.updateCampaign(campaignId, organizationId, { status: 'ready' } as any);
+      const response = await fetch(`/api/campaigns/whatsapp/${whatsappCampaignId}/resume`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          organization_id: organizationId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to resume campaign' }));
+        throw new Error(errorData.error || errorData.detail || errorData.message || 'Failed to resume campaign');
+      }
     } catch (error) {
       logger.error('Error resuming campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
@@ -728,7 +754,7 @@ static async updateCampaign(
   ): Promise<{
     message: string;
     task_id: string;
-    retry_count: number;
+    retried: number;
   }> {
     try {
       const response = await fetch(

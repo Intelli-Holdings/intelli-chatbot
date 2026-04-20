@@ -788,8 +788,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       }
 
       const scheduleValue = getScheduleForAPI();
-      const fallbackNow = new Date().toISOString();
-      updateData.scheduled_at = scheduleValue || fallbackNow;
+      updateData.scheduled_at = scheduleValue;
 
       if (campaignType === 'template') {
         const selectedTemplate = approvedTemplates.find(t => t.name === formData.templateName);
@@ -844,6 +843,22 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
             const headerText = headerComponent.text;
             const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
             templatePayload.header_params = headerMatches;
+          } else if (headerComponent?.format && ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION'].includes(headerComponent.format)) {
+            if (headerMediaMode === 'global' && (globalHeaderMediaId || globalHeaderMediaHandle)) {
+              const mediaId = globalHeaderMediaId || globalHeaderMediaHandle;
+              const headerFormat = headerComponent.format.toLowerCase();
+
+              templatePayload.header_parameters = [{
+                type: headerFormat,
+                [headerFormat]: {
+                  id: mediaId
+                }
+              }];
+
+              logger.info(`Preserved global ${headerFormat} media on draft update`, { mediaId });
+            } else if (headerMediaMode === 'per-recipient') {
+              logger.info("Per-recipient media mode: Media will be provided per contact");
+            }
           }
 
           const buttonsComponent = selectedTemplate.components.find((c: any) => c.type === 'BUTTONS');
@@ -914,8 +929,7 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
 
       // Only add scheduled_at if it has a value
       const scheduleValue = getScheduleForAPI();
-      const fallbackNow = new Date().toISOString();
-      campaignData.scheduled_at = scheduleValue || fallbackNow;
+      campaignData.scheduled_at = scheduleValue;
 
       // Add phone_number for WhatsApp campaigns
       if (formData.channel === 'whatsapp' && appService?.phone_number) {

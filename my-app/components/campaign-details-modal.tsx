@@ -89,9 +89,9 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
       }
     };
 
-    // Refresh immediately and then every 30 seconds for ready/scheduled campaigns
+    // Refresh immediately and then every 30 seconds for active or scheduled campaigns
     refreshStats();
-    if (campaign.status === 'ready' || campaign.status === 'scheduled') {
+    if (campaign.status === 'ready' || campaign.status === 'scheduled' || campaign.status === 'sending') {
       const interval = setInterval(refreshStats, 30000);
       return () => clearInterval(interval);
     }
@@ -99,9 +99,13 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
 
   const handlePause = async () => {
     if (!organizationId) return;
+    if (!campaign.whatsapp_campaign_id) {
+      toast.error('WhatsApp campaign ID is missing');
+      return;
+    }
     setLoading(true);
     try {
-      await CampaignService.pauseCampaign(campaign.id, organizationId);
+      await CampaignService.pauseCampaign(campaign.whatsapp_campaign_id, organizationId);
       toast.success('Campaign paused successfully');
       onRefresh();
       onClose();
@@ -114,9 +118,13 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
 
   const handleResume = async () => {
     if (!organizationId) return;
+    if (!campaign.whatsapp_campaign_id) {
+      toast.error('WhatsApp campaign ID is missing');
+      return;
+    }
     setLoading(true);
     try {
-      await CampaignService.resumeCampaign(campaign.id, organizationId);
+      await CampaignService.resumeCampaign(campaign.whatsapp_campaign_id, organizationId);
       toast.success('Campaign resumed successfully');
       onRefresh();
       onClose();
@@ -130,6 +138,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ready': return 'bg-green-100 text-green-800 border-green-200';
+      case 'sending': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -180,7 +189,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {campaign.status === 'ready' && (
+              {campaign.status === 'sending' && (
                 <Button
                   variant="outline"
                   size="sm"
