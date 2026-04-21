@@ -119,6 +119,10 @@ export default function CampaignsPage() {
   };
 
   const handleDeleteClick = (campaign: Campaign) => {
+    if (!statusHelpers.canDelete(getCampaignStatus(campaign))) {
+      toast.error('Only draft, paused, or failed campaigns can be deleted');
+      return;
+    }
     setCampaignToDelete(campaign);
     setShowDeleteDialog(true);
   };
@@ -156,6 +160,11 @@ export default function CampaignsPage() {
   };
 
   const handleToggleCampaign = (campaignId: string) => {
+    if (!filteredCampaigns.some((campaign: Campaign) =>
+      campaign.id === campaignId && statusHelpers.canDelete(getCampaignStatus(campaign))
+    )) {
+      return;
+    }
     const newSelected = new Set(selectedCampaigns);
     if (newSelected.has(campaignId)) {
       newSelected.delete(campaignId);
@@ -166,14 +175,26 @@ export default function CampaignsPage() {
   };
 
   const handleToggleAll = () => {
-    if (selectedCampaigns.size === filteredCampaigns.length) {
-      setSelectedCampaigns(new Set());
+    if (allCurrentPageDeletableSelected) {
+      setSelectedCampaigns((current) => {
+        const next = new Set(current);
+        currentPageDeletableCampaignIds.forEach((campaignId) => next.delete(campaignId));
+        return next;
+      });
     } else {
-      setSelectedCampaigns(new Set(filteredCampaigns.map((c: Campaign) => c.id)));
+      setSelectedCampaigns((current) => {
+        const next = new Set(current);
+        currentPageDeletableCampaignIds.forEach((campaignId) => next.add(campaignId));
+        return next;
+      });
     }
   };
 
   const handleBulkDeleteClick = () => {
+    if (selectedCampaigns.size === 0) {
+      toast.error('Select at least one draft, paused, or failed campaign to delete');
+      return;
+    }
     setShowDeleteDialog(true);
   };
 
@@ -195,6 +216,17 @@ export default function CampaignsPage() {
                          campaign.description.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
+  const currentPageDeletableCampaignIds = filteredCampaigns
+    .filter((campaign: Campaign) => statusHelpers.canDelete(getCampaignStatus(campaign)))
+    .map((campaign: Campaign) => campaign.id);
+  const selectedCurrentPageDeletableCount = currentPageDeletableCampaignIds.filter((campaignId) =>
+    selectedCampaigns.has(campaignId)
+  ).length;
+  const allCurrentPageDeletableSelected =
+    currentPageDeletableCampaignIds.length > 0 &&
+    selectedCurrentPageDeletableCount === currentPageDeletableCampaignIds.length;
+  const hasSomeCurrentPageDeletableSelected =
+    selectedCurrentPageDeletableCount > 0 && !allCurrentPageDeletableSelected;
 
   const statsCards = [
     {
@@ -325,7 +357,8 @@ export default function CampaignsPage() {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Checkbox
-                    checked={selectedCampaigns.size === filteredCampaigns.length}
+                    checked={allCurrentPageDeletableSelected ? true : hasSomeCurrentPageDeletableSelected ? 'indeterminate' : false}
+                    disabled={currentPageDeletableCampaignIds.length === 0}
                     onCheckedChange={handleToggleAll}
                   />
                   <span className="text-sm font-medium">
@@ -437,7 +470,8 @@ export default function CampaignsPage() {
                   <TableRow className="bg-background">
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={selectedCampaigns.size === filteredCampaigns.length && filteredCampaigns.length > 0}
+                        checked={allCurrentPageDeletableSelected ? true : hasSomeCurrentPageDeletableSelected ? 'indeterminate' : false}
+                        disabled={currentPageDeletableCampaignIds.length === 0}
                         onCheckedChange={handleToggleAll}
                       />
                     </TableHead>
@@ -452,12 +486,14 @@ export default function CampaignsPage() {
                 <TableBody>
                   {filteredCampaigns.map((campaign: Campaign) => {
                     const campaignStatus = getCampaignStatus(campaign);
+                    const canDeleteCampaign = statusHelpers.canDelete(campaignStatus);
 
                     return (
                     <TableRow key={campaign.id}>
                       <TableCell>
                         <Checkbox
                           checked={selectedCampaigns.has(campaign.id)}
+                          disabled={!canDeleteCampaign}
                           onCheckedChange={() => handleToggleCampaign(campaign.id)}
                         />
                       </TableCell>
@@ -528,14 +564,18 @@ export default function CampaignsPage() {
                               </DropdownMenuItem>
                             )}
 
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteClick(campaign)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
+                            {canDeleteCampaign && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteClick(campaign)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
