@@ -220,6 +220,12 @@ export default function CampaignsPage() {
       color: 'text-blue-600'
     },
     {
+      title: 'Sending',
+      value: statusCounts.sending,
+      icon: Loader2,
+      color: 'text-orange-600'
+    },
+    {
       title: 'Ready',
       value: statusCounts.ready,
       icon: Play,
@@ -230,6 +236,18 @@ export default function CampaignsPage() {
       value: statusCounts.scheduled,
       icon: Clock,
       color: 'text-orange-600'
+    },
+    {
+      title: 'Paused',
+      value: statusCounts.paused,
+      icon: Pause,
+      color: 'text-yellow-600'
+    },
+    {
+      title: 'Failed',
+      value: statusCounts.failed,
+      icon: X,
+      color: 'text-red-600'
     },
     {
       title: 'Completed',
@@ -278,7 +296,7 @@ export default function CampaignsPage() {
         )}
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 mb-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 mb-4">
           {statsCards.map((stat) => {
             const IconComponent = stat.icon;
             return (
