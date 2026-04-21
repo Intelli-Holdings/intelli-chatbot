@@ -48,6 +48,7 @@ import { CampaignService, type CreateCampaignData } from "@/services/campaign"
 import useActiveOrganizationId from "@/hooks/use-organization-id"
 import { useContactTags } from "@/hooks/use-contact-tags"
 import { usePaginatedContacts } from "@/hooks/use-contacts"
+import { buildTemplateCampaignPayload } from "@/lib/campaign-payload"
 import { logger } from "@/lib/logger";
 
 type WizardStep = "details" | "template" | "audience" | "schedule" | "review"
@@ -450,35 +451,16 @@ export function CampaignWizard({ appService, open, onClose, onSuccess }: Campaig
     setSubmitting(true)
     try {
       // Step 1: Create the campaign (will be draft by default)
-      const templatePayload: any = {
-        template: {
-          meta_template_id: selectedTemplateData?.id,
-          name: selectedTemplateData?.name,
-          language: selectedTemplateData?.language,
-          category: selectedTemplateData?.category,
-          components: selectedTemplateData?.components || [],
-        },
-        body_params: bodyPlaceholders,
-        header_params: headerPlaceholders,
-        button_params: [],
-      }
-
       const campaignData: CreateCampaignData = {
         name: campaignName,
         description: campaignDescription,
         organization: organizationId,
         channel: "whatsapp",
         phone_number: appService.phone_number,
-        payload: {
-          template_name: selectedTemplateData?.name || "",
-          template_language: selectedTemplateData?.language || "en",
-          header_parameters: headerPlaceholders.map(placeholder => ({
-            type: "text",
-            text: placeholder
-          })),
-          body_params: templatePayload.body_params,
-          button_params: templatePayload.button_params,
-        },
+        template_id: selectedTemplateData?.id,
+        payload: buildTemplateCampaignPayload({
+          template: selectedTemplateData || {},
+        }),
         scheduled_at: scheduledDateTime ? scheduledDateTime.toISOString() : undefined,
       }
 

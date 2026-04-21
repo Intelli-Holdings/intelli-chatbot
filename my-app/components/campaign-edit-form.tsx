@@ -13,6 +13,7 @@ import { AlertCircle, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CampaignService, type Campaign } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { getDraftTemplateParameterFields } from '@/lib/campaign-payload';
 import { logger } from "@/lib/logger";
 
 interface CampaignEditFormProps {
@@ -25,6 +26,7 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
   const organizationId = useActiveOrganizationId();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const { bodyParameters, headerParameters } = getDraftTemplateParameterFields(campaign.payload);
 
   const invalidateCampaignQueries = () => {
     if (!organizationId) return;
@@ -42,8 +44,8 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
     // Template payload fields
     template_name: campaign.payload?.template_name || '',
     template_language: campaign.payload?.template_language || '',
-    body_parameters: campaign.payload?.body_parameters || [],
-    header_parameters: campaign.payload?.header_parameters || [],
+    body_parameters: bodyParameters,
+    header_parameters: headerParameters,
     message_content: campaign.payload?.message_content || '',
   });
 

@@ -1,5 +1,16 @@
 import { logger } from "@/lib/logger";
 
+type CampaignParameter = {
+  type: string;
+  text?: string;
+  parameter_name?: string;
+}
+
+type CampaignMediaParameter = {
+  type: string;
+  [key: string]: unknown;
+}
+
 interface Campaign {
   id: string;
   name: string;
@@ -15,16 +26,21 @@ interface Campaign {
   payload?: {
     template_name?: string;
     template_language?: string;
-    header_parameters?: Array<{
-      type: string;
-      text: string;
-    }>;
-    body_parameters?: Array<{
-      type: string;
-      text: string;
-      parameter_name?: string;
-    }>;
+    template?: {
+      meta_template_id?: string;
+      name?: string;
+      language?: string;
+      category?: string;
+      components?: unknown[];
+    };
+    header_params?: string[];
+    body_params?: string[];
+    button_params?: string[];
+    header_parameters?: CampaignMediaParameter[];
+    body_parameters?: CampaignParameter[];
     message_content?: string;
+    is_carousel?: boolean;
+    carousel_card_media_ids?: string[];
   };
   template?: {
     id: string;
@@ -57,17 +73,18 @@ interface CreateCampaignData {
   payload?: {
     template_name?: string;
     template_language?: string;
-    header_parameters?: Array<{
-      type: string;
-      text: string;
-    }>;
-    body_parameters?: Array<{
-      type: string;
-      text: string;
-      parameter_name?: string;
-    }>;
-    body_params?: string[];  // Backend format for body parameters
-    button_params?: string[];  // Backend format for button parameters
+    template?: {
+      meta_template_id?: string;
+      name?: string;
+      language?: string;
+      category?: string;
+      components?: unknown[];
+    };
+    header_params?: string[];
+    body_params?: string[];
+    button_params?: string[];
+    header_parameters?: CampaignMediaParameter[];
+    body_parameters?: CampaignParameter[];
     message_content?: string;
     is_carousel?: boolean;
     carousel_card_media_ids?: string[];

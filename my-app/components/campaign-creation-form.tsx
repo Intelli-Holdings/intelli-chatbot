@@ -33,6 +33,7 @@ import { transformCSVToRecipients, validateMappings, getRequiredFields } from '@
 import MappingPreviewPanel from '@/components/mapping-preview-panel';
 import { ChatbotAutomationService, TemplateButtonFlowMapping } from '@/services/chatbot-automation';
 import { ChatbotAutomation } from '@/types/chatbot-automation';
+import { buildTemplateCampaignPayload, getDraftTemplateParameterFields } from '@/lib/campaign-payload';
 import { logger } from "@/lib/logger";
 
 interface Contact {
@@ -220,6 +221,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   useEffect(() => {
     if (!draftCampaign || hasInitializedDraft.current) return;
 
+    const { bodyParameters, headerParameters } = getDraftTemplateParameterFields(draftCampaign.payload);
+
     setCreatedCampaignId(draftCampaign.id);
     if (draftCampaign.whatsapp_campaign_id) {
       setCreatedWhatsAppCampaignId(draftCampaign.whatsapp_campaign_id);
@@ -234,8 +237,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       channel: draftCampaign.channel as 'whatsapp' | 'sms' | 'email',
       templateName: draftCampaign.payload?.template_name || '',
       templateLanguage: draftCampaign.payload?.template_language || '',
-      bodyParameters: draftCampaign.payload?.body_parameters || prev.bodyParameters,
-      headerParameters: draftCampaign.payload?.header_parameters || prev.headerParameters,
+      bodyParameters: bodyParameters.length > 0 ? bodyParameters : prev.bodyParameters,
+      headerParameters: headerParameters.length > 0 ? headerParameters : prev.headerParameters,
       messageContent: draftCampaign.payload?.message_content || '',
     }));
 
@@ -259,6 +262,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   useEffect(() => {
     if (!draftCampaign || campaignType !== 'template' || hasSyncedDraftTemplate.current) return;
 
+    const { bodyParameters, headerParameters } = getDraftTemplateParameterFields(draftCampaign.payload);
+
     const templateName = draftCampaign.payload?.template_name || draftCampaign.template?.name;
     const template = approvedTemplates.find(t => t.name === templateName);
 
@@ -275,8 +280,8 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
     } else {
       setFormData(prev => ({
         ...prev,
-        bodyParameters: draftCampaign.payload?.body_parameters || prev.bodyParameters,
-        headerParameters: draftCampaign.payload?.header_parameters || prev.headerParameters,
+        bodyParameters: bodyParameters.length > 0 ? bodyParameters : prev.bodyParameters,
+        headerParameters: headerParameters.length > 0 ? headerParameters : prev.headerParameters,
       }));
     }
 
@@ -794,97 +799,14 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         const selectedTemplate = approvedTemplates.find(t => t.name === formData.templateName);
         if (selectedTemplate) {
           updateData.template_id = selectedTemplate.id;
-
-          const templatePayload: any = {
-            template: {
-              meta_template_id: selectedTemplate.id,
-              name: selectedTemplate.name,
-              language: selectedTemplate.language,
-              category: selectedTemplate.category,
-              components: selectedTemplate.components.map((component: any) => {
-                const comp: any = {
-                  type: component.type
-                };
-
-                if (component.type === 'HEADER') {
-                  comp.format = component.format;
-                  if (component.text) comp.text = component.text;
-                } else if (component.type === 'BODY') {
-                  comp.text = component.text;
-                } else if (component.type === 'FOOTER') {
-                  comp.text = component.text;
-                } else if (component.type === 'BUTTONS') {
-                  comp.buttons = component.buttons?.map((btn: any) => ({
-                    type: btn.type,
-                    text: btn.text,
-                    url: btn.url,
-                    phone_number: btn.phone_number
-                  }));
-                } else if (component.type === 'CAROUSEL') {
-                  comp.cards = component.cards;
-                }
-
-                return comp;
-              })
-            }
-          };
-
-          const bodyComponent = selectedTemplate.components.find((c: any) => c.type === 'BODY');
-          if (bodyComponent?.text) {
-            const bodyText = bodyComponent.text;
-            const paramMatches = bodyText.match(/\{\{(\w+|\d+)\}\}/g) || [];
-            templatePayload.body_params = paramMatches;
-          } else {
-            templatePayload.body_params = [];
-          }
-
-          const headerComponent = selectedTemplate.components.find((c: any) => c.type === 'HEADER');
-          if (headerComponent?.format === 'TEXT' && headerComponent?.text) {
-            const headerText = headerComponent.text;
-            const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
-            templatePayload.header_params = headerMatches;
-          } else if (headerComponent?.format && ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION'].includes(headerComponent.format)) {
-            if (headerMediaMode === 'global' && (globalHeaderMediaId || globalHeaderMediaHandle)) {
-              const mediaId = globalHeaderMediaId || globalHeaderMediaHandle;
-              const headerFormat = headerComponent.format.toLowerCase();
-
-              templatePayload.header_parameters = [{
-                type: headerFormat,
-                [headerFormat]: {
-                  id: mediaId
-                }
-              }];
-
-              logger.info(`Preserved global ${headerFormat} media on draft update`, { mediaId });
-            } else if (headerMediaMode === 'per-recipient') {
-              logger.info("Per-recipient media mode: Media will be provided per contact");
-            }
-          }
-
-          const buttonsComponent = selectedTemplate.components.find((c: any) => c.type === 'BUTTONS');
-          const buttonParams: string[] = [];
-
-          if (buttonsComponent?.buttons) {
-            buttonsComponent.buttons.forEach((button: any) => {
-              if (button.type === 'URL' && button.url) {
-                const urlMatches = button.url.match(/\{\{(\w+|\d+)\}\}/g) || [];
-                buttonParams.push(...urlMatches);
-              }
-              if (button.type === 'COPY_CODE' && button.example) {
-                buttonParams.push('{{copy_code}}');
-              }
-            });
-          }
-
-          templatePayload.button_params = buttonParams;
-
-          // Carousel fields
-          if (isCarouselTemplate && carouselMediaIds.length > 0) {
-            templatePayload.is_carousel = true;
-            templatePayload.carousel_card_media_ids = carouselMediaIds;
-          }
-
-          updateData.payload = templatePayload;
+          updateData.payload = buildTemplateCampaignPayload({
+            template: selectedTemplate,
+            headerMediaMode,
+            globalHeaderMediaId,
+            globalHeaderMediaHandle,
+            isCarouselTemplate,
+            carouselMediaIds,
+          });
         }
       } else {
         updateData.payload = {
@@ -942,112 +864,14 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
         if (selectedTemplate) {
           logger.debug("Campaign creation debug", { selectedTemplate, buttonParameters: formData.buttonParameters });
           campaignData.template_id = selectedTemplate.id;
-
-          // Build the template object with all required metadata
-          // Use the Meta API format with components as an array
-          const templatePayload: any = {
-            template: {
-              meta_template_id: selectedTemplate.id,
-              name: selectedTemplate.name,
-              language: selectedTemplate.language,
-              category: selectedTemplate.category,
-              components: selectedTemplate.components.map((component: any) => {
-                // Return component in Meta API format
-                const comp: any = {
-                  type: component.type
-                };
-
-                // Add component-specific fields
-                if (component.type === 'HEADER') {
-                  comp.format = component.format;
-                  if (component.text) comp.text = component.text;
-                } else if (component.type === 'BODY') {
-                  comp.text = component.text;
-                } else if (component.type === 'FOOTER') {
-                  comp.text = component.text;
-                } else if (component.type === 'BUTTONS') {
-                  comp.buttons = component.buttons?.map((btn: any) => ({
-                    type: btn.type,
-                    text: btn.text,
-                    url: btn.url,
-                    phone_number: btn.phone_number
-                  }));
-                } else if (component.type === 'CAROUSEL') {
-                  comp.cards = component.cards;
-                }
-
-                return comp;
-              })
-            }
-          };
-
-          // Extract body params as variable placeholders (e.g., {{1}}, {{2}})
-          // These will be dynamically replaced when CSV is imported with actual values
-          const bodyComponent = selectedTemplate.components.find((c: any) => c.type === 'BODY');
-          if (bodyComponent?.text) {
-            const bodyText = bodyComponent.text;
-            const paramMatches = bodyText.match(/\{\{(\w+|\d+)\}\}/g) || [];
-            templatePayload.body_params = paramMatches;
-          } else {
-            templatePayload.body_params = [];
-          }
-
-          // Extract header params as variable placeholders
-          const headerComponent = selectedTemplate.components.find((c: any) => c.type === 'HEADER');
-          if (headerComponent?.format === 'TEXT' && headerComponent?.text) {
-            const headerText = headerComponent.text;
-            const headerMatches = headerText.match(/\{\{(\w+|\d+)\}\}/g) || [];
-            templatePayload.header_params = headerMatches;
-          } else if (headerComponent?.format && ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION'].includes(headerComponent.format)) {
-            // Media header: Check if we have a global media ID
-            if (headerMediaMode === 'global' && (globalHeaderMediaId || globalHeaderMediaHandle)) {
-              const mediaId = globalHeaderMediaId || globalHeaderMediaHandle;
-              const headerFormat = headerComponent.format.toLowerCase();
-
-              // Add to header_parameters in the format WhatsApp API expects
-              templatePayload.header_parameters = [{
-                type: headerFormat,
-                [headerFormat]: {
-                  id: mediaId
-                }
-              }];
-
-              logger.info(`Added global ${headerFormat} media to campaign payload`, { mediaId });
-            } else if (headerMediaMode === 'per-recipient') {
-              // Per-recipient mode: Don't include header_parameters in campaign payload
-              // Recipients will provide their own media IDs
-              logger.info("Per-recipient media mode: Media will be provided per contact");
-            }
-          }
-
-          // Extract button params from URL buttons and COPY_CODE buttons
-          const buttonsComponent = selectedTemplate.components.find((c: any) => c.type === 'BUTTONS');
-          const buttonParams: string[] = [];
-
-          if (buttonsComponent?.buttons) {
-            buttonsComponent.buttons.forEach((button: any) => {
-              // URL buttons with variables in the URL
-              if (button.type === 'URL' && button.url) {
-                const urlMatches = button.url.match(/\{\{(\w+|\d+)\}\}/g) || [];
-                buttonParams.push(...urlMatches);
-              }
-              // COPY_CODE buttons - the example value is the placeholder
-              if (button.type === 'COPY_CODE' && button.example) {
-                buttonParams.push('{{copy_code}}'); // Placeholder for copy code
-              }
-            });
-          }
-
-          templatePayload.button_params = buttonParams;
-          logger.debug("Extracted params", { bodyParams: templatePayload.body_params, headerParams: templatePayload.header_params, buttonParams: templatePayload.button_params });
-
-          // Carousel fields
-          if (isCarouselTemplate && carouselMediaIds.length > 0) {
-            templatePayload.is_carousel = true;
-            templatePayload.carousel_card_media_ids = carouselMediaIds;
-          }
-
-          campaignData.payload = templatePayload;
+          campaignData.payload = buildTemplateCampaignPayload({
+            template: selectedTemplate,
+            headerMediaMode,
+            globalHeaderMediaId,
+            globalHeaderMediaHandle,
+            isCarouselTemplate,
+            carouselMediaIds,
+          });
         }
       } else {
         // For simple text campaigns
