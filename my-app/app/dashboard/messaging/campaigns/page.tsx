@@ -28,6 +28,7 @@ import CampaignCreationForm from '@/components/campaign-creation-form';
 import { CampaignWizard } from '@/components/campaign-wizard';
 import CampaignEditForm from '@/components/campaign-edit-form';
 import CampaignDetailsModal from '@/components/campaign-details-modal';
+import { CampaignStatusBadge, getCampaignStatus, statusHelpers } from '@/components/campaign-status-badge';
 import { CampaignScheduleDisplay } from '@/components/schedule-input-timezone';
 
 export default function CampaignsPage() {
@@ -83,10 +84,6 @@ export default function CampaignsPage() {
   const handleEditCampaign = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setShowEditForm(true);
-  };
-
-  const canEditCampaign = (campaign: Campaign) => {
-    return campaign.status === 'draft' || campaign.status === 'scheduled' || campaign.status === 'ready';
   };
 
   const handlePauseCampaign = async (campaign: Campaign) => {
@@ -182,19 +179,6 @@ export default function CampaignsPage() {
 
   const handleClearSelection = () => {
     setSelectedCampaigns(new Set());
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
-      case 'sending': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
-      case 'draft': return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
   };
 
   const getChannelColor = (channel: string) => {
@@ -466,7 +450,10 @@ export default function CampaignsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCampaigns.map((campaign: Campaign) => (
+                  {filteredCampaigns.map((campaign: Campaign) => {
+                    const campaignStatus = getCampaignStatus(campaign);
+
+                    return (
                     <TableRow key={campaign.id}>
                       <TableCell>
                         <Checkbox
@@ -488,9 +475,7 @@ export default function CampaignsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(campaign.status || 'draft')}>
-                          {campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}
-                        </Badge>
+                        <CampaignStatusBadge status={campaignStatus} />
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
@@ -515,28 +500,28 @@ export default function CampaignsPage() {
                               View Details
                             </DropdownMenuItem>
 
-                            {campaign.status === 'draft' && (
+                            {campaignStatus === 'draft' && (
                               <DropdownMenuItem onClick={() => handleContinueDraft(campaign)}>
                                 <Play className="h-4 w-4 mr-2" />
                                 Continue Setup
                               </DropdownMenuItem>
                             )}
 
-                            {canEditCampaign(campaign) && (
+                            {statusHelpers.canEdit(campaignStatus) && (
                               <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
                             )}
 
-                            {campaign.status === 'sending' && (
+                            {statusHelpers.canPause(campaignStatus) && (
                               <DropdownMenuItem onClick={() => handlePauseCampaign(campaign)}>
                                 <Pause className="h-4 w-4 mr-2" />
                                 Pause
                               </DropdownMenuItem>
                             )}
 
-                            {campaign.status === 'paused' && (
+                            {statusHelpers.canResume(campaignStatus) && (
                               <DropdownMenuItem onClick={() => handleResumeCampaign(campaign)}>
                                 <Play className="h-4 w-4 mr-2" />
                                 Resume
@@ -555,7 +540,8 @@ export default function CampaignsPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -730,9 +716,7 @@ export default function CampaignsPage() {
                     <Badge className={getChannelColor(campaignToDelete.channel)}>
                       {campaignToDelete.channel.toUpperCase()}
                     </Badge>
-                    <Badge className={getStatusColor(campaignToDelete.status || 'draft')}>
-                      {campaignToDelete.status ? campaignToDelete.status.charAt(0).toUpperCase() + campaignToDelete.status.slice(1) : 'Draft'}
-                    </Badge>
+                    <CampaignStatusBadge status={getCampaignStatus(campaignToDelete)} />
                   </div>
                 </div>
               )}

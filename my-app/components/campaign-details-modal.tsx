@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { CampaignService, type Campaign } from '@/services/campaign';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
+import { CampaignStatusBadge, getCampaignStatus, statusHelpers } from '@/components/campaign-status-badge';
 import { logger } from "@/lib/logger";
 import { useCampaignRecipients } from '@/hooks/use-campaign-recipients';
 import { formatUTCForDisplay } from '@/lib/timezone-utils';
@@ -47,6 +48,7 @@ const buildInitialStats = (campaign: Campaign): CampaignStats => ({
 
 export default function CampaignDetailsModal({ campaign, open, onClose, onRefresh }: CampaignDetailsModalProps) {
   const organizationId = useActiveOrganizationId();
+  const campaignStatus = getCampaignStatus(campaign);
   const [recipientStatusFilter, setRecipientStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<CampaignStats>(() => buildInitialStats(campaign));
@@ -91,11 +93,11 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
 
     // Refresh immediately and then every 30 seconds for active or scheduled campaigns
     refreshStats();
-    if (campaign.status === 'ready' || campaign.status === 'scheduled' || campaign.status === 'sending') {
+    if (campaignStatus === 'ready' || campaignStatus === 'scheduled' || campaignStatus === 'sending') {
       const interval = setInterval(refreshStats, 30000);
       return () => clearInterval(interval);
     }
-  }, [campaign.id, campaign.status, open, organizationId]);
+  }, [campaign.id, campaignStatus, open, organizationId]);
 
   const handlePause = async () => {
     if (!organizationId) return;
@@ -135,19 +137,6 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ready': return 'bg-green-100 text-green-800 border-green-200';
-      case 'sending': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
-      case 'draft': return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   const calculateDeliveryRate = () => {
     if (stats.sent === 0) return 0;
     return Math.round((stats.delivered / stats.sent) * 100);
@@ -177,9 +166,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
               <DialogTitle className="text-xl">{campaign.name}</DialogTitle>
               <p className="text-muted-foreground mt-1">{campaign.description}</p>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className={getStatusColor(campaign.status || 'draft')}>
-                  {campaign.status ? campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1) : 'Draft'}
-                </Badge>
+                <CampaignStatusBadge status={campaignStatus} />
                 {campaign.template && (
                   <Badge variant="outline">Template: {campaign.template.name}</Badge>
                 )}
@@ -189,7 +176,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {campaign.status === 'sending' && (
+              {statusHelpers.canPause(campaignStatus) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -200,7 +187,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                   Pause
                 </Button>
               )}
-              {campaign.status === 'paused' && (
+              {statusHelpers.canResume(campaignStatus) && (
                 <Button
                   variant="outline"
                   size="sm"

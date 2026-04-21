@@ -146,11 +146,11 @@ export function getCampaignStatus(campaign: {
 // Status helper functions
 export const statusHelpers = {
   canEdit: (status: CampaignStatus) => {
-    return status === "draft" || status === "scheduled"
+    return status === "draft" || status === "scheduled" || status === "ready"
   },
 
   canPause: (status: CampaignStatus) => {
-    return status === "ready" || status === "sending"
+    return status === "sending"
   },
 
   canResume: (status: CampaignStatus) => {
@@ -162,7 +162,7 @@ export const statusHelpers = {
   },
 
   isActive: (status: CampaignStatus) => {
-    return status === "sending" || status === "ready"
+    return status === "sending"
   },
 
   isCompleted: (status: CampaignStatus) => {
