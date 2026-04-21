@@ -10,6 +10,11 @@ interface MetaErrorInfo {
 }
 
 const META_ERROR_CODES: Record<number, MetaErrorInfo> = {
+  100: {
+    title: "Invalid Template Parameters",
+    description: "The template data sent to WhatsApp is invalid.",
+    resolution: "Check header media IDs, media URLs, and template parameters before retrying.",
+  },
   131042: {
     title: "Payment Issue",
     description: "The WhatsApp Business Account has a payment method problem.",
@@ -89,6 +94,7 @@ export function getHumanReadableError(errorInfo?: {
   error_type?: string
   error_code?: number | string
   error_subcode?: number | string
+  user_message?: string
   error_details?: string
 } | null): string {
   if (!errorInfo) return 'Unknown error'
@@ -97,9 +103,9 @@ export function getHumanReadableError(errorInfo?: {
   const mapped = getMetaErrorInfo(errorInfo.error_code)
   if (mapped) return mapped.description
 
-  // Fall back to the raw error message
+  if (errorInfo.user_message) return errorInfo.user_message
+
   if (errorInfo.error_details) return errorInfo.error_details
-  if (errorInfo.error && errorInfo.error !== 'Unknown error') return errorInfo.error
 
   return 'Message delivery failed. Check Meta Business Manager for details.'
 }

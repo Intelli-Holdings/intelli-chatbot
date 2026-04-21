@@ -381,7 +381,7 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                                       <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
                                       <div className="space-y-1">
                                         <p className="text-red-700 font-medium">
-                                          {mapped?.title || recipient.error_info.error || 'Message delivery failed'}
+                                          {mapped?.title || 'Message delivery failed'}
                                         </p>
                                         <p className="text-red-600 text-xs">
                                           {humanError}

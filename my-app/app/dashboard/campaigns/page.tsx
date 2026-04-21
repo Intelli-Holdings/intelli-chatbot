@@ -169,13 +169,35 @@ export default function CampaignsPage() {
     try {
       // Handle bulk delete
       if (selectedCampaigns.size > 0) {
-        const deletePromises = Array.from(selectedCampaigns).map(campaignId =>
+        const campaignIds = Array.from(selectedCampaigns);
+        const deleteResults = await Promise.allSettled(campaignIds.map((campaignId) =>
           CampaignService.deleteCampaign(campaignId, organizationId)
-        );
+        ));
+        const failedDeletes = deleteResults.flatMap((result, index) => {
+          if (result.status === 'rejected') {
+            return [{
+              campaignId: campaignIds[index],
+              message: result.reason instanceof Error ? result.reason.message : 'Failed to delete campaign',
+            }];
+          }
+          return [];
+        });
+        const deletedCount = campaignIds.length - failedDeletes.length;
 
-        await Promise.all(deletePromises);
-        toast.success(`${selectedCampaigns.size} campaign(s) deleted successfully`);
-        setSelectedCampaigns(new Set());
+        if (deletedCount > 0) {
+          toast.success(`${deletedCount} campaign(s) deleted successfully`);
+        }
+
+        if (failedDeletes.length > 0) {
+          setSelectedCampaigns(new Set(failedDeletes.map(({ campaignId }) => campaignId)));
+          toast.error(
+            failedDeletes.length === 1
+              ? failedDeletes[0].message
+              : `${failedDeletes.length} campaigns could not be deleted. ${failedDeletes[0].message}`
+          );
+        } else {
+          setSelectedCampaigns(new Set());
+        }
       }
       // Handle single delete
       else if (campaignToDelete) {
@@ -185,10 +207,11 @@ export default function CampaignsPage() {
       }
 
       setShowDeleteDialog(false);
+      setCampaignToDelete(null);
       await refetch();
       await refetchStatusCounts();
     } catch (error) {
-      toast.error('Failed to delete campaign(s)');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete campaign(s)');
     } finally {
       setIsDeleting(false);
     }
