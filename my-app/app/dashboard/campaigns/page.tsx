@@ -96,6 +96,10 @@ export default function CampaignsPage() {
     setShowEditForm(true);
   };
 
+  const canEditCampaign = (campaign: Campaign) => {
+    return campaign.status === 'draft' || campaign.status === 'scheduled' || campaign.status === 'ready';
+  };
+
   const handlePauseCampaign = async (campaign: Campaign) => {
     if (!organizationId) return;
     if (!campaign.whatsapp_campaign_id) {
@@ -535,10 +539,12 @@ export default function CampaignsPage() {
                               </DropdownMenuItem>
                             )}
 
-                            <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
+                            {canEditCampaign(campaign) && (
+                              <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
 
                             {campaign.status === 'sending' && (
                               <DropdownMenuItem onClick={() => handlePauseCampaign(campaign)}>

@@ -25,8 +25,6 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
   const organizationId = useActiveOrganizationId();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-  const immediateExecutionDelayMs = 10_000; // 10 seconds buffer before firing immediates
 
   const invalidateCampaignQueries = () => {
     if (!organizationId) return;
@@ -67,9 +65,13 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
     setFormData({ ...formData, header_parameters: newParams });
   };
 
+  const canEditCampaign = () => {
+    return campaign.status === 'draft' || campaign.status === 'scheduled' || campaign.status === 'ready';
+  };
+
   const canEditTemplate = () => {
-    // Only allow template editing for draft and scheduled campaigns
-    return campaign.status === 'draft' || campaign.status === 'scheduled';
+    // Allow payload edits until the campaign has actually started running.
+    return canEditCampaign();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,6 +84,11 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
 
     if (!formData.name.trim()) {
       toast.error('Campaign name is required');
+      return;
+    }
+
+    if (!canEditCampaign()) {
+      toast.error('Only draft, scheduled, or ready campaigns can be edited');
       return;
     }
 
@@ -106,6 +113,7 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
       // Include payload updates if campaign allows editing
       if (canEditTemplate()) {
         updateData.payload = {
+          ...(campaign.payload || {}),
           template_name: formData.template_name,
           template_language: formData.template_language,
           body_parameters: formData.body_parameters,
@@ -121,30 +129,6 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
       );
 
       invalidateCampaignQueries();
-
-      // Re-schedule or execute WhatsApp campaigns after updates
-      if (campaign.channel === 'whatsapp') {
-        const targetWhatsAppId = campaign.whatsapp_campaign_id || campaign.id;
-        const executeNow = !formData.scheduled_at || formData.scheduled_at.trim() === '';
-        const scheduledAt = !executeNow ? new Date(formData.scheduled_at).toISOString() : undefined;
-
-        try {
-          if (executeNow) {
-            await delay(immediateExecutionDelayMs);
-          }
-
-          await CampaignService.executeWhatsAppCampaign(
-            targetWhatsAppId,
-            organizationId,
-            executeNow,
-            scheduledAt
-          );
-          invalidateCampaignQueries();
-        } catch (execError) {
-          logger.error("Error scheduling/executing WhatsApp campaign after edit", { error: execError instanceof Error ? execError.message : String(execError) });
-          throw execError;
-        }
-      }
 
       toast.success('Campaign updated successfully');
       onSuccess();
@@ -196,7 +180,7 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
               onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              Leave empty for immediate sending, or set a future date/time
+              Leave empty to keep the campaign unscheduled, or set a future date/time
             </p>
           </div>
 
@@ -219,7 +203,7 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Template content cannot be edited for campaigns with status: {campaign.status}.
-            Only draft and scheduled campaigns can have their template content modified.
+            Only draft, scheduled, or ready campaigns can have their content modified.
           </AlertDescription>
         </Alert>
       )}
@@ -320,7 +304,7 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
           <X className="h-4 w-4 mr-2" />
           Cancel
         </Button>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || !canEditCampaign()}>
           <Save className="h-4 w-4 mr-2" />
           {loading ? 'Updating...' : 'Update Campaign'}
         </Button>
