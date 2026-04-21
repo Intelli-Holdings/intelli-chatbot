@@ -125,6 +125,19 @@ const nextConfig = {
         destination: 'https://www.intelliconcierge.com/:path*',
         permanent: true,
       },
+      // Consolidated campaign route: /dashboard/messaging/campaigns was a
+      // near-duplicate of /dashboard/campaigns. Keep the latter as canonical
+      // and redirect the old path (preserving any ?action=create etc.).
+      {
+        source: '/dashboard/messaging/campaigns',
+        destination: '/dashboard/campaigns',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/messaging/campaigns/:rest*',
+        destination: '/dashboard/campaigns/:rest*',
+        permanent: true,
+      },
     ];
   },
   async rewrites() {

@@ -36,7 +36,7 @@ export default function MessagingDashboard() {
             <Zap className="mr-2 h-4 w-4" />
             Quick Send
           </Button>
-          <Button onClick={() => router.push("/dashboard/messaging/campaigns?action=create")}>
+          <Button onClick={() => router.push("/dashboard/campaigns?action=create")}>
             <Send className="mr-2 h-4 w-4" />
             New Campaign
           </Button>
@@ -92,7 +92,7 @@ export default function MessagingDashboard() {
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="cursor-pointer transition-all hover:shadow-md" onClick={() => router.push("/dashboard/messaging/campaigns")}>
+        <Card className="cursor-pointer transition-all hover:shadow-md" onClick={() => router.push("/dashboard/campaigns")}>
           <CardHeader>
             <Calendar className="h-8 w-8 text-blue-500" />
             <CardTitle className="mt-4">All Campaigns</CardTitle>
@@ -101,7 +101,7 @@ export default function MessagingDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/dashboard/messaging/campaigns" className="text-sm font-medium text-blue-500 hover:underline">
+            <Link href="/dashboard/campaigns" className="text-sm font-medium text-blue-500 hover:underline">
               View campaigns →
             </Link>
           </CardContent>
@@ -147,7 +147,7 @@ export default function MessagingDashboard() {
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <p>No recent campaigns. Create your first campaign to get started.</p>
-            <Button className="mt-4" onClick={() => router.push("/dashboard/messaging/campaigns?action=create")}>
+            <Button className="mt-4" onClick={() => router.push("/dashboard/campaigns?action=create")}>
               Create Campaign
             </Button>
           </div>
