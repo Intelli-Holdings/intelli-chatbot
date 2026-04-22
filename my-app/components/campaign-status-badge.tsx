@@ -4,9 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   FileText,
   Clock,
-  Rocket,
   CheckCircle2,
-  Pause,
   XCircle,
   Loader2
 } from "lucide-react"
@@ -15,11 +13,8 @@ import { cn } from "@/lib/utils"
 export type CampaignStatus =
   | "draft"
   | "scheduled"
-  | "ready"
   | "sending"
-  | "sent"
   | "completed"
-  | "paused"
   | "failed"
 
 interface CampaignStatusBadgeProps {
@@ -45,31 +40,16 @@ const statusConfig: Record<CampaignStatus, {
     icon: Clock,
     className: "bg-blue-100 text-blue-800 border-blue-200",
   },
-  ready: {
-    label: "Ready",
-    icon: Rocket,
-    className: "bg-green-100 text-green-800 border-green-200",
-  },
   sending: {
     label: "Sending",
     icon: Loader2,
     className: "bg-orange-100 text-orange-800 border-orange-200",
     animated: true,
   },
-  sent: {
-    label: "Sent",
-    icon: CheckCircle2,
-    className: "bg-green-100 text-green-800 border-green-200",
-  },
   completed: {
     label: "Completed",
     icon: CheckCircle2,
-    className: "bg-gray-100 text-gray-800 border-gray-200",
-  },
-  paused: {
-    label: "Paused",
-    icon: Pause,
-    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    className: "bg-green-100 text-green-800 border-green-200",
   },
   failed: {
     label: "Failed",
@@ -109,56 +89,27 @@ export function CampaignStatusBadge({
   )
 }
 
-// Helper function to determine status from campaign data
-export function getCampaignStatus(campaign: {
-  scheduled_at?: string | null
-  run_at?: string | null
-  status?: string
-}): CampaignStatus {
-  // If explicit status is provided, use it
-  if (campaign.status && statusConfig[campaign.status as CampaignStatus]) {
+// The backend is the single source of truth for status. This helper preserves
+// the existing call sites and falls back to 'draft' for any unknown legacy
+// values (e.g. cached responses still serving 'ready' or 'paused').
+export function getCampaignStatus(campaign: { status?: string }): CampaignStatus {
+  if (campaign.status && campaign.status in statusConfig) {
     return campaign.status as CampaignStatus
   }
-
-  // Otherwise, calculate from timestamps (legacy behavior)
-  const now = new Date()
-  const scheduledAt = campaign.scheduled_at ? new Date(campaign.scheduled_at) : null
-  const runAt = campaign.run_at ? new Date(campaign.run_at) : null
-
-  // Campaign has been executed
-  if (runAt) {
-    return "completed"
-  }
-
-  // Campaign is scheduled
-  if (scheduledAt) {
-    if (scheduledAt > now) {
-      return "scheduled"
-    } else {
-      return "ready"
-    }
-  }
-
-  // Default to draft
   return "draft"
 }
 
-// Status helper functions
 export const statusHelpers = {
   canEdit: (status: CampaignStatus) => {
-    return status === "draft" || status === "scheduled" || status === "ready"
+    return status === "draft" || status === "scheduled"
   },
 
-  canPause: (status: CampaignStatus) => {
+  canCancel: (status: CampaignStatus) => {
     return status === "sending"
   },
 
-  canResume: (status: CampaignStatus) => {
-    return status === "paused"
-  },
-
   canDelete: (status: CampaignStatus) => {
-    return status === "draft" || status === "paused" || status === "failed"
+    return status === "draft" || status === "scheduled" || status === "failed"
   },
 
   isActive: (status: CampaignStatus) => {
@@ -166,6 +117,6 @@ export const statusHelpers = {
   },
 
   isCompleted: (status: CampaignStatus) => {
-    return status === "sent" || status === "completed" || status === "failed"
+    return status === "completed" || status === "failed"
   }
 }

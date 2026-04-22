@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Eye, Play, Pause, Trash2, BarChart3, MessageSquare, Clock, Search, Filter, Pencil, MoreVertical, X, Loader2, MessageCircleDashed, MessageSquareText, MailCheck, MessageCircle, MessageCircleMore, RefreshCcw } from 'lucide-react';
+import { Plus, Eye, Play, Trash2, MessageSquare, Search, Pencil, MoreVertical, X, Loader2, MessageCircleDashed, MessageSquareText, MailCheck, MessageCircleMore, RefreshCcw, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -97,35 +97,19 @@ export default function CampaignsPage() {
     setShowEditForm(true);
   };
 
-  const handlePauseCampaign = async (campaign: Campaign) => {
+  const handleCancelCampaign = async (campaign: Campaign) => {
     if (!organizationId) return;
     if (!campaign.whatsapp_campaign_id) {
       toast.error('WhatsApp campaign ID is missing');
       return;
     }
     try {
-      await CampaignService.pauseCampaign(campaign.whatsapp_campaign_id, organizationId);
-      toast.success('Campaign paused successfully');
+      await CampaignService.cancelCampaign(campaign.whatsapp_campaign_id, organizationId);
+      toast.success('Cancellation recorded — the running task will exit shortly.');
       await refetch();
       await refetchStatusCounts();
     } catch (error) {
-      toast.error('Failed to pause campaign');
-    }
-  };
-
-  const handleResumeCampaign = async (campaign: Campaign) => {
-    if (!organizationId) return;
-    if (!campaign.whatsapp_campaign_id) {
-      toast.error('WhatsApp campaign ID is missing');
-      return;
-    }
-    try {
-      await CampaignService.resumeCampaign(campaign.whatsapp_campaign_id, organizationId);
-      toast.success('Campaign resumed successfully');
-      await refetch();
-      await refetchStatusCounts();
-    } catch (error) {
-      toast.error('Failed to resume campaign');
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel campaign');
     }
   };
 
@@ -155,7 +139,7 @@ export default function CampaignsPage() {
 
   const handleDeleteClick = (campaign: Campaign) => {
     if (!statusHelpers.canDelete(getCampaignStatus(campaign))) {
-      toast.error('Only draft, paused, or failed campaigns can be deleted');
+      toast.error('Only draft, scheduled, or failed campaigns can be deleted');
       return;
     }
     setCampaignToDelete(campaign);
@@ -250,7 +234,7 @@ export default function CampaignsPage() {
 
   const handleBulkDeleteClick = () => {
     if (selectedCampaigns.size === 0) {
-      toast.error('Select at least one draft, paused, or failed campaign to delete');
+      toast.error('Select at least one draft, scheduled, or failed campaign to delete');
       return;
     }
     setShowDeleteDialog(true);
@@ -300,22 +284,10 @@ export default function CampaignsPage() {
       color: 'text-orange-600'
     },
     {
-      title: 'Ready',
-      value: statusCounts.ready,
-      icon: MessageCircle,
-      color: 'text-purple-600'
-    },
-    {
       title: 'Scheduled',
       value: statusCounts.scheduled,
       icon: MessageCircleMore,
       color: 'text-orange-600'
-    },
-    {
-      title: 'Paused',
-      value: statusCounts.paused,
-      icon: Pause,
-      color: 'text-yellow-600'
     },
     {
       title: 'Failed',
@@ -326,7 +298,7 @@ export default function CampaignsPage() {
     {
       title: 'Completed',
       value: statusCounts.completed,
-      icon:  MailCheck,
+      icon: MailCheck,
       color: 'text-green-600'
     },
     {
@@ -472,12 +444,10 @@ export default function CampaignsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="ready">Ready</SelectItem>
-                  <SelectItem value="sending">Sending</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="paused">Paused</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="sending">Sending</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="failed">Failed</SelectItem>
                 </SelectContent>
               </Select>
@@ -608,17 +578,13 @@ export default function CampaignsPage() {
                               </DropdownMenuItem>
                             )}
 
-                            {statusHelpers.canPause(campaignStatus) && (
-                              <DropdownMenuItem onClick={() => handlePauseCampaign(campaign)}>
-                                <Pause className="h-4 w-4 mr-2" />
-                                Pause
-                              </DropdownMenuItem>
-                            )}
-
-                            {statusHelpers.canResume(campaignStatus) && (
-                              <DropdownMenuItem onClick={() => handleResumeCampaign(campaign)}>
-                                <Play className="h-4 w-4 mr-2" />
-                                Resume
+                            {statusHelpers.canCancel(campaignStatus) && (
+                              <DropdownMenuItem
+                                onClick={() => handleCancelCampaign(campaign)}
+                                className="text-red-600"
+                              >
+                                <Ban className="h-4 w-4 mr-2" />
+                                Cancel
                               </DropdownMenuItem>
                             )}
 

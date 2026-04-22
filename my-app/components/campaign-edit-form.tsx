@@ -68,7 +68,7 @@ export default function CampaignEditForm({ campaign, onSuccess, onCancel }: Camp
   };
 
   const canEditCampaign = () => {
-    return campaign.status === 'draft' || campaign.status === 'scheduled' || campaign.status === 'ready';
+    return campaign.status === 'draft' || campaign.status === 'scheduled';
   };
 
   const canEditTemplate = () => {

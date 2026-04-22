@@ -11,13 +11,29 @@ type CampaignMediaParameter = {
   [key: string]: unknown;
 }
 
+type CampaignFailureReason =
+  | 'cancelled_by_user'
+  | 'technical_error'
+  | 'validation_error'
+  | 'expired';
+
+interface CampaignStatusHistoryEntry {
+  from_status: string | null;
+  to_status: string;
+  transitioned_at: string;
+  actor: string | null;
+  reason: string;
+}
+
 interface Campaign {
   id: string;
   name: string;
   description: string;
   channel: 'whatsapp' | 'sms' | 'email';
   phone_number?: string;
-  status: 'draft' | 'scheduled' | 'ready' | 'sending' | 'paused' | 'completed' | 'failed';
+  status: 'draft' | 'scheduled' | 'sending' | 'completed' | 'failed';
+  failure_reason?: CampaignFailureReason | null;
+  status_history?: CampaignStatusHistoryEntry[];
   organization: string;
   scheduled_at?: string;
   created_at: string;
@@ -341,51 +357,26 @@ static async updateCampaign(
   }
 
   /**
-   * Pause a campaign (using PATCH to update status)
+   * Cancel a sending campaign. The backend transitions Campaign to FAILED
+   * with failure_reason='cancelled_by_user'; the running task exits on its
+   * next poll.
    */
-  static async pauseCampaign(whatsappCampaignId: string, organizationId: string): Promise<void> {
+  static async cancelCampaign(whatsappCampaignId: string, organizationId: string): Promise<void> {
     try {
-      const response = await fetch(`/api/campaigns/whatsapp/${whatsappCampaignId}/pause`, {
+      const response = await fetch(`/api/campaigns/whatsapp/${whatsappCampaignId}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          organization_id: organizationId,
-        }),
+        body: JSON.stringify({ organization_id: organizationId }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to pause campaign' }));
-        throw new Error(errorData.error || errorData.detail || errorData.message || 'Failed to pause campaign');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to cancel campaign' }));
+        throw new Error(errorData.error || errorData.detail || errorData.message || 'Failed to cancel campaign');
       }
     } catch (error) {
-      logger.error('Error pausing campaign', { error: error instanceof Error ? error.message : String(error) });
-      throw error;
-    }
-  }
-
-  /**
-   * Resume a paused campaign (using PATCH to update status)
-   */
-  static async resumeCampaign(whatsappCampaignId: string, organizationId: string): Promise<void> {
-    try {
-      const response = await fetch(`/api/campaigns/whatsapp/${whatsappCampaignId}/resume`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          organization_id: organizationId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to resume campaign' }));
-        throw new Error(errorData.error || errorData.detail || errorData.message || 'Failed to resume campaign');
-      }
-    } catch (error) {
-      logger.error('Error resuming campaign', { error: error instanceof Error ? error.message : String(error) });
+      logger.error('Error cancelling campaign', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

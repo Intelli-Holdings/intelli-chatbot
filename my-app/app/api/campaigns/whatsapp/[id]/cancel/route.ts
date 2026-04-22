@@ -5,7 +5,9 @@ import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
-// POST /api/campaigns/whatsapp/[id]/resume - Resume WhatsApp campaign execution
+// POST /api/campaigns/whatsapp/[id]/cancel
+// Transitions a sending Campaign to FAILED with failure_reason='cancelled_by_user'.
+// The running Celery task polls Campaign.status and exits on its next iteration.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -29,7 +31,7 @@ export async function POST(
       )
     }
 
-    const response = await fetch(`${BASE_URL}/broadcast/whatsapp/campaigns/${id}/resume/`, {
+    const response = await fetch(`${BASE_URL}/broadcast/whatsapp/campaigns/${id}/cancel/`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -38,29 +40,21 @@ export async function POST(
       body: JSON.stringify(body),
     })
 
+    const data = await response.json().catch(() => ({}))
+
     if (!response.ok) {
-      const rawText = await response.text()
-      let errorData: any = {}
-
-      try {
-        errorData = JSON.parse(rawText)
-      } catch {
-        // Keep raw text as the last fallback.
-      }
-
-      const message =
-        errorData.error ||
-        errorData.detail ||
-        errorData.message ||
-        rawText ||
-        "Failed to resume campaign"
-
-      return NextResponse.json({ error: message }, { status: response.status })
+      return NextResponse.json(data, { status: response.status })
     }
 
-    return NextResponse.json(await response.json())
+    return NextResponse.json(data)
   } catch (error) {
-    logger.error("Error resuming campaign", { error: error instanceof Error ? error.message : String(error) })
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    logger.error("Error cancelling campaign", {
+      error: error instanceof Error ? error.message : String(error),
+      campaignId: id,
+    })
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    )
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, Play, Pause, BarChart3, Users, MessageSquare, Clock, Calendar, Target, AlertCircle } from 'lucide-react';
+import { Ban, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -93,13 +93,13 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
 
     // Refresh immediately and then every 30 seconds for active or scheduled campaigns
     refreshStats();
-    if (campaignStatus === 'ready' || campaignStatus === 'scheduled' || campaignStatus === 'sending') {
+    if (campaignStatus === 'scheduled' || campaignStatus === 'sending') {
       const interval = setInterval(refreshStats, 30000);
       return () => clearInterval(interval);
     }
   }, [campaign.id, campaignStatus, open, organizationId]);
 
-  const handlePause = async () => {
+  const handleCancel = async () => {
     if (!organizationId) return;
     if (!campaign.whatsapp_campaign_id) {
       toast.error('WhatsApp campaign ID is missing');
@@ -107,31 +107,12 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
     }
     setLoading(true);
     try {
-      await CampaignService.pauseCampaign(campaign.whatsapp_campaign_id, organizationId);
-      toast.success('Campaign paused successfully');
+      await CampaignService.cancelCampaign(campaign.whatsapp_campaign_id, organizationId);
+      toast.success('Cancellation recorded — the running task will exit shortly.');
       onRefresh();
       onClose();
     } catch (error) {
-      toast.error('Failed to pause campaign');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResume = async () => {
-    if (!organizationId) return;
-    if (!campaign.whatsapp_campaign_id) {
-      toast.error('WhatsApp campaign ID is missing');
-      return;
-    }
-    setLoading(true);
-    try {
-      await CampaignService.resumeCampaign(campaign.whatsapp_campaign_id, organizationId);
-      toast.success('Campaign resumed successfully');
-      onRefresh();
-      onClose();
-    } catch (error) {
-      toast.error('Failed to resume campaign');
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel campaign');
     } finally {
       setLoading(false);
     }
@@ -157,6 +138,13 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
     return Math.round((stats.replied / stats.delivered) * 100);
   };
 
+  const failureReasonLabels: Record<string, string> = {
+    cancelled_by_user: 'Cancelled by user',
+    technical_error: 'Technical error',
+    validation_error: 'Validation error',
+    expired: 'Expired (scheduler missed it)',
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -165,8 +153,13 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
             <div>
               <DialogTitle className="text-xl">{campaign.name}</DialogTitle>
               <p className="text-muted-foreground mt-1">{campaign.description}</p>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <CampaignStatusBadge status={campaignStatus} />
+                {campaignStatus === 'failed' && campaign.failure_reason && (
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                    {failureReasonLabels[campaign.failure_reason] || campaign.failure_reason}
+                  </Badge>
+                )}
                 {campaign.template && (
                   <Badge variant="outline">Template: {campaign.template.name}</Badge>
                 )}
@@ -176,26 +169,16 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {statusHelpers.canPause(campaignStatus) && (
+              {statusHelpers.canCancel(campaignStatus) && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handlePause}
+                  onClick={handleCancel}
                   disabled={loading}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
                 >
-                  <Pause className="h-4 w-4 mr-1" />
-                  Pause
-                </Button>
-              )}
-              {statusHelpers.canResume(campaignStatus) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResume}
-                  disabled={loading}
-                >
-                  <Play className="h-4 w-4 mr-1" />
-                  Resume
+                  <Ban className="h-4 w-4 mr-1" />
+                  Cancel
                 </Button>
               )}
             </div>
@@ -203,9 +186,10 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
         </DialogHeader>
 
         <Tabs defaultValue="stats" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="stats">Statistics</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline</TabsTrigger>
           </TabsList>
 
           <TabsContent value="stats" className="space-y-4">
@@ -413,6 +397,49 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                   <div className="text-center py-8 text-muted-foreground">
                     Recipient details are only available for WhatsApp campaigns
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="timeline" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Status timeline</CardTitle>
+                <CardDescription>
+                  Every status transition recorded for this campaign, newest first.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(!campaign.status_history || campaign.status_history.length === 0) ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No transitions recorded yet.
+                  </div>
+                ) : (
+                  <ol className="relative border-l border-border ml-3 space-y-5">
+                    {campaign.status_history.map((entry, idx) => (
+                      <li key={`${entry.transitioned_at}-${idx}`} className="ml-4">
+                        <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border border-border bg-background" />
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          {entry.from_status ? (
+                            <>
+                              <CampaignStatusBadge status={entry.from_status as never} />
+                              <span className="text-muted-foreground">→</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs">created</span>
+                          )}
+                          <CampaignStatusBadge status={entry.to_status as never} />
+                          <span className="text-xs text-muted-foreground">
+                            {entry.actor ? 'by user' : 'by system'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatUTCForDisplay(entry.transitioned_at)} · reason: <code className="text-foreground">{entry.reason}</code>
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
                 )}
               </CardContent>
             </Card>

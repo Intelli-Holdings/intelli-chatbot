@@ -101,9 +101,7 @@ export function useWhatsAppCampaigns(
 interface CampaignStatusCounts {
   total: number;
   sending: number;
-  ready: number;
   scheduled: number;
-  paused: number;
   failed: number;
   completed: number;
   draft: number;
@@ -112,9 +110,7 @@ interface CampaignStatusCounts {
 const defaultStatusCounts: CampaignStatusCounts = {
   total: 0,
   sending: 0,
-  ready: 0,
   scheduled: 0,
-  paused: 0,
   failed: 0,
   completed: 0,
   draft: 0,
@@ -129,13 +125,11 @@ export function useCampaignStatusCounts(organizationId?: string, channel?: strin
     }
 
     const channelParam = channel || undefined;
-    const [totalData, sendingData, readyData, scheduledData, pausedData, failedData, completedData, draftData] =
+    const [totalData, sendingData, scheduledData, failedData, completedData, draftData] =
       await Promise.all([
         CampaignService.fetchCampaigns(organizationId, { channel: channelParam }),
         CampaignService.fetchCampaigns(organizationId, { status: 'sending', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'ready', channel: channelParam }),
         CampaignService.fetchCampaigns(organizationId, { status: 'scheduled', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'paused', channel: channelParam }),
         CampaignService.fetchCampaigns(organizationId, { status: 'failed', channel: channelParam }),
         CampaignService.fetchCampaigns(organizationId, { status: 'completed', channel: channelParam }),
         CampaignService.fetchCampaigns(organizationId, { status: 'draft', channel: channelParam }),
@@ -144,9 +138,7 @@ export function useCampaignStatusCounts(organizationId?: string, channel?: strin
     return {
       total: totalData.count || totalData.campaigns?.length || 0,
       sending: sendingData.count || sendingData.campaigns?.length || 0,
-      ready: readyData.count || readyData.campaigns?.length || 0,
       scheduled: scheduledData.count || scheduledData.campaigns?.length || 0,
-      paused: pausedData.count || pausedData.campaigns?.length || 0,
       failed: failedData.count || failedData.campaigns?.length || 0,
       completed: completedData.count || completedData.campaigns?.length || 0,
       draft: draftData.count || draftData.campaigns?.length || 0,
