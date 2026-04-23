@@ -32,7 +32,14 @@ import { CampaignScheduleDisplay } from '@/components/schedule-input-timezone';
 
 export default function CampaignsPage() {
   const organizationId = useActiveOrganizationId();
-  const { appServices, selectedAppService } = useAppServices();
+  const { appServices, selectedAppService, setSelectedAppService } = useAppServices();
+
+  const whatsappAppServices = appServices.filter((s) => s.channel === 'whatsapp' && s.phone_number);
+  const selectedAppServiceId = selectedAppService?.id ? String(selectedAppService.id) : '';
+  const handleAppServiceChange = (value: string) => {
+    const next = whatsappAppServices.find((s) => String(s.id) === value) ?? null;
+    setSelectedAppService(next);
+  };
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -316,13 +323,40 @@ export default function CampaignsPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1 container py-5">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div>
             <h1 className="text-2xl font-semibold sm:text-3xl">Campaign Manager</h1>
             <p className="text-sm text-muted-foreground">
             Create and manage your multi-channel broadcast campaigns
             </p>
           </div>
+          {whatsappAppServices.length > 0 && (
+            <div className="flex flex-col gap-1 sm:items-end">
+              <label className="text-xs font-medium text-muted-foreground">
+                Sending from
+              </label>
+              <Select
+                value={selectedAppServiceId}
+                onValueChange={handleAppServiceChange}
+              >
+                <SelectTrigger className="w-full sm:w-[240px]">
+                  <SelectValue placeholder="Select a WhatsApp number" />
+                </SelectTrigger>
+                <SelectContent>
+                  {whatsappAppServices.map((service) => (
+                    <SelectItem key={String(service.id)} value={String(service.id)}>
+                      {service.phone_number}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {whatsappAppServices.length > 1 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Templates and new campaigns use this number.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {!organizationId && (
@@ -505,6 +539,7 @@ export default function CampaignsPage() {
                     </TableHead>
                     <TableHead>Campaign</TableHead>
                     <TableHead>Channel</TableHead>
+                    <TableHead>From</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Schedule</TableHead>
@@ -537,6 +572,11 @@ export default function CampaignsPage() {
                         <Badge className={getChannelColor(campaign.channel)}>
                           {campaign.channel.toUpperCase()}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-mono">
+                          {campaign.phone_number || <span className="text-muted-foreground">—</span>}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <CampaignStatusBadge status={campaignStatus} />
