@@ -23,6 +23,46 @@ interface CampaignStatusHistoryEntry {
   transitioned_at: string;
   actor: string | null;
   reason: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ValidationIssue {
+  code: string;
+  message: string;
+  field?: string;
+  details?: {
+    count?: number;
+    shown?: number;
+    truncated?: boolean;
+    recipients?: Array<{ id: string; phone: string; name: string }>;
+    [key: string]: unknown;
+  };
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: ValidationIssue[];
+  warnings: ValidationIssue[];
+}
+
+/**
+ * Thrown by executeWhatsAppCampaign when the backend returns 400 with a
+ * ValidationResult body (canonical validator rejected the campaign). Carries
+ * the full diagnostic so callers can render the structured errors/warnings
+ * list instead of a flat toast string.
+ */
+export class CampaignValidationError extends Error {
+  readonly result: ValidationResult;
+
+  constructor(result: ValidationResult) {
+    const summary =
+      result.errors.length === 1
+        ? result.errors[0].message
+        : `${result.errors.length} validation error(s) — see panel for details.`;
+    super(summary);
+    this.name = 'CampaignValidationError';
+    this.result = result;
+  }
 }
 
 interface Campaign {
@@ -382,6 +422,36 @@ static async updateCampaign(
   }
 
   /**
+   * Run the canonical validator and return the diagnostic. Returns 200 with
+   * a ValidationResult body whether or not the campaign is valid; the body's
+   * `valid` field carries the verdict.
+   */
+  static async validateCampaign(
+    whatsappCampaignId: string,
+    organizationId: string,
+  ): Promise<ValidationResult> {
+    try {
+      const response = await fetch(`/api/campaigns/whatsapp/${whatsappCampaignId}/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organization_id: organizationId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || errorData.detail || errorData.message || `Failed to validate campaign (status ${response.status})`,
+        );
+      }
+
+      return (await response.json()) as ValidationResult;
+    } catch (error) {
+      logger.error('Error validating campaign', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  /**
    * Get campaign statistics (using summary endpoint)
    */
   static async getCampaignStats(campaignId: string, organizationId: string): Promise<any> {
@@ -518,14 +588,24 @@ static async updateCampaign(
       });
 
       if (!response.ok) {
-        let errorMessage = 'Failed to execute campaign';
+        // The backend now returns a ValidationResult shape on 400 when the
+        // canonical validator rejects the campaign. Wrap it in a typed Error
+        // so callers can render the structured diagnostic instead of a flat
+        // toast string.
+        let parsed: unknown = null;
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.detail || errorData.message || errorMessage;
+          parsed = await response.json();
         } catch {
-          const text = await response.text();
-          errorMessage = text || errorMessage;
+          // fall through to plain-text fallback
         }
+        if (parsed && typeof parsed === 'object' && 'valid' in parsed && Array.isArray((parsed as ValidationResult).errors)) {
+          const validationResult = parsed as ValidationResult;
+          const error = new CampaignValidationError(validationResult);
+          throw error;
+        }
+        const errorData = (parsed as { error?: string; detail?: string; message?: string }) || {};
+        const errorMessage =
+          errorData.error || errorData.detail || errorData.message || 'Failed to execute campaign';
         throw new Error(`${errorMessage} (status ${response.status})`);
       }
 

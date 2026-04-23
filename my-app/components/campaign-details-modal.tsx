@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { CampaignService, type Campaign } from '@/services/campaign';
+import { CampaignService, type Campaign, type ValidationIssue } from '@/services/campaign';
+import { CampaignValidationResult } from '@/components/campaign-validation-result';
 import useActiveOrganizationId from '@/hooks/use-organization-id';
 import { CampaignStatusBadge, getCampaignStatus, statusHelpers } from '@/components/campaign-status-badge';
 import { logger } from "@/lib/logger";
@@ -145,6 +146,19 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
     expired: 'Expired (scheduler missed it)',
   };
 
+  // Surface the canonical validator output captured by the scheduler when a
+  // campaign was rejected at pickup time. The history row carries the full
+  // ValidationIssue list inside metadata.validation_errors.
+  const validationErrorsFromHistory: ValidationIssue[] = (() => {
+    if (campaignStatus !== 'failed' || campaign.failure_reason !== 'validation_error') {
+      return [];
+    }
+    const latest = campaign.status_history?.[0];
+    const raw = latest?.metadata?.validation_errors;
+    if (!Array.isArray(raw)) return [];
+    return raw as ValidationIssue[];
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -184,6 +198,14 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
             </div>
           </div>
         </DialogHeader>
+
+        {validationErrorsFromHistory.length > 0 && (
+          <CampaignValidationResult
+            result={{ valid: false, errors: validationErrorsFromHistory, warnings: [] }}
+            title="The scheduler rejected this campaign at pickup time:"
+            className="mb-2"
+          />
+        )}
 
         <Tabs defaultValue="stats" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
