@@ -102,7 +102,6 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
   const [createdWhatsAppCampaignId, setCreatedWhatsAppCampaignId] = useState<string | null>(null);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
   const [recipientParameters, setRecipientParameters] = useState<Record<string, Record<string, string>>>({});
   const [headerMediaMode, setHeaderMediaMode] = useState<'per-recipient' | 'global'>('per-recipient');
@@ -1609,30 +1608,6 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleValidate = async () => {
-    if (!createdWhatsAppCampaignId || !organizationId) {
-      toast.error('Save the campaign before validating.');
-      return;
-    }
-    setIsValidating(true);
-    try {
-      const result = await CampaignService.validateCampaign(createdWhatsAppCampaignId, organizationId);
-      setValidationResult(result);
-      if (result.valid && result.warnings.length === 0) {
-        toast.success('All checks passed.');
-      } else if (result.valid) {
-        toast.message(`${result.warnings.length} warning(s) — campaign can still be sent.`);
-      } else {
-        toast.error(`${result.errors.length} error(s) must be fixed before sending.`);
-      }
-    } catch (error) {
-      logger.error('Error validating campaign', { error: error instanceof Error ? error.message : String(error) });
-      toast.error(error instanceof Error ? error.message : 'Failed to validate campaign');
-    } finally {
-      setIsValidating(false);
     }
   };
 
@@ -3360,43 +3335,23 @@ export default function CampaignCreationForm({ appService, onSuccess, draftCampa
                 )}
               </Button>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleValidate}
-                  disabled={isValidating || loading || !createdWhatsAppCampaignId}
-                  className="h-11 px-6 font-medium"
-                >
-                  {isValidating ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Validating...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Validate
-                    </div>
-                  )}
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={loading || !validateStep(step)}
-                  className="h-11 px-8 font-medium bg-green-600 hover:bg-green-700 text-white shadow-lg"
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                      Launching...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Send className="h-4 w-4" />
-                      Launch Campaign
-                    </div>
-                  )}
-                </Button>
-              </div>
+              <Button
+                onClick={handleSubmit}
+                disabled={loading || !validateStep(step)}
+                className="h-11 px-8 font-medium bg-green-600 hover:bg-green-700 text-white shadow-lg"
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Launching...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Send className="h-4 w-4" />
+                    Launch Campaign
+                  </div>
+                )}
+              </Button>
             )}
           </div>
         </Card>

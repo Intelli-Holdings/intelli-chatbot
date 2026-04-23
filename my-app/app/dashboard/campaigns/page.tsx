@@ -272,10 +272,22 @@ export default function CampaignsPage() {
 
   const statsCards = [
     {
-      title: 'Total Campaigns',
+      title: 'Total',
       value: statusCounts.total,
       icon: MessageSquareText,
       color: 'text-blue-600'
+    },
+    {
+      title: 'Drafts',
+      value: statusCounts.draft,
+      icon: MessageCircleDashed,
+      color: 'text-slate-600'
+    },
+    {
+      title: 'Scheduled',
+      value: statusCounts.scheduled,
+      icon: MessageCircleMore,
+      color: 'text-indigo-600'
     },
     {
       title: 'Sending',
@@ -284,10 +296,10 @@ export default function CampaignsPage() {
       color: 'text-orange-600'
     },
     {
-      title: 'Scheduled',
-      value: statusCounts.scheduled,
-      icon: MessageCircleMore,
-      color: 'text-orange-600'
+      title: 'Completed',
+      value: statusCounts.completed,
+      icon: MailCheck,
+      color: 'text-green-600'
     },
     {
       title: 'Failed',
@@ -295,18 +307,6 @@ export default function CampaignsPage() {
       icon: X,
       color: 'text-red-600'
     },
-    {
-      title: 'Completed',
-      value: statusCounts.completed,
-      icon: MailCheck,
-      color: 'text-green-600'
-    },
-    {
-      title: 'Drafts',
-      value: statusCounts.draft,
-      icon: MessageCircleDashed,
-      color: 'text-slate-600'
-    }
   ];
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -341,19 +341,19 @@ export default function CampaignsPage() {
           </Alert>
         )}
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 mb-4">
+        {/* Stats Overview — 6 cards, fits cleanly at md/lg/xl with no shrink-wrapped wrapping */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 mb-4">
           {statsCards.map((stat) => {
             const IconComponent = stat.icon;
             return (
               <Card key={stat.title}>
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-muted-foreground truncate">{stat.title}</p>
+                      <p className="text-2xl font-bold tabular-nums">{stat.value}</p>
                     </div>
-                    <IconComponent className={`h-8 w-8 ${stat.color}`} />
+                    <IconComponent className={`h-8 w-8 shrink-0 ${stat.color}`} />
                   </div>
                 </CardContent>
               </Card>
