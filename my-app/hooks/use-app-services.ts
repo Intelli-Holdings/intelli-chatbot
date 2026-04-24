@@ -12,6 +12,34 @@ export interface UseAppServicesReturn {
   setSelectedAppService: (appService: AppService | null) => void;
 }
 
+// Persist the user's AppService pick per organization. Without this, reloading
+// the page resets the selection to "first WhatsApp service found", which is
+// wrong for orgs with multiple WABAs.
+const STORAGE_PREFIX = 'intelli.selectedAppServiceId';
+const storageKeyFor = (orgId: string) => `${STORAGE_PREFIX}.${orgId}`;
+
+const readStoredSelection = (orgId: string): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(storageKeyFor(orgId));
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredSelection = (orgId: string, appServiceId: string | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (appServiceId) {
+      window.localStorage.setItem(storageKeyFor(orgId), appServiceId);
+    } else {
+      window.localStorage.removeItem(storageKeyFor(orgId));
+    }
+  } catch {
+    // Ignore quota / privacy-mode failures — falls back to auto-pick.
+  }
+};
+
 /**
  * Custom hook to fetch and manage app services (WhatsApp, Instagram) for an organization
  */
@@ -20,7 +48,14 @@ export const useAppServices = (): UseAppServicesReturn => {
   const [appServices, setAppServices] = useState<AppService[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAppService, setSelectedAppService] = useState<AppService | null>(null);
+  const [selectedAppService, setSelectedAppServiceState] = useState<AppService | null>(null);
+
+  const setSelectedAppService = (service: AppService | null) => {
+    setSelectedAppServiceState(service);
+    if (organizationId) {
+      writeStoredSelection(organizationId, service?.id ? String(service.id) : null);
+    }
+  };
 
   const fetchAppServices = async () => {
     if (!organizationId) {
@@ -35,12 +70,23 @@ export const useAppServices = (): UseAppServicesReturn => {
       const services = await WhatsAppService.fetchAppServices(organizationId);
       setAppServices(services);
 
-      // Auto-select a service: prefer WhatsApp (has phone_number), then default, then first
+      // Selection priority: persisted choice (if still valid) -> first WhatsApp
+      // service -> first service. This keeps the user's explicit pick across
+      // reloads and prevents silent switches when the backend reorders results.
       if (services.length > 0) {
-        setSelectedAppService((prev) => {
-          if (prev) return prev;
+        const storedId = readStoredSelection(organizationId);
+        const persisted = storedId
+          ? services.find((s) => String(s.id) === storedId)
+          : null;
+        setSelectedAppServiceState((prev) => {
+          if (prev && services.some((s) => String(s.id) === String(prev.id))) {
+            return prev;
+          }
+          if (persisted) return persisted;
           const whatsapp = services.find((s) => s.phone_number);
-          return whatsapp ?? services[0];
+          const picked = whatsapp ?? services[0];
+          if (picked?.id) writeStoredSelection(organizationId, String(picked.id));
+          return picked;
         });
       } else {
         // Provide helpful message when no services are found
@@ -48,7 +94,7 @@ export const useAppServices = (): UseAppServicesReturn => {
       }
     } catch (err) {
       let errorMessage = 'Failed to fetch app services';
-      
+
       if (err instanceof Error) {
         if (err.message.includes('Failed to fetch')) {
           errorMessage = 'Unable to connect to the API server. Please ensure the backend service is running.';
@@ -56,7 +102,7 @@ export const useAppServices = (): UseAppServicesReturn => {
           errorMessage = err.message;
         }
       }
-      
+
       setError(errorMessage);
       logger.error('Error fetching app services', { error: err instanceof Error ? err.message : String(err) });
     } finally {

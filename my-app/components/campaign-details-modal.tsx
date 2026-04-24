@@ -174,10 +174,15 @@ export default function CampaignDetailsModal({ campaign, open, onClose, onRefres
                     {failureReasonLabels[campaign.failure_reason] || campaign.failure_reason}
                   </Badge>
                 )}
+                {campaign.phone_number && (
+                  <Badge variant="outline" className="font-mono">
+                    From: {campaign.phone_number}
+                  </Badge>
+                )}
                 {campaign.template && (
                   <Badge variant="outline">Template: {campaign.template.name}</Badge>
                 )}
-                {campaign.payload?.template_name && (
+                {campaign.payload?.template_name && !campaign.template && (
                   <Badge variant="outline">Template: {campaign.payload.template_name}</Badge>
                 )}
               </div>

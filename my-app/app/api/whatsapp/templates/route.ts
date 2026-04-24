@@ -98,6 +98,22 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Forward AppService selector (accept either camelCase or snake_case from
+    // the client; the backend expects snake_case).
+    if (appserviceId) {
+      listUrl.searchParams.set('appservice_id', appserviceId);
+    }
+    const appservicePhone =
+      searchParams.get('appservicePhoneNumber') ||
+      searchParams.get('appservice_phone_number');
+    if (appservicePhone) {
+      listUrl.searchParams.set('appservice_phone_number', appservicePhone);
+    }
+    const includeLegacy = searchParams.get('include_legacy');
+    if (includeLegacy) {
+      listUrl.searchParams.set('include_legacy', includeLegacy);
+    }
+
     const response = await fetch(listUrl.toString(), {
       method: 'GET',
       headers: buildHeaders(token),

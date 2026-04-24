@@ -30,11 +30,15 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status")
     const page = searchParams.get("page")
     const pageSize = searchParams.get("page_size")
+    const phoneNumber = searchParams.get("phone_number")
+    const appServiceId = searchParams.get("appservice_id")
 
     if (channel) params.append("channel", channel)
     if (status) params.append("status", status)
     if (page) params.append("page", page)
     if (pageSize) params.append("page_size", pageSize)
+    if (phoneNumber) params.append("phone_number", phoneNumber)
+    if (appServiceId) params.append("appservice_id", appServiceId)
 
     const url = `${BASE_URL}/broadcast/core/campaigns/?${params.toString()}`
 
