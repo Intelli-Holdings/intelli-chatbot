@@ -34,11 +34,12 @@ interface FormData {
     supportCost: number
     revenue: string
   }
-  businessType?: string // Keep for backward compatibility
-  platforms?: any[] // Keep for backward compatibility
-  employeeCount?: string // Keep for backward compatibility
+  businessType?: string 
+  platforms?: any[] 
+  employeeCount?: string 
   teamSize: number
   channels: string[]
+  phone_number: string
 }
 
 interface AssistantData {
@@ -191,6 +192,7 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
     },
     teamSize: 1,
     channels: [],
+    phone_number: "",
 
     businessType: "",
     platforms: [],
@@ -239,6 +241,23 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
           errors.revenue = "Please select your revenue range"
         }
         break
+
+      case 5: { // Team size + phone number
+        const raw = (formData.phone_number || "").trim()
+        const digits = raw.replace(/\D/g, "")
+        if (!raw) {
+          errors.phone_number = "Please enter your phone number"
+        } else if (digits.length < 8) {
+          errors.phone_number = "Phone number is too short"
+        } else if (digits.length > 15) {
+          errors.phone_number = "Phone number is too long"
+        } else if (/^(.)\1+$/.test(digits)) {
+          errors.phone_number = "Please enter a real phone number"
+        } else if (["1234567890", "0123456789", "12345678", "0000000000", "1111111111"].includes(digits)) {
+          errors.phone_number = "Please enter a real phone number"
+        }
+        break
+      }
 
       case 7: // Where to deploy assistant
         if (!formData.channels || formData.channels.length === 0) {
@@ -708,6 +727,40 @@ export default function OnboardingFlow({ onNavigateToDashboard, onboardingData, 
                   {(formData.teamSize ?? 1) < 10 ? "Startup" : (formData.teamSize ?? 1) < 30 ? "Growing" : "Enterprise"}
                 </span>
               </div>
+            </div>
+
+            <div className="pt-4 border-t space-y-2">
+              <Label htmlFor="phone_number" className="text-base font-medium">
+                Phone number <span className="text-red-500">*</span>
+              </Label>
+              <p className="text-sm text-gray-500">
+                We'll use this to reach you about your account. Required.
+              </p>
+              <Input
+                id="phone_number"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="(+1) 555-000-0000"
+                value={formData.phone_number}
+                onChange={(e) => {
+                  setFormData({ ...formData, phone_number: e.target.value })
+                  if (validationErrors.phone_number) {
+                    setValidationErrors((prev) => {
+                      const { phone_number, ...rest } = prev
+                      return rest
+                    })
+                  }
+                }}
+                className={validationErrors.phone_number ? "border-red-500 focus-visible:ring-red-500" : ""}
+                aria-invalid={!!validationErrors.phone_number}
+                aria-describedby={validationErrors.phone_number ? "phone_number-error" : undefined}
+              />
+              {validationErrors.phone_number && (
+                <p id="phone_number-error" className="text-sm text-red-500 mt-1">
+                  {validationErrors.phone_number}
+                </p>
+              )}
             </div>
           </div>
         )
