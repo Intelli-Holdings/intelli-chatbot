@@ -15,7 +15,6 @@
   "dependencies": {
     "@ai-sdk/azure": "^1.1.9",
     "@ai-sdk/openai": "^1.1.9",
-    "@aptabase/react": "^0.3.5",
     "@azure/openai": "^1.0.0-beta.11",
     "@calcom/embed-react": "^1.5.2",
     "@clerk/nextjs": "^7.0.12",
@@ -112,7 +111,7 @@
     "next-ws": "^1.1.1",
     "openai": "^4.29.2",
     "papaparse": "^5.5.2",
-    "posthog-js": "^1.257.0",
+    "posthog-js": "^1.371.3",
     "react": "^19.2.5",
     "react-day-picker": "^8.10.0",
     "react-dom": "^19.2.5",
