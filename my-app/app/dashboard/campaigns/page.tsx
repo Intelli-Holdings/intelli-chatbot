@@ -58,15 +58,20 @@ export default function CampaignsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const pageSize = 100;
+  // Scope campaigns and stats to the active AppService so orgs with multiple
+  // WABAs only see what was sent from the currently-selected number.
+  const activePhoneNumber = selectedAppService?.phone_number || undefined;
   const { campaigns, totalCount, loading, error, refetch } = useCampaigns(organizationId || undefined, {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     channel: channelFilter !== 'all' ? channelFilter : undefined,
     page: currentPage,
     pageSize: pageSize,
+    phoneNumber: activePhoneNumber,
   });
   const { counts: statusCounts, refetch: refetchStatusCounts } = useCampaignStatusCounts(
     organizationId || undefined,
-    channelFilter !== 'all' ? channelFilter : undefined
+    channelFilter !== 'all' ? channelFilter : undefined,
+    activePhoneNumber,
   );
 
   useEffect(() => {
@@ -83,7 +88,7 @@ export default function CampaignsPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, channelFilter, searchTerm]);
+  }, [statusFilter, channelFilter, searchTerm, activePhoneNumber]);
 
   const handleViewCampaign = (campaign: Campaign) => {
     setSelectedCampaign(campaign);

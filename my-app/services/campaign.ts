@@ -188,6 +188,8 @@ export class CampaignService {
     status?: string;
     page?: number;
     pageSize?: number;
+    phoneNumber?: string;
+    appServiceId?: string | number;
   }): Promise<{ campaigns: Campaign[]; count: number; next: string | null; previous: string | null }> {
     try {
       if (!organizationId) {
@@ -201,6 +203,8 @@ export class CampaignService {
       if (filters?.status) params.append('status', filters.status);
       if (filters?.page) params.append('page', filters.page.toString());
       if (filters?.pageSize) params.append('page_size', filters.pageSize.toString());
+      if (filters?.phoneNumber) params.append('phone_number', filters.phoneNumber);
+      if (filters?.appServiceId) params.append('appservice_id', String(filters.appServiceId));
 
       const response = await fetch(`/api/campaigns?${params.toString()}`);
 

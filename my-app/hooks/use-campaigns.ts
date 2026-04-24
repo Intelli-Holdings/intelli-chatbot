@@ -16,6 +16,8 @@ interface UseCampaignsFilters {
   status?: string;
   page?: number;
   pageSize?: number;
+  phoneNumber?: string;
+  appServiceId?: string | number;
 }
 
 export function useCampaigns(
@@ -29,6 +31,8 @@ export function useCampaigns(
     filters?.status ?? null,
     filters?.page ?? null,
     filters?.pageSize ?? null,
+    filters?.phoneNumber ?? null,
+    filters?.appServiceId ?? null,
   ];
 
   const fetchCampaigns = async () => {
@@ -116,8 +120,12 @@ const defaultStatusCounts: CampaignStatusCounts = {
   draft: 0,
 };
 
-export function useCampaignStatusCounts(organizationId?: string, channel?: string) {
-  const queryKey = ['campaign-status-counts', organizationId, channel ?? 'all'];
+export function useCampaignStatusCounts(
+  organizationId?: string,
+  channel?: string,
+  phoneNumber?: string,
+) {
+  const queryKey = ['campaign-status-counts', organizationId, channel ?? 'all', phoneNumber ?? 'all'];
 
   const fetchStatusCounts = async (): Promise<CampaignStatusCounts> => {
     if (!organizationId) {
@@ -125,14 +133,15 @@ export function useCampaignStatusCounts(organizationId?: string, channel?: strin
     }
 
     const channelParam = channel || undefined;
+    const shared = { channel: channelParam, phoneNumber };
     const [totalData, sendingData, scheduledData, failedData, completedData, draftData] =
       await Promise.all([
-        CampaignService.fetchCampaigns(organizationId, { channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'sending', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'scheduled', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'failed', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'completed', channel: channelParam }),
-        CampaignService.fetchCampaigns(organizationId, { status: 'draft', channel: channelParam }),
+        CampaignService.fetchCampaigns(organizationId, shared),
+        CampaignService.fetchCampaigns(organizationId, { ...shared, status: 'sending' }),
+        CampaignService.fetchCampaigns(organizationId, { ...shared, status: 'scheduled' }),
+        CampaignService.fetchCampaigns(organizationId, { ...shared, status: 'failed' }),
+        CampaignService.fetchCampaigns(organizationId, { ...shared, status: 'completed' }),
+        CampaignService.fetchCampaigns(organizationId, { ...shared, status: 'draft' }),
       ]);
 
     return {
