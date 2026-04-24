@@ -504,7 +504,7 @@ function InstagramConvosContent() {
             Connect your Instagram Business account to start receiving and responding to direct messages.
           </p>
           <Button asChild>
-            <Link href="/dashboard">
+            <Link href="/dashboard/channels/instagram">
               Connect Instagram
             </Link>
           </Button>

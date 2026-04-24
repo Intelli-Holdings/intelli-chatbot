@@ -152,7 +152,7 @@ const Channels = () => {
       ),
       isNew: true,
       buttonState: 'create' as ButtonState,
-      buttonLink: '/dashboard/conversations/instagram'
+      buttonLink: '/dashboard/channels/instagram'
     },
     {
       title: 'Voice',
